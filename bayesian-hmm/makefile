@@ -5,7 +5,7 @@ CFLAGS_SO = -I`python -c 'from distutils.sysconfig import *; print get_python_in
 main: ## テスト.
 	$(CC) main.cpp $(CFLAGS)
 
-install: ## Word2Vecをビルドします.
+install: ## Python用ライブラリをビルドします.
 	$(CC) model.cpp -o model.so $(CFLAGS_SO)
 
 .PHONY: help
