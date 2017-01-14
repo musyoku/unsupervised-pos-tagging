@@ -148,8 +148,30 @@ public:
 		}
 		return itr->second;
 	}
-	void decrement_tag(int tag_id){
-
+	// in:  t_{i-2},t_{i-1},t_i,t_{i+1},t_{i+2},w_i
+	// out: void
+	void remove_tag_from_model_parameters(int _t_i_2, int _t_i_1, int t_i, int t_i_1, int t_i_2, int w_i){
+		// 1-gram
+		_unigram_counts[t_i] -= 1;
+		assert(_unigram_counts[t_i] >= 0);
+		// 2-gram
+		_bigram_counts[_t_i_1][t_i] -= 1;
+		assert(_bigram_counts[_t_i_1][t_i] >= 0);
+		_bigram_counts[t_i][t_i_1] -= 1;
+		assert(_bigram_counts[t_i][t_i_1] >= 0);
+		// 3-gram
+		_trigram_counts[_t_i_2][_t_i_1][t_i] -= 1;
+		assert(_trigram_counts[_t_i_2][_t_i_1][t_i] >= 0);
+		_trigram_counts[_t_i_1][t_i][t_i_1] -= 1;
+		assert(_trigram_counts[_t_i_1][t_i][t_i_1] >= 0);
+		_trigram_counts[t_i][t_i_1][t_i_2] -= 1;
+		assert(_trigram_counts[t_i][t_i_1][t_i_2] >= 0);
+		// 品詞-単語ペア
+		auto pair = std::make_pair(t_i, w_i);
+		auto itr = _tag_word_counts.find(pair);
+		assert(itr != _tag_word_counts.end());
+		_tag_word_counts[pair] -= 1;
+		assert(itr->second >= 0);
 	}
 	void perform_gibbs_sampling_data(int data_index, vector<vector<Word*>> &dataset){
 		if(_sampling_table == NULL){
@@ -158,12 +180,12 @@ public:
 		vector<Word*> &line = dataset[data_index];
 		for(int pos = 2;pos < line.size() - 2;pos++){	// <bos>と<eos>の内側だけ考える
 			int t_i = line[pos]->tag_id;
-			decrement_tag(t_i);	// モデルパラメータから除去
 			int w_i = line[pos]->word_id;
 			int t_i_1 = line[pos + 1]->tag_id;
 			int t_i_2 = line[pos + 2]->tag_id;
 			int _t_i_1 = line[pos - 1]->tag_id;
 			int _t_i_2 = line[pos - 2]->tag_id;
+			remove_tag_from_model_parameters(_t_i_2, _t_i_1, t_i, t_i_1, t_i_2, w_i);	// モデルパラメータから除去
 			for(int tag = 0;tag < _num_tags;tag++){
 				double n_t_i_w_i = get_count_for_tag_word(tag, t_i);
 				double n_t_i = _unigram_counts[t_i];
