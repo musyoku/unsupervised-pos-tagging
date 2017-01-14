@@ -62,6 +62,7 @@ public:
 				for(int n = 0;n < 2;n++){
 					Word* bos = new Word();
 					bos->word_id = _bos_id;
+					bos->tag_id = -1;
 					words.push_back(bos);
 				}
 				for(auto &word_str: word_strs){
@@ -76,6 +77,7 @@ public:
 				// <eos>
 				Word* eos = new Word();
 				eos->word_id = _eos_id;
+				eos->tag_id = -1;
 				words.push_back(eos);
 				// 訓練データに追加
 				_dataset.push_back(words);
