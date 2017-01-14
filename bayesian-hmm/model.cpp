@@ -18,6 +18,8 @@ private:
 	vector<vector<Word*>> _dataset;
 	int _max_epoch;
 	int _autoincrement;
+	int _bos_id;
+	int _eos_id;
 public:
 	PyBayesianHMM(int vector_length){
 		// 日本語周り
@@ -31,9 +33,11 @@ public:
 		wcin.imbue(ctype_default);
 
 		_hmm = new BayesianHMM();
-		_autoincrement = 0;
+		_bos_id = 0;
+		_eos_id = 1;
+		_autoincrement = _eos_id + 1;
 	}
-	int string_to_token_id(wstring &word){
+	int string_to_word_id(wstring &word){
 		auto itr = _dictionary_inv.find(word);
 		if(itr == _dictionary_inv.end()){
 			_dictionary[_autoincrement] = word;
@@ -54,19 +58,33 @@ public:
 			vector<wstring> word_strs = split_word_by(line_str, ' ');	// スペースで分割
 			if(word_strs.size() > 0){
 				vector<Word*> words;
+				// <bos>
+				for(int n = 0;n < 2;n++){
+					Word* bos = new Word();
+					bos->word_id = _bos_id;
+					words.push_back(bos);
+				}
 				for(auto &word_str: word_strs){
 					if(word_str.size() == 0){
 						continue;
 					}
 					Word* word = new Word();
-					word->token_id = string_to_token_id(word_str);
-					word->phrase_id = -1;
+					word->word_id = string_to_word_id(word_str);
+					word->tag_id = -1;
 					words.push_back(word);
 				}
+				// <eos>
+				Word* eos = new Word();
+				eos->word_id = _eos_id;
+				words.push_back(eos);
+				// 訓練データに追加
 				_dataset.push_back(words);
 			}
 		}
 		c_printf("[*]%s", (boost::format("%sを読み込みました. (%d行)") % filename.c_str() % _dataset.size()).str().c_str());
+	}
+	void initialize(){
+		_hmm->init_table(_dataset);
 	}
 	void perform_gibbs_sampling(){
 		for(int epoch = 0;epoch < _max_epoch;epoch++){
@@ -75,8 +93,8 @@ public:
 			}
 		}
 	}
-	void set_num_phrases(int number){
-		_hmm->set_num_phrases(number);
+	void set_num_tags(int number){
+		_hmm->set_num_tags(number);
 	}
 	void set_num_words(int number){
 		_hmm->set_num_words(number);
@@ -88,9 +106,10 @@ public:
 
 BOOST_PYTHON_MODULE(model){
 	python::class_<PyBayesianHMM>("word2vec", python::init<int>())
-	.def("string_to_token_id", &PyBayesianHMM::string_to_token_id)
+	.def("string_to_word_id", &PyBayesianHMM::string_to_word_id)
 	.def("perform_gibbs_sampling", &PyBayesianHMM::perform_gibbs_sampling)
-	.def("set_num_phrases", &PyBayesianHMM::set_num_phrases)
+	.def("initialize", &PyBayesianHMM::initialize)
+	.def("set_num_tags", &PyBayesianHMM::set_num_tags)
 	.def("set_num_words", &PyBayesianHMM::set_num_words)
 	.def("set_max_epoch", &PyBayesianHMM::set_max_epoch)
 	.def("load_textfile", &PyBayesianHMM::load_textfile)
