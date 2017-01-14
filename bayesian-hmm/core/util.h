@@ -1,6 +1,10 @@
 #ifndef _util_
 #define _util_
 #include <boost/python.hpp>
+#include <vector>
+#include <iostream>
+using namespace std;
+using namespace boost;
 
 template<class T>
 python::list list_from_vector(vector<T> &vec){  

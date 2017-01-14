@@ -2,9 +2,6 @@ CC = g++
 CFLAGS = -std=c++11 -L/usr/local/lib -O2
 CFLAGS_SO = -I`python -c 'from distutils.sysconfig import *; print get_python_inc()'` -shared -fPIC -std=c++11 -L/usr/local/lib -lboost_python -lpython2.7 -O2
 
-main: ## テスト.
-	$(CC) main.cpp $(CFLAGS)
-
 install: ## Python用ライブラリをビルドします.
 	$(CC) model.cpp -o model.so $(CFLAGS_SO)
 
