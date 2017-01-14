@@ -21,7 +21,7 @@ private:
 	int _bos_id;
 	int _eos_id;
 public:
-	PyBayesianHMM(int vector_length){
+	PyBayesianHMM(){
 		// 日本語周り
 		// ただのテンプレ
 		setlocale(LC_CTYPE, "ja_JP.UTF-8");
@@ -48,6 +48,7 @@ public:
 		return itr->second;
 	}
 	void load_textfile(string filename){
+		c_printf("[*]%s\n", (boost::format("%sを読み込んでいます ...") % filename.c_str()).str().c_str());
 		wifstream ifs(filename.c_str());
 		wstring line_str;
 		if (ifs.fail()){
@@ -62,7 +63,7 @@ public:
 				for(int n = 0;n < 2;n++){
 					Word* bos = new Word();
 					bos->word_id = _bos_id;
-					bos->tag_id = -1;
+					bos->tag_id = 0;
 					words.push_back(bos);
 				}
 				for(auto &word_str: word_strs){
@@ -71,21 +72,21 @@ public:
 					}
 					Word* word = new Word();
 					word->word_id = string_to_word_id(word_str);
-					word->tag_id = -1;
+					word->tag_id = 0;
 					words.push_back(word);
 				}
 				// <eos>も2つ追加しておくとt_{i+1}, t_{i+2}が常に存在するのでギブスサンプリング時に場合分けしなくてもいいかもしれない
 				for(int n = 0;n < 2;n++){
 					Word* eos = new Word();
 					eos->word_id = _eos_id;
-					eos->tag_id = -1;
+					eos->tag_id = 0;
 					words.push_back(eos);
 				}
 				// 訓練データに追加
 				_dataset.push_back(words);
 			}
 		}
-		c_printf("[*]%s", (boost::format("%sを読み込みました. (%d行)") % filename.c_str() % _dataset.size()).str().c_str());
+		c_printf("[*]%s\n", (boost::format("%sを読み込みました.") % filename.c_str()).str().c_str());
 	}
 	void initialize(){
 		_hmm->init_ngram_counts(_dataset);
@@ -95,7 +96,7 @@ public:
 		for(int data_index = 0;data_index < _dataset.size();data_index++){
 			rand_indices.push_back(data_index);
 		}
-		for(int epoch = 0;epoch < _max_epoch;epoch++){
+		for(int epoch = 1;epoch <= _max_epoch;epoch++){
 			shuffle(rand_indices.begin(), rand_indices.end(), Sampler::mt);	// データをシャッフル
 			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
 				return;
@@ -105,6 +106,22 @@ public:
 				vector<Word*> &line = _dataset[data_index];
 				_hmm->perform_gibbs_sampling_with_line(line);
 			}
+			show_progress(epoch, _max_epoch);
+			if(epoch % 10 == 0){
+				show_random_line(10);
+			}
+			_hmm->anneal_temperature(0.99989);
+		}
+	}
+	void show_random_line(int num_to_show){
+		for(int n = 0;n < num_to_show;n++){
+			int data_index = Sampler::uniform_int(0, _dataset.size() - 1);
+			vector<Word*> &line = _dataset[data_index];
+			for(int pos = 2;pos < line.size() - 2;pos++){
+				Word* word = line[pos];
+				wcout << _dictionary[word->word_id] << L"/" << word->tag_id << L" ";
+			}
+			wcout << endl;
 		}
 	}
 	void set_num_tags(int number){
@@ -116,12 +133,11 @@ public:
 };
 
 BOOST_PYTHON_MODULE(model){
-	python::class_<PyBayesianHMM>("word2vec", python::init<int>())
+	python::class_<PyBayesianHMM>("bayesian_hmm")
 	.def("string_to_word_id", &PyBayesianHMM::string_to_word_id)
 	.def("perform_gibbs_sampling", &PyBayesianHMM::perform_gibbs_sampling)
 	.def("initialize", &PyBayesianHMM::initialize)
 	.def("set_num_tags", &PyBayesianHMM::set_num_tags)
 	.def("set_max_epoch", &PyBayesianHMM::set_max_epoch)
-	.def("load_textfile", &PyBayesianHMM::load_textfile)
 	.def("load_textfile", &PyBayesianHMM::load_textfile);
 }

@@ -2,6 +2,7 @@
 #define _bhmm_
 #include <boost/format.hpp>
 #include <cassert>
+#include <cmath>
 #include <map>
 #include <set>
 #include "c_printf.h"
@@ -26,6 +27,7 @@ public:
 	double* _sampling_table;	// キャッシュ
 	double _alpha;
 	double _beta;
+	double _temperature;
 	BayesianHMM(){
 		_trigram_counts = NULL;
 		_bigram_counts = NULL;
@@ -33,8 +35,9 @@ public:
 		_sampling_table = NULL;
 		_num_tags = -1;
 		_num_words = -1;
-		_alpha = 1;
+		_alpha = 0.003;
 		_beta = 1;
+		_temperature = 2;
 	}
 	~BayesianHMM(){
 		if(_trigram_counts != NULL){
@@ -71,13 +74,19 @@ public:
 	void set_beta(double beta){
 		_beta = beta;
 	}
+	void set_temperature(double temperature){
+		_temperature = temperature;
+	}
+	void anneal_temperature(double multiplier){
+		_temperature *= multiplier;
+	}
 	void init_ngram_counts_if_needed(vector<vector<Word*>> &dataset){
 		if(_trigram_counts == NULL){
 			init_ngram_counts(dataset);
 		}
 	}
 	void init_ngram_counts(vector<vector<Word*>> &dataset){
-		c_printf("[*]%s", "nグラムカウントを初期化してます ...");
+		c_printf("[*]%s\n", "nグラムカウントを初期化してます ...");
 		assert(_num_tags != -1);
 		// メモリ確保
 		_trigram_counts = (int***)malloc(_num_tags * sizeof(int**));
@@ -98,7 +107,11 @@ public:
 		set<int> word_set;
 		for(int data_index = 0;data_index < dataset.size();data_index++){
 			vector<Word*> &line = dataset[data_index];
-			for(int pos = 2;pos < line.size();pos++){	// 3-gramなので3番目から.
+			// pos < 2
+			_bigram_counts[line[0]->tag_id][line[1]->tag_id] += 1;
+			word_set.insert(line[1]->word_id);
+			// line.size() - 2 > pos >= 2
+			for(int pos = 2;pos < line.size() - 2;pos++){	// 3-gramなので3番目から.
 				Word* word = line[pos];
 				word->tag_id = Sampler::uniform_int(0, _num_tags - 1);
 				increment_tag_word_count(word->tag_id, word->word_id);
@@ -113,9 +126,13 @@ public:
 					_word_types_for_tag[word->tag_id] += 1;
 				}
 			}
+			// pos >= line.size() - 2
+			_bigram_counts[line[line.size() - 3]->tag_id][line[line.size() - 2]->tag_id] += 1;
+			_trigram_counts[line[line.size() - 4]->tag_id][line[line.size() - 3]->tag_id][line[line.size() - 2]->tag_id] += 1;
+			_trigram_counts[line[line.size() - 3]->tag_id][line[line.size() - 2]->tag_id][line[line.size() - 1]->tag_id] += 1;
 		}
 		_num_words = word_set.size();
-		c_printf("[*]%s", (boost::format("単語数: %d 行数: %d") % _num_words % dataset.size()).str().c_str());
+		c_printf("[*]%s\n", (boost::format("単語数: %d - 行数: %d") % _num_words % dataset.size()).str().c_str());
 	}
 	void update_ngram_count(Word* tri_word, Word* bi_word, Word* uni_word){
 		_trigram_counts[tri_word->tag_id][bi_word->tag_id][uni_word->tag_id] += 1;
@@ -227,20 +244,43 @@ public:
 				_sampling_table[tag] *= (n_t_2_1_i + _alpha) / (n_t_2_1 + _num_tags * _alpha);
 				_sampling_table[tag] *= (n_t_1_i_1 + I_2_1_i_1 + _alpha) / (n_t_1_i + I_2_1_i + _num_tags * _alpha);
 				_sampling_table[tag] *= (n_t_i_1_2 + I_2_i_2_1_1 + I_1_i_1_2 + _alpha) / (n_t_i_1 + I_2_i_1_1 + I_1_i_1 + _num_tags * _alpha);
-				sum += _sampling_table[tag];
+				sum += pow(_sampling_table[tag], 1.0 / _temperature);
 			}
 			assert(sum > 0);
 			double normalizer = 1.0 / sum;
 			double r = Sampler::uniform(0, 1);
+			sum = 0;
 			for(int tag = 0;tag < _num_tags;tag++){
-				sum -= _sampling_table[tag] * normalizer;
-				if(sum < r){
+				sum += _sampling_table[tag] * normalizer;
+				if(sum >= r){
 					new_t_i = tag;
 					break;
 				}
 			}
 			// 新しいt_iをモデルパラメータに追加
 			add_tag_to_model_parameters(_t_i_2, _t_i_1, new_t_i, t_i_1, t_i_2, w_i);
+			line[pos]->tag_id = new_t_i;
+		}
+	}
+	void dump_trigram_counts(){
+		for(int tri_tag = 0;tri_tag < _num_tags;tri_tag++){
+			for(int bi_tag = 0;bi_tag < _num_tags;bi_tag++){
+				for(int uni_tag = 0;uni_tag < _num_tags;uni_tag++){
+					cout << (boost::format("3-gram [%d][%d][%d] = %d") % tri_tag % bi_tag % uni_tag % _trigram_counts[tri_tag][bi_tag][uni_tag]).str() << endl;
+				}
+			}
+		}
+	}
+	void dump_bigram_counts(){
+		for(int bi_tag = 0;bi_tag < _num_tags;bi_tag++){
+			for(int uni_tag = 0;uni_tag < _num_tags;uni_tag++){
+				cout << (boost::format("2-gram [%d][%d] = %d") % bi_tag % uni_tag % _bigram_counts[bi_tag][uni_tag]).str() << endl;
+			}
+		}
+	}
+	void dump_unigram_counts(){
+		for(int uni_tag = 0;uni_tag < _num_tags;uni_tag++){
+			cout << (boost::format("1-gram [%d] = %d") % uni_tag % _unigram_counts[uni_tag]).str() << endl;
 		}
 	}
 };
