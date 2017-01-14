@@ -113,13 +113,17 @@ public:
 			_hmm->anneal_temperature(0.99989);
 		}
 	}
-	void show_random_line(int num_to_show){
+	void show_random_line(int num_to_show, bool show_most_co_occurring_tag = true){
 		for(int n = 0;n < num_to_show;n++){
 			int data_index = Sampler::uniform_int(0, _dataset.size() - 1);
 			vector<Word*> &line = _dataset[data_index];
 			for(int pos = 2;pos < line.size() - 2;pos++){
 				Word* word = line[pos];
-				wcout << _dictionary[word->word_id] << L"/" << word->tag_id << L" ";
+				int tag_id = word->tag_id;
+				if(show_most_co_occurring_tag){
+					tag_id = _hmm->get_most_co_occurring_tag(word->word_id);
+				}
+				wcout << _dictionary[word->word_id] << L"/" << tag_id << L" ";
 			}
 			wcout << endl;
 		}

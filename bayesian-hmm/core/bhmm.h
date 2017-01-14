@@ -244,7 +244,8 @@ public:
 				_sampling_table[tag] *= (n_t_2_1_i + _alpha) / (n_t_2_1 + _num_tags * _alpha);
 				_sampling_table[tag] *= (n_t_1_i_1 + I_2_1_i_1 + _alpha) / (n_t_1_i + I_2_1_i + _num_tags * _alpha);
 				_sampling_table[tag] *= (n_t_i_1_2 + I_2_i_2_1_1 + I_1_i_1_2 + _alpha) / (n_t_i_1 + I_2_i_1_1 + I_1_i_1 + _num_tags * _alpha);
-				sum += pow(_sampling_table[tag], 1.0 / _temperature);
+				_sampling_table[tag] = pow(_sampling_table[tag], 1.0 / _temperature);
+				sum += _sampling_table[tag];
 			}
 			assert(sum > 0);
 			double normalizer = 1.0 / sum;
@@ -261,6 +262,19 @@ public:
 			add_tag_to_model_parameters(_t_i_2, _t_i_1, new_t_i, t_i_1, t_i_2, w_i);
 			line[pos]->tag_id = new_t_i;
 		}
+	}
+	int get_most_co_occurring_tag(int word_id){
+		int max_count = 0;
+		int most_co_occurring_tag_id = 0;
+		for(int tag = 0;tag < _num_tags;tag++){
+			auto pair = std::make_pair(tag, word_id);
+			int count = _tag_word_counts[pair];
+			if(count > max_count){
+				max_count = count;
+				most_co_occurring_tag_id = tag;
+			}
+		}
+		return most_co_occurring_tag_id;
 	}
 	void dump_trigram_counts(){
 		for(int tri_tag = 0;tri_tag < _num_tags;tri_tag++){
