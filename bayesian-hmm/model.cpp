@@ -100,6 +100,11 @@ public:
 			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
 				return;
 			}
+			for(int n = 0;n < _dataset.size();n++){
+				int data_index = rand_indices[n];
+				vector<Word*> &line = _dataset[data_index];
+				_hmm->perform_gibbs_sampling_with_line(line);
+			}
 		}
 	}
 	void set_num_tags(int number){

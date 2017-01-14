@@ -150,6 +150,23 @@ public:
 	}
 	// in:  t_{i-2},t_{i-1},t_i,t_{i+1},t_{i+2},w_i
 	// out: void
+	void add_tag_to_model_parameters(int _t_i_2, int _t_i_1, int t_i, int t_i_1, int t_i_2, int w_i){
+		// 1-gram
+		_unigram_counts[t_i] += 1;
+		// 2-gram
+		_bigram_counts[_t_i_1][t_i] += 1;
+		_bigram_counts[t_i][t_i_1] += 1;
+		// 3-gram
+		_trigram_counts[_t_i_2][_t_i_1][t_i] += 1;
+		_trigram_counts[_t_i_1][t_i][t_i_1] += 1;
+		_trigram_counts[t_i][t_i_1][t_i_2] += 1;
+		// 品詞-単語ペア
+		auto pair = std::make_pair(t_i, w_i);
+		auto itr = _tag_word_counts.find(pair);
+		_tag_word_counts[pair] += 1;
+	}
+	// in:  t_{i-2},t_{i-1},t_i,t_{i+1},t_{i+2},w_i
+	// out: void
 	void remove_tag_from_model_parameters(int _t_i_2, int _t_i_1, int t_i, int t_i_1, int t_i_2, int w_i){
 		// 1-gram
 		_unigram_counts[t_i] -= 1;
@@ -173,11 +190,10 @@ public:
 		_tag_word_counts[pair] -= 1;
 		assert(itr->second >= 0);
 	}
-	void perform_gibbs_sampling_data(int data_index, vector<vector<Word*>> &dataset){
+	void perform_gibbs_sampling_with_line(vector<Word*> &line){
 		if(_sampling_table == NULL){
 			_sampling_table = (double*)malloc(_num_tags * sizeof(double));
 		}
-		vector<Word*> &line = dataset[data_index];
 		for(int pos = 2;pos < line.size() - 2;pos++){	// <bos>と<eos>の内側だけ考える
 			int t_i = line[pos]->tag_id;
 			int w_i = line[pos]->word_id;
@@ -185,13 +201,46 @@ public:
 			int t_i_2 = line[pos + 2]->tag_id;
 			int _t_i_1 = line[pos - 1]->tag_id;
 			int _t_i_2 = line[pos - 2]->tag_id;
-			remove_tag_from_model_parameters(_t_i_2, _t_i_1, t_i, t_i_1, t_i_2, w_i);	// モデルパラメータから除去
+			// t_iをモデルパラメータから除去
+			remove_tag_from_model_parameters(_t_i_2, _t_i_1, t_i, t_i_1, t_i_2, w_i);
+			// t_iを再サンプリング
+			double sum = 0;
+			int new_t_i = 0;
 			for(int tag = 0;tag < _num_tags;tag++){
+				_sampling_table[tag] = 1;
 				double n_t_i_w_i = get_count_for_tag_word(tag, t_i);
 				double n_t_i = _unigram_counts[t_i];
 				double W_t_i = _word_types_for_tag[t_i];
-				_sampling_table[tag] = (n_t_i_w_i + _beta) / (n_t_i + W_t_i * _beta);
+				double n_t_2_1_i = _trigram_counts[_t_i_2][_t_i_1][t_i];
+				double n_t_2_1 = _bigram_counts[_t_i_2][_t_i_1];
+				double n_t_1_i_1 = _trigram_counts[_t_i_1][t_i][t_i_1];
+				double n_t_1_i = _bigram_counts[_t_i_1][t_i];
+				double I_2_1_i_1 = (_t_i_2 == _t_i_1 == t_i == t_i_1) ? 1 : 0;
+				double I_2_1_i = (_t_i_2 == _t_i_1 == t_i) ? 1 : 0;
+				double n_t_i_1_2 = _trigram_counts[t_i][t_i_1][t_i_2];
+				double n_t_i_1 = _bigram_counts[t_i][t_i_1];
+				double I_2_i_2_1_1 = (_t_i_2 == t_i == t_i_2 && _t_i_1 == t_i_1) ? 1 : 0;
+				double I_1_i_1_2 = (_t_i_1 == t_i == t_i_1 == t_i_2) ? 1 : 0;
+				double I_2_i_1_1 = (_t_i_2 == t_i && _t_i_1 == t_i_1) ? 1 : 0;
+				double I_1_i_1 = (_t_i_1 == t_i == t_i_1) ? 1 : 0;
+				_sampling_table[tag] *= (n_t_i_w_i + _beta) / (n_t_i + W_t_i * _beta);
+				_sampling_table[tag] *= (n_t_2_1_i + _alpha) / (n_t_2_1 + _num_tags * _alpha);
+				_sampling_table[tag] *= (n_t_1_i_1 + I_2_1_i_1 + _alpha) / (n_t_1_i + I_2_1_i + _num_tags * _alpha);
+				_sampling_table[tag] *= (n_t_i_1_2 + I_2_i_2_1_1 + I_1_i_1_2 + _alpha) / (n_t_i_1 + I_2_i_1_1 + I_1_i_1 + _num_tags * _alpha);
+				sum += _sampling_table[tag];
 			}
+			assert(sum > 0);
+			double normalizer = 1.0 / sum;
+			double r = Sampler::uniform(0, 1);
+			for(int tag = 0;tag < _num_tags;tag++){
+				sum -= _sampling_table[tag] * normalizer;
+				if(sum < r){
+					new_t_i = tag;
+					break;
+				}
+			}
+			// 新しいt_iをモデルパラメータに追加
+			add_tag_to_model_parameters(_t_i_2, _t_i_1, new_t_i, t_i_1, t_i_2, w_i);
 		}
 	}
 };
