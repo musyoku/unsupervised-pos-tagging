@@ -74,11 +74,13 @@ public:
 					word->tag_id = -1;
 					words.push_back(word);
 				}
-				// <eos>
-				Word* eos = new Word();
-				eos->word_id = _eos_id;
-				eos->tag_id = -1;
-				words.push_back(eos);
+				// <eos>も2つ追加しておくとt_{i+1}, t_{i+2}が常に存在するのでギブスサンプリング時に場合分けしなくてもいいかもしれない
+				for(int n = 0;n < 2;n++){
+					Word* eos = new Word();
+					eos->word_id = _eos_id;
+					eos->tag_id = -1;
+					words.push_back(eos);
+				}
 				// 訓練データに追加
 				_dataset.push_back(words);
 			}
@@ -86,10 +88,15 @@ public:
 		c_printf("[*]%s", (boost::format("%sを読み込みました. (%d行)") % filename.c_str() % _dataset.size()).str().c_str());
 	}
 	void initialize(){
-		_hmm->init_table(_dataset);
+		_hmm->init_ngram_counts(_dataset);
 	}
 	void perform_gibbs_sampling(){
+		vector<int> rand_indices;
+		for(int data_index = 0;data_index < _dataset.size();data_index++){
+			rand_indices.push_back(data_index);
+		}
 		for(int epoch = 0;epoch < _max_epoch;epoch++){
+			shuffle(rand_indices.begin(), rand_indices.end(), Sampler::mt);	// データをシャッフル
 			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
 				return;
 			}
@@ -97,9 +104,6 @@ public:
 	}
 	void set_num_tags(int number){
 		_hmm->set_num_tags(number);
-	}
-	void set_num_words(int number){
-		_hmm->set_num_words(number);
 	}
 	void set_max_epoch(int epoch){
 		_max_epoch = epoch;
@@ -112,7 +116,6 @@ BOOST_PYTHON_MODULE(model){
 	.def("perform_gibbs_sampling", &PyBayesianHMM::perform_gibbs_sampling)
 	.def("initialize", &PyBayesianHMM::initialize)
 	.def("set_num_tags", &PyBayesianHMM::set_num_tags)
-	.def("set_num_words", &PyBayesianHMM::set_num_words)
 	.def("set_max_epoch", &PyBayesianHMM::set_max_epoch)
 	.def("load_textfile", &PyBayesianHMM::load_textfile)
 	.def("load_textfile", &PyBayesianHMM::load_textfile);
