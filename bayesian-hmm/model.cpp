@@ -109,16 +109,16 @@ public:
 		_hmm->set_temperature(1);
 		for(int epoch = 1;epoch <= _max_epoch;epoch++){
 			shuffle(rand_indices.begin(), rand_indices.end(), Sampler::mt);	// データをシャッフル
-			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
-				return;
-			}
 			for(int n = 0;n < _dataset.size();n++){
+				if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
+					return;
+				}
 				int data_index = rand_indices[n];
 				vector<Word*> &line = _dataset[data_index];
 				_hmm->perform_gibbs_sampling_with_line(line);
 			}
 			show_progress(epoch, _max_epoch);
-			if(epoch % 10 == 0){
+			if(epoch % 100 == 0){
 				show_random_line(10);
 				_hmm->dump_word_types();
 				show_tag_word(20);
