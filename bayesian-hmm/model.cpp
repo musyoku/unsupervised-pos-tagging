@@ -1,6 +1,7 @@
 #include <boost/python.hpp>
 #include <boost/format.hpp>
 #include <string>
+#include <set>
 #include <unordered_map>
 #include <functional>
 #include <fstream>
@@ -9,6 +10,13 @@
 #include "core/util.h"
 using namespace std;
 using namespace boost;
+
+struct value_comparator {
+	bool operator()(const pair<int, int> &a, const pair<int, int> &b) {
+		if (a.second > b.second) return true;
+		return false;
+	}   
+};
 
 class PyBayesianHMM{
 private:
@@ -34,7 +42,9 @@ public:
 
 		_hmm = new BayesianHMM();
 		_bos_id = 0;
+		_dictionary[_bos_id] = L"<bos>";
 		_eos_id = 1;
+		_dictionary[_eos_id] = L"<eos>";
 		_autoincrement = _eos_id + 1;
 	}
 	int string_to_word_id(wstring &word){
@@ -96,6 +106,7 @@ public:
 		for(int data_index = 0;data_index < _dataset.size();data_index++){
 			rand_indices.push_back(data_index);
 		}
+		_hmm->set_temperature(1);
 		for(int epoch = 1;epoch <= _max_epoch;epoch++){
 			shuffle(rand_indices.begin(), rand_indices.end(), Sampler::mt);	// データをシャッフル
 			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
@@ -109,8 +120,10 @@ public:
 			show_progress(epoch, _max_epoch);
 			if(epoch % 10 == 0){
 				show_random_line(10);
+				_hmm->dump_word_types();
+				show_tag_word(20);
 			}
-			_hmm->anneal_temperature(0.99989);
+			// _hmm->anneal_temperature(0.99989);
 		}
 	}
 	void show_random_line(int num_to_show, bool show_most_co_occurring_tag = true){
@@ -126,6 +139,30 @@ public:
 				wcout << _dictionary[word->word_id] << L"/" << tag_id << L" ";
 			}
 			wcout << endl;
+		}
+	}
+	void show_tag_word(int number_to_show_for_each_tag){
+		for(int tag = 0;tag < _hmm->_num_tags;tag++){
+			map<int, int> &word_counts = _hmm->_tag_word_counts[tag];
+			int n = 0;
+			wcout << "tag " << tag << ":" << endl;
+			wcout << "	";
+			multiset<pair<int, int>, value_comparator> ranking;
+			for(auto elem: word_counts){
+				ranking.insert(std::make_pair(elem.first, elem.second));
+			}
+			for(auto elem: ranking){
+				wstring word = _dictionary[elem.first];
+				wcout << word << "/" << elem.second << ", ";
+				n++;
+				if(n > number_to_show_for_each_tag){
+					break;
+				}
+				if(elem.second < 10){
+					break;
+				}
+			}
+			cout << endl;
 		}
 	}
 	void set_num_tags(int number){

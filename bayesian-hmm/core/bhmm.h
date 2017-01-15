@@ -105,6 +105,7 @@ public:
 		// 最初は品詞をランダムに割り当てる
 		set<pair<int, int>> tag_word_set;
 		set<int> word_set;
+		map<int, int> tag_for_word;
 		for(int data_index = 0;data_index < dataset.size();data_index++){
 			vector<Word*> &line = dataset[data_index];
 			// pos < 2
@@ -127,8 +128,13 @@ public:
 			// line.size() - 2 > pos >= 2
 			for(int pos = 2;pos < line.size() - 2;pos++){	// 3-gramなので3番目から.
 				Word* word = line[pos];
-				word->tag_id = Sampler::uniform_int(0, _num_tags - 1);
-				increment_tag_word_count(word->tag_id, word->word_id);
+				auto itr = tag_for_word.find(word->word_id);
+				if(itr == tag_for_word.end()){
+					word->tag_id = Sampler::uniform_int(0, _num_tags - 1);
+					tag_for_word[word->word_id] = word->tag_id;
+				}else{
+					word->tag_id = itr->second;
+				}
 				update_ngram_count(line[pos - 2], line[pos - 1], line[pos]);
 				// 単語の種類数をカウント
 				word_set.insert(word->word_id);
@@ -187,6 +193,7 @@ public:
 		itr->second += 1;
 	}
 	void decrement_tag_word_count(int tag_id, int word_id){
+		
 		map<int, int> &word_counts = _tag_word_counts[tag_id];
 		auto itr = word_counts.find(word_id);
 		if(itr == word_counts.end()){
@@ -226,7 +233,6 @@ public:
 				// dump_bigram_counts();
 				// dump_unigram_counts();
 				// dump_word_types();
-
 		// 1-gram
 		_unigram_counts[t_i] += 1;
 		// 2-gram
@@ -247,7 +253,6 @@ public:
 				// dump_bigram_counts();
 				// dump_unigram_counts();
 				// dump_word_types();
-
 		// 1-gram
 		_unigram_counts[t_i] -= 1;
 		assert(_unigram_counts[t_i] >= 0);
