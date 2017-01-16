@@ -4,11 +4,11 @@
 #include <boost/serialization/base_object.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
-#include <boost/serialization/map.hpp>
+#include <boost/serialization/unordered_map.hpp>
 #include <boost/format.hpp>
 #include <cassert>
 #include <cmath>
-#include <map>
+#include <unordered_map>
 #include <set>
 #include "c_printf.h"
 #include "sampler.h"
@@ -36,7 +36,7 @@ public:
 	int*** _trigram_counts;	// 品詞3-gramのカウント
 	int** _bigram_counts;	// 品詞2-gramのカウント
 	int* _unigram_counts;	// 品詞1-gramのカウント
-	map<int, map<int, int>> _tag_word_counts;	// 品詞と単語のペアの出現頻度
+	unordered_map<int, unordered_map<int, int>> _tag_word_counts;	// 品詞と単語のペアの出現頻度
 	double* _sampling_table;	// キャッシュ
 	double _alpha;
 	double _beta;
@@ -123,7 +123,7 @@ public:
 		_unigram_counts = (int*)calloc(_num_tags, sizeof(int));
 		// 最初は品詞をランダムに割り当てる
 		set<int> word_set;
-		map<int, int> tag_for_word;
+		unordered_map<int, int> tag_for_word;
 		for(int data_index = 0;data_index < dataset.size();data_index++){
 			vector<Word*> &line = dataset[data_index];
 			// pos < 2
@@ -179,7 +179,7 @@ public:
 		_unigram_counts[uni_word->tag_id] += 1;
 	}
 	void increment_tag_word_count(int tag_id, int word_id){
-		map<int, int> &word_counts = _tag_word_counts[tag_id];
+		unordered_map<int, int> &word_counts = _tag_word_counts[tag_id];
 		auto itr = word_counts.find(word_id);
 		if(itr == word_counts.end()){
 			word_counts[word_id] = 1;
@@ -188,7 +188,7 @@ public:
 		itr->second += 1;
 	}
 	void decrement_tag_word_count(int tag_id, int word_id){
-		map<int, int> &word_counts = _tag_word_counts[tag_id];
+		unordered_map<int, int> &word_counts = _tag_word_counts[tag_id];
 		auto itr = word_counts.find(word_id);
 		if(itr == word_counts.end()){
 			c_printf("[R]%s [*]%s", "エラー", "品詞-単語ペアのカウントが正しく実装されていません.");
@@ -200,7 +200,7 @@ public:
 		}
 	}
 	int get_count_for_tag_word(int tag_id, int word_id){
-		map<int, int> &word_counts = _tag_word_counts[tag_id];
+		unordered_map<int, int> &word_counts = _tag_word_counts[tag_id];
 		auto itr = word_counts.find(word_id);
 		if(itr == word_counts.end()){
 			return 0;
@@ -208,7 +208,7 @@ public:
 		return itr->second;
 	}
 	int get_word_types_for_tag(int tag_id){
-		map<int, int> &word_counts = _tag_word_counts[tag_id];
+		unordered_map<int, int> &word_counts = _tag_word_counts[tag_id];
 		return word_counts.size();
 	}
 	// in:  t_{i-2},t_{i-1},t_i,t_{i+1},t_{i+2},w_i
@@ -341,14 +341,14 @@ public:
 			cout << tag << ": " << get_word_types_for_tag(tag) << endl;
 		}
 	}
-	bool save(string filename = "hmm.model"){
+	bool save(string filename = "hmm.tags"){
 		std::ofstream ofs(filename);
 		boost::archive::binary_oarchive oarchive(ofs);
 		oarchive << static_cast<const BayesianHMM&>(*this);
 		ofs.close();
 		return true;
 	}
-	bool load(string filename = "hmm.model"){
+	bool load(string filename = "hmm.tags"){
 		std::ifstream ifs(filename);
 		if(ifs.good() == false){
 			return false;

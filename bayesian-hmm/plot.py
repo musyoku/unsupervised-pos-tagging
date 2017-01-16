@@ -3,8 +3,6 @@ import argparse, sys
 import model
 
 def main(args):
-	if args.filename is None:
-		raise Exception()
 	hmm = model.bayesian_hmm()
 	if hmm.load(args.model) == False:
 		raise Exception("モデルが見つかりません.")
