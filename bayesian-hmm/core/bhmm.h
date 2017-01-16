@@ -1,5 +1,10 @@
 #ifndef _bhmm_
 #define _bhmm_
+#include <boost/serialization/serialization.hpp>
+#include <boost/serialization/base_object.hpp>
+#include <boost/archive/binary_iarchive.hpp>
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/serialization/map.hpp>
 #include <boost/format.hpp>
 #include <cassert>
 #include <cmath>
@@ -16,13 +21,28 @@ typedef struct Word {
 } Word;
 
 class BayesianHMM{
+private:
+	friend class boost::serialization::access;
+	template <class Archive>
+	void serialize(Archive& archive, unsigned int version)
+	{
+		static_cast<void>(version);
+		archive & _num_tags;
+		archive & _num_words;
+		archive & _alpha;
+		archive & _beta;
+		archive & _temperature;
+		archive & _trigram_counts;
+		archive & _bigram_counts;
+		archive & _unigram_counts;
+		archive & _tag_word_counts;
+	}
 public:
 	int _num_tags;	// 品詞数
 	int _num_words;		// 単語数
 	int*** _trigram_counts;	// 品詞3-gramのカウント
 	int** _bigram_counts;	// 品詞2-gramのカウント
 	int* _unigram_counts;	// 品詞1-gramのカウント
-	int* _word_types_for_tag;	// 同じ品詞の単語の種類
 	map<int, map<int, int>> _tag_word_counts;	// 品詞と単語のペアの出現頻度
 	double* _sampling_table;	// キャッシュ
 	double _alpha;
@@ -101,7 +121,6 @@ public:
 			_bigram_counts[bi_tag] = (int*)calloc(_num_tags, sizeof(int));
 		}
 		_unigram_counts = (int*)calloc(_num_tags, sizeof(int));
-		_word_types_for_tag = (int*)calloc(_num_tags, sizeof(int));
 		// 最初は品詞をランダムに割り当てる
 		set<pair<int, int>> tag_word_set;
 		set<int> word_set;
@@ -115,15 +134,9 @@ public:
 			_unigram_counts[line[1]->tag_id] += 1;
 			word_set.insert(line[0]->word_id);
 			word_set.insert(line[1]->word_id);
-			auto newly_inserted = tag_word_set.insert(std::make_pair(line[0]->tag_id, line[0]->word_id));
-			if(newly_inserted.second == true){
-				_word_types_for_tag[line[0]->tag_id] += 1;
-			}
+			tag_word_set.insert(std::make_pair(line[0]->tag_id, line[0]->word_id));
 			increment_tag_word_count(line[0]->tag_id, line[0]->word_id);
-			newly_inserted = tag_word_set.insert(std::make_pair(line[1]->tag_id, line[1]->word_id));
-			if(newly_inserted.second == true){
-				_word_types_for_tag[line[1]->tag_id] += 1;
-			}
+			tag_word_set.insert(std::make_pair(line[1]->tag_id, line[1]->word_id));
 			increment_tag_word_count(line[1]->tag_id, line[1]->word_id);
 			// line.size() - 2 > pos >= 2
 			for(int pos = 2;pos < line.size() - 2;pos++){	// 3-gramなので3番目から.
@@ -140,12 +153,6 @@ public:
 				word_set.insert(word->word_id);
 				// 同じタグの単語集合をカウント
 				increment_tag_word_count(word->tag_id, word->word_id);
-				// auto pair = std::make_pair(word->tag_id, word->word_id);
-				// newly_inserted = tag_word_set.insert(pair);
-				// if(newly_inserted.second == true){
-				// 	_word_types_for_tag[word->tag_id] += 1;
-				// 			_tag_word_counts[word->tag_id][word->word_id] += 1;
-				// }
 			}
 			// pos >= line.size() - 2
 			// <eos>2つ
@@ -164,15 +171,9 @@ public:
 			int w_end_1 = line[end_index - 1]->word_id;
 			word_set.insert(w_end);
 			word_set.insert(w_end_1);
-			newly_inserted = tag_word_set.insert(std::make_pair(t_end, w_end));
-			if(newly_inserted.second == true){
-				_word_types_for_tag[t_end] += 1;
-			}
+			tag_word_set.insert(std::make_pair(t_end, w_end));
 			increment_tag_word_count(t_end, w_end);
-			newly_inserted = tag_word_set.insert(std::make_pair(t_end_1, w_end_1));
-			if(newly_inserted.second == true){
-				_word_types_for_tag[t_end_1] += 1;
-			}
+			tag_word_set.insert(std::make_pair(t_end_1, w_end_1));
 			increment_tag_word_count(t_end_1, w_end_1);
 		}
 		_num_words = word_set.size();
@@ -193,7 +194,6 @@ public:
 		itr->second += 1;
 	}
 	void decrement_tag_word_count(int tag_id, int word_id){
-		
 		map<int, int> &word_counts = _tag_word_counts[tag_id];
 		auto itr = word_counts.find(word_id);
 		if(itr == word_counts.end()){
@@ -217,22 +217,9 @@ public:
 		map<int, int> &word_counts = _tag_word_counts[tag_id];
 		return word_counts.size();
 	}
-	// デバッグ用
-	void check_counts(){
-		int sum = 0;
-		for(int tag = 0;tag < _num_tags;tag++){
-			sum += _word_types_for_tag[tag];
-		}
-		assert(sum >= _num_words);
-	}
 	// in:  t_{i-2},t_{i-1},t_i,t_{i+1},t_{i+2},w_i
 	// out: void
 	void add_tag_to_model_parameters(int _t_i_2, int _t_i_1, int t_i, int t_i_1, int t_i_2, int w_i){
-				// cout << "add:" << _t_i_2 << "," << _t_i_1 << "," << t_i << "," << t_i_1 << "," << t_i_2 << "," << w_i << endl;
-				// dump_trigram_counts();
-				// dump_bigram_counts();
-				// dump_unigram_counts();
-				// dump_word_types();
 		// 1-gram
 		_unigram_counts[t_i] += 1;
 		// 2-gram
@@ -248,11 +235,6 @@ public:
 	// in:  t_{i-2},t_{i-1},t_i,t_{i+1},t_{i+2},w_i
 	// out: void
 	void remove_tag_from_model_parameters(int _t_i_2, int _t_i_1, int t_i, int t_i_1, int t_i_2, int w_i){
-				// cout << "remove:" << _t_i_2 << "," << _t_i_1 << "," << t_i << "," << t_i_1 << "," << t_i_2 << "," << w_i << endl;
-				// dump_trigram_counts();
-				// dump_bigram_counts();
-				// dump_unigram_counts();
-				// dump_word_types();
 		// 1-gram
 		_unigram_counts[t_i] -= 1;
 		assert(_unigram_counts[t_i] >= 0);
@@ -271,24 +253,6 @@ public:
 		// 品詞-単語ペア
 		decrement_tag_word_count(t_i, w_i);
 	}
-	// デバッグ用
-	// void remove_all_tag_from_model_parameters(vector<Word*> &line){
-	// 	for(int pos = 2;pos < line.size() - 2;pos++){	// <bos>と<eos>の内側だけ考える
-	// 		int t_i = line[pos]->tag_id;
-	// 		int w_i = line[pos]->word_id;
-	// 		int t_i_1 = line[pos + 1]->tag_id;
-	// 		int t_i_2 = line[pos + 2]->tag_id;
-	// 		int _t_i_1 = line[pos - 1]->tag_id;
-	// 		int _t_i_2 = line[pos - 2]->tag_id;
-	// 		// t_iをモデルパラメータから除去
-	// 		// cout << "remove all:" << _t_i_2 << "," << _t_i_1 << "," << t_i << "," << t_i_1 << "," << t_i_2 << "," << w_i << endl;
-	// 		// dump_trigram_counts();
-	// 		// dump_bigram_counts();
-	// 		// dump_unigram_counts();
-	// 		// dump_word_types();
-	// 		remove_tag_from_model_parameters(_t_i_2, _t_i_1, t_i, t_i_1, t_i_2, w_i);
-	// 	}
-	// }
 	void perform_gibbs_sampling_with_line(vector<Word*> &line){
 		if(_sampling_table == NULL){
 			_sampling_table = (double*)malloc(_num_tags * sizeof(double));
@@ -382,15 +346,23 @@ public:
 		for(int tag = 0;tag < _num_tags;tag++){
 			cout << tag << ": " << get_word_types_for_tag(tag) << endl;
 		}
-
-
-			// for(auto &tag: _tag_word_counts){
-			// 	map<int, int> &words = tag.second;
-			// 	cout << tag.first << "<<" << endl;
-			// 	for(auto &word: words){
-			// 		cout << word.first << ":+:" << word.second << endl;
-			// 	}
-			// }
+	}
+	bool save(string filename = "hmm.model"){
+		std::ofstream ofs(filename);
+		boost::archive::binary_oarchive oarchive(ofs);
+		oarchive << static_cast<const BayesianHMM&>(*this);
+		ofs.close();
+		return true;
+	}
+	bool load(string filename = "hmm.model"){
+		std::ifstream ifs(filename);
+		if(ifs.good() == false){
+			return false;
+		}
+		boost::archive::binary_iarchive iarchive(ifs);
+		iarchive >> *this;
+		ifs.close();
+		return true;
 	}
 };
 

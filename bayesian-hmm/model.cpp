@@ -24,6 +24,7 @@ private:
 	unordered_map<int, wstring> _dictionary;
 	unordered_map<wstring, int> _dictionary_inv;
 	vector<vector<Word*>> _dataset;
+	vector<int> _rand_indices;
 	int _max_epoch;
 	int _autoincrement;
 	int _bos_id;
@@ -101,19 +102,27 @@ public:
 	void initialize(){
 		_hmm->init_ngram_counts(_dataset);
 	}
+	bool load(string filename){
+		return _hmm->load(filename);
+	}
+	bool save(string filename){
+		return _hmm->save(filename);
+	}
 	void perform_gibbs_sampling(){
-		vector<int> rand_indices;
-		for(int data_index = 0;data_index < _dataset.size();data_index++){
-			rand_indices.push_back(data_index);
+		if(_rand_indices.size() != _dataset.size()){
+			_rand_indices.clear();
+			for(int data_index = 0;data_index < _dataset.size();data_index++){
+				_rand_indices.push_back(data_index);
+			}
 		}
 		_hmm->set_temperature(1);
 		for(int epoch = 1;epoch <= _max_epoch;epoch++){
-			shuffle(rand_indices.begin(), rand_indices.end(), Sampler::mt);	// データをシャッフル
+			shuffle(_rand_indices.begin(), _rand_indices.end(), Sampler::mt);	// データをシャッフル
 			for(int n = 0;n < _dataset.size();n++){
 				if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
 					return;
 				}
-				int data_index = rand_indices[n];
+				int data_index = _rand_indices[n];
 				vector<Word*> &line = _dataset[data_index];
 				_hmm->perform_gibbs_sampling_with_line(line);
 			}
@@ -122,6 +131,7 @@ public:
 				show_random_line(10);
 				_hmm->dump_word_types();
 				show_typical_words_for_each_tag(20);
+				save();
 			}
 			// _hmm->anneal_temperature(0.99989);
 		}
@@ -180,5 +190,7 @@ BOOST_PYTHON_MODULE(model){
 	.def("initialize", &PyBayesianHMM::initialize)
 	.def("set_num_tags", &PyBayesianHMM::set_num_tags)
 	.def("set_max_epoch", &PyBayesianHMM::set_max_epoch)
+	.def("load", &PyBayesianHMM::load)
+	.def("save", &PyBayesianHMM::save)
 	.def("load_textfile", &PyBayesianHMM::load_textfile);
 }

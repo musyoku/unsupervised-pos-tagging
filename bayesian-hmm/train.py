@@ -11,7 +11,8 @@ def main(args):
 	hmm.set_num_tags(args.num_tags);
 	hmm.load_textfile(args.filename)
 
-	hmm.initialize()
+	if hmm.load("hmm.model") == False:
+		hmm.initialize()
 	hmm.perform_gibbs_sampling()
 
 if __name__ == "__main__":
