@@ -118,7 +118,7 @@ public:
 				_hmm->perform_gibbs_sampling_with_line(line);
 			}
 			show_progress(epoch, _max_epoch);
-			if(epoch % 100 == 0){
+			if(epoch % 10 == 0){
 				show_random_line(10);
 				_hmm->dump_word_types();
 				show_typical_words_for_each_tag(20);
