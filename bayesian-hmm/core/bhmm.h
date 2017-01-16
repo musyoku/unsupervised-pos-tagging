@@ -41,6 +41,7 @@ public:
 	double _alpha;
 	double _beta;
 	double _temperature;
+	double _minimum_temperature;
 	BayesianHMM(){
 		_trigram_counts = NULL;
 		_bigram_counts = NULL;
@@ -50,7 +51,8 @@ public:
 		_num_words = -1;
 		_alpha = 0.003;
 		_beta = 1;
-		_temperature = 2;
+		_temperature = 1;
+		_minimum_temperature = 1;
 	}
 	~BayesianHMM(){
 		if(_trigram_counts != NULL){
@@ -90,8 +92,13 @@ public:
 	void set_temperature(double temperature){
 		_temperature = temperature;
 	}
+	void set_minimum_temperature(double temperature){
+		_minimum_temperature = temperature;
+	}
 	void anneal_temperature(double multiplier){
-		_temperature *= multiplier;
+		if(_temperature > _minimum_temperature){
+			_temperature *= multiplier;
+		}
 	}
 	void init_ngram_counts_if_needed(vector<vector<Word*>> &dataset){
 		if(_trigram_counts == NULL){
@@ -115,7 +122,6 @@ public:
 		}
 		_unigram_counts = (int*)calloc(_num_tags, sizeof(int));
 		// 最初は品詞をランダムに割り当てる
-		set<pair<int, int>> tag_word_set;
 		set<int> word_set;
 		map<int, int> tag_for_word;
 		for(int data_index = 0;data_index < dataset.size();data_index++){
@@ -127,9 +133,7 @@ public:
 			_unigram_counts[line[1]->tag_id] += 1;
 			word_set.insert(line[0]->word_id);
 			word_set.insert(line[1]->word_id);
-			tag_word_set.insert(std::make_pair(line[0]->tag_id, line[0]->word_id));
 			increment_tag_word_count(line[0]->tag_id, line[0]->word_id);
-			tag_word_set.insert(std::make_pair(line[1]->tag_id, line[1]->word_id));
 			increment_tag_word_count(line[1]->tag_id, line[1]->word_id);
 			// line.size() - 2 > pos >= 2
 			for(int pos = 2;pos < line.size() - 2;pos++){	// 3-gramなので3番目から.
@@ -142,7 +146,6 @@ public:
 					word->tag_id = itr->second;
 				}
 				update_ngram_count(line[pos - 2], line[pos - 1], line[pos]);
-				// 単語の種類数をカウント
 				word_set.insert(word->word_id);
 				// 同じタグの単語集合をカウント
 				increment_tag_word_count(word->tag_id, word->word_id);
@@ -164,9 +167,7 @@ public:
 			int w_end_1 = line[end_index - 1]->word_id;
 			word_set.insert(w_end);
 			word_set.insert(w_end_1);
-			tag_word_set.insert(std::make_pair(t_end, w_end));
 			increment_tag_word_count(t_end, w_end);
-			tag_word_set.insert(std::make_pair(t_end_1, w_end_1));
 			increment_tag_word_count(t_end_1, w_end_1);
 		}
 		_num_words = word_set.size();

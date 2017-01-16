@@ -169,6 +169,9 @@ public:
 	void set_temperature(double temperature){
 		_hmm->set_temperature(temperature);
 	}
+	void set_minimum_temperature(double temperature){
+		_hmm->set_minimum_temperature(temperature);
+	}
 	void anneal_temperature(double temperature){
 		_hmm->anneal_temperature(temperature);
 	}
@@ -183,6 +186,9 @@ BOOST_PYTHON_MODULE(model){
 	.def("load", &PyBayesianHMM::load)
 	.def("save", &PyBayesianHMM::save)
 	.def("set_temperature", &PyBayesianHMM::set_temperature)
+	.def("set_minimum_temperature", &PyBayesianHMM::set_minimum_temperature)
 	.def("anneal_temperature", &PyBayesianHMM::anneal_temperature)
+	.def("show_typical_words_for_each_tag", &PyBayesianHMM::show_typical_words_for_each_tag)
+	.def("show_random_line", &PyBayesianHMM::show_random_line)
 	.def("load_textfile", &PyBayesianHMM::load_textfile);
 }

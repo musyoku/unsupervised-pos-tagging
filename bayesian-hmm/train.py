@@ -15,13 +15,16 @@ def main(args):
 	# 全てのテキストファイルを読み込み終わってから初期化
 	hmm.initialize()
 
+	# 温度の調整が面倒なので1で固定
 	# hmm.set_temperature(2)	# 温度の初期設定
+	# hmm.set_minimum_temperature(0.08)	# 温度の下限
 	for epoch in xrange(1, args.epoch + 1):
-		hmm.perform_gibbs_sampling()
-		# hmm.anneal_temperature(0.9998)	# 温度を下げる
 		sys.stdout.write(" Epoch {} / {}\r".format(epoch, args.epoch))		
 		sys.stdout.flush()
+		hmm.perform_gibbs_sampling()
+		# hmm.anneal_temperature(0.998)	# 温度を下げる
 		if epoch % 10 == 0:
+			hmm.show_random_line(20, True);	# ランダムなn個の文と推定結果のタグを表示
 			hmm.show_typical_words_for_each_tag(20);	# それぞれのタグにつき上位n個の単語を表示
 			hmm.save(args.model);
 
