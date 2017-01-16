@@ -27,7 +27,7 @@ def main(args):
 		start = time.time()
 		hmm.perform_gibbs_sampling()
 		elapsed_time = time.time() - start
-		sys.stdout.write(" Epoch {} / {} - {} s\r".format(epoch, args.epoch, elapsed_time))		
+		sys.stdout.write(" Epoch {} / {} - {:.3f} sec\r".format(epoch, args.epoch, elapsed_time))		
 		sys.stdout.flush()
 		# hmm.anneal_temperature(0.998)	# 温度を下げる
 		if epoch % 10 == 0:

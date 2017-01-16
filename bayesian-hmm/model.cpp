@@ -1,4 +1,5 @@
 #include <boost/python.hpp>
+#include <boost/python/tuple.hpp>
 #include <boost/format.hpp>
 #include <boost/serialization/serialization.hpp>
 #include <boost/serialization/base_object.hpp>
@@ -162,6 +163,26 @@ public:
 			wcout << endl;
 		}
 	}
+	python::list get_all_words_for_each_tag(int threshold = 0){
+		vector<python::list> result;
+		for(int tag = 0;tag < _hmm->_num_tags;tag++){
+			vector<python::tuple> words;
+			unordered_map<int, int> &word_counts = _hmm->_tag_word_counts[tag];
+			multiset<pair<int, int>, value_comparator> ranking;
+			for(auto elem: word_counts){
+				ranking.insert(std::make_pair(elem.first, elem.second));
+			}
+			for(auto elem: ranking){
+				if(elem.second <= threshold){
+					continue;
+				}
+				wstring word = _dictionary[elem.first];
+				words.push_back(python::make_tuple(word, elem.second));
+			}
+			result.push_back(list_from_vector(words));
+		}
+		return list_from_vector(result);
+	}
 	void show_typical_words_for_each_tag(int number_to_show_for_each_tag){
 		for(int tag = 0;tag < _hmm->_num_tags;tag++){
 			unordered_map<int, int> &word_counts = _hmm->_tag_word_counts[tag];
@@ -213,5 +234,6 @@ BOOST_PYTHON_MODULE(model){
 	.def("anneal_temperature", &PyBayesianHMM::anneal_temperature)
 	.def("show_typical_words_for_each_tag", &PyBayesianHMM::show_typical_words_for_each_tag)
 	.def("show_random_line", &PyBayesianHMM::show_random_line)
+	.def("get_all_words_for_each_tag", &PyBayesianHMM::get_all_words_for_each_tag)
 	.def("load_textfile", &PyBayesianHMM::load_textfile);
 }
