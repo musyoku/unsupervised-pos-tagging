@@ -121,7 +121,7 @@ public:
 			if(epoch % 100 == 0){
 				show_random_line(10);
 				_hmm->dump_word_types();
-				show_tag_word(20);
+				show_typical_words_for_each_tag(20);
 			}
 			// _hmm->anneal_temperature(0.99989);
 		}
@@ -141,19 +141,19 @@ public:
 			wcout << endl;
 		}
 	}
-	void show_tag_word(int number_to_show_for_each_tag){
+	void show_typical_words_for_each_tag(int number_to_show_for_each_tag){
 		for(int tag = 0;tag < _hmm->_num_tags;tag++){
 			map<int, int> &word_counts = _hmm->_tag_word_counts[tag];
 			int n = 0;
-			wcout << "tag " << tag << ":" << endl;
-			wcout << "	";
+			wcout << L"tag " << tag << L":" << endl;
+			wcout << L"	";
 			multiset<pair<int, int>, value_comparator> ranking;
 			for(auto elem: word_counts){
 				ranking.insert(std::make_pair(elem.first, elem.second));
 			}
 			for(auto elem: ranking){
 				wstring word = _dictionary[elem.first];
-				wcout << word << "/" << elem.second << ", ";
+				wcout << word << L"/" << elem.second << L", ";
 				n++;
 				if(n > number_to_show_for_each_tag){
 					break;
