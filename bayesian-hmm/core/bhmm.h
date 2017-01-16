@@ -28,13 +28,6 @@ private:
 	{
 		static_cast<void>(version);
 		archive & _num_tags;
-		archive & _num_words;
-		archive & _alpha;
-		archive & _beta;
-		archive & _temperature;
-		archive & _trigram_counts;
-		archive & _bigram_counts;
-		archive & _unigram_counts;
 		archive & _tag_word_counts;
 	}
 public:

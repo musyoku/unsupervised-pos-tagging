@@ -25,7 +25,6 @@ private:
 	unordered_map<wstring, int> _dictionary_inv;
 	vector<vector<Word*>> _dataset;
 	vector<int> _rand_indices;
-	int _max_epoch;
 	int _autoincrement;
 	int _bos_id;
 	int _eos_id;
@@ -115,25 +114,14 @@ public:
 				_rand_indices.push_back(data_index);
 			}
 		}
-		_hmm->set_temperature(1);
-		for(int epoch = 1;epoch <= _max_epoch;epoch++){
-			shuffle(_rand_indices.begin(), _rand_indices.end(), Sampler::mt);	// データをシャッフル
-			for(int n = 0;n < _dataset.size();n++){
-				if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
-					return;
-				}
-				int data_index = _rand_indices[n];
-				vector<Word*> &line = _dataset[data_index];
-				_hmm->perform_gibbs_sampling_with_line(line);
+		shuffle(_rand_indices.begin(), _rand_indices.end(), Sampler::mt);	// データをシャッフル
+		for(int n = 0;n < _dataset.size();n++){
+			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
+				return;
 			}
-			show_progress(epoch, _max_epoch);
-			if(epoch % 10 == 0){
-				show_random_line(10);
-				_hmm->dump_word_types();
-				show_typical_words_for_each_tag(20);
-				save();
-			}
-			// _hmm->anneal_temperature(0.99989);
+			int data_index = _rand_indices[n];
+			vector<Word*> &line = _dataset[data_index];
+			_hmm->perform_gibbs_sampling_with_line(line);
 		}
 	}
 	void show_random_line(int num_to_show, bool show_most_co_occurring_tag = true){
@@ -178,8 +166,11 @@ public:
 	void set_num_tags(int number){
 		_hmm->set_num_tags(number);
 	}
-	void set_max_epoch(int epoch){
-		_max_epoch = epoch;
+	void set_temperature(double temperature){
+		_hmm->set_temperature(temperature);
+	}
+	void anneal_temperature(double temperature){
+		_hmm->anneal_temperature(temperature);
 	}
 };
 
@@ -189,8 +180,9 @@ BOOST_PYTHON_MODULE(model){
 	.def("perform_gibbs_sampling", &PyBayesianHMM::perform_gibbs_sampling)
 	.def("initialize", &PyBayesianHMM::initialize)
 	.def("set_num_tags", &PyBayesianHMM::set_num_tags)
-	.def("set_max_epoch", &PyBayesianHMM::set_max_epoch)
 	.def("load", &PyBayesianHMM::load)
 	.def("save", &PyBayesianHMM::save)
+	.def("set_temperature", &PyBayesianHMM::set_temperature)
+	.def("anneal_temperature", &PyBayesianHMM::anneal_temperature)
 	.def("load_textfile", &PyBayesianHMM::load_textfile);
 }
