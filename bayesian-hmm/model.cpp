@@ -207,14 +207,26 @@ public:
 			cout << endl;
 		}
 	}
+	void set_alpha(double alpha){
+		_hmm->_alpha = alpha;
+	}
 	void set_num_tags(int number){
-		_hmm->set_num_tags(number);
+		_hmm->_num_tags = number;
+	}
+	int get_num_tags(){
+		return _hmm->_num_tags;
 	}
 	void set_temperature(double temperature){
-		_hmm->set_temperature(temperature);
+		_hmm->_temperature = temperature;
+	}
+	void set_Wt(python::list Wt){
+		int length = python::len(Wt);
+		for(int tag = 0;tag < length;tag++){
+			_hmm->set_Wt_for_tag(tag, python::extract<int>(Wt[tag]));
+		}
 	}
 	void set_minimum_temperature(double temperature){
-		_hmm->set_minimum_temperature(temperature);
+		_hmm->_minimum_temperature = temperature;
 	}
 	void anneal_temperature(double temperature){
 		_hmm->anneal_temperature(temperature);
@@ -226,11 +238,13 @@ BOOST_PYTHON_MODULE(model){
 	.def("string_to_word_id", &PyBayesianHMM::string_to_word_id)
 	.def("perform_gibbs_sampling", &PyBayesianHMM::perform_gibbs_sampling)
 	.def("initialize", &PyBayesianHMM::initialize)
-	.def("set_num_tags", &PyBayesianHMM::set_num_tags)
 	.def("load", &PyBayesianHMM::load)
 	.def("save", &PyBayesianHMM::save)
+	.def("get_num_tags", &PyBayesianHMM::get_num_tags)
 	.def("set_temperature", &PyBayesianHMM::set_temperature)
+	.def("set_num_tags", &PyBayesianHMM::set_num_tags)
 	.def("set_minimum_temperature", &PyBayesianHMM::set_minimum_temperature)
+	.def("set_Wt", &PyBayesianHMM::set_Wt)
 	.def("anneal_temperature", &PyBayesianHMM::anneal_temperature)
 	.def("show_typical_words_for_each_tag", &PyBayesianHMM::show_typical_words_for_each_tag)
 	.def("show_random_line", &PyBayesianHMM::show_random_line)

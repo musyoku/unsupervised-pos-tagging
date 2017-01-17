@@ -36,6 +36,7 @@ public:
 	int*** _trigram_counts;	// 品詞3-gramのカウント
 	int** _bigram_counts;	// 品詞2-gramのカウント
 	int* _unigram_counts;	// 品詞1-gramのカウント
+	int* _Wt;
 	unordered_map<int, unordered_map<int, int>> _tag_word_counts;	// 品詞と単語のペアの出現頻度
 	double* _sampling_table;	// キャッシュ
 	double _alpha;
@@ -47,6 +48,7 @@ public:
 		_bigram_counts = NULL;
 		_unigram_counts = NULL;
 		_sampling_table = NULL;
+		_Wt = NULL;
 		_num_tags = -1;
 		_num_words = -1;
 		_alpha = 0.003;
@@ -77,24 +79,6 @@ public:
 			free(_sampling_table);
 		}
 	}
-	void set_num_tags(int number){
-		_num_tags = number;
-	}
-	void set_num_words(int number){
-		_num_words = number;
-	}
-	void set_alpha(double alpha){
-		_alpha = alpha;
-	}
-	void set_beta(double beta){
-		_beta = beta;
-	}
-	void set_temperature(double temperature){
-		_temperature = temperature;
-	}
-	void set_minimum_temperature(double temperature){
-		_minimum_temperature = temperature;
-	}
 	void anneal_temperature(double multiplier){
 		if(_temperature > _minimum_temperature){
 			_temperature *= multiplier;
@@ -121,6 +105,7 @@ public:
 			_bigram_counts[bi_tag] = (int*)calloc(_num_tags, sizeof(int));
 		}
 		_unigram_counts = (int*)calloc(_num_tags, sizeof(int));
+		_Wt = (int*)calloc(_num_tags, sizeof(int));
 		// 最初は品詞をランダムに割り当てる
 		set<int> word_set;
 		unordered_map<int, int> tag_for_word;
@@ -172,6 +157,11 @@ public:
 		}
 		_num_words = word_set.size();
 		c_printf("[*]%s\n", (boost::format("単語数: %d - 行数: %d") % _num_words % dataset.size()).str().c_str());
+	}
+	void set_Wt_for_tag(int tag_id, int number){
+		assert(_Wt != NULL);
+		assert(tag_id < _num_tags);
+		_Wt[tag_id] = number;
 	}
 	void update_ngram_count(Word* tri_word, Word* bi_word, Word* uni_word){
 		_trigram_counts[tri_word->tag_id][bi_word->tag_id][uni_word->tag_id] += 1;
