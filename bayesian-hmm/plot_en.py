@@ -5,18 +5,7 @@ import pandas as pd
 import seaborn as sns
 sns.set()
 import model
-
-class color:
-	PURPLE = "\033[95m"
-	CYAN = "\033[96m"
-	DARKCYAN = "\033[36m"
-	BLUE = "\033[94m"
-	GREEN = "\033[92m"
-	YELLOW = "\033[93m"
-	RED = "\033[91m"
-	BOLD = "\033[1m"
-	UNDERLINE = "\033[4m"
-	END = "\033[0m"
+from train_en import colapse_pos, posset
 
 def main(args):
 	hmm = model.bayesian_hmm()
@@ -40,6 +29,7 @@ def main(args):
 			if len(poses) != 3:
 				continue
 			pos = poses[1]
+			pos = colapse_pos(pos)
 			all_types_of_pos.add(pos)
 			if pos not in num_occurrence_of_pos:
 				num_occurrence_of_pos[pos] = 1
@@ -53,16 +43,21 @@ def main(args):
 			if pos not in occurrence:
 				occurrence[pos] = 0
 
+	# タグごとに正規化
+	for pos in all_types_of_pos:
+		z = 0
+		for occurrence in num_occurrence_of_pos_for_tag:
+			z += occurrence[pos]
+		for occurrence in num_occurrence_of_pos_for_tag:
+			occurrence[pos] = float(occurrence[pos]) / float(z)
+
 	fig = pylab.gcf()
 	fig.set_size_inches(len(all_types_of_pos), hmm.get_num_tags())
 	pylab.clf()
 	dataframe = pd.DataFrame(num_occurrence_of_pos_for_tag)
-	ax = sns.heatmap(dataframe, annot=True, fmt="d", linewidths=5)
+	ax = sns.heatmap(dataframe, annot=False, fmt="f", linewidths=0)
 	heatmap = ax.get_figure()
 	heatmap.savefig("pos.png")
-
-	print "\n英語の品詞数: {}".format(len(all_types_of_pos))
-	print all_types_of_pos
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()

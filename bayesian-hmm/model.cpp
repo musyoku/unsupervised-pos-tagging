@@ -105,7 +105,7 @@ public:
 		c_printf("[*]%s\n", (boost::format("%sを読み込みました.") % filename.c_str()).str().c_str());
 	}
 	void initialize(){
-		_hmm->init_ngram_counts(_dataset);
+		_hmm->initialize(_dataset);
 	}
 	bool load(string dirname){
 		// 辞書を読み込み

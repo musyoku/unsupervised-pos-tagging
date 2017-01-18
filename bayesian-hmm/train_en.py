@@ -3,6 +3,34 @@ import argparse, sys, os, time, re, codecs
 import treetaggerwrapper
 import model
 
+class posset:
+	sym = {"SYM", "SENT", ":", ",", "$", "(", ")", "'", "\""}
+	nn = {"NN", "NNS", "NP", "NPS"}
+	jj = {"JJ", "JJR", "JJS"}
+	rb = {"RB", "RBR", "RBS"}
+	vb = {"VB", "VBD", "VBG", "VBN", "VBZ", "VBP"}
+	vd = {"VD", "VDD", "VDG", "VDN", "VDZ", "VDP"}
+	vh = {"VH", "VH", "VHG", "VHN", "VHZ", "VHP"}
+	vv = {"VV", "VV", "VVG", "VVN", "VVZ", "VVP"}
+
+# 品詞をまとめる
+def colapse_pos(pos):
+	if pos in posset.sym:
+		return "SYM"
+	if pos in posset.nn:
+		return "NN"
+	if pos in posset.rb:
+		return "RB"
+	if pos in posset.vb:
+		return "VB"
+	if pos in posset.vd:
+		return "VD"
+	if pos in posset.vh:
+		return "VH"
+	if pos in posset.vv:
+		return "VV"
+	return pos
+
 class color:
 	PURPLE = "\033[95m"
 	CYAN = "\033[96m"
@@ -24,37 +52,18 @@ def main(args):
 	Wt_count = {}
 	# 似たような品詞をまとめる
 	# https://courses.washington.edu/hypertxt/csar-v02/penntable.html
-	pos_sym = {"SYM", "SENT", ":", ",", "$", "(", ")", "'", "\""}
-	pos_nn = {"NN", "NNS"}
-	pos_rb = {"RB", "RBR", "RBS"}
-	pos_vb = {"VB", "VBD", "VBG", "VBN", "VBZ", "VBP"}
-	pos_vd = {"VD", "VDD", "VDG", "VDN", "VDZ", "VDP"}
-	pos_vh = {"VH", "VH", "VHG", "VHN", "VHZ", "VHP"}
-	pos_vv = {"VV", "VV", "VVG", "VVN", "VVZ", "VVP"}
 	with codecs.open(args.filename, "r", "utf-8") as f:
 		tagger = treetaggerwrapper.TreeTagger(TAGLANG="en")
-		for line in f:
+		for i, line in enumerate(f):
 			line = re.sub(ur"\n", "", line)
+			sys.stdout.write("\r{}行目を処理中です ...".format(i))
+			sys.stdout.flush()
 			result = tagger.tag_text(line)
 			if len(result) == 0:
 				continue
 			for poses in result:
 				word, pos, lowercase = poses.split("\t")
-				# 品詞をまとめる
-				if pos in pos_sym:
-					pos = "SYM"
-				elif pos in pos_nn:
-					pos = "NN"
-				elif pos in pos_rb:
-					pos = "RB"
-				elif pos in pos_vb:
-					pos = "VB"
-				elif pos in pos_vd:
-					pos = "VD"
-				elif pos in pos_vh:
-					pos = "VH"
-				elif pos in pos_vv:
-					pos = "VV"
+				pos = colapse_pos(pos)
 				if pos not in Wt_count:
 					Wt_count[pos] = {}
 				if lowercase not in Wt_count[pos]:

@@ -40,7 +40,8 @@ public:
 	unordered_map<int, unordered_map<int, int>> _tag_word_counts;	// 品詞と単語のペアの出現頻度
 	double* _sampling_table;	// キャッシュ
 	double _alpha;
-	double _beta;
+	double* _beta;
+	double* _new_beta;
 	double _temperature;
 	double _minimum_temperature;
 	BayesianHMM(){
@@ -52,7 +53,8 @@ public:
 		_num_tags = -1;
 		_num_words = -1;
 		_alpha = 0.003;
-		_beta = 1;
+		_beta = NULL;
+		_new_beta = NULL;
 		_temperature = 1;
 		_minimum_temperature = 1;
 	}
@@ -78,16 +80,34 @@ public:
 		if(_sampling_table != NULL){
 			free(_sampling_table);
 		}
+		if(_beta != NULL){
+			free(_beta);
+		}
+		if(_new_beta != NULL){
+			free(_new_beta);
+		}
+		if(_Wt != NULL){
+			free(_Wt);
+		}
 	}
 	void anneal_temperature(double multiplier){
 		if(_temperature > _minimum_temperature){
 			_temperature *= multiplier;
 		}
 	}
-	void init_ngram_counts_if_needed(vector<vector<Word*>> &dataset){
-		if(_trigram_counts == NULL){
-			init_ngram_counts(dataset);
+	void initialize(vector<vector<Word*>> &dataset){
+		// nグラムのカウントテーブル
+		init_ngram_counts(dataset);
+		// 各タグの可能な単語数
+		_Wt = (int*)calloc(_num_tags, sizeof(int));
+		// Betaの初期化
+		// 初期値は1
+		_beta = (double*)malloc(_num_tags * sizeof(double));
+		for(int tag = 0;tag < _num_tags;tag++){
+			_beta[tag] = 1;
 		}
+		// サンプリングした新しいBetaの一時保存用
+		_new_beta = (double*)calloc(_num_tags, sizeof(double));
 	}
 	void init_ngram_counts(vector<vector<Word*>> &dataset){
 		c_printf("[*]%s\n", "nグラムカウントを初期化してます ...");
@@ -105,7 +125,6 @@ public:
 			_bigram_counts[bi_tag] = (int*)calloc(_num_tags, sizeof(int));
 		}
 		_unigram_counts = (int*)calloc(_num_tags, sizeof(int));
-		_Wt = (int*)calloc(_num_tags, sizeof(int));
 		// 最初は品詞をランダムに割り当てる
 		set<int> word_set;
 		unordered_map<int, int> tag_for_word;
@@ -257,7 +276,7 @@ public:
 				_sampling_table[tag] = 1;
 				double n_t_i_w_i = get_count_for_tag_word(tag, w_i);
 				double n_t_i = _unigram_counts[tag];
-				double W_t_i = get_word_types_for_tag(tag);
+				double W_t_i = _Wt[tag];
 				double n_t_2_1_i = _trigram_counts[_t_i_2][_t_i_1][tag];
 				double n_t_2_1 = _bigram_counts[_t_i_2][_t_i_1];
 				double n_t_1_i_1 = _trigram_counts[_t_i_1][tag][t_i_1];
@@ -270,7 +289,7 @@ public:
 				double I_1_i_1_2 = (_t_i_1 == tag == t_i_1 == t_i_2) ? 1 : 0;
 				double I_2_i_1_1 = (_t_i_2 == tag && _t_i_1 == t_i_1) ? 1 : 0;
 				double I_1_i_1 = (_t_i_1 == tag == t_i_1) ? 1 : 0;
-				_sampling_table[tag] *= (n_t_i_w_i + _beta) / (n_t_i + W_t_i * _beta);
+				_sampling_table[tag] *= (n_t_i_w_i + _beta[tag]) / (n_t_i + W_t_i * _beta[tag]);
 				_sampling_table[tag] *= (n_t_2_1_i + _alpha) / (n_t_2_1 + _num_tags * _alpha);
 				_sampling_table[tag] *= (n_t_1_i_1 + I_2_1_i_1 + _alpha) / (n_t_1_i + I_2_1_i + _num_tags * _alpha);
 				_sampling_table[tag] *= (n_t_i_1_2 + I_2_i_2_1_1 + I_1_i_1_2 + _alpha) / (n_t_i_1 + I_2_i_1_1 + I_1_i_1 + _num_tags * _alpha);
@@ -291,6 +310,11 @@ public:
 			// 新しいt_iをモデルパラメータに追加
 			add_tag_to_model_parameters(_t_i_2, _t_i_1, new_t_i, t_i_1, t_i_2, w_i);
 			line[pos]->tag_id = new_t_i;
+		}
+	}
+	void sample_new_beta(){
+		for(int tag = 0;tag < _num_tags;tag++){
+			_new_beta[tag] = Sampler::normal(_beta[tag], 0.1 * _beta[tag]);
 		}
 	}
 	int get_most_co_occurring_tag(int word_id){
