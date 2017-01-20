@@ -246,8 +246,12 @@ public:
 		}
 		return log_Pt_alpha;
 	}
+	// 正規化定数で割る前の値
 	double compute_Pti_wi_beta(int ti, int wi, double beta){
-		
+		double n_ti_wi = get_count_for_tag_word(ti, wi);
+		double n_ti = _unigram_counts[ti];
+		double W_ti = _Wt[ti];
+		return (n_ti_wi + beta) / (n_ti + W_ti * beta);
 	}
 	// in:  t_{i-2},t_{i-1},ti,t_{i+1},t_{i+2},w_i
 	// out: void
@@ -341,9 +345,39 @@ public:
 			line[pos]->tag_id = new_ti;
 		}
 	}
-	void sample_new_beta(){
+	Word* _get_random_word_with_tag(int tag, vector<vector<Word*>> &dataset){
+		int random_index = Sampler::uniform_int(0, dataset.size() - 1);
+		vector<Word*> &line = dataset[random_index];
+		for(int pos = 0;pos < line.size();pos++){
+			int ti = line[pos]->tag_id;
+			if(ti == tag){
+				return line[pos];
+			}
+		}
+		return NULL;
+	}
+	// 新しいBetaをサンプリング
+	void sample_new_beta(vector<vector<Word*>> &dataset){
 		for(int tag = 0;tag < _num_tags;tag++){
 			_new_beta[tag] = Sampler::normal(_beta[tag], 0.1 * _beta[tag]);
+			Word* random_word = NULL;
+			while(random_word == NULL){
+				if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
+					return;
+				}
+				random_word = _get_random_word_with_tag(tag, dataset);
+			}
+			double Pti_wi_beta = compute_Pti_wi_beta(random_word->tag_id, random_word->word_id, _beta[tag]);
+			double Pti_wi_new_beta = compute_Pti_wi_beta(random_word->tag_id, random_word->word_id, _new_beta[tag]);
+			if(Pti_wi_new_beta == 0){
+				continue;
+			}
+			double adoption_rate = std::min(1.0, Pti_wi_new_beta / Pti_wi_beta);
+			double u = Sampler::uniform(0, 1);
+			if(u < adoption_rate){
+				_beta[tag] = _new_beta[tag];
+				cout << "beta[" << tag << "] <- " << _new_beta[tag] << endl;
+			}
 		}
 	}
 	int get_most_co_occurring_tag(int word_id){

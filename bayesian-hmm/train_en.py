@@ -103,7 +103,10 @@ def main(args):
 	# hmm.set_minimum_temperature(0.08)	# 温度の下限
 	for epoch in xrange(1, args.epoch + 1):
 		start = time.time()
+
 		hmm.perform_gibbs_sampling()
+		hmm.sample_new_beta()
+
 		elapsed_time = time.time() - start
 		sys.stdout.write(" Epoch {} / {} - {:.3f} sec\r".format(epoch, args.epoch, elapsed_time))		
 		sys.stdout.flush()

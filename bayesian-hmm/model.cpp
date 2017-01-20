@@ -148,6 +148,9 @@ public:
 			_hmm->perform_gibbs_sampling_with_line(line);
 		}
 	}
+	void sample_new_beta(){
+		_hmm->sample_new_beta(_dataset);
+	}
 	void show_random_line(int num_to_show, bool show_most_co_occurring_tag = true){
 		for(int n = 0;n < num_to_show;n++){
 			int data_index = Sampler::uniform_int(0, _dataset.size() - 1);
@@ -241,13 +244,14 @@ BOOST_PYTHON_MODULE(model){
 	.def("load", &PyBayesianHMM::load)
 	.def("save", &PyBayesianHMM::save)
 	.def("get_num_tags", &PyBayesianHMM::get_num_tags)
+	.def("get_all_words_for_each_tag", &PyBayesianHMM::get_all_words_for_each_tag)
 	.def("set_temperature", &PyBayesianHMM::set_temperature)
 	.def("set_num_tags", &PyBayesianHMM::set_num_tags)
 	.def("set_minimum_temperature", &PyBayesianHMM::set_minimum_temperature)
 	.def("set_Wt", &PyBayesianHMM::set_Wt)
+	.def("sample_new_beta", &PyBayesianHMM::sample_new_beta)
 	.def("anneal_temperature", &PyBayesianHMM::anneal_temperature)
 	.def("show_typical_words_for_each_tag", &PyBayesianHMM::show_typical_words_for_each_tag)
 	.def("show_random_line", &PyBayesianHMM::show_random_line)
-	.def("get_all_words_for_each_tag", &PyBayesianHMM::get_all_words_for_each_tag)
 	.def("load_textfile", &PyBayesianHMM::load_textfile);
 }
