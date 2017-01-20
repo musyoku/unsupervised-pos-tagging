@@ -376,7 +376,6 @@ public:
 			double u = Sampler::uniform(0, 1);
 			if(u < adoption_rate){
 				_beta[tag] = _new_beta[tag];
-				cout << "beta[" << tag << "] <- " << _new_beta[tag] << endl;
 			}
 		}
 	}

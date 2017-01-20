@@ -19,8 +19,7 @@ using namespace boost;
 
 struct value_comparator {
 	bool operator()(const pair<int, int> &a, const pair<int, int> &b) {
-		if (a.second > b.second) return true;
-		return false;
+		return a.second > b.second;
 	}   
 };
 
@@ -151,6 +150,11 @@ public:
 	void sample_new_beta(){
 		_hmm->sample_new_beta(_dataset);
 	}
+	void show_beta(){
+		for(int tag = 0;tag < _hmm->_num_tags;tag++){
+			cout << "beta[" << tag << "] <- " << _hmm->_beta[tag] << endl;
+		}
+	}
 	void show_random_line(int num_to_show, bool show_most_co_occurring_tag = true){
 		for(int n = 0;n < num_to_show;n++){
 			int data_index = Sampler::uniform_int(0, _dataset.size() - 1);
@@ -219,6 +223,9 @@ public:
 	int get_num_tags(){
 		return _hmm->_num_tags;
 	}
+	double get_temperature(){
+		return _hmm->_temperature;
+	}
 	void set_temperature(double temperature){
 		_hmm->_temperature = temperature;
 	}
@@ -245,6 +252,7 @@ BOOST_PYTHON_MODULE(model){
 	.def("save", &PyBayesianHMM::save)
 	.def("get_num_tags", &PyBayesianHMM::get_num_tags)
 	.def("get_all_words_for_each_tag", &PyBayesianHMM::get_all_words_for_each_tag)
+	.def("get_temperature", &PyBayesianHMM::get_temperature)
 	.def("set_temperature", &PyBayesianHMM::set_temperature)
 	.def("set_num_tags", &PyBayesianHMM::set_num_tags)
 	.def("set_minimum_temperature", &PyBayesianHMM::set_minimum_temperature)
@@ -253,5 +261,6 @@ BOOST_PYTHON_MODULE(model){
 	.def("anneal_temperature", &PyBayesianHMM::anneal_temperature)
 	.def("show_typical_words_for_each_tag", &PyBayesianHMM::show_typical_words_for_each_tag)
 	.def("show_random_line", &PyBayesianHMM::show_random_line)
+	.def("show_beta", &PyBayesianHMM::show_beta)
 	.def("load_textfile", &PyBayesianHMM::load_textfile);
 }

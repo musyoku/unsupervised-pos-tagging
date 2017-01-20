@@ -3,6 +3,7 @@ import argparse, sys, re, pylab
 import treetaggerwrapper
 import pandas as pd
 import seaborn as sns
+import matplotlib.pyplot as plt
 sns.set()
 import model
 from train_en import colapse_pos, posset
@@ -52,10 +53,11 @@ def main(args):
 			occurrence[pos] = float(occurrence[pos]) / float(z)
 
 	fig = pylab.gcf()
-	fig.set_size_inches(len(all_types_of_pos), hmm.get_num_tags())
+	fig.set_size_inches(hmm.get_num_tags(), len(all_types_of_pos))
 	pylab.clf()
 	dataframe = pd.DataFrame(num_occurrence_of_pos_for_tag)
-	ax = sns.heatmap(dataframe, annot=False, fmt="f", linewidths=0)
+	ax = sns.heatmap(dataframe.T, annot=False, fmt="f", linewidths=0)
+	plt.yticks(rotation=0)
 	heatmap = ax.get_figure()
 	heatmap.savefig("pos.png")
 
