@@ -30,15 +30,15 @@ typedef struct Word {
 
 class PyHpylmHMM{
 private:
-	HPYLM* _word_hpylm;
-	HPYLM** _pos_hpylm_for_tag;
+	HPYLM** _word_hpylm_for_tag;
+	HPYLM* _pos_hpylm;
 	unordered_map<int, wstring> _dictionary;
 	unordered_map<wstring, int> _dictionary_inv;
 	vector<vector<Word*>> _dataset;
 	vector<int> _rand_indices;
 	int _autoincrement;
-	int _bos_id;
-	int _eos_id;
+	int BEGIN_OF_SENTENSE;
+	int END_OF_SENTENSE;
 	int _num_tags;
 public:
 	PyHpylmHMM(int num_tags){
@@ -53,16 +53,21 @@ public:
 		wcin.imbue(ctype_default);
 
 		// HPYLMは全て3-gram
-		_word_hpylm = new HPYLM(3);
-		_pos_hpylm_for_tag = new HPYLM*[num_tags];
+		_pos_hpylm = new HPYLM(3);
+		_word_hpylm_for_tag = new HPYLM*[num_tags];
 		for(int tag = 0;tag < _num_tags;tag++){
-			_pos_hpylm_for_tag[tag] = new HPYLM(3);
+			_word_hpylm_for_tag[tag] = new HPYLM(3);
 		}
-		_bos_id = 0;
-		_dictionary[_bos_id] = L"<bos>";
-		_eos_id = 1;
-		_dictionary[_eos_id] = L"<eos>";
-		_autoincrement = _eos_id + 1;
+		_dictionary[BEGIN_OF_SENTENSE] = L"<bos>";
+		_dictionary[END_OF_SENTENSE] = L"<eos>";
+		_autoincrement = END_OF_SENTENSE + 1;
+	}
+	~PyHpylmHMM(){
+		delete _pos_hpylm;
+		for(int tag = 0;tag < _num_tags;tag++){
+			delete _word_hpylm_for_tag[tag];
+		}
+		delete[] _word_hpylm_for_tag;
 	}
 	int string_to_word_id(wstring &word){
 		auto itr = _dictionary_inv.find(word);
@@ -90,8 +95,8 @@ public:
 				// 3-gramなので2つ
 				for(int n = 0;n < 2;n++){
 					Word* bos = new Word();
-					bos->word_id = _bos_id;
-					bos->tag_id = 0;
+					bos->word_id = BEGIN_OF_SENTENSE;
+					bos->tag_id = BEGIN_OF_POS;
 					words.push_back(bos);
 				}
 				for(auto &word_str: word_strs){
@@ -100,12 +105,11 @@ public:
 					}
 					Word* word = new Word();
 					word->word_id = string_to_word_id(word_str);
-					word->tag_id = 0;
 					words.push_back(word);
 				}
 				Word* eos = new Word();
-				eos->word_id = _eos_id;
-				eos->tag_id = 0;
+				eos->word_id = END_OF_SENTENSE;
+				eos->tag_id = END_OF_POS;
 				words.push_back(eos);
 				// 訓練データに追加
 				_dataset.push_back(words);
@@ -123,9 +127,9 @@ public:
 			ifs.close();
 		}
 		// モデルパラメータの読み込み
-		_word_hpylm->load(dirname + "/word.hpylm");
+		_pos_hpylm->load(dirname + "/pos.hpylm");
 		for(int tag = 0;tag < _num_tags;tag++){
-			_pos_hpylm_for_tag[tag]->load((boost::format("%s/pos.%d.hpylm") % dirname.c_str() % tag).str());
+			_word_hpylm_for_tag[tag]->load((boost::format("%s/word.%d.hpylm") % dirname.c_str() % tag).str());
 		}
 	}
 	void save(string dirname){
@@ -136,9 +140,9 @@ public:
 		oarchive << _dictionary;
 		ofs.close();
 		// モデルパラメータの保存
-		_word_hpylm->save(dirname + "/word.hpylm");
+		_pos_hpylm->save(dirname + "/pos.hpylm");
 		for(int tag = 0;tag < _num_tags;tag++){
-			_pos_hpylm_for_tag[tag]->save((boost::format("%s/pos.%d.hpylm") % dirname.c_str() % tag).str());
+			_word_hpylm_for_tag[tag]->save((boost::format("%s/word.%d.hpylm") % dirname.c_str() % tag).str());
 		}
 	}
 	void perform_gibbs_sampling(){

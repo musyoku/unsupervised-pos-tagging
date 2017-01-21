@@ -8,4 +8,9 @@
 #define PYLM_INITIAL_ALPHA 1.0
 #define PYLM_INITIAL_BETA  1.0
 
+#define BEGIN_OF_SENTENSE 0
+#define END_OF_SENTENSE 1
+#define BEGIN_OF_POS 0
+#define END_OF_POS 1
+
 #endif
