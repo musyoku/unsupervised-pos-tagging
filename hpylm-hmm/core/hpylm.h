@@ -9,11 +9,10 @@
 #include <random>
 #include <unordered_map> 
 #include <cstdlib>
-#include "c_printf.h"
+#include "cprintf.h"
 #include "sampler.h"
 #include "node.h"
 #include "const.h"
-#include "vocab.h"
 
 class HPYLM{
 private:
