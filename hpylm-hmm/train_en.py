@@ -46,22 +46,17 @@ def main(args):
 	hmm.load_textfile(args.filename)
 
 	# 学習
+	hmm.prepare_for_training()
 	for epoch in xrange(1, args.epoch + 1):
 		start = time.time()
 
 		hmm.perform_gibbs_sampling()
-		hmm.sample_new_beta()
 
 		elapsed_time = time.time() - start
 		sys.stdout.write(" Epoch {} / {} - {:.3f} sec\r".format(epoch, args.epoch, elapsed_time))		
 		sys.stdout.flush()
-		hmm.anneal_temperature(0.998)	# 温度を下げる
 		if epoch % 10 == 0:
 			print "\n"
-			hmm.show_beta()
-			hmm.show_random_line(20, True);	# ランダムなn個の文と推定結果のタグを表示
-			hmm.show_typical_words_for_each_tag(20);	# それぞれのタグにつき上位n個の単語を表示
-			print "temperature: ", hmm.get_temperature()
 			hmm.save(args.model);
 
 if __name__ == "__main__":

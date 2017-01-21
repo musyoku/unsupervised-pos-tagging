@@ -1,12 +1,12 @@
 #ifndef _bigram_lattice_
 #define _bigram_lattice_
+#include <boost/format.hpp>
 #include <vector>
 #include <chrono>
 #include <cstdlib>
 #include <cassert>
 #include <array>
 #include <cfloat>
-#include <boost/format.hpp>
 #include "hpylm.h"
 #include "sampler.h"
 #include "cprintf.h"
@@ -22,14 +22,11 @@ public:
 	int _max_num_words_in_sentence;
 	int _num_tags;
 	// max_sentence_lengthは1文に含まれる最大単語数
-	Lattice(NPYLM3* npylm, Vocab* vocab, int max_num_words_in_sentence, int num_tags){
-		_npylm = npylm;
-		_vocab = vocab;
-		_max_length = 10;
+	Lattice(int max_num_words_in_sentence, int num_tags){
 		_max_num_words_in_sentence = max_num_words_in_sentence;
 		_num_tags = num_tags;
-		_pos_context = {0, 0}
-		_word_context = {0, 0}
+		_pos_context = {0, 0};
+		_word_context = {0, 0};
 		init_sampling_table(max_num_words_in_sentence, num_tags);
 	}
 	~Lattice(){
@@ -43,7 +40,7 @@ public:
 		}
 		delete[] _alpha;
 
-		for(int r = 0;r < num_tags;r++){
+		for(int r = 0;r < _num_tags;r++){
 			delete[] _sampling_table[r];
 		}
 		delete[] _sampling_table;
@@ -55,7 +52,7 @@ public:
 			_alpha[t] = new double*[num_tags];
 			for(int r = 0;r < num_tags;r++){
 				_alpha[t][r] = new double[num_tags];
-				for(int r = 0;r < num_tags;r++){
+				for(int q = 0;q < num_tags;q++){
 					_alpha[t][r][q] = -1;
 				}
 			}
@@ -71,6 +68,7 @@ public:
 	// 位置tの単語が品詞rから生成され、かつtより1つ前の単語が品詞qから生成される確率
 	void compute_alpha_t_r_q(vector<Word*> &sentence, int t, int r, int q){
 		assert(t >= 2);
+		int token_t_id = sentence[t]->word_id;
 		// <bos>2つの場合
 		if(t == 2){
 			if(q != BEGIN_OF_POS){
@@ -79,8 +77,8 @@ public:
 			}
 			_pos_context[0] = BEGIN_OF_POS;
 			_pos_context[1] = BEGIN_OF_POS;
-			double Pz_qr = _pos_hpylm->compute_Pw_h(z, _pos_context);
-			HPYLM* word_hpylm = _word_hpylm_for_tag[z];
+			double Pz_qr = _pos_hpylm->compute_Pw_h(r, _pos_context);
+			HPYLM* word_hpylm = _word_hpylm_for_tag[r];
 			_word_context[0] = BEGIN_OF_SENTENSE;
 			_word_context[1] = BEGIN_OF_SENTENSE;
 			double Pt_h = word_hpylm->compute_Pw_h(token_t_id, _word_context);
@@ -93,17 +91,16 @@ public:
 				_alpha[t][r][q] = 0;
 				return;
 			}
-			_pos_context[0] = q;
-			_pos_context[1] = BEGIN_OF_POS;
-			double Pz_qr = _pos_hpylm->compute_Pw_h(z, _pos_context);
-			HPYLM* word_hpylm = _word_hpylm_for_tag[z];
+			_pos_context[0] = BEGIN_OF_POS;
+			_pos_context[1] = q;
+			double Pz_qr = _pos_hpylm->compute_Pw_h(r, _pos_context);
+			HPYLM* word_hpylm = _word_hpylm_for_tag[r];
 			_word_context[0] = BEGIN_OF_SENTENSE;
 			_word_context[1] = sentence[t - 1]->word_id;
 			double Pt_h = word_hpylm->compute_Pw_h(token_t_id, _word_context);
 			_alpha[t][r][BEGIN_OF_POS] = Pt_h * Pz_qr * _alpha[t - 1][BEGIN_OF_POS][BEGIN_OF_POS];
 			return;
 		}
-		int token_t_id = sentence[t]->word_id;
 		double sum = 0;
 		_pos_context[0] = r;
 		_pos_context[1] = q;
@@ -147,7 +144,7 @@ public:
 			sentence[t]->tag_id = r;
 			t--;
 			if(t < 2){	// <bos>を書き換えてはいけない
-				assert(q == END_OF_POS);
+				assert(q == BEGIN_OF_POS);
 				break;
 			}
 			sentence[t]->tag_id = q;
@@ -183,7 +180,6 @@ public:
 					sampled_q = q;
 					return;
 				}
-				i++;
 			}
 		}
 		sampled_r = _num_tags - 1;
@@ -193,7 +189,7 @@ public:
 		double sum_p = 0;
 		for(int r = 0;r < _num_tags;r++){
 			for(int q = 0;q < _num_tags;q++){
-				sum_p += _alpha[t][q]
+				sum_p += _alpha[t][r][q];
 			}
 		}
 		double normalizer = 1.0 / sum_p;

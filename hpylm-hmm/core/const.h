@@ -13,4 +13,9 @@
 #define BEGIN_OF_POS 0
 #define END_OF_POS 1
 
+typedef struct Word {
+	int word_id;
+	int tag_id;
+} Word;
+
 #endif
