@@ -10,7 +10,7 @@
 #include <cmath>
 #include <unordered_map>
 #include <set>
-#include "c_printf.h"
+#include "cprintf.h"
 #include "sampler.h"
 #include "util.h"
 using namespace std;
@@ -361,11 +361,16 @@ public:
 		for(int tag = 0;tag < _num_tags;tag++){
 			_new_beta[tag] = Sampler::normal(_beta[tag], 0.1 * _beta[tag]);
 			Word* random_word = NULL;
+			int limit = 100;
 			while(random_word == NULL){
 				if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
 					return;
 				}
 				random_word = _get_random_word_with_tag(tag, dataset);
+				limit--;
+				if(limit < 0){
+					break;
+				}
 			}
 			double Pti_wi_beta = compute_Pti_wi_beta(random_word->tag_id, random_word->word_id, _beta[tag]);
 			double Pti_wi_new_beta = compute_Pti_wi_beta(random_word->tag_id, random_word->word_id, _new_beta[tag]);

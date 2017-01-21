@@ -163,7 +163,7 @@ public:
 };
 
 BOOST_PYTHON_MODULE(model){
-	python::class_<PyHpylmHMM>("bayesian_hmm", python::init<int>())
+	python::class_<PyHpylmHMM>("hpylm_hmm", python::init<int>())
 	.def("string_to_word_id", &PyHpylmHMM::string_to_word_id)
 	.def("perform_gibbs_sampling", &PyHpylmHMM::perform_gibbs_sampling)
 	.def("load", &PyHpylmHMM::load)

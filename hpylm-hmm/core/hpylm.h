@@ -10,9 +10,9 @@
 #include <unordered_map> 
 #include <cstdlib>
 #include "cprintf.h"
-#include "sampler.h"
 #include "node.h"
 #include "const.h"
+#include "sampler.h"
 
 class HPYLM{
 private:

@@ -109,7 +109,7 @@ private:
 	}
 public:
 	static int _auto_increment;						// identifier用 VPYLMとは無関係
-	unordered_map<int, Node*> _children;				// 子の文脈木
+	unordered_map<int, Node*> _children;			// 子の文脈木
 	unordered_map<int, vector<int>> _arrangement;	// 客の配置 vector<int>のk番目の要素がテーブルkの客数を表す
 	int _num_tables;								// 総テーブル数
 	int _num_customers;								// 客の総数
@@ -118,7 +118,7 @@ public:
 	int _pass_count;								// 通過回数
 	int _token_id;									// 単語ID　文字ID
 	int _depth;										// ノードの深さ　rootが0
-	int _identifier;									// 識別用　特別な意味は無い HPYLMとは無関係
+	int _identifier;								// 識別用　特別な意味は無い HPYLMとは無関係
 
 	Node(int token_id = 0){
 		_num_tables = 0;
