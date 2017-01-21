@@ -25,7 +25,7 @@ using namespace std;
 class Node{
 private:
 	// 客をテーブルに追加
-	bool add_customer_to_table(id &token_id, int table_k, double parent_Pw, vector<double> &d_m, vector<double> &theta_m, int &added_to_table_k){
+	bool add_customer_to_table(int token_id, int table_k, double parent_Pw, vector<double> &d_m, vector<double> &theta_m, int &added_to_table_k){
 		if(_arrangement.find(token_id) == _arrangement.end()){
 			return add_customer_to_new_table(token_id, parent_Pw, d_m, theta_m, added_to_table_k);
 		}
@@ -39,7 +39,7 @@ private:
 		exit(1);
 		return false;
 	}
-	bool add_customer_to_new_table(id &token_id, double parent_Pw, vector<double> &d_m, vector<double> &theta_m, int &added_to_table_k){
+	bool add_customer_to_new_table(int token_id, double parent_Pw, vector<double> &d_m, vector<double> &theta_m, int &added_to_table_k){
 		if(_arrangement.find(token_id) == _arrangement.end()){
 			vector<int> tables = {1};
 			_arrangement[token_id] = tables;
@@ -57,7 +57,7 @@ private:
 		}
 		return true;
 	}
-	bool remove_customer_from_table(id &token_id, int table_k, int &removed_from_table_k){
+	bool remove_customer_from_table(int token_id, int table_k, int &removed_from_table_k){
 		if(_arrangement.find(token_id) == _arrangement.end()){
 			c_printf("[r]%s [*]%s\n", "エラー:", "客を除去できません. _arrangement.find(token_id) == _arrangement.end()");
 			exit(1);
@@ -108,19 +108,19 @@ private:
 		archive & _auto_increment;
 	}
 public:
-	static id _auto_increment;						// identifier用 VPYLMとは無関係
-	unordered_map<id, Node*> _children;				// 子の文脈木
-	unordered_map<id, vector<int>> _arrangement;	// 客の配置 vector<int>のk番目の要素がテーブルkの客数を表す
+	static int _auto_increment;						// identifier用 VPYLMとは無関係
+	unordered_map<int, Node*> _children;				// 子の文脈木
+	unordered_map<int, vector<int>> _arrangement;	// 客の配置 vector<int>のk番目の要素がテーブルkの客数を表す
 	int _num_tables;								// 総テーブル数
 	int _num_customers;								// 客の総数
 	Node* _parent;									// 親ノード
 	int _stop_count;								// 停止回数
 	int _pass_count;								// 通過回数
-	id _token_id;									// 単語ID　文字ID
+	int _token_id;									// 単語ID　文字ID
 	int _depth;										// ノードの深さ　rootが0
-	id _identifier;									// 識別用　特別な意味は無い HPYLMとは無関係
+	int _identifier;									// 識別用　特別な意味は無い HPYLMとは無関係
 
-	Node(id token_id = 0){
+	Node(int token_id = 0){
 		_num_tables = 0;
 		_num_customers = 0;
 		_stop_count = 0;
@@ -133,7 +133,7 @@ public:
 	bool parent_exists(){
 		return !(_parent == NULL);
 	}
-	bool child_exists(id &token_id){
+	bool child_exists(int token_id){
 		return !(_children.find(token_id) == _children.end());
 	}
 	bool need_to_remove_from_parent(){
@@ -145,13 +145,13 @@ public:
 		}
 		return false;
 	}
-	int get_num_tables_serving_word(id &token_id){
+	int get_num_tables_serving_word(int token_id){
 		if(_arrangement.find(token_id) == _arrangement.end()){
 			return 0;
 		}
 		return _arrangement[token_id].size();
 	}
-	int get_num_customers_eating_word(id &token_id){
+	int get_num_customers_eating_word(int token_id){
 		if(_arrangement.find(token_id) == _arrangement.end()){
 			return 0;
 		}
@@ -162,7 +162,7 @@ public:
 		}
 		return sum;
 	}
-	Node* find_child_node(id &token_id, bool generate_if_not_exist = false){
+	Node* find_child_node(int token_id, bool generate_if_not_exist = false){
 		auto itr = _children.find(token_id);
 		if (itr != _children.end()) {
 			return itr->second;
@@ -176,7 +176,7 @@ public:
 		_children[token_id] = child;
 		return child;
 	}
-	bool add_customer(id &token_id, double g0, vector<double> &d_m, vector<double> &theta_m, bool update_n, int &added_to_table_k){
+	bool add_customer(int token_id, double g0, vector<double> &d_m, vector<double> &theta_m, bool update_n, int &added_to_table_k){
 		init_hyperparameters_at_depth_if_needed(_depth, d_m, theta_m);
 		double d_u = d_m[_depth];
 		double theta_u = theta_m[_depth];
@@ -226,7 +226,7 @@ public:
 		}
 		return true;
 	}
-	bool remove_customer(id &token_id, bool update_n, int &removed_from_table_k){
+	bool remove_customer(int token_id, bool update_n, int &removed_from_table_k){
 		if(_arrangement.find(token_id) == _arrangement.end()){
 			c_printf("[r]%s [*]%s\n", "エラー:", "客を除去できません. _arrangement.find(token_id) == _arrangement.end()");
 			exit(1);
@@ -258,7 +258,7 @@ public:
 		}
 		return true;
 	}
-	double compute_Pw(id &token_id, double g0, vector<double> &d_m, vector<double> &theta_m){
+	double compute_Pw(int token_id, double g0, vector<double> &d_m, vector<double> &theta_m){
 		init_hyperparameters_at_depth_if_needed(_depth, d_m, theta_m);
 		double d_u = d_m[_depth];
 		double theta_u = theta_m[_depth];
@@ -336,7 +336,7 @@ public:
 		_parent->delete_child_node(_token_id);
 		return true;
 	}
-	void delete_child_node(id &token_id){
+	void delete_child_node(int token_id){
 		Node* child = find_child_node(token_id);
 		if(child){
 			_children.erase(token_id);
@@ -406,9 +406,9 @@ public:
 		}
 		return sum;
 	}
-	void set_active_tokens(unordered_map<id, bool> &flags){
+	void set_active_tokens(unordered_map<int, bool> &flags){
 		for(auto elem: _arrangement){
-			id token_id = elem.first;
+			int token_id = elem.first;
 			flags[token_id] = true;
 		}
 		for(auto elem: _children){
@@ -512,6 +512,6 @@ public:
 	}
 };
 
-id Node::_auto_increment = 0;
+int Node::_auto_increment = 0;
 
 #endif

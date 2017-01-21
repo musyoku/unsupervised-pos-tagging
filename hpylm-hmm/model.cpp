@@ -12,7 +12,7 @@
 #include <functional>
 #include <fstream>
 #include <cassert>
-#include "core/bhmm.h"
+#include "core/hpylm.h"
 #include "core/util.h"
 using namespace std;
 using namespace boost;
@@ -23,9 +23,15 @@ struct value_comparator {
 	}   
 };
 
-class PyBayesianHMM{
+typedef struct Word {
+	int word_id;
+	int tag_id;
+} Word;
+
+class PyHpylmHMM{
 private:
-	BayesianHMM* _hmm;
+	HPYLM* _word_hpylm;
+	HPYLM** _pos_hpylm_for_tag;
 	unordered_map<int, wstring> _dictionary;
 	unordered_map<wstring, int> _dictionary_inv;
 	vector<vector<Word*>> _dataset;
@@ -33,8 +39,9 @@ private:
 	int _autoincrement;
 	int _bos_id;
 	int _eos_id;
+	int _num_tags;
 public:
-	PyBayesianHMM(){
+	PyBayesianHMM(int num_tags){
 		// 日本語周り
 		// ただのテンプレ
 		setlocale(LC_CTYPE, "ja_JP.UTF-8");
@@ -45,7 +52,12 @@ public:
 		wcout.imbue(ctype_default);
 		wcin.imbue(ctype_default);
 
-		_hmm = new BayesianHMM();
+		// HPYLMは全て3-グラム
+		_word_hpylm = new HPYLM(3);
+		_pos_hpylm_for_tag = new HPYLM[num_tags];
+		for(int tag = 0;tag < _num_tags;tag++){
+			_pos_hpylm_for_tag[tag] = new HPYLM(3);
+		}
 		_bos_id = 0;
 		_dictionary[_bos_id] = L"<bos>";
 		_eos_id = 1;

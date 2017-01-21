@@ -75,24 +75,24 @@ public:
 		_g0 = g0;
 	}
 	// 単語列のindex番目の単語をモデルに追加
-	bool add_customer_at_timestep(vector<id> &token_ids, int token_t_index){
+	bool add_customer_at_timestep(vector<int> &token_ids, int token_t_index){
 		Node* node = find_node_by_tracing_back_context(token_ids, token_t_index, _hpylm_depth, true);
 		if(node == NULL){
 			c_printf("[r]%s [*]%s\n", "エラー:", "客を追加できません. ノードが見つかりません.");
 			exit(1);
 		}
-		id token_t = token_ids[token_t_index];
+		int token_t = token_ids[token_t_index];
 		int added_to_table_k;
 		node->add_customer(token_t, _g0, _d_m, _theta_m, true, added_to_table_k);
 		return true;
 	}
-	bool remove_customer_at_timestep(vector<id> &token_ids, int token_t_index){
+	bool remove_customer_at_timestep(vector<int> &token_ids, int token_t_index){
 		Node* node = find_node_by_tracing_back_context(token_ids, token_t_index, _hpylm_depth, false);
 		if(node == NULL){
 			c_printf("[r]%s [*]%s\n", "エラー:", "客を除去できません. ノードが見つかりません.");
 			exit(1);
 		}
-		id token_t = token_ids[token_t_index];
+		int token_t = token_ids[token_t_index];
 		int removed_from_table_k;
 		node->remove_customer(token_t, true, removed_from_table_k);
 		// 客が一人もいなくなったらノードを削除する
@@ -105,13 +105,13 @@ public:
 	// token_ids:        [0, 1, 2, 3, 4, 5]
 	// token_t_index:4          ^     ^
 	// depth_t: 2               |<- <-|
-	Node* find_node_by_tracing_back_context(vector<id> &token_ids, int token_t_index, int depth_t, bool generate_node_if_needed = false, bool return_middle_node = false){
+	Node* find_node_by_tracing_back_context(vector<int> &token_ids, int token_t_index, int depth_t, bool generate_node_if_needed = false, bool return_middle_node = false){
 		if(token_t_index - depth_t < 0){
 			return NULL;
 		}
 		Node* node = _root;
 		for(int depth = 1;depth <= depth_t;depth++){
-			id context_token_id = token_ids[token_t_index - depth];
+			int context_token_id = token_ids[token_t_index - depth];
 			Node* child = node->find_child_node(context_token_id, generate_node_if_needed);
 			if(child == NULL){
 				if(return_middle_node){
@@ -123,15 +123,15 @@ public:
 		}
 		return node;
 	}
-	double Pw_h(vector<id> &token_ids, vector<id> context_token_ids){
+	double compute_Pw_h(vector<int> &token_ids, vector<int> context_token_ids){
 		double p = 1;
 		for(int n = 0;n < token_ids.size();n++){
-			p *= Pw_h(token_ids[n], context_token_ids);
+			p *= compute_Pw_h(token_ids[n], context_token_ids);
 			context_token_ids.push_back(token_ids[n]);
 		}
 		return p;
 	}
-	double Pw_h(id token_id, vector<id> &context_token_ids){
+	double compute_Pw_h(int token_id, vector<int> &context_token_ids){
 		// HPYLMでは深さは固定
 		if(context_token_ids.size() < _hpylm_depth){
 			c_printf("[r]%s [*]%s\n", "エラー:", "単語確率を計算できません. context_token_ids.size() < _hpylm_depth");
@@ -142,65 +142,65 @@ public:
 			c_printf("[r]%s [*]%s\n", "エラー:", "単語確率を計算できません. node == NULL");
 			exit(1);
 		}
-		return node->Pw(token_id, _g0, _d_m, _theta_m);
+		return node->compute_Pw(token_id, _g0, _d_m, _theta_m);
 	}
-	double Pw(id token_id){
-		return _root->Pw(token_id, _g0, _d_m, _theta_m);
+	double compute_Pw(int token_id){
+		return _root->compute_Pw(token_id, _g0, _d_m, _theta_m);
 	}
-	double Pw(vector<id> &token_ids){
+	double compute_Pw(vector<int> &token_ids){
 		if(token_ids.size() < _hpylm_depth + 1){
 			c_printf("[r]%s [*]%s\n", "エラー:", "単語確率を計算できません. token_ids.size() < _hpylm_depth");
 			exit(1);
 		}
 		double mul_Pw_h = 1;
-		vector<id> context_token_ids(token_ids.begin(), token_ids.begin() + _hpylm_depth);
+		vector<int> context_token_ids(token_ids.begin(), token_ids.begin() + _hpylm_depth);
 		for(int depth = _hpylm_depth;depth < token_ids.size();depth++){
-			id token_id = token_ids[depth];
-			mul_Pw_h *= Pw_h(token_id, context_token_ids);;
+			int token_id = token_ids[depth];
+			mul_Pw_h *= compute_Pw_h(token_id, context_token_ids);;
 			context_token_ids.push_back(token_id);
 		}
 		return mul_Pw_h;
 	}
-	double log_Pw(vector<id> &token_ids){
+	double compute_log_Pw(vector<int> &token_ids){
 		if(token_ids.size() < _hpylm_depth + 1){
 			c_printf("[r]%s [*]%s\n", "エラー:", "単語確率を計算できません. token_ids.size() < _hpylm_depth");
 			exit(1);
 		}
 		double sum_Pw_h = 0;
-		vector<id> context_token_ids(token_ids.begin(), token_ids.begin() + _hpylm_depth);
+		vector<int> context_token_ids(token_ids.begin(), token_ids.begin() + _hpylm_depth);
 		for(int depth = _hpylm_depth;depth < token_ids.size();depth++){
-			id token_id = token_ids[depth];
-			sum_Pw_h += log(Pw_h(token_id, context_token_ids) + 1e-10);
+			int token_id = token_ids[depth];
+			sum_Pw_h += log(compute_Pw_h(token_id, context_token_ids) + 1e-10);
 			context_token_ids.push_back(token_id);
 		}
 		return sum_Pw_h;
 	}
-	double log2_Pw(vector<id> &token_ids){
+	double compute_log2_Pw(vector<int> &token_ids){
 		if(token_ids.size() < _hpylm_depth + 1){
 			c_printf("[r]%s [*]%s\n", "エラー:", "単語確率を計算できません. token_ids.size() < _hpylm_depth");
 			exit(1);
 		}
 		double sum_Pw_h = 0;
-		vector<id> context_token_ids(token_ids.begin(), token_ids.begin() + _hpylm_depth);
+		vector<int> context_token_ids(token_ids.begin(), token_ids.begin() + _hpylm_depth);
 		for(int depth = _hpylm_depth;depth < token_ids.size();depth++){
-			id token_id = token_ids[depth];
-			sum_Pw_h += log2(Pw_h(token_id, context_token_ids) + 1e-10);
+			int token_id = token_ids[depth];
+			sum_Pw_h += log2(compute_Pw_h(token_id, context_token_ids) + 1e-10);
 			context_token_ids.push_back(token_id);
 		}
 		return sum_Pw_h;
 	}
-	id sample_next_token(vector<id> &context_token_ids, id eos_id){
+	int sample_next_token(vector<int> &context_token_ids, int eos_id){
 		Node* node = find_node_by_tracing_back_context(context_token_ids, context_token_ids.size(), _hpylm_depth, false, true);
 		if(node == NULL){
 			c_printf("[r]%s [*]%s\n", "エラー:", "トークンを生成できません. ノードが見つかりません.");
 			exit(1);
 		}
-		vector<id> token_ids;
+		vector<int> token_ids;
 		vector<double> probs;
 		double sum_probs = 0;
 		for(const auto &elem: node->_arrangement){
-			id token_id = elem.first;
-			double prob = Pw_h(token_id, context_token_ids);
+			int token_id = elem.first;
+			double prob = compute_Pw_h(token_id, context_token_ids);
 			if(prob > 0){
 				token_ids.push_back(token_id);
 				probs.push_back(prob);
@@ -216,7 +216,7 @@ public:
 		double ratio = 1.0 / sum_probs;
 		double r = Sampler::uniform(0, 1);
 		sum_probs = 0;
-		id sampled_token_id = token_ids.back();
+		int sampled_token_id = token_ids.back();
 		for(int i = 0;i < token_ids.size();i++){
 			sum_probs += probs[i] * ratio;
 			if(sum_probs > r){
@@ -297,7 +297,7 @@ public:
 
 		// それ以外
 		_max_depth = 0;
-		// _max_depthは以下を実行すると更新される
+		// _max_depthはsum_auxiliary_variables_recursivelyを実行すると正確な値に更新にされる
 		// HPYLMでは無意味だがVPYLMで最大深さを求める時に使う
 		sum_auxiliary_variables_recursively(_root, sum_log_x_u_m, sum_y_ui_m, sum_1_y_ui_m, sum_1_z_uwkj_m, _max_depth);
 		init_hyperparameters_at_depth_if_needed(_max_depth);
@@ -307,6 +307,7 @@ public:
 			_theta_m[u] = Sampler::gamma(_alpha_m[u] + sum_y_ui_m[u], _beta_m[u] - sum_log_x_u_m[u]);
 		}
 		// 不要な深さのハイパーパラメータを削除
+		// HPYLMでは無意味
 		int num_remove = _d_m.size() - _max_depth - 1;
 		for(int n = 0;n < num_remove;n++){
 			_d_m.pop_back();
@@ -350,30 +351,11 @@ public:
 	int get_sum_pass_counts(){
 		return _root->sum_pass_counts();
 	}
-	void set_active_tokens(unordered_map<id, bool> &flags){
+	void set_active_tokens(unordered_map<int, bool> &flags){
 		_root->set_active_tokens(flags);
 	}
 	void count_tokens_of_each_depth(unordered_map<int, int> &map){
 		_root->count_tokens_of_each_depth(map);
-	}
-	void enumerate_phrases_at_depth(int depth, vector<vector<id>> &phrases){
-		int max_depth = get_max_depth();
-		if(depth > max_depth){
-			c_printf("[r]%s [*]%s\n", "エラー:", "指定の深さにフレーズが存在しません.");
-			return;
-		}
-		// 指定の深さのノードを探索
-		vector<Node*> nodes;
-		_root->enumerate_nodes_at_depth(depth, nodes);
-		for(int i = 0;i < nodes.size();i++){
-			Node* node = nodes[i];
-			vector<id> phrase;
-			while(node->_parent){
-				phrase.push_back(node->_token_id);
-				node = node->_parent;
-			}
-			phrases.push_back(phrase);
-		}
 	}
 	bool save(string filename = "hpylm.model"){
 		std::ofstream ofs(filename);
