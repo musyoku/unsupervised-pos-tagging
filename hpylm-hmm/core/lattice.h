@@ -74,6 +74,7 @@ public:
 		// <bos>2つの場合
 		if(t == 2){
 			if(q != BEGIN_OF_POS){
+				_alpha[t][r][q] = 0;
 				return;
 			}
 			_pos_context[0] = BEGIN_OF_POS;
@@ -89,6 +90,7 @@ public:
 		// <bos>と何らかの単語
 		if(t == 3){
 			if(q != BEGIN_OF_POS){
+				_alpha[t][r][q] = 0;
 				return;
 			}
 			_pos_context[0] = q;
@@ -136,15 +138,23 @@ public:
 		sentence[t]->tag_id = q;
 		t--;
 		// 後ろからサンプリング
-		for(;t >= 2;t -= 2){
+		while(t >= 2){
 			if(argmax){
-				argmax_backward_k_and_j(sentence, t, k, j);
+				argmax_backward_r_and_q(sentence, t, r, q);
 			}else{
-				sample_backward_r_and_q(sentence, t, k, j);
+				sample_backward_r_and_q(sentence, t, r, q);
 			}
+			sentence[t]->tag_id = r;
+			t--;
+			if(t < 2){	// <bos>を書き換えてはいけない
+				assert(q == END_OF_POS);
+				break;
+			}
+			sentence[t]->tag_id = q;
+			t--;
 		}
 	}
-	// EOS, EOPに接続する確率をもとにrとqをサンプリング
+	// <eos>, EOPに接続する確率をもとにrとqをサンプリング
 	void sample_starting_r_and_q(vector<Word*> &sentence, int &sampled_r, int &sampled_q){
 		double sum_p = 0;
 		int t = sentence.size() - 1;
@@ -179,119 +189,50 @@ public:
 		sampled_r = _num_tags - 1;
 		sampled_q = _num_tags - 1;
 	}
-	void sample_backward_r_and_q(wstring &sentence, int t, int &sampled_k, int &sampled_j){
-		vector<double> p_k;
+	void sample_backward_r_and_q(vector<Word*> &sentence, int t, int &sampled_r, int &sampled_q){
 		double sum_p = 0;
-		int limit_k = min(t, _max_length);
-		for(int k = 1;k <= limit_k;k++){
-			for(int j = 1;j <= min(t - k, _max_length);j++){
-				if(_alpha[t][k][j] == -1){
-					c_printf("[r]%s [*]%s\n", "エラー:", (boost::format("前向き確率の計算に不備があります. t = %d, k = %d, j = %d") % t % k % j).str().c_str());
-					exit(1);
-				}
-				double p = _alpha[t][k][j] + DBL_MIN;
-				sum_p += p;
-				p_k.push_back(p);
-			}
-			if(t - k == 0){
-				double p = _alpha[t][k][0] + DBL_MIN;
-				sum_p += p;
-				p_k.push_back(p);
+		for(int r = 0;r < _num_tags;r++){
+			for(int q = 0;q < _num_tags;q++){
+				sum_p += _alpha[t][q]
 			}
 		}
 		double normalizer = 1.0 / sum_p;
 		double r = Sampler::uniform(0, 1);
-		int i = 0;
 		sum_p = 0;
-		for(int k = 1;k <= limit_k;k++){
-			for(int j = 1;j <= min(t - k, _max_length);j++){
-				sum_p += p_k[i] * normalizer;
+		for(int r = 0;r < _num_tags;r++){
+			for(int q = 0;q < _num_tags;q++){
+				sum_p += _alpha[t][r][q] * normalizer;
 				if(r < sum_p){
-					sampled_k = k;
-					sampled_j = j;
+					sampled_r = r;
+					sampled_q = q;
 					return;
 				}
-				i++;
-			}
-			if(t - k == 0){
-				sum_p += p_k[i] * normalizer;
-				if(r < sum_p){
-					sampled_k = k;
-					sampled_j = 0;
-					return;
-				}
-				i++;
 			}
 		}
+		sampled_r = _num_tags - 1;
+		sampled_q = (t == 3) ? END_OF_POS : _num_tags - 1;
 	}
-	void argmax_backward_k_and_j(wstring &sentence, int t, int &sampled_k, int &sampled_j){
-		vector<double> p_k;
+	void argmax_backward_r_and_q(vector<Word*> &sentence, int t, int &sampled_r, int &sampled_q){
 		double max_p = 0;
-		int max_k, max_j;
-		int limit_k = min(t, _max_length);
-		for(int k = 1;k <= limit_k;k++){
-			for(int j = 1;j <= min(t - k, _max_length);j++){
-				if(_alpha[t][k][j] == -1){
-					c_printf("[r]%s [*]%s\n", "エラー:", (boost::format("前向き確率の計算に不備があります. t = %d, k = %d, j = %d") % t % k % j).str().c_str());
-					exit(1);
-				}
-				double p = _alpha[t][k][j] + DBL_MIN;
+		int max_r = -1, max_q = -1;
+		for(int r = 0;r < _num_tags;r++){
+			for(int q = 0;q < _num_tags;q++){
+				double p = _alpha[t][r][q];
 				if(p > max_p){
 					max_p = p;
-					max_k = k;
-					max_j = j;
-				}
-			}
-
-			if(t - k == 0){
-				double p = _alpha[t][k][0] + DBL_MIN;
-				if(p > max_p){
-					max_p = p;
-					max_k = k;
-					max_j = 0;
+					max_r = r;
+					max_q = q;
 				}
 			}
 		}
-		sampled_k = max_k;
-		sampled_j = max_j;
+		sampled_r = max_r;
+		sampled_q = max_q;
+		assert(max_r != -1);
+		assert(max_q != -1);
 	}
-	void perform_blocked_gibbs_sampling(wstring &sentence, vector<int> &segments, bool argmax = false){
-		auto t1 = chrono::system_clock::now();
-		int size = sentence.size() + 1;
-		// for(int k = 0;k < size;k++){
-		// 	for(int j = 0;j < size;j++){
-		// 		for(int i = 0;i < size;i++){
-		// 			_alpha[k][j][i] = -1;
-		// 		}
-		// 	}
-		// }
-		for(int i = 0;i < size;i++){
-			// memset(_substring_token_id_cache[i], 0, size * sizeof(*_substring_token_id_cache[i]));
-			for(int j = 0;j < size;j++){
-				// cout << _substring_token_id_cache[i][j] << endl;
-				_substring_token_id_cache[i][j] = 0;
-			}
-		}
-
-		// auto t2 = chrono::system_clock::now();
-		// auto t2_1 = chrono::duration_cast<chrono::milliseconds>(t2 - t1).count();
-
-		// wcout << sentence << endl;
+	void perform_blocked_gibbs_sampling(vector<Word*> &sentence, bool argmax = false){
 		this->forward_filtering(sentence);
-
-		
-		// auto t3 = chrono::system_clock::now();
-		// auto t3_1 = chrono::duration_cast<chrono::milliseconds>(t3 - t2).count();
-
-		this->backward_sampling(sentence, segments, argmax);
-
-		// auto t4 = chrono::system_clock::now();
-		// auto t4_1 = chrono::duration_cast<chrono::milliseconds>(t4 - t3).count();
-
-		// if(sentence.size() == 790){
-		// 	cout << t2_1 << ", " << t3_1 << ", " << t4_1 << endl;
-		// 	exit(1);
-		// }
+		this->backward_sampling(sentence, argmax);
 	}
 };
 
