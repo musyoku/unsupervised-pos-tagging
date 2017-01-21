@@ -41,7 +41,7 @@ private:
 	int _eos_id;
 	int _num_tags;
 public:
-	PyBayesianHMM(int num_tags){
+	PyHpylmHMM(int num_tags){
 		// 日本語周り
 		// ただのテンプレ
 		setlocale(LC_CTYPE, "ja_JP.UTF-8");
@@ -52,9 +52,9 @@ public:
 		wcout.imbue(ctype_default);
 		wcin.imbue(ctype_default);
 
-		// HPYLMは全て3-グラム
+		// HPYLMは全て3-gram
 		_word_hpylm = new HPYLM(3);
-		_pos_hpylm_for_tag = new HPYLM[num_tags];
+		_pos_hpylm_for_tag = new HPYLM*[num_tags];
 		for(int tag = 0;tag < _num_tags;tag++){
 			_pos_hpylm_for_tag[tag] = new HPYLM(3);
 		}
@@ -87,6 +87,7 @@ public:
 			if(word_strs.size() > 0){
 				vector<Word*> words;
 				// <bos>
+				// 3-gramなので2つ
 				for(int n = 0;n < 2;n++){
 					Word* bos = new Word();
 					bos->word_id = _bos_id;
@@ -102,23 +103,17 @@ public:
 					word->tag_id = 0;
 					words.push_back(word);
 				}
-				// <eos>も2つ追加しておくとt_{i+1}, t_{i+2}が常に存在するのでギブスサンプリング時に場合分けしなくてもいいかもしれない
-				for(int n = 0;n < 2;n++){
-					Word* eos = new Word();
-					eos->word_id = _eos_id;
-					eos->tag_id = 0;
-					words.push_back(eos);
-				}
+				Word* eos = new Word();
+				eos->word_id = _eos_id;
+				eos->tag_id = 0;
+				words.push_back(eos);
 				// 訓練データに追加
 				_dataset.push_back(words);
 			}
 		}
 		c_printf("[*]%s\n", (boost::format("%sを読み込みました.") % filename.c_str()).str().c_str());
 	}
-	void initialize(){
-		_hmm->initialize(_dataset);
-	}
-	bool load(string dirname){
+	void load(string dirname){
 		// 辞書を読み込み
 		string dictionary_filename = dirname + "/hmm.dict";
 		std::ifstream ifs(dictionary_filename);
@@ -127,20 +122,24 @@ public:
 			iarchive >> _dictionary;
 			ifs.close();
 		}
-		// 獲得された品詞と単語のリストを読み込み
-		string tags_filename = dirname + "/hmm.tags";
-		return _hmm->load(tags_filename);
+		// モデルパラメータの読み込み
+		_word_hpylm->load(dirname + "/word.hpylm");
+		for(int tag = 0;tag < _num_tags;tag++){
+			_pos_hpylm_for_tag[tag]->load((boost::format("%s/pos.%d.hpylm") % dirname.c_str() % tag).str());
+		}
 	}
-	bool save(string dirname){
+	void save(string dirname){
 		// 辞書を保存
 		string dictionary_filename = dirname + "/hmm.dict";
 		std::ofstream ofs(dictionary_filename);
 		boost::archive::binary_oarchive oarchive(ofs);
 		oarchive << _dictionary;
 		ofs.close();
-		// 獲得された品詞と単語のリストを保存
-		string tags_filename = dirname + "/hmm.tags";
-		return _hmm->save(tags_filename);
+		// モデルパラメータの保存
+		_word_hpylm->save(dirname + "/word.hpylm");
+		for(int tag = 0;tag < _num_tags;tag++){
+			_pos_hpylm_for_tag[tag]->save((boost::format("%s/pos.%d.hpylm") % dirname.c_str() % tag).str());
+		}
 	}
 	void perform_gibbs_sampling(){
 		if(_rand_indices.size() != _dataset.size()){
@@ -156,123 +155,19 @@ public:
 			}
 			int data_index = _rand_indices[n];
 			vector<Word*> &line = _dataset[data_index];
-			_hmm->perform_gibbs_sampling_with_line(line);
 		}
-	}
-	void sample_new_beta(){
-		_hmm->sample_new_beta(_dataset);
-	}
-	void show_beta(){
-		for(int tag = 0;tag < _hmm->_num_tags;tag++){
-			cout << "beta[" << tag << "] <- " << _hmm->_beta[tag] << endl;
-		}
-	}
-	void show_random_line(int num_to_show, bool show_most_co_occurring_tag = true){
-		for(int n = 0;n < num_to_show;n++){
-			int data_index = Sampler::uniform_int(0, _dataset.size() - 1);
-			vector<Word*> &line = _dataset[data_index];
-			for(int pos = 2;pos < line.size() - 2;pos++){
-				Word* word = line[pos];
-				int tag_id = word->tag_id;
-				if(show_most_co_occurring_tag){
-					tag_id = _hmm->get_most_co_occurring_tag(word->word_id);
-				}
-				wcout << _dictionary[word->word_id] << L"/" << tag_id << L" ";
-			}
-			wcout << endl;
-		}
-	}
-	python::list get_all_words_for_each_tag(int threshold = 0){
-		vector<python::list> result;
-		for(int tag = 0;tag < _hmm->_num_tags;tag++){
-			vector<python::tuple> words;
-			unordered_map<int, int> &word_counts = _hmm->_tag_word_counts[tag];
-			multiset<pair<int, int>, value_comparator> ranking;
-			for(auto elem: word_counts){
-				ranking.insert(std::make_pair(elem.first, elem.second));
-			}
-			for(auto elem: ranking){
-				if(elem.second <= threshold){
-					continue;
-				}
-				wstring word = _dictionary[elem.first];
-				words.push_back(python::make_tuple(word, elem.second));
-			}
-			result.push_back(list_from_vector(words));
-		}
-		return list_from_vector(result);
-	}
-	void show_typical_words_for_each_tag(int number_to_show_for_each_tag){
-		for(int tag = 0;tag < _hmm->_num_tags;tag++){
-			unordered_map<int, int> &word_counts = _hmm->_tag_word_counts[tag];
-			int n = 0;
-			wcout << L"tag " << tag << L":" << endl;
-			wcout << L"	";
-			multiset<pair<int, int>, value_comparator> ranking;
-			for(auto elem: word_counts){
-				ranking.insert(std::make_pair(elem.first, elem.second));
-			}
-			for(auto elem: ranking){
-				wstring word = _dictionary[elem.first];
-				wcout << word << L"/" << elem.second << L", ";
-				n++;
-				if(n > number_to_show_for_each_tag){
-					break;
-				}
-				if(elem.second < 10){
-					break;
-				}
-			}
-			wcout << endl;
-		}
-	}
-	void set_alpha(double alpha){
-		_hmm->_alpha = alpha;
-	}
-	void set_num_tags(int number){
-		_hmm->_num_tags = number;
 	}
 	int get_num_tags(){
-		return _hmm->_num_tags;
-	}
-	double get_temperature(){
-		return _hmm->_temperature;
-	}
-	void set_temperature(double temperature){
-		_hmm->_temperature = temperature;
-	}
-	void set_Wt(python::list Wt){
-		int length = python::len(Wt);
-		for(int tag = 0;tag < length;tag++){
-			_hmm->set_Wt_for_tag(tag, python::extract<int>(Wt[tag]));
-		}
-	}
-	void set_minimum_temperature(double temperature){
-		_hmm->_minimum_temperature = temperature;
-	}
-	void anneal_temperature(double temperature){
-		_hmm->anneal_temperature(temperature);
+		return _num_tags;
 	}
 };
 
 BOOST_PYTHON_MODULE(model){
-	python::class_<PyBayesianHMM>("bayesian_hmm")
-	.def("string_to_word_id", &PyBayesianHMM::string_to_word_id)
-	.def("perform_gibbs_sampling", &PyBayesianHMM::perform_gibbs_sampling)
-	.def("initialize", &PyBayesianHMM::initialize)
-	.def("load", &PyBayesianHMM::load)
-	.def("save", &PyBayesianHMM::save)
-	.def("get_num_tags", &PyBayesianHMM::get_num_tags)
-	.def("get_all_words_for_each_tag", &PyBayesianHMM::get_all_words_for_each_tag)
-	.def("get_temperature", &PyBayesianHMM::get_temperature)
-	.def("set_temperature", &PyBayesianHMM::set_temperature)
-	.def("set_num_tags", &PyBayesianHMM::set_num_tags)
-	.def("set_minimum_temperature", &PyBayesianHMM::set_minimum_temperature)
-	.def("set_Wt", &PyBayesianHMM::set_Wt)
-	.def("sample_new_beta", &PyBayesianHMM::sample_new_beta)
-	.def("anneal_temperature", &PyBayesianHMM::anneal_temperature)
-	.def("show_typical_words_for_each_tag", &PyBayesianHMM::show_typical_words_for_each_tag)
-	.def("show_random_line", &PyBayesianHMM::show_random_line)
-	.def("show_beta", &PyBayesianHMM::show_beta)
-	.def("load_textfile", &PyBayesianHMM::load_textfile);
+	python::class_<PyHpylmHMM>("bayesian_hmm", python::init<int>())
+	.def("string_to_word_id", &PyHpylmHMM::string_to_word_id)
+	.def("perform_gibbs_sampling", &PyHpylmHMM::perform_gibbs_sampling)
+	.def("load", &PyHpylmHMM::load)
+	.def("save", &PyHpylmHMM::save)
+	.def("get_num_tags", &PyHpylmHMM::get_num_tags)
+	.def("load_textfile", &PyHpylmHMM::load_textfile);
 }
