@@ -372,6 +372,9 @@ public:
 					break;
 				}
 			}
+			if(random_word == NULL){
+				continue;
+			}
 			double Pti_wi_beta = compute_Pti_wi_beta(random_word->tag_id, random_word->word_id, _beta[tag]);
 			double Pti_wi_new_beta = compute_Pti_wi_beta(random_word->tag_id, random_word->word_id, _new_beta[tag]);
 			if(Pti_wi_new_beta == 0){
