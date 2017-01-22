@@ -1,6 +1,7 @@
 #ifndef _splay_
 #define _splay_
 #include <iostream>
+#include <set>
 #include <cstdlib>
 #include <boost/serialization/serialization.hpp>
 #include <boost/archive/binary_iarchive.hpp>
@@ -44,6 +45,7 @@ namespace Splay {
 		// }
 		KEY_TYPE key;
 		T value;
+		Node<T>* parent;
 		Node<T>* lchild;
 		Node<T>* rchild;
 	};
@@ -84,6 +86,7 @@ namespace Splay {
 	template <typename T>
 	class Tree {
 	public:
+		set<KEY_TYPE> _all_keys;
 		friend class boost::serialization::access;
 		template <class Archive>
 		void serialize(Archive& archive, unsigned int version)
@@ -199,6 +202,7 @@ namespace Splay {
 		}
 		void insert(KEY_TYPE key, T value){
 			_root = _insert(key, value, _root);
+			_all_keys.insert(key);
 		}
 		Node<T>* _insert(KEY_TYPE key, T value, Node<T>* root)
 		{
@@ -245,6 +249,7 @@ namespace Splay {
 		}
 		bool delete_key(KEY_TYPE key)
 		{
+			_all_keys.erase(key);
 			Node<T>* temp;
 			if(!_root){
 				return false;
@@ -282,6 +287,7 @@ namespace Splay {
 	template <class T>
 	class Tree<T*> {
 	public:
+		set<KEY_TYPE> _all_keys;
 		friend class boost::serialization::access;
 		template <class Archive>
 		void serialize(Archive& archive, unsigned int version)
@@ -403,6 +409,7 @@ namespace Splay {
 		}
 		void insert(KEY_TYPE key, T* value){
 			_root = _insert(key, value, _root);
+			_all_keys.insert(key);
 		}
 		Node<T*>* _insert(KEY_TYPE key, T* value, Node<T*>* root)
 		{
@@ -451,6 +458,7 @@ namespace Splay {
 		}
 		bool delete_key(KEY_TYPE key)
 		{
+			_all_keys.erase(key);
 			Node<T*>* temp;
 			if(!_root){
 				return false;
@@ -478,10 +486,10 @@ namespace Splay {
 		Node<T*>* search(KEY_TYPE key)
 		{
 			_root =  Splay(key, _root);
-			if(_root->key != key){
-				return NULL;
+			if(_root->key == key){
+				return _root;
 			}
-			return _root;
+			return NULL;
 		}
 	};
 }

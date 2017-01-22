@@ -154,11 +154,6 @@ public:
 		assert(context_token_ids.size() >= _hpylm_depth);
 		double parent_Pw = _g0;
 		Node* node = _root;
-
-				
-				return node->_compute_Pw(token_id, parent_Pw, _d_m, _theta_m);
-
-				
 		for(int depth = 1;depth <= _hpylm_depth;depth++){
 			int context_token_id = context_token_ids[2 - depth];
 			Node* child = node->find_child_node(context_token_id, false);
@@ -376,9 +371,6 @@ public:
 	}
 	int get_sum_pass_counts(){
 		return _root->sum_pass_counts();
-	}
-	void set_active_tokens(unordered_map<int, bool> &flags){
-		_root->set_active_tokens(flags);
 	}
 	void count_tokens_of_each_depth(unordered_map<int, int> &map){
 		_root->count_tokens_of_each_depth(map);

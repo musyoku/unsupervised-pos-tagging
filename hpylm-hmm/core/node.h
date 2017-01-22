@@ -28,10 +28,11 @@ class Node{
 private:
 	// 客をテーブルに追加
 	bool add_customer_to_table(int token_id, int table_k, double parent_Pw, vector<double> &d_m, vector<double> &theta_m, int &added_to_table_k){
-		if(_arrangement.find(token_id) == _arrangement.end()){
+		auto splay_node = _splay_arrangement->search(token_id);
+		if(splay_node == NULL){
 			return add_customer_to_new_table(token_id, parent_Pw, d_m, theta_m, added_to_table_k);
 		}
-		vector<int> &num_customers_at_table = _arrangement[token_id];
+		vector<int> &num_customers_at_table = splay_node->value;
 		if(table_k < num_customers_at_table.size()){
 			num_customers_at_table[table_k]++;
 			_num_customers++;
@@ -42,19 +43,19 @@ private:
 		return false;
 	}
 	bool add_customer_to_new_table(int token_id, double parent_Pw, vector<double> &d_m, vector<double> &theta_m, int &added_to_table_k){
-		if(_arrangement.find(token_id) == _arrangement.end()){
+		auto splay_node = _splay_arrangement->search(token_id);
+		if(splay_node == NULL){
 			vector<int> tables = {1};
-			_arrangement[token_id] = tables;
-			_splay_arrangement.insert(token_id, tables);
+			_splay_arrangement->insert(token_id, tables);
 		}else{
-			_arrangement[token_id].push_back(1);
-			auto node = _splay_arrangement.search(token_id);
-			assert(node != NULL);
-			if(node){
-				vector<int> &tables = node->value;
-				tables.push_back(1);
-			}
+			vector<int> &tables = splay_node->value;
+			tables.push_back(1);
 		}
+		// if(_arrangement.find(token_id) == _arrangement.end()){
+		// 	_arrangement[token_id] = tables;
+		// }else{
+		// 	_arrangement[token_id].push_back(1);
+		// }
 		_num_tables++;
 		_num_customers++;
 		if(_parent != NULL){
@@ -67,15 +68,21 @@ private:
 		return true;
 	}
 	bool remove_customer_from_table(int token_id, int table_k, int &removed_from_table_k){
-		if(_arrangement.find(token_id) == _arrangement.end()){
+		auto splay_node = _splay_arrangement->search(token_id);
+		if(splay_node == NULL){
 			c_printf("[r]%s [*]%s\n", "エラー:", "客を除去できません. _arrangement.find(token_id) == _arrangement.end()");
 			exit(1);
 		}
-		if(table_k >= _arrangement[token_id].size()){
+		// if(_arrangement.find(token_id) == _arrangement.end()){
+		// 	c_printf("[r]%s [*]%s\n", "エラー:", "客を除去できません. _arrangement.find(token_id) == _arrangement.end()");
+		// 	exit(1);
+		// }
+		vector<int> &num_customers_at_table = splay_node->value;
+		if(table_k >= num_customers_at_table.size()){
 			c_printf("[r]%s [*]%s\n", "エラー:", "客を除去できません. table_k >= _arrangement[token_id].size()");
 			exit(1);
 		}
-		vector<int> &num_customers_at_table = _arrangement[token_id];
+		// vector<int> &num_customers_at_table = _arrangement[token_id];
 		num_customers_at_table[table_k]--;
 		_num_customers--;
 		if(num_customers_at_table[table_k] < 0){
@@ -93,8 +100,8 @@ private:
 			num_customers_at_table.erase(num_customers_at_table.begin() + table_k);
 			_num_tables--;
 			if(num_customers_at_table.size() == 0){
-				_arrangement.erase(token_id);
-				_splay_arrangement.delete_key(token_id);
+				// _arrangement.erase(token_id);
+				_splay_arrangement->delete_key(token_id);
 			}
 		}
 		return true;
@@ -107,6 +114,7 @@ private:
 		archive & _children;
 		// archive & __children;
 		archive & _arrangement;
+		archive & _splay_arrangement;
 		archive & _num_tables;
 		archive & _num_customers;
 		archive & _parent;
@@ -121,7 +129,7 @@ public:
 	static int _auto_increment;						// identifier用 VPYLMとは無関係
 	unordered_map<int, Node*> _children;			// 子の文脈木
 	unordered_map<int, vector<int>> _arrangement;	// 客の配置 vector<int>のk番目の要素がテーブルkの客数を表す
-	Splay::Tree<vector<int>> _splay_arrangement;
+	Splay::Tree<vector<int>>* _splay_arrangement;
 	int _num_tables;								// 総テーブル数
 	int _num_customers;								// 客の総数
 	Node* _parent;									// 親ノード
@@ -140,6 +148,7 @@ public:
 		_auto_increment++;
 		_token_id = token_id;
 		_parent = NULL;
+		_splay_arrangement = new Splay::Tree<vector<int>>();
 	}
 	bool parent_exists(){
 		return !(_parent == NULL);
@@ -151,22 +160,25 @@ public:
 		if(_parent == NULL){
 			return false;
 		}
-		if(_children.size() == 0 and _arrangement.size() == 0){
+		if(_children.size() == 0 and _splay_arrangement->is_empty()){
 			return true;
 		}
 		return false;
 	}
 	int get_num_tables_serving_word(int token_id){
-		if(_arrangement.find(token_id) == _arrangement.end()){
+		auto splay_node = _splay_arrangement->search(token_id);
+		if(splay_node == NULL){
 			return 0;
 		}
-		return _arrangement[token_id].size();
+		vector<int> &tables = splay_node->value;
+		return tables.size();
 	}
 	int get_num_customers_eating_word(int token_id){
-		if(_arrangement.find(token_id) == _arrangement.end()){
+		auto splay_node = _splay_arrangement->search(token_id);
+		if(splay_node == NULL){
 			return 0;
 		}
-		vector<int> &num_customers_at_table = _arrangement[token_id];
+		vector<int> &num_customers_at_table = splay_node->value;
 		int sum = 0;
 		for(int i = 0;i < num_customers_at_table.size();i++){
 			sum += num_customers_at_table[i];
@@ -194,7 +206,8 @@ public:
 		if(_parent){
 			parent_Pw = _parent->compute_Pw(token_id, g0, d_m, theta_m);
 		}
-		if(_arrangement.find(token_id) == _arrangement.end()){
+		auto splay_node = _splay_arrangement->search(token_id);
+		if(splay_node == NULL){
 			add_customer_to_new_table(token_id, parent_Pw, d_m, theta_m, added_to_table_k);
 			if(update_n == true){
 				increment_stop_count();
@@ -204,7 +217,7 @@ public:
 			}
 			return true;
 		}
-		vector<int> &num_customers_at_table = _arrangement[token_id];
+		vector<int> &num_customers_at_table = splay_node->value;
 		double sum_props = 0.0;
 		for(int k = 0;k < num_customers_at_table.size();k++){
 			sum_props += std::max(0.0, num_customers_at_table[k] - d_u);
@@ -237,11 +250,12 @@ public:
 		return true;
 	}
 	bool remove_customer(int token_id, bool update_n, int &removed_from_table_k){
-		if(_arrangement.find(token_id) == _arrangement.end()){
+		auto splay_node = _splay_arrangement->search(token_id);
+		if(splay_node == NULL){
 			c_printf("[r]%s [*]%s\n", "エラー:", "客を除去できません. _arrangement.find(token_id) == _arrangement.end()");
 			exit(1);
 		}
-		vector<int> &num_customers_at_table = _arrangement[token_id];
+		vector<int> &num_customers_at_table = splay_node->value;
 		double sum_props = std::accumulate(num_customers_at_table.begin(), num_customers_at_table.end(), 0);		
 		double normalizer = 1.0 / sum_props;
 		double r = Sampler::uniform(0, 1);
@@ -274,8 +288,8 @@ public:
 		double t_u = _num_tables;
 		double c_u = _num_customers;
 		double second_coeff = (theta_u + d_u * t_u) / (theta_u + c_u);
-		auto itr = _arrangement.find(token_id);
-		if(itr == _arrangement.end()){
+		auto splay_node = _splay_arrangement->search(token_id);
+		if(splay_node == NULL){
 			if(_parent != NULL){
 				return second_coeff * _parent->compute_Pw(token_id, g0, d_m, theta_m);
 			}
@@ -285,7 +299,7 @@ public:
 		if(_parent != NULL){
 			parent_Pw = _parent->compute_Pw(token_id, g0, d_m, theta_m);
 		}
-		vector<int> &num_customers_at_table = itr->second;
+		vector<int> &num_customers_at_table = splay_node->value;
 		double c_uw = std::accumulate(num_customers_at_table.begin(), num_customers_at_table.end(), 0);
 		double t_uw = num_customers_at_table.size();
 		double first_coeff = std::max(0.0, c_uw - d_u * t_uw) / (theta_u + c_u);
@@ -298,15 +312,11 @@ public:
 		double c_u = _num_customers;
 		double second_coeff = (theta_u + d_u * t_u) / (theta_u + c_u);
 
-		auto splay_node = _splay_arrangement.search(token_id);
+		auto splay_node = _splay_arrangement->search(token_id);
 		if(splay_node == NULL){
 			return second_coeff * parent_Pw;
 		}
 
-		// auto itr = _arrangement.find(token_id);
-		// if(itr == _arrangement.end()){
-		// 	return second_coeff * parent_Pw;
-		// }
 		vector<int> &num_customers_at_table = splay_node->value;
 		double c_uw = std::accumulate(num_customers_at_table.begin(), num_customers_at_table.end(), 0);
 		double t_uw = num_customers_at_table.size();
@@ -373,7 +383,7 @@ public:
 			// __children->delete_key(token_id);
 			delete child;
 		}
-		if(_children.size() == 0 && _arrangement.size() == 0){
+		if(_children.size() == 0 && _splay_arrangement->is_empty()){
 			remove_from_parent();
 		}
 	}
@@ -396,8 +406,11 @@ public:
 	}
 	int get_num_tables(){
 		int num = 0;
-		for(const auto &elem: _arrangement){
-			num += elem.second.size();
+		for(const int token_id: _splay_arrangement->_all_keys){
+			auto splay_node = _splay_arrangement->search(token_id);
+			assert(splay_node != NULL);
+			vector<int> &table = splay_node->value;
+			num += table.size();
 		}
 		if(num != _num_tables){
 			c_printf("[r]%s [*]%s\n", "エラー:", "テーブルの管理に不具合があります. num != _num_tables");
@@ -410,8 +423,11 @@ public:
 	}
 	int get_num_customers(){
 		int num = 0;
-		for(const auto &elem: _arrangement){
-			num += std::accumulate(elem.second.begin(), elem.second.end(), 0);
+		for(const int token_id: _splay_arrangement->_all_keys){
+			auto splay_node = _splay_arrangement->search(token_id);
+			assert(splay_node != NULL);
+			vector<int> &table = splay_node->value;
+			num += std::accumulate(table.begin(), table.end(), 0);
 		}
 		if(num != _num_customers){
 			c_printf("[r]%s [*]%s\n", "エラー:", "客の管理に不具合があります. num != _num_customers");
@@ -436,15 +452,6 @@ public:
 		}
 		return sum;
 	}
-	void set_active_tokens(unordered_map<int, bool> &flags){
-		for(auto elem: _arrangement){
-			int token_id = elem.first;
-			flags[token_id] = true;
-		}
-		for(auto elem: _children){
-			elem.second->set_active_tokens(flags);
-		}
-	}
 	void set_node_by_depth(unordered_map<int, vector<Node*>> &node_by_depth){
 		vector<Node*> &nodes = node_by_depth[_depth];
 		nodes.push_back(this);
@@ -453,7 +460,7 @@ public:
 		}
 	}
 	void count_tokens_of_each_depth(unordered_map<int, int> &counts){
-		for(const auto &elem: _arrangement){
+		for(const int token_id: _splay_arrangement->_all_keys){
 			counts[_depth] += 1;
 		}
 		for(const auto &elem: _children){
@@ -511,9 +518,11 @@ public:
 	double auxiliary_1_z_uwkj(double d_u){
 		double sum_z_uwkj = 0;
 		// c_u..
-		for(auto &elem: _arrangement){
+		for(const int token_id: _splay_arrangement->_all_keys){
+			auto splay_node = _splay_arrangement->search(token_id);
+			assert(splay_node != NULL);
 			// c_uw.
-			vector<int> &num_customers_at_table = elem.second;
+			vector<int> &num_customers_at_table = splay_node->value;
 			for(int k = 0;k < num_customers_at_table.size();k++){
 				// c_uwk
 				int c_uwk = num_customers_at_table[k];
