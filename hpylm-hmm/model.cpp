@@ -1,6 +1,6 @@
+#include <boost/format.hpp>
 #include <boost/python.hpp>
 #include <boost/python/tuple.hpp>
-#include <boost/format.hpp>
 #include <boost/serialization/serialization.hpp>
 #include <boost/serialization/base_object.hpp>
 #include <boost/archive/binary_iarchive.hpp>
@@ -53,7 +53,7 @@ public:
 		// HPYLMは全て3-gram
 		_pos_hpylm = new HPYLM(3);
 		_word_hpylm_for_tag = new HPYLM*[num_tags];
-		for(int tag = 0;tag < _num_tags;tag++){
+		for(int tag = 0;tag < num_tags;tag++){
 			_word_hpylm_for_tag[tag] = new HPYLM(3);
 		}
 		_lattice = NULL;
@@ -155,7 +155,7 @@ public:
 	}
 	void prepare_for_training(){
 		if(_lattice == NULL){
-			_lattice = new Lattice(_max_num_words_in_sentence, _num_tags);
+			_lattice = new Lattice(_max_num_words_in_sentence, _num_tags, _pos_hpylm, _word_hpylm_for_tag);
 		}
 		if(_rand_indices.size() != _dataset.size()){
 			_rand_indices.clear();
@@ -164,23 +164,27 @@ public:
 			}
 		}
 		// 基底分布G0を設定
+		assert(_pos_hpylm != NULL);
 		_pos_hpylm->set_g0(1.0 / _num_tags);
 		for(int tag = 0;tag < _num_tags;tag++){
-			_word_hpylm_for_tag[tag]->set_g0(1.0 / get_num_types_of_word());
+			HPYLM* word_hpylm = _word_hpylm_for_tag[tag];
+			assert(word_hpylm != NULL);
+			word_hpylm->set_g0(1.0 / get_num_types_of_word());
 		}
 		_is_ready = true;
 	}
 	void perform_gibbs_sampling(){
 		assert(_is_ready);
+		assert(_rand_indices.size() == _dataset.size());
 		shuffle(_rand_indices.begin(), _rand_indices.end(), Sampler::mt);	// データをシャッフル
 		for(int n = 0;n < _dataset.size();n++){
 			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
 				return;
 			}
-			show_progress(n, _dataset.size());
 			int data_index = _rand_indices[n];
 			vector<Word*> &sentence = _dataset[data_index];
 			_lattice->perform_blocked_gibbs_sampling(sentence, false);	// argmax=false
+			show_progress(n, _dataset.size());
 		}
 	}
 	int get_num_types_of_word(){

@@ -22,11 +22,15 @@ public:
 	int _max_num_words_in_sentence;
 	int _num_tags;
 	// max_sentence_lengthは1文に含まれる最大単語数
-	Lattice(int max_num_words_in_sentence, int num_tags){
-		_max_num_words_in_sentence = max_num_words_in_sentence;
+	Lattice(int max_num_words_in_sentence, int num_tags, HPYLM* pos_hpylm, HPYLM** word_hpylm_for_tag){
 		_num_tags = num_tags;
-		_pos_context = {0, 0};
-		_word_context = {0, 0};
+		_max_num_words_in_sentence = max_num_words_in_sentence;
+		_word_hpylm_for_tag = word_hpylm_for_tag;
+		_pos_hpylm = pos_hpylm;
+		_pos_context.push_back(0);
+		_pos_context.push_back(0);
+		_word_context.push_back(0);
+		_word_context.push_back(0);
 		init_sampling_table(max_num_words_in_sentence, num_tags);
 	}
 	~Lattice(){
@@ -70,6 +74,8 @@ public:
 		assert(t >= 2);
 		int token_t_id = sentence[t]->word_id;
 		// <bos>2つの場合
+		cout << endl;
+		cout << (boost::format("%d, %d, %d") % t % r % q).str() << endl;
 		if(t == 2){
 			if(q != BEGIN_OF_POS){
 				_alpha[t][r][q] = 0;
