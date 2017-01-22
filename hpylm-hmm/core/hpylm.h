@@ -9,6 +9,7 @@
 #include <random>
 #include <unordered_map> 
 #include <cstdlib>
+#include <cassert>
 #include "cprintf.h"
 #include "node.h"
 #include "const.h"
@@ -76,6 +77,7 @@ public:
 	}
 	// 単語列のindex番目の単語をモデルに追加
 	bool add_customer_at_timestep(vector<int> &token_ids, int token_t_index){
+		assert(token_ids.size() > token_t_index);
 		Node* node = find_node_by_tracing_back_context(token_ids, token_t_index, _hpylm_depth, true);
 		if(node == NULL){
 			c_printf("[r]%s [*]%s\n", "エラー:", "客を追加できません. ノードが見つかりません.");
@@ -87,6 +89,7 @@ public:
 		return true;
 	}
 	bool remove_customer_at_timestep(vector<int> &token_ids, int token_t_index){
+		assert(token_ids.size() > token_t_index);
 		Node* node = find_node_by_tracing_back_context(token_ids, token_t_index, _hpylm_depth, false);
 		if(node == NULL){
 			c_printf("[r]%s [*]%s\n", "エラー:", "客を除去できません. ノードが見つかりません.");
@@ -143,6 +146,27 @@ public:
 			exit(1);
 		}
 		return node->compute_Pw(token_id, _g0, _d_m, _theta_m);
+	}
+	// 効率化したバージョン
+	// 親の確率を計算しながら子を辿る
+	double _compute_Pw_h(int token_id, vector<int> &context_token_ids){
+		// HPYLMでは深さは固定
+		if(context_token_ids.size() < _hpylm_depth){
+			c_printf("[r]%s [*]%s\n", "エラー:", "単語確率を計算できません. context_token_ids.size() < _hpylm_depth");
+			exit(1);
+		}
+		double parent_Pw = _g0;
+		Node* node = _root;
+		for(int depth = 1;depth <= _hpylm_depth;depth++){
+			int context_token_id = context_token_ids[3 - depth];
+			Node* child = node->find_child_node(context_token_id, false);
+			if(child == NULL){
+				return parent_Pw;
+			}
+			parent_Pw = child->_compute_Pw(token_id, parent_Pw, _d_m, _theta_m);
+			node = child;
+		}
+		return node->_compute_Pw(token_id, parent_Pw, _d_m, _theta_m);
 	}
 	double compute_Pw(int token_id){
 		return _root->compute_Pw(token_id, _g0, _d_m, _theta_m);

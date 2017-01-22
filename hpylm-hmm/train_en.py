@@ -58,7 +58,6 @@ def main(args):
 		sys.stdout.write("Epoch {} / {} - {:.3f} sec - {:.3f} ppl\n".format(epoch, args.epoch, elapsed_time, ppl))		
 		sys.stdout.flush()
 		if epoch % 10 == 0:
-			print "\n"
 			hmm.save(args.model);
 
 if __name__ == "__main__":

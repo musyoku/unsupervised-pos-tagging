@@ -282,6 +282,23 @@ public:
 		double second_coeff = (theta_u + d_u * t_u) / (theta_u + c_u);
 		return first_coeff + second_coeff * parent_Pw;
 	}
+	double _compute_Pw(int token_id, double parent_Pw, vector<double> &d_m, vector<double> &theta_m){
+		init_hyperparameters_at_depth_if_needed(_depth, d_m, theta_m);
+		double d_u = d_m[_depth];
+		double theta_u = theta_m[_depth];
+		double t_u = _num_tables;
+		double c_u = _num_customers;
+		auto itr = _arrangement.find(token_id);
+		double second_coeff = (theta_u + d_u * t_u) / (theta_u + c_u);
+		if(itr == _arrangement.end()){
+			return second_coeff * parent_Pw;
+		}
+		vector<int> &num_customers_at_table = itr->second;
+		double c_uw = std::accumulate(num_customers_at_table.begin(), num_customers_at_table.end(), 0);
+		double t_uw = num_customers_at_table.size();
+		double first_coeff = std::max(0.0, c_uw - d_u * t_uw) / (theta_u + c_u);
+		return first_coeff + second_coeff * parent_Pw;
+	}
 	double compute_Pstop(double beta_stop, double beta_pass){
 		double p = (_stop_count + beta_stop) / (_stop_count + _pass_count + beta_stop + beta_pass);
 		if(_parent != NULL){

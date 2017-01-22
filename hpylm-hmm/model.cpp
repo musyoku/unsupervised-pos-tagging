@@ -200,11 +200,11 @@ public:
 			if(_is_first_run == false){
 				for(int t = 2;t < sentence.size();t++){
 					generate_pos_token_ids(sentence, token_ids, t);
-					_pos_hpylm->remove_customer_at_timestep(token_ids, t);
+					_pos_hpylm->remove_customer_at_timestep(token_ids, 2);
 					generate_word_token_ids(sentence, token_ids, t);
 					int tag = sentence[t]->tag_id;
 					HPYLM* hpylm = _word_hpylm_for_tag[tag];
-					hpylm->remove_customer_at_timestep(token_ids, t);
+					hpylm->remove_customer_at_timestep(token_ids, 2);
 				}
 			}
 			// 品詞をサンプリングしてセット
@@ -212,13 +212,11 @@ public:
 			// HPYLMを更新
 			for(int t = 2;t < sentence.size();t++){
 				generate_pos_token_ids(sentence, token_ids, t);
-				cout << (boost::format("pos: t = %d, tag = %d") % t % sentence[t]->tag_id).str() << endl;
-				_pos_hpylm->add_customer_at_timestep(token_ids, t);
+				_pos_hpylm->add_customer_at_timestep(token_ids, 2);
 				generate_word_token_ids(sentence, token_ids, t);
 				int tag = sentence[t]->tag_id;
 				HPYLM* hpylm = _word_hpylm_for_tag[tag];
-				cout << (boost::format("word: t = %d, word = %d") % t % sentence[t]->word_id).str() << endl;
-				hpylm->add_customer_at_timestep(token_ids, t);
+				hpylm->add_customer_at_timestep(token_ids, 2);
 			}
 			// プログレスバー
 			if(n % 100 == 0 || n == _dataset.size() - 1){
@@ -239,16 +237,16 @@ public:
 		vector<int> context_token_ids = {0, 0};
 		for(int data_index = 0;data_index < num_lines;data_index++){
 			vector<Word*> &sentence = _dataset[data_index];
-			double sum_log_p = 0;
+			double log_Pw = 0;
 			for(int t = 2;t < sentence.size();t++){
 				context_token_ids[0] = sentence[t - 2]->word_id;
 				context_token_ids[1] = sentence[t - 1]->word_id;
 				int token_id = sentence[t]->word_id;
 				int tag = sentence[t]->tag_id;
 				HPYLM* hpylm = _word_hpylm_for_tag[tag];
-				sum_log_p += log2(hpylm->compute_Pw_h(token_id, context_token_ids) + 1e-20);
+				log_Pw += log2(hpylm->compute_Pw_h(token_id, context_token_ids));
 			}
-			ppl += sum_log_p / (sentence.size() - 2);
+			ppl += log_Pw / (sentence.size() - 2);
 		}
 		ppl = exp(-ppl / num_lines);
 		return ppl;
