@@ -15,8 +15,11 @@
 #include <unordered_map>
 #include <cmath>
 #include <cstdlib>
+#include <cassert>
+#include <chrono>
 #include "cprintf.h"
 #include "sampler.h"
+#include "splay.h"
 #include "const.h"
 
 using namespace std;
@@ -42,8 +45,15 @@ private:
 		if(_arrangement.find(token_id) == _arrangement.end()){
 			vector<int> tables = {1};
 			_arrangement[token_id] = tables;
+			_splay_arrangement.insert(token_id, tables);
 		}else{
 			_arrangement[token_id].push_back(1);
+			auto node = _splay_arrangement.search(token_id);
+			assert(node != NULL);
+			if(node){
+				vector<int> &tables = node->value;
+				tables.push_back(1);
+			}
 		}
 		_num_tables++;
 		_num_customers++;
@@ -84,6 +94,7 @@ private:
 			_num_tables--;
 			if(num_customers_at_table.size() == 0){
 				_arrangement.erase(token_id);
+				_splay_arrangement.delete_key(token_id);
 			}
 		}
 		return true;
@@ -110,6 +121,7 @@ public:
 	static int _auto_increment;						// identifier用 VPYLMとは無関係
 	unordered_map<int, Node*> _children;			// 子の文脈木
 	unordered_map<int, vector<int>> _arrangement;	// 客の配置 vector<int>のk番目の要素がテーブルkの客数を表す
+	Splay::Tree<vector<int>> _splay_arrangement;
 	int _num_tables;								// 総テーブル数
 	int _num_customers;								// 客の総数
 	Node* _parent;									// 親ノード
@@ -176,7 +188,6 @@ public:
 		return child;
 	}
 	bool add_customer(int token_id, double g0, vector<double> &d_m, vector<double> &theta_m, bool update_n, int &added_to_table_k){
-		init_hyperparameters_at_depth_if_needed(_depth, d_m, theta_m);
 		double d_u = d_m[_depth];
 		double theta_u = theta_m[_depth];
 		double parent_Pw = g0;
@@ -258,18 +269,17 @@ public:
 		return true;
 	}
 	double compute_Pw(int token_id, double g0, vector<double> &d_m, vector<double> &theta_m){
-		init_hyperparameters_at_depth_if_needed(_depth, d_m, theta_m);
 		double d_u = d_m[_depth];
 		double theta_u = theta_m[_depth];
 		double t_u = _num_tables;
 		double c_u = _num_customers;
+		double second_coeff = (theta_u + d_u * t_u) / (theta_u + c_u);
 		auto itr = _arrangement.find(token_id);
 		if(itr == _arrangement.end()){
-			double coeff = (theta_u + d_u * t_u) / (theta_u + c_u);
 			if(_parent != NULL){
-				return _parent->compute_Pw(token_id, g0, d_m, theta_m) * coeff;
+				return second_coeff * _parent->compute_Pw(token_id, g0, d_m, theta_m);
 			}
-			return g0 * coeff;
+			return second_coeff * g0;
 		}
 		double parent_Pw = g0;
 		if(_parent != NULL){
@@ -279,21 +289,25 @@ public:
 		double c_uw = std::accumulate(num_customers_at_table.begin(), num_customers_at_table.end(), 0);
 		double t_uw = num_customers_at_table.size();
 		double first_coeff = std::max(0.0, c_uw - d_u * t_uw) / (theta_u + c_u);
-		double second_coeff = (theta_u + d_u * t_u) / (theta_u + c_u);
 		return first_coeff + second_coeff * parent_Pw;
 	}
 	double _compute_Pw(int token_id, double parent_Pw, vector<double> &d_m, vector<double> &theta_m){
-		init_hyperparameters_at_depth_if_needed(_depth, d_m, theta_m);
 		double d_u = d_m[_depth];
 		double theta_u = theta_m[_depth];
 		double t_u = _num_tables;
 		double c_u = _num_customers;
-		auto itr = _arrangement.find(token_id);
 		double second_coeff = (theta_u + d_u * t_u) / (theta_u + c_u);
-		if(itr == _arrangement.end()){
+
+		auto splay_node = _splay_arrangement.search(token_id);
+		if(splay_node == NULL){
 			return second_coeff * parent_Pw;
 		}
-		vector<int> &num_customers_at_table = itr->second;
+
+		// auto itr = _arrangement.find(token_id);
+		// if(itr == _arrangement.end()){
+		// 	return second_coeff * parent_Pw;
+		// }
+		vector<int> &num_customers_at_table = splay_node->value;
 		double c_uw = std::accumulate(num_customers_at_table.begin(), num_customers_at_table.end(), 0);
 		double t_uw = num_customers_at_table.size();
 		double first_coeff = std::max(0.0, c_uw - d_u * t_uw) / (theta_u + c_u);
@@ -515,16 +529,6 @@ public:
 			}
 		}
 		return sum_z_uwkj;
-	}
-	void init_hyperparameters_at_depth_if_needed(int depth, vector<double> &d_m, vector<double> &theta_m){
-		if(depth >= d_m.size()){
-			while(d_m.size() <= depth){
-				d_m.push_back(PYLM_INITIAL_D);
-			}
-			while(theta_m.size() <= depth){
-				theta_m.push_back(PYLM_INITIAL_THETA);
-			}
-		}
 	}
 };
 

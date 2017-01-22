@@ -134,7 +134,8 @@ public:
 		}
 		return p;
 	}
-	double compute_Pw_h(int token_id, vector<int> &context_token_ids){
+	// 式に忠実な実装
+	double _compute_Pw_h(int token_id, vector<int> &context_token_ids){
 		// HPYLMでは深さは固定
 		if(context_token_ids.size() < _hpylm_depth){
 			c_printf("[r]%s [*]%s\n", "エラー:", "単語確率を計算できません. context_token_ids.size() < _hpylm_depth");
@@ -149,21 +150,22 @@ public:
 	}
 	// 効率化したバージョン
 	// 親の確率を計算しながら子を辿る
-	double _compute_Pw_h(int token_id, vector<int> &context_token_ids){
-		// HPYLMでは深さは固定
-		if(context_token_ids.size() < _hpylm_depth){
-			c_printf("[r]%s [*]%s\n", "エラー:", "単語確率を計算できません. context_token_ids.size() < _hpylm_depth");
-			exit(1);
-		}
+	double compute_Pw_h(int token_id, vector<int> &context_token_ids){
+		assert(context_token_ids.size() >= _hpylm_depth);
 		double parent_Pw = _g0;
 		Node* node = _root;
+
+				
+				return node->_compute_Pw(token_id, parent_Pw, _d_m, _theta_m);
+
+				
 		for(int depth = 1;depth <= _hpylm_depth;depth++){
-			int context_token_id = context_token_ids[3 - depth];
+			int context_token_id = context_token_ids[2 - depth];
 			Node* child = node->find_child_node(context_token_id, false);
+			parent_Pw = node->_compute_Pw(token_id, parent_Pw, _d_m, _theta_m);
 			if(child == NULL){
 				return parent_Pw;
 			}
-			parent_Pw = child->_compute_Pw(token_id, parent_Pw, _d_m, _theta_m);
 			node = child;
 		}
 		return node->_compute_Pw(token_id, parent_Pw, _d_m, _theta_m);

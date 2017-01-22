@@ -109,13 +109,9 @@ public:
 		for(int z = 0;z < _num_tags;z++){
 			HPYLM* word_hpylm = _word_hpylm_for_tag[z];
 			double Pz_qr = _pos_hpylm->compute_Pw_h(z, _pos_context);
-			double _Pz_qr = _pos_hpylm->_compute_Pw_h(z, _pos_context);
-			assert(Pz_qr == _Pz_qr);
 			_word_context[0] = sentence[t - 2]->word_id;
 			_word_context[1] = sentence[t - 1]->word_id;
 			double Pt_h = word_hpylm->compute_Pw_h(token_t_id, _word_context);
-			double _Pt_h = word_hpylm->_compute_Pw_h(token_t_id, _word_context);
-			assert(Pt_h == _Pt_h);
 			sum += Pt_h * Pz_qr * _alpha[t - 1][q][z];
 			// cout << (boost::format("sum += %f * %f * %f") % Pt_h % Pz_qr % _alpha[t - 1][q][z]).str() << endl;
 		}
