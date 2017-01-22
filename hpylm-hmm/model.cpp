@@ -64,7 +64,6 @@ public:
 		_autoincrement = END_OF_SENTENSE + 1;
 		_max_num_words_in_sentence = 0;
 		_is_ready = false;
-		_is_first_run = true;
 	}
 	~PyHpylmHMM(){
 		delete _pos_hpylm;
@@ -158,6 +157,7 @@ public:
 		}
 	}
 	void prepare_for_training(){
+		c_printf("[*]%s\n", "学習の準備中です ...");
 		if(_lattice == NULL){
 			_lattice = new Lattice(_max_num_words_in_sentence, _num_tags, _pos_hpylm, _word_hpylm_for_tag);
 		}
@@ -174,6 +174,28 @@ public:
 			HPYLM* word_hpylm = _word_hpylm_for_tag[tag];
 			assert(word_hpylm != NULL);
 			word_hpylm->set_g0(1.0 / get_num_types_of_word());
+		}
+		// 各文にランダムに品詞を割り当ててモデルに追加
+		vector<int> token_ids = {0, 0, 0};
+		for(int data_index = 0;data_index < _dataset.size();data_index++){
+			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
+				return;
+			}
+			vector<Word*> &sentence = _dataset[data_index];
+			// HPYLMを更新
+			for(int t = 2;t < sentence.size();t++){
+				sentence[t]->tag_id = Sampler::uniform_int(0, _num_tags - 1);
+				generate_pos_token_ids(sentence, token_ids, t);
+				_pos_hpylm->add_customer_at_timestep(token_ids, 2);
+				generate_word_token_ids(sentence, token_ids, t);
+				int tag = sentence[t]->tag_id;
+				HPYLM* hpylm = _word_hpylm_for_tag[tag];
+				hpylm->add_customer_at_timestep(token_ids, 2);
+			}
+			// プログレスバー
+			if(data_index % 100 == 0 || data_index == _dataset.size() - 1){
+				show_progress(data_index, _dataset.size());
+			}
 		}
 		_is_ready = true;
 	}
@@ -199,15 +221,13 @@ public:
 			int data_index = _rand_indices[n];
 			vector<Word*> &sentence = _dataset[data_index];
 			// 以前のサンプリング結果を削除
-			if(_is_first_run == false){
-				for(int t = 2;t < sentence.size();t++){
-					generate_pos_token_ids(sentence, token_ids, t);
-					_pos_hpylm->remove_customer_at_timestep(token_ids, 2);
-					generate_word_token_ids(sentence, token_ids, t);
-					int tag = sentence[t]->tag_id;
-					HPYLM* hpylm = _word_hpylm_for_tag[tag];
-					hpylm->remove_customer_at_timestep(token_ids, 2);
-				}
+			for(int t = 2;t < sentence.size();t++){
+				generate_pos_token_ids(sentence, token_ids, t);
+				_pos_hpylm->remove_customer_at_timestep(token_ids, 2);
+				generate_word_token_ids(sentence, token_ids, t);
+				int tag = sentence[t]->tag_id;
+				HPYLM* hpylm = _word_hpylm_for_tag[tag];
+				hpylm->remove_customer_at_timestep(token_ids, 2);
 			}
 			// 品詞をサンプリングしてセット
 			_lattice->perform_blocked_gibbs_sampling(sentence, false);	// argmax=false
@@ -226,6 +246,12 @@ public:
 			}
 		}
 		_is_first_run = false;
+	}
+	void sample_hyperparams(){
+		_pos_hpylm->sample_hyperparams();
+		for(int tag = 0;tag < _num_tags;tag++){
+			_word_hpylm_for_tag[tag]->sample_hyperparams();
+		}
 	}
 	int get_num_types_of_word(){
 		return _types_of_words.size();
@@ -261,6 +287,32 @@ public:
 			cout << "# of customers: " << hpylm->get_num_customers() << endl;
 		}
 	}
+	void show_typical_words_for_each_tag(int number_to_show_for_each_tag){
+		for(int tag = 0;tag < _num_tags;tag++){
+			int n = 0;
+			wcout << L"tag " << tag << L":" << endl << L"	";
+			multiset<pair<int, int>, value_comparator> ranking;
+			unordered_map<int, vector<int>> &arrangement = _word_hpylm_for_tag[tag]->_root->_arrangement;
+			for(auto &elem: arrangement){
+				int token_id = elem.first;
+				vector<int> &num_customers_at_table = elem.second;
+				int count = std::accumulate(num_customers_at_table.begin(), num_customers_at_table.end(), 0);	
+				ranking.insert(std::make_pair(token_id, count));
+			}
+			for(auto elem: ranking){
+				wstring word = _dictionary[elem.first];
+				wcout << word << L"/" << elem.second << L", ";
+				n++;
+				if(n > number_to_show_for_each_tag){
+					break;
+				}
+				if(elem.second < 10){
+					break;
+				}
+			}
+			wcout << endl;
+		}
+	}
 };
 
 BOOST_PYTHON_MODULE(model){
@@ -268,10 +320,12 @@ BOOST_PYTHON_MODULE(model){
 	.def("string_to_word_id", &PyHpylmHMM::string_to_word_id)
 	.def("prepare_for_training", &PyHpylmHMM::prepare_for_training)
 	.def("perform_gibbs_sampling", &PyHpylmHMM::perform_gibbs_sampling)
+	.def("sample_hyperparams", &PyHpylmHMM::sample_hyperparams)
 	.def("compute_perplexity", &PyHpylmHMM::compute_perplexity)
 	.def("load", &PyHpylmHMM::load)
 	.def("save", &PyHpylmHMM::save)
 	.def("get_num_tags", &PyHpylmHMM::get_num_tags)
 	.def("dump_hpylm", &PyHpylmHMM::dump_hpylm)
+	.def("show_typical_words_for_each_tag", &PyHpylmHMM::show_typical_words_for_each_tag)
 	.def("load_textfile", &PyHpylmHMM::load_textfile);
 }

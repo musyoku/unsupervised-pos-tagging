@@ -40,7 +40,7 @@ def main(args):
 		pass
 
 	hmm = model.hpylm_hmm(args.num_tags)
-	hmm.load(args.model)
+	# hmm.load(args.model)
 
 	# テキストファイルの読み込み
 	# 複数のファイルを読んでもOK
@@ -48,22 +48,20 @@ def main(args):
 
 	# 学習
 	hmm.prepare_for_training()
-	
-	ppl = hmm.compute_perplexity()
-	print ppl
-
 	for epoch in xrange(1, args.epoch + 1):
 		start = time.time()
 
 		hmm.perform_gibbs_sampling()
+		hmm.sample_hyperparams()
 
 		elapsed_time = time.time() - start
 		ppl = hmm.compute_perplexity()
-		sys.stdout.write("\r\33[2K");
+		sys.stdout.write("\r\33[2K");	# 行をクリア
 		sys.stdout.write("Epoch {} / {} - {:.3f} sec - {:.3f} ppl\n".format(epoch, args.epoch, elapsed_time, ppl))		
 		sys.stdout.flush()
-		hmm.dump_hpylm()
 		if epoch % 10 == 0:
+			hmm.dump_hpylm()
+			hmm.show_typical_words_for_each_tag(20)
 			hmm.save(args.model);
 
 if __name__ == "__main__":
