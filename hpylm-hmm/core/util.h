@@ -55,14 +55,14 @@ void show_progress(int step, int total){
 	double progress = step / (double)(total - 1);
 	int barWidth = 30;
 
-	cout << "　" << step << " / " << total << " [";
+	cout << "\r" << step << " / " << total << " [";
 	int pos = barWidth * progress;
 	for(int i = 0; i < barWidth; ++i){
 		if (i < pos) cout << "=";
 		else if (i == pos) cout << ">";
 		else cout << " ";
 	}
-	cout << "] " << int(progress * 100.0) << " %\r";
+	cout << "] " << int(progress * 100.0) << " %";
 	cout.flush();
 	if(step == total){
 		cout << endl;

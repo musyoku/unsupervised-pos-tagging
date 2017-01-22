@@ -53,7 +53,9 @@ def main(args):
 		hmm.perform_gibbs_sampling()
 
 		elapsed_time = time.time() - start
-		sys.stdout.write(" Epoch {} / {} - {:.3f} sec\r".format(epoch, args.epoch, elapsed_time))		
+		ppl = hmm.compute_perplexity()
+		sys.stdout.write("\r\33[2K");
+		sys.stdout.write("Epoch {} / {} - {:.3f} sec - {:.3f} ppl\n".format(epoch, args.epoch, elapsed_time, ppl))		
 		sys.stdout.flush()
 		if epoch % 10 == 0:
 			print "\n"

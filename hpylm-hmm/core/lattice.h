@@ -74,8 +74,6 @@ public:
 		assert(t >= 2);
 		int token_t_id = sentence[t]->word_id;
 		// <bos>2つの場合
-		cout << endl;
-		cout << (boost::format("%d, %d, %d") % t % r % q).str() << endl;
 		if(t == 2){
 			if(q != BEGIN_OF_POS){
 				_alpha[t][r][q] = 0;
@@ -89,14 +87,11 @@ public:
 			_word_context[1] = BEGIN_OF_SENTENSE;
 			double Pt_h = word_hpylm->compute_Pw_h(token_t_id, _word_context);
 			_alpha[t][r][BEGIN_OF_POS] = Pt_h * Pz_qr;
+			// cout << (boost::format("_alpha[%d][%d][%d] <- %f * %f") % t % r % BEGIN_OF_POS % Pt_h % Pz_qr).str() << endl;
 			return;
 		}
 		// <bos>と何らかの単語
 		if(t == 3){
-			if(q != BEGIN_OF_POS){
-				_alpha[t][r][q] = 0;
-				return;
-			}
 			_pos_context[0] = BEGIN_OF_POS;
 			_pos_context[1] = q;
 			double Pz_qr = _pos_hpylm->compute_Pw_h(r, _pos_context);
@@ -104,7 +99,8 @@ public:
 			_word_context[0] = BEGIN_OF_SENTENSE;
 			_word_context[1] = sentence[t - 1]->word_id;
 			double Pt_h = word_hpylm->compute_Pw_h(token_t_id, _word_context);
-			_alpha[t][r][BEGIN_OF_POS] = Pt_h * Pz_qr * _alpha[t - 1][BEGIN_OF_POS][BEGIN_OF_POS];
+			_alpha[t][r][q] = Pt_h * Pz_qr * _alpha[t - 1][q][BEGIN_OF_POS];
+			// cout << (boost::format("_alpha[%d][%d][%d] <- %f * %f * %f") % t % r % q % Pt_h % Pz_qr % _alpha[t - 1][BEGIN_OF_POS][BEGIN_OF_POS]).str() << endl;
 			return;
 		}
 		double sum = 0;
@@ -117,7 +113,9 @@ public:
 			_word_context[1] = sentence[t - 1]->word_id;
 			double Pt_h = word_hpylm->compute_Pw_h(token_t_id, _word_context);
 			sum += Pt_h * Pz_qr * _alpha[t - 1][q][z];
+			// cout << (boost::format("sum += %f * %f * %f") % Pt_h % Pz_qr % _alpha[t - 1][q][z]).str() << endl;
 		}
+		// cout << (boost::format("_alpha[%d][%d][%d] <- %f") % t % r % q % sum).str() << endl;
 		_alpha[t][r][q] = sum;
 	}
 	void forward_filtering(vector<Word*> &sentence){
@@ -160,7 +158,7 @@ public:
 	// <eos>, EOPに接続する確率をもとにrとqをサンプリング
 	void sample_starting_r_and_q(vector<Word*> &sentence, int &sampled_r, int &sampled_q){
 		double sum_p = 0;
-		int t = sentence.size() - 1;
+		int t = sentence.size() - 2;	// <eos>の1つ前
 		for(int r = 0;r < _num_tags;r++){
 			for(int q = 0;q < _num_tags;q++){
 				_pos_context[0] = q;
@@ -171,17 +169,18 @@ public:
 				_word_context[1] = sentence[t - 1]->word_id;
 				double Pend_h = word_hpylm->compute_Pw_h(END_OF_SENTENSE, _word_context);
 				double p = Pend_h * Pend_qr * _alpha[t][r][q];
+				assert(p >= 0);
 				_sampling_table[r][q] = p;
 				sum_p += p;
 			}
 		}
 		double normalizer = 1.0 / sum_p;
-		double r = Sampler::uniform(0, 1);
+		double bernoulli = Sampler::uniform(0, 1);
 		sum_p = 0;
 		for(int r = 0;r < _num_tags;r++){
 			for(int q = 0;q < _num_tags;q++){
 				sum_p += _sampling_table[r][q] * normalizer;
-				if(r < sum_p){
+				if(bernoulli < sum_p){
 					sampled_r = r;
 					sampled_q = q;
 					return;
@@ -199,12 +198,12 @@ public:
 			}
 		}
 		double normalizer = 1.0 / sum_p;
-		double r = Sampler::uniform(0, 1);
+		double bernoulli = Sampler::uniform(0, 1);
 		sum_p = 0;
 		for(int r = 0;r < _num_tags;r++){
 			for(int q = 0;q < _num_tags;q++){
 				sum_p += _alpha[t][r][q] * normalizer;
-				if(r < sum_p){
+				if(bernoulli < sum_p){
 					sampled_r = r;
 					sampled_q = q;
 					return;

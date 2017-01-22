@@ -38,6 +38,7 @@ private:
 	int _num_tags;
 	int _max_num_words_in_sentence;	// 1文あたりの最大単語数
 	bool _is_ready;
+	bool _is_first_run;
 public:
 	PyHpylmHMM(int num_tags){
 		// 日本語周り
@@ -63,6 +64,7 @@ public:
 		_autoincrement = END_OF_SENTENSE + 1;
 		_max_num_words_in_sentence = 0;
 		_is_ready = false;
+		_is_first_run = true;
 	}
 	~PyHpylmHMM(){
 		delete _pos_hpylm;
@@ -173,25 +175,83 @@ public:
 		}
 		_is_ready = true;
 	}
+	void generate_pos_token_ids(vector<Word*> &sentence, vector<int> &token_ids, int t){
+		token_ids[0] = sentence[t - 2]->tag_id;
+		token_ids[1] = sentence[t - 1]->tag_id;
+		token_ids[2] = sentence[t]->tag_id;
+	}
+	void generate_word_token_ids(vector<Word*> &sentence, vector<int> &token_ids, int t){
+		token_ids[0] = sentence[t - 2]->word_id;
+		token_ids[1] = sentence[t - 1]->word_id;
+		token_ids[2] = sentence[t]->word_id;
+	}
 	void perform_gibbs_sampling(){
 		assert(_is_ready);
 		assert(_rand_indices.size() == _dataset.size());
 		shuffle(_rand_indices.begin(), _rand_indices.end(), Sampler::mt);	// データをシャッフル
+		vector<int> token_ids = {0, 0, 0};
 		for(int n = 0;n < _dataset.size();n++){
 			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
 				return;
 			}
 			int data_index = _rand_indices[n];
 			vector<Word*> &sentence = _dataset[data_index];
+			// 以前のサンプリング結果を削除
+			if(_is_first_run == false){
+				for(int t = 2;t < sentence.size();t++){
+					generate_pos_token_ids(sentence, token_ids, t);
+					_pos_hpylm->remove_customer_at_timestep(token_ids, t);
+					generate_word_token_ids(sentence, token_ids, t);
+					int tag = sentence[t]->tag_id;
+					HPYLM* hpylm = _word_hpylm_for_tag[tag];
+					hpylm->remove_customer_at_timestep(token_ids, t);
+				}
+			}
+			// 品詞をサンプリングしてセット
 			_lattice->perform_blocked_gibbs_sampling(sentence, false);	// argmax=false
-			show_progress(n, _dataset.size());
+			// HPYLMを更新
+			for(int t = 2;t < sentence.size();t++){
+				generate_pos_token_ids(sentence, token_ids, t);
+				cout << (boost::format("pos: t = %d, tag = %d") % t % sentence[t]->tag_id).str() << endl;
+				_pos_hpylm->add_customer_at_timestep(token_ids, t);
+				generate_word_token_ids(sentence, token_ids, t);
+				int tag = sentence[t]->tag_id;
+				HPYLM* hpylm = _word_hpylm_for_tag[tag];
+				cout << (boost::format("word: t = %d, word = %d") % t % sentence[t]->word_id).str() << endl;
+				hpylm->add_customer_at_timestep(token_ids, t);
+			}
+			// プログレスバー
+			if(n % 100 == 0 || n == _dataset.size() - 1){
+				show_progress(n, _dataset.size());
+			}
 		}
+		_is_first_run = false;
 	}
 	int get_num_types_of_word(){
 		return _types_of_words.size();
 	}
 	int get_num_tags(){
 		return _num_tags;
+	}
+	double compute_perplexity(){
+		double ppl = 0;
+		int num_lines = _dataset.size();
+		vector<int> context_token_ids = {0, 0};
+		for(int data_index = 0;data_index < num_lines;data_index++){
+			vector<Word*> &sentence = _dataset[data_index];
+			double sum_log_p = 0;
+			for(int t = 2;t < sentence.size();t++){
+				context_token_ids[0] = sentence[t - 2]->word_id;
+				context_token_ids[1] = sentence[t - 1]->word_id;
+				int token_id = sentence[t]->word_id;
+				int tag = sentence[t]->tag_id;
+				HPYLM* hpylm = _word_hpylm_for_tag[tag];
+				sum_log_p += log2(hpylm->compute_Pw_h(token_id, context_token_ids) + 1e-20);
+			}
+			ppl += sum_log_p / (sentence.size() - 2);
+		}
+		ppl = exp(-ppl / num_lines);
+		return ppl;
 	}
 };
 
@@ -200,6 +260,7 @@ BOOST_PYTHON_MODULE(model){
 	.def("string_to_word_id", &PyHpylmHMM::string_to_word_id)
 	.def("prepare_for_training", &PyHpylmHMM::prepare_for_training)
 	.def("perform_gibbs_sampling", &PyHpylmHMM::perform_gibbs_sampling)
+	.def("compute_perplexity", &PyHpylmHMM::compute_perplexity)
 	.def("load", &PyHpylmHMM::load)
 	.def("save", &PyHpylmHMM::save)
 	.def("get_num_tags", &PyHpylmHMM::get_num_tags)

@@ -13,7 +13,6 @@
 #include <random>
 #include <vector>
 #include <unordered_map>
-#include <map>
 #include <cmath>
 #include <cstdlib>
 #include "cprintf.h"
@@ -415,7 +414,7 @@ public:
 			elem.second->set_active_tokens(flags);
 		}
 	}
-	void set_node_by_depth(map<int, vector<Node*>> &node_by_depth){
+	void set_node_by_depth(unordered_map<int, vector<Node*>> &node_by_depth){
 		vector<Node*> &nodes = node_by_depth[_depth];
 		nodes.push_back(this);
 		for(auto elem: _children){
