@@ -279,6 +279,8 @@ public:
 		double c_uw = std::accumulate(num_customers_at_table.begin(), num_customers_at_table.end(), 0);
 		double t_uw = num_customers_at_table.size();
 		double first_coeff = std::max(0.0, c_uw - d_u * t_uw) / (theta_u + c_u);
+		// cout << (boost::format("1st coeff = %f - %f * %f / %f + %f") % c_uw % d_u % t_uw % theta_u % c_u).str() << endl;
+		// cout << (boost::format("%f <- %f + %f * %f") % (first_coeff + second_coeff * parent_Pw) % first_coeff % second_coeff % parent_Pw).str() << endl;
 		return first_coeff + second_coeff * parent_Pw;
 	}
 	double _compute_Pw(int token_id, double parent_Pw, vector<double> &d_m, vector<double> &theta_m){

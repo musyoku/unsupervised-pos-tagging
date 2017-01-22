@@ -110,6 +110,7 @@ public:
 					}
 					Word* word = new Word();
 					word->word_id = string_to_word_id(word_str);
+					word->tag_id = 0;
 					words.push_back(word);
 					_types_of_words.insert(word->word_id);
 				}
@@ -126,6 +127,7 @@ public:
 			}
 		}
 		c_printf("[*]%s\n", (boost::format("%sを読み込みました. (%d行)") % filename.c_str() % (_dataset.size() - prev_dataset_size)).str().c_str());
+		c_printf("[*]%s\n", (boost::format("単語数: %d") % _types_of_words.size()).str().c_str());
 	}
 	void load(string dirname){
 		// 辞書を読み込み
@@ -244,12 +246,20 @@ public:
 				int token_id = sentence[t]->word_id;
 				int tag = sentence[t]->tag_id;
 				HPYLM* hpylm = _word_hpylm_for_tag[tag];
-				log_Pw += log2(hpylm->compute_Pw_h(token_id, context_token_ids));
+				double Pw_h = hpylm->compute_Pw_h(token_id, context_token_ids);
+				log_Pw += log2(Pw_h);
 			}
 			ppl += log_Pw / (sentence.size() - 2);
 		}
 		ppl = exp(-ppl / num_lines);
 		return ppl;
+	}
+	void dump_hpylm(){
+		for(int tag = 0;tag < _num_tags;tag++){
+			HPYLM* hpylm = _word_hpylm_for_tag[tag];
+			cout << "hpylm: " << tag << endl;
+			cout << "# of customers: " << hpylm->get_num_customers() << endl;
+		}
 	}
 };
 
@@ -262,5 +272,6 @@ BOOST_PYTHON_MODULE(model){
 	.def("load", &PyHpylmHMM::load)
 	.def("save", &PyHpylmHMM::save)
 	.def("get_num_tags", &PyHpylmHMM::get_num_tags)
+	.def("dump_hpylm", &PyHpylmHMM::dump_hpylm)
 	.def("load_textfile", &PyHpylmHMM::load_textfile);
 }
