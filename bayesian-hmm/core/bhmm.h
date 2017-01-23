@@ -28,6 +28,10 @@ private:
 	{
 		static_cast<void>(version);
 		archive & _num_tags;
+		archive & _num_words;
+		archive & _alpha;
+		archive & _temperature;
+		archive & _minimum_temperature;
 		archive & _tag_word_counts;
 	}
 public:
@@ -425,22 +429,95 @@ public:
 			cout << tag << ": " << get_word_types_for_tag(tag) << endl;
 		}
 	}
-	bool save(string filename = "hmm.tags"){
-		std::ofstream ofs(filename);
+	bool save(string dir = "out"){
+		ofstream ofs(dir + "/hmm.count");
 		boost::archive::binary_oarchive oarchive(ofs);
 		oarchive << static_cast<const BayesianHMM&>(*this);
 		ofs.close();
+		ofstream ofs_bin;
+		// 3-gram
+		ofs_bin.open(dir + "/hmm.trigram", ios::binary);
+		for(int tri_tag = 0;tri_tag < _num_tags;tri_tag++){
+			for(int bi_tag = 0;bi_tag < _num_tags;bi_tag++){
+				ofs_bin.write((char*)(_trigram_counts[tri_tag][bi_tag]), _num_tags * sizeof(int));
+			}
+		}
+		ofs_bin.close();
+		// 2-gram
+		ofs_bin.open(dir + "/hmm.bigram", ios::binary);
+		for(int bi_tag = 0;bi_tag < _num_tags;bi_tag++){
+			ofs_bin.write((char*)(_bigram_counts[bi_tag]), _num_tags * sizeof(int));
+		}
+		ofs_bin.close();
+		// 1-gram
+		ofs_bin.open(dir + "/hmm.unigram", ios::binary);
+		ofs_bin.write((char*)(_unigram_counts), _num_tags * sizeof(int));
+		ofs_bin.close();
+		// beta
+		ofs_bin.open(dir + "/hmm.beta", ios::binary);
+		ofs_bin.write((char*)(_beta), _num_tags * sizeof(double));
+		ofs_bin.close();
+		// Wt
+		ofs_bin.open(dir + "/hmm.wt", ios::binary);
+		ofs_bin.write((char*)(_Wt), _num_tags * sizeof(int));
+		ofs_bin.close();
 		return true;
 	}
-	bool load(string filename = "hmm.tags"){
-		std::ifstream ifs(filename);
-		if(ifs.good() == false){
-			return false;
+	bool load(string dir = "out"){
+		ifstream ifs(dir + "/hmm.count");
+		if(ifs.good()){
+			boost::archive::binary_iarchive iarchive(ifs);
+			iarchive >> *this;
 		}
-		boost::archive::binary_iarchive iarchive(ifs);
-		iarchive >> *this;
 		ifs.close();
+		ifstream ifs_bin;
+		// 3-gram
+		ifs_bin.open(dir + "/hmm.trigram", ios::binary);
+		if(ifs_bin.good()){
+			for(int tri_tag = 0;tri_tag < _num_tags;tri_tag++){
+				for(int bi_tag = 0;bi_tag < _num_tags;bi_tag++){
+					ifs_bin.read((char*)(_trigram_counts[tri_tag][bi_tag]), _num_tags * sizeof(int));
+				}
+			}
+		}
+		ifs_bin.close();
+		// 2-gram
+		ifs_bin.open(dir + "/hmm.bigram", ios::binary);
+		if(ifs_bin.good()){
+			for(int bi_tag = 0;bi_tag < _num_tags;bi_tag++){
+				ifs_bin.read((char*)(_bigram_counts[bi_tag]), _num_tags * sizeof(int));
+			}
+		}
+		ifs_bin.close();
+		// 1-gram
+		ifs_bin.open(dir + "/hmm.unigram", ios::binary);
+		if(ifs_bin.good()){
+			ifs_bin.read((char*)(_unigram_counts), _num_tags * sizeof(int));
+		}
+		ifs_bin.close();
+		// beta
+		ifs_bin.open(dir + "/hmm.beta", ios::binary);
+		if(ifs_bin.good()){
+			ifs_bin.read((char*)(_beta), _num_tags * sizeof(double));
+		}
+		ifs_bin.close();
+		// Wt
+		ifs_bin.open(dir + "/hmm.wt", ios::binary);
+		if(ifs_bin.good()){
+			ifs_bin.read((char*)(_Wt), _num_tags * sizeof(int));
+		}
+		ifs_bin.close();
 		return true;
+	}
+	void dump(){
+		for(int tri_tag = 0;tri_tag < _num_tags;tri_tag++){
+			for(int bi_tag = 0;bi_tag < _num_tags;bi_tag++){
+				for(int uni_tag = 0;uni_tag < _num_tags;uni_tag++){
+					wcout << _trigram_counts[tri_tag][bi_tag][uni_tag] << ", ";
+				}
+				wcout << endl;
+			}
+		}
 	}
 };
 

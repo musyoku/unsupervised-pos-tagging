@@ -82,7 +82,7 @@ def main(args):
 		sys.stdout.write("\rEpoch {} / {} - {:.3f} sec".format(epoch, args.epoch, elapsed_time))		
 		sys.stdout.flush()
 		hmm.anneal_temperature(0.999)	# 温度を下げる
-		if epoch % 10 == 0:
+		if epoch % 1 == 0:
 			print "\n"
 			hmm.show_beta()
 			hmm.show_random_line(20, True);	# ランダムなn個の文と推定結果のタグを表示

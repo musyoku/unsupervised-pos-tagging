@@ -127,14 +127,11 @@ public:
 	}
 	bool save(string dirname){
 		// 辞書を保存
-		string dictionary_filename = dirname + "/hmm.dict";
-		std::ofstream ofs(dictionary_filename);
+		std::ofstream ofs(dirname + "/hmm.dict");
 		boost::archive::binary_oarchive oarchive(ofs);
 		oarchive << _dictionary;
 		ofs.close();
-		// 獲得された品詞と単語のリストを保存
-		string tags_filename = dirname + "/hmm.tags";
-		return _hmm->save(tags_filename);
+		return _hmm->save(dirname);
 	}
 	void perform_gibbs_sampling(){
 		if(_rand_indices.size() != _dataset.size()){
