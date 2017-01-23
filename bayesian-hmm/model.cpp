@@ -71,7 +71,10 @@ public:
 			exit(1);
 		}
 		while (getline(ifs, line_str) && !line_str.empty()){
-			vector<wstring> word_strs = split_word_by(line_str, ' ');	// スペースで分割
+			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
+				return;
+			}
+			vector<wstring> word_strs = split_word_by(line_str, L' ');	// スペースで分割
 			if(word_strs.size() > 0){
 				vector<Word*> words;
 				// <bos>
@@ -152,7 +155,7 @@ public:
 	}
 	void show_beta(){
 		for(int tag = 0;tag < _hmm->_num_tags;tag++){
-			cout << "beta[" << tag << "] <- " << _hmm->_beta[tag] << endl;
+			wcout << L"beta[" << tag << L"] <- " << _hmm->_beta[tag] << endl;
 		}
 	}
 	void show_random_line(int num_to_show, bool show_most_co_occurring_tag = true){
@@ -194,8 +197,7 @@ public:
 		for(int tag = 0;tag < _hmm->_num_tags;tag++){
 			unordered_map<int, int> &word_counts = _hmm->_tag_word_counts[tag];
 			int n = 0;
-			wcout << L"tag " << tag << L":" << endl;
-			wcout << L"	";
+			c_printf("[*]%s\n\t", (boost::format("tag %d:") % tag).str().c_str());
 			multiset<pair<int, int>, value_comparator> ranking;
 			for(auto elem: word_counts){
 				ranking.insert(std::make_pair(elem.first, elem.second));

@@ -31,24 +31,21 @@ def colapse_pos(pos):
 		return "VV"
 	return pos
 
-class color:
-	PURPLE = "\033[95m"
-	CYAN = "\033[96m"
-	DARKCYAN = "\033[36m"
-	BLUE = "\033[94m"
-	GREEN = "\033[92m"
-	YELLOW = "\033[93m"
-	RED = "\033[91m"
+class stdout:
 	BOLD = "\033[1m"
-	UNDERLINE = "\033[4m"
 	END = "\033[0m"
+	CLEAR = "\033[2K"
 
 def main(args):
 	if args.filename is None:
 		raise Exception()
+	try:
+		os.mkdir(args.model)
+	except:
+		pass
 
 	# 訓練データを形態素解析して各品詞ごとにその品詞になりうる単語の総数を求めておく
-	print color.BOLD + "品詞辞書を構成しています ..." + color.END
+	print stdout.BOLD + "品詞辞書を構成しています ..." + stdout.END
 	Wt_count = {}
 	word_count = set()	# 単語の種類の総数
 	# 似たような品詞をまとめる
@@ -86,11 +83,6 @@ def main(args):
 		Wt = [len(word_count)] * args.num_tags
 
 	print "Wt:", Wt
-
-	try:
-		os.mkdir(args.model)
-	except:
-		pass
 
 	hmm = model.bayesian_hmm()
 	hmm.set_num_tags(len(Wt));	# 品詞数を設定

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-import MeCab, argparse, codecs, sys, re
+import argparse, codecs, sys, re
+import MeCab
 
 def main(args):
 	if args.input is None:

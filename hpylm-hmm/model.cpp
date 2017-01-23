@@ -92,7 +92,7 @@ public:
 		}
 		int prev_dataset_size = _dataset.size();
 		while (getline(ifs, line_str) && !line_str.empty()){
-			vector<wstring> word_strs = split_word_by(line_str, ' ');	// スペースで分割
+			vector<wstring> word_strs = split_word_by(line_str, L' ');	// スペースで分割
 			if(word_strs.size() > 0){
 				vector<Word*> words;
 				// <bos>
