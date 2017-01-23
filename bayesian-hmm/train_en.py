@@ -46,10 +46,11 @@ class color:
 def main(args):
 	if args.filename is None:
 		raise Exception()
+
 	# 訓練データを形態素解析して各品詞ごとにその品詞になりうる単語の総数を求めておく
-	# 教師なしと言えるのかは微妙
 	print color.BOLD + "品詞辞書を構成しています ..." + color.END
 	Wt_count = {}
+	word_count = set()	# 単語の種類の総数
 	# 似たような品詞をまとめる
 	# https://courses.washington.edu/hypertxt/csar-v02/penntable.html
 	with codecs.open(args.filename, "r", "utf-8") as f:
@@ -63,6 +64,7 @@ def main(args):
 				continue
 			for poses in result:
 				word, pos, lowercase = poses.split("\t")
+				word_count.add(lowercase)
 				pos = colapse_pos(pos)
 				if pos not in Wt_count:
 					Wt_count[pos] = {}
@@ -70,14 +72,19 @@ def main(args):
 					Wt_count[pos][lowercase] = 1
 				else:
 					Wt_count[pos][lowercase] += 1
-	# Wtは各タグについて、そのタグになりうる単語の数が入っている
-	# タグ0には<bos>と<eos>だけ含まれることにする
-	Wt = [2]
-	for tag, words in Wt_count.items():
-		print tag, ":", len(words)
-		if len(words) < 10:
-			print words
-		Wt.append(len(words))
+	if args.supervised:
+		# Wtは各タグについて、そのタグになりうる単語の数が入っている
+		# タグ0には<bos>と<eos>だけ含まれることにする
+		Wt = [2]
+		for tag, words in Wt_count.items():
+			print tag, ":", len(words)
+			if len(words) < 10:
+				print words
+			Wt.append(len(words))
+	else:
+		# Wtに制限をかけない場合
+		Wt = [len(word_count)] * args.num_tags
+
 	print "Wt:", Wt
 
 	try:
@@ -123,4 +130,7 @@ if __name__ == "__main__":
 	parser.add_argument("-f", "--filename", type=str, default=None, help="訓練用のテキストファイルのパス.")
 	parser.add_argument("-e", "--epoch", type=int, default=20000, help="総epoch.")
 	parser.add_argument("-m", "--model", type=str, default="out", help="保存フォルダ名.")
+	parser.add_argument("-s", "--supervised", dest="supervised", default=True, action="store_true", help="各タグのWtを訓練データで制限するかどうか.")
+	parser.add_argument("-u", "--unsupervised", dest="supervised", action="store_false", help="各タグのWtを訓練データで制限するかどうか.")
+	parser.add_argument("-n", "--num-tags", type=int, default=20, help="タグの種類（semi_supervisedがFalseの時のみ有効）.")
 	main(parser.parse_args())
