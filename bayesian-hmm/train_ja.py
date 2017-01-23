@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import argparse, sys, os, time, re, codecs
-import treetaggerwrapper
+import MeCab
 import model
 
 class stdout:
@@ -16,24 +16,48 @@ def main(args):
 	except:
 		pass
 
-	print stdout.BOLD + "単語数を計算しています ..." + stdout.END
+	hmm = model.bayesian_hmm()
+	# 訓練データを分かち書きする
+	print stdout.BOLD + "データを準備しています ..." + stdout.END
 	word_count = set()	# 単語の種類の総数
+	pos_count = set()	# 品詞数
+	major_pos_count = set()	# 品詞数（大分類）
 	with codecs.open(args.filename, "r", "utf-8") as f:
+		tagger = MeCab.Tagger()
 		for i, line in enumerate(f):
-			line = re.sub(ur"\n", "", line)
-			sys.stdout.write("\r{}行目を処理中です ...".format(i))
-			sys.stdout.flush()
-			words = line.split(" ")
-			for word in words:
+			if i % 100 == 0:
+				sys.stdout.write("\r{}行目を処理中です ...".format(i))
+				sys.stdout.flush()
+			segmentation = ""
+			line = re.sub(ur"\n", "", line)	# 開業を消す
+			string = line.encode("utf-8")
+			m = tagger.parseToNode(string)
+			while m:
+				word = m.surface
 				word_count.add(word)
-		print stdout.END
-		print stdout.BOLD + "単語数:", len(word_count), stdout.END
+				features = m.feature.split(",")
+				major_pos_count.add(features[0].decode("utf-8"))
+				pos = (features[0] + "," + features[1]).decode("utf-8")
+				pos_count.add(pos)
+				if pos == u"名詞,数":
+					word = "##"
+				segmentation += word + " "
+				m = m.next
+			segmentation = re.sub(ur" +$", "",  segmentation)	# 行末の空白を除去
+			segmentation = re.sub(ur"^ +", "",  segmentation)	# 行頭の空白を除去
+			hmm.add_line(segmentation.decode("utf-8"))	# 学習用データに追加
+
+	print stdout.END
+	print stdout.BOLD + "単語数:", len(word_count), stdout.END
+	print stdout.BOLD + "品詞数:", len(pos_count), stdout.END
+	print repr(pos_count).decode("unicode-escape").encode("utf-8")
+	print stdout.BOLD + "品詞数（大分類）:", len(major_pos_count), stdout.END
+	print repr(major_pos_count).decode("unicode-escape").encode("utf-8")
 
 	# Wtに制限をかけない場合
 	Wt = [len(word_count)] * args.num_tags
 	print "Wt:", Wt
 
-	hmm = model.bayesian_hmm()
 	hmm.set_num_tags(len(Wt));	# 品詞数を設定
 
 	# テキストファイルの読み込み
@@ -55,10 +79,10 @@ def main(args):
 		hmm.sample_new_beta()
 
 		elapsed_time = time.time() - start
-		sys.stdout.write(" Epoch {} / {} - {:.3f} sec\r".format(epoch, args.epoch, elapsed_time))		
+		sys.stdout.write("\rEpoch {} / {} - {:.3f} sec".format(epoch, args.epoch, elapsed_time))		
 		sys.stdout.flush()
-		hmm.anneal_temperature(0.998)	# 温度を下げる
-		if epoch % 1 == 0:
+		hmm.anneal_temperature(0.999)	# 温度を下げる
+		if epoch % 10 == 0:
 			print "\n"
 			hmm.show_beta()
 			hmm.show_random_line(20, True);	# ランダムなn個の文と推定結果のタグを表示
@@ -68,7 +92,7 @@ def main(args):
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
-	parser.add_argument("-f", "--filename", type=str, default=None, help="訓練用のテキストファイルのパス.")
+	parser.add_argument("-f", "--filename", type=str, default=None, help="訓練用のテキストファイルのパス. 分かち書きされていない必要がある.")
 	parser.add_argument("-e", "--epoch", type=int, default=20000, help="総epoch.")
 	parser.add_argument("-m", "--model", type=str, default="out", help="保存フォルダ名.")
 	parser.add_argument("-n", "--num-tags", type=int, default=20, help="タグの種類.")

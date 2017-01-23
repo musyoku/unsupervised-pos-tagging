@@ -74,37 +74,40 @@ public:
 			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
 				return;
 			}
-			vector<wstring> word_strs = split_word_by(line_str, L' ');	// スペースで分割
-			if(word_strs.size() > 0){
-				vector<Word*> words;
-				// <bos>
-				for(int n = 0;n < 2;n++){
-					Word* bos = new Word();
-					bos->word_id = _bos_id;
-					bos->tag_id = 0;
-					words.push_back(bos);
-				}
-				for(auto &word_str: word_strs){
-					if(word_str.size() == 0){
-						continue;
-					}
-					Word* word = new Word();
-					word->word_id = string_to_word_id(word_str);
-					word->tag_id = 0;
-					words.push_back(word);
-				}
-				// <eos>も2つ追加しておくとt_{i+1}, t_{i+2}が常に存在するのでギブスサンプリング時に場合分けしなくてもいいかもしれない
-				for(int n = 0;n < 2;n++){
-					Word* eos = new Word();
-					eos->word_id = _eos_id;
-					eos->tag_id = 0;
-					words.push_back(eos);
-				}
-				// 訓練データに追加
-				_dataset.push_back(words);
-			}
+			add_line(line_str);
 		}
 		c_printf("[*]%s\n", (boost::format("%sを読み込みました.") % filename.c_str()).str().c_str());
+	}
+	void add_line(wstring line_str){
+		vector<wstring> word_strs = split_word_by(line_str, L' ');	// スペースで分割
+		if(word_strs.size() > 0){
+			vector<Word*> words;
+			// <bos>
+			for(int n = 0;n < 2;n++){
+				Word* bos = new Word();
+				bos->word_id = _bos_id;
+				bos->tag_id = 0;
+				words.push_back(bos);
+			}
+			for(auto &word_str: word_strs){
+				if(word_str.size() == 0){
+					continue;
+				}
+				Word* word = new Word();
+				word->word_id = string_to_word_id(word_str);
+				word->tag_id = 0;
+				words.push_back(word);
+			}
+			// <eos>も2つ追加しておくとt_{i+1}, t_{i+2}が常に存在するのでギブスサンプリング時に場合分けしなくてもいいかもしれない
+			for(int n = 0;n < 2;n++){
+				Word* eos = new Word();
+				eos->word_id = _eos_id;
+				eos->tag_id = 0;
+				words.push_back(eos);
+			}
+			// 訓練データに追加
+			_dataset.push_back(words);
+		}
 	}
 	void initialize(){
 		_hmm->initialize(_dataset);
@@ -155,7 +158,7 @@ public:
 	}
 	void show_beta(){
 		for(int tag = 0;tag < _hmm->_num_tags;tag++){
-			wcout << L"beta[" << tag << L"] <- " << _hmm->_beta[tag] << endl;
+			cout << (boost::format("beta[%d] <- %f") % tag % _hmm->_beta[tag]).str() << endl;
 		}
 	}
 	void show_random_line(int num_to_show, bool show_most_co_occurring_tag = true){
@@ -259,6 +262,7 @@ BOOST_PYTHON_MODULE(model){
 	.def("set_num_tags", &PyBayesianHMM::set_num_tags)
 	.def("set_minimum_temperature", &PyBayesianHMM::set_minimum_temperature)
 	.def("set_Wt", &PyBayesianHMM::set_Wt)
+	.def("add_line", &PyBayesianHMM::add_line)
 	.def("sample_new_beta", &PyBayesianHMM::sample_new_beta)
 	.def("anneal_temperature", &PyBayesianHMM::anneal_temperature)
 	.def("show_typical_words_for_each_tag", &PyBayesianHMM::show_typical_words_for_each_tag)
