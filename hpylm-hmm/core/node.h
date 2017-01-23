@@ -20,7 +20,6 @@
 #include "cprintf.h"
 #include "sampler.h"
 #include "const.h"
-
 using namespace std;
 
 class Node{
@@ -96,7 +95,6 @@ private:
 	{
 		static_cast<void>(version); // No use
 		archive & _children;
-		// archive & __children;
 		archive & _arrangement;
 		archive & _num_tables;
 		archive & _num_customers;

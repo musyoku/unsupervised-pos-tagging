@@ -40,7 +40,6 @@ def main(args):
 		pass
 
 	hmm = model.hpylm_hmm(args.num_tags)
-	# hmm.load(args.model)
 
 	# テキストファイルの読み込み
 	# 複数のファイルを読んでもOK
