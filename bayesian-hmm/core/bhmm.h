@@ -134,7 +134,7 @@ public:
 		_unigram_counts = (int*)calloc(_num_tags, sizeof(int));
 	}
 	void init_ngram_counts(vector<vector<Word*>> &dataset){
-		c_printf("[*]%s\n", "nグラムカウントを初期化してます ...");
+		c_printf("[*]%s\n", "n-gramモデルを構築してます ...");
 		assert(_num_tags != -1);
 		// 最初は品詞をランダムに割り当てる
 		set<int> word_set;

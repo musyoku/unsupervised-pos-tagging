@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
 import argparse, sys, re, pylab, codecs, matplotlib
-font_path = "/Library/Fonts/Microsoft/MS Gothic.ttf"
-font_prop = matplotlib.font_manager.FontProperties(fname=font_path)
-matplotlib.rcParams["font.family"] = font_prop.get_name()
 import MeCab
 import pandas as pd
 import seaborn as sns
-sns.set(font=["MS Gothic"], font_scale=3)
 import matplotlib.pyplot as plt
 import model
 from train_ja import stdout
+
+# フォントをセット
+# UbuntuならTakaoGothicなどが標準で入っている
+sns.set(font=["MS Gothic"], font_scale=3)
 
 def main(args):
 	hmm = model.bayesian_hmm()
