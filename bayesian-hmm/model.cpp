@@ -131,6 +131,8 @@ public:
 		if(ifs.good()){
 			boost::archive::binary_iarchive iarchive(ifs);
 			iarchive >> _dictionary;
+			iarchive >> _dictionary_inv;
+			iarchive >> _autoincrement;
 			ifs.close();
 		}
 		return _hmm->load(dirname);
@@ -140,6 +142,8 @@ public:
 		std::ofstream ofs(dirname + "/hmm.dict");
 		boost::archive::binary_oarchive oarchive(ofs);
 		oarchive << _dictionary;
+		oarchive << _dictionary_inv;
+		oarchive << _autoincrement;
 		ofs.close();
 		return _hmm->save(dirname);
 	}
@@ -266,6 +270,9 @@ public:
 	int get_min_num_words_in_line(){
 		return _min_num_words_in_line;
 	}
+	int get_vocabrary_size(){
+		return _dictionary_inv.size();
+	}
 };
 
 BOOST_PYTHON_MODULE(model){
@@ -280,6 +287,7 @@ BOOST_PYTHON_MODULE(model){
 	.def("get_temperature", &PyBayesianHMM::get_temperature)
 	.def("get_max_num_words_in_line", &PyBayesianHMM::get_max_num_words_in_line)
 	.def("get_min_num_words_in_line", &PyBayesianHMM::get_min_num_words_in_line)
+	.def("get_vocabrary_size", &PyBayesianHMM::get_vocabrary_size)
 	.def("set_temperature", &PyBayesianHMM::set_temperature)
 	.def("set_num_tags", &PyBayesianHMM::set_num_tags)
 	.def("set_minimum_temperature", &PyBayesianHMM::set_minimum_temperature)

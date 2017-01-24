@@ -210,42 +210,6 @@ public:
 		}
 		return sum_Pw_h;
 	}
-	int sample_next_token(vector<int> &context_token_ids, int eos_id){
-		Node* node = find_node_by_tracing_back_context(context_token_ids, context_token_ids.size(), _hpylm_depth, false, true);
-		if(node == NULL){
-			c_printf("[r]%s [*]%s\n", "エラー:", "トークンを生成できません. ノードが見つかりません.");
-			exit(1);
-		}
-		vector<int> token_ids;
-		vector<double> probs;
-		double sum_probs = 0;
-		for(const auto &elem: node->_arrangement){
-			int token_id = elem.first;
-			double prob = compute_Pw_h(token_id, context_token_ids);
-			if(prob > 0){
-				token_ids.push_back(token_id);
-				probs.push_back(prob);
-				sum_probs += prob;
-			}
-		}
-		if(token_ids.size() == 0){
-			return eos_id;
-		}
-		if(sum_probs == 0){
-			return eos_id;
-		}
-		double ratio = 1.0 / sum_probs;
-		double r = Sampler::uniform(0, 1);
-		sum_probs = 0;
-		int sampled_token_id = token_ids.back();
-		for(int i = 0;i < token_ids.size();i++){
-			sum_probs += probs[i] * ratio;
-			if(sum_probs > r){
-				return token_ids[i];
-			}
-		}
-		return sampled_token_id;
-	}
 	void init_hyperparameters_at_depth_if_needed(int depth){
 		if(depth >= _d_m.size()){
 			while(_d_m.size() <= depth){

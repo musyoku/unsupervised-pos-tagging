@@ -360,7 +360,7 @@ public:
 	int sample_tag_from_Pt_w(int ti_2, int ti_1, int wi){
 		double sum_p = 0;
 		for(int tag = 0;tag < _num_tags;tag++){
-			double Pt_alpha = (_trigram_counts[ti_2][ti_1][tag] + _alpha) / (_bigram_counts[ti_1][tag] + _num_tags * _alpha);
+			double Pt_alpha = (_trigram_counts[ti_2][ti_1][tag] + _alpha) / (_bigram_counts[ti_2][ti_1] + _num_tags * _alpha);
 			double Pw_t_beta = (get_count_for_tag_word(tag, wi) + _beta[tag]) / (_unigram_counts[tag] + _Wt[tag] * _beta[tag]);
 			double Ptw_alpha_beta = Pw_t_beta * Pt_alpha;
 			_sampling_table[tag] = Ptw_alpha_beta;
@@ -381,15 +381,18 @@ public:
 	int argmax_tag_from_Pt_w(int ti_2, int ti_1, int wi){
 		double max_p = 0;
 		double max_tag = 0;
+		// cout << (boost::format("argmax(%d, %d, %d)") % ti_2 % ti_1 % wi).str() << endl;
 		for(int tag = 0;tag < _num_tags;tag++){
-			double Pt_alpha = (_trigram_counts[ti_2][ti_1][tag] + _alpha) / (_bigram_counts[ti_1][tag] + _num_tags * _alpha);
+			double Pt_alpha = (_trigram_counts[ti_2][ti_1][tag] + _alpha) / (_bigram_counts[ti_2][ti_1] + _num_tags * _alpha);
 			double Pw_t_beta = (get_count_for_tag_word(tag, wi) + _beta[tag]) / (_unigram_counts[tag] + _Wt[tag] * _beta[tag]);
 			double Ptw_alpha_beta = Pw_t_beta * Pt_alpha;
+			// cout << (boost::format("%f = %f * %f") % Ptw_alpha_beta % Pw_t_beta % Pt_alpha).str() << endl;
 			if(Ptw_alpha_beta > max_p){
 				max_p = Ptw_alpha_beta;
 				max_tag = tag;
 			}
 		}
+		// cout << "return " << max_tag << endl;
 		return max_tag;
 	}
 	Word* _get_random_word_with_tag(int tag, vector<vector<Word*>> &dataset){

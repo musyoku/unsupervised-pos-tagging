@@ -25,7 +25,7 @@ def main(args):
 	with codecs.open(args.filename, "r", "utf-8") as f:
 		tagger = MeCab.Tagger()
 		for i, line in enumerate(f):
-			if i % 100 == 0:
+			if i % 500 == 0:
 				sys.stdout.write("\r{}行目を処理中です ...".format(i))
 				sys.stdout.flush()
 			segmentation = ""
