@@ -464,10 +464,13 @@ public:
 		return true;
 	}
 	bool load(string dir = "out"){
+		bool complete = true;
 		ifstream ifs(dir + "/hmm.count");
 		if(ifs.good()){
 			boost::archive::binary_iarchive iarchive(ifs);
 			iarchive >> *this;
+		}else{
+			complete = false;
 		}
 		ifs.close();
 		ifstream ifs_bin;
@@ -479,6 +482,8 @@ public:
 					ifs_bin.read((char*)(_trigram_counts[tri_tag][bi_tag]), _num_tags * sizeof(int));
 				}
 			}
+		}else{
+			complete = false;
 		}
 		ifs_bin.close();
 		// 2-gram
@@ -487,37 +492,35 @@ public:
 			for(int bi_tag = 0;bi_tag < _num_tags;bi_tag++){
 				ifs_bin.read((char*)(_bigram_counts[bi_tag]), _num_tags * sizeof(int));
 			}
+		}else{
+			complete = false;
 		}
 		ifs_bin.close();
 		// 1-gram
 		ifs_bin.open(dir + "/hmm.unigram", ios::binary);
 		if(ifs_bin.good()){
 			ifs_bin.read((char*)(_unigram_counts), _num_tags * sizeof(int));
+		}else{
+			complete = false;
 		}
 		ifs_bin.close();
 		// beta
 		ifs_bin.open(dir + "/hmm.beta", ios::binary);
 		if(ifs_bin.good()){
 			ifs_bin.read((char*)(_beta), _num_tags * sizeof(double));
+		}else{
+			complete = false;
 		}
 		ifs_bin.close();
 		// Wt
 		ifs_bin.open(dir + "/hmm.wt", ios::binary);
 		if(ifs_bin.good()){
 			ifs_bin.read((char*)(_Wt), _num_tags * sizeof(int));
+		}else{
+			complete = false;
 		}
 		ifs_bin.close();
-		return true;
-	}
-	void dump(){
-		for(int tri_tag = 0;tri_tag < _num_tags;tri_tag++){
-			for(int bi_tag = 0;bi_tag < _num_tags;bi_tag++){
-				for(int uni_tag = 0;uni_tag < _num_tags;uni_tag++){
-					wcout << _trigram_counts[tri_tag][bi_tag][uni_tag] << ", ";
-				}
-				wcout << endl;
-			}
-		}
+		return complete;
 	}
 };
 

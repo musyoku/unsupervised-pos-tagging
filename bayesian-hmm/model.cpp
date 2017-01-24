@@ -33,6 +33,8 @@ private:
 	int _autoincrement;
 	int _bos_id;
 	int _eos_id;
+	int _max_num_words_in_line;
+	int _min_num_words_in_line;
 public:
 	PyBayesianHMM(){
 		// 日本語周り
@@ -51,6 +53,9 @@ public:
 		_eos_id = 1;
 		_dictionary[_eos_id] = L"<eos>";
 		_autoincrement = _eos_id + 1;
+
+		_max_num_words_in_line = -1;
+		_min_num_words_in_line = -1;
 	}
 	int string_to_word_id(wstring &word){
 		auto itr = _dictionary_inv.find(word);
@@ -80,6 +85,13 @@ public:
 	}
 	void add_line(wstring line_str){
 		vector<wstring> word_strs = split_word_by(line_str, L' ');	// スペースで分割
+		int num_words = word_strs.size();
+		if(num_words > _max_num_words_in_line){
+			_max_num_words_in_line = num_words;
+		}
+		if(num_words < _max_num_words_in_line || _min_num_words_in_line == -1){
+			_min_num_words_in_line = num_words;
+		}
 		if(word_strs.size() > 0){
 			vector<Word*> words;
 			// <bos>
@@ -197,7 +209,8 @@ public:
 		for(int tag = 0;tag < _hmm->_num_tags;tag++){
 			unordered_map<int, int> &word_counts = _hmm->_tag_word_counts[tag];
 			int n = 0;
-			c_printf("[*]%s\n\t", (boost::format("tag %d:") % tag).str().c_str());
+			c_printf("[*]%s\n", (boost::format("tag %d:") % tag).str().c_str());
+			wcout << L"\t";
 			multiset<pair<int, int>, value_comparator> ranking;
 			for(auto elem: word_counts){
 				ranking.insert(std::make_pair(elem.first, elem.second));
@@ -243,6 +256,12 @@ public:
 	void anneal_temperature(double temperature){
 		_hmm->anneal_temperature(temperature);
 	}
+	int get_max_num_words_in_line(){
+		return _max_num_words_in_line;
+	}
+	int get_min_num_words_in_line(){
+		return _min_num_words_in_line;
+	}
 };
 
 BOOST_PYTHON_MODULE(model){
@@ -255,6 +274,8 @@ BOOST_PYTHON_MODULE(model){
 	.def("get_num_tags", &PyBayesianHMM::get_num_tags)
 	.def("get_all_words_for_each_tag", &PyBayesianHMM::get_all_words_for_each_tag)
 	.def("get_temperature", &PyBayesianHMM::get_temperature)
+	.def("get_max_num_words_in_line", &PyBayesianHMM::get_max_num_words_in_line)
+	.def("get_min_num_words_in_line", &PyBayesianHMM::get_min_num_words_in_line)
 	.def("set_temperature", &PyBayesianHMM::set_temperature)
 	.def("set_num_tags", &PyBayesianHMM::set_num_tags)
 	.def("set_minimum_temperature", &PyBayesianHMM::set_minimum_temperature)

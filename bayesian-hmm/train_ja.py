@@ -53,6 +53,7 @@ def main(args):
 	print repr(pos_count).decode("unicode-escape").encode("utf-8")
 	print stdout.BOLD + "品詞数（大分類）:", len(major_pos_count), stdout.END
 	print repr(major_pos_count).decode("unicode-escape").encode("utf-8")
+	print stdout.BOLD + "1文あたりの単語数:　{}（最大）- {} 最小".format(hmm.get_max_num_words_in_line(), hmm.get_min_num_words_in_line()), stdout.END
 
 	# Wtに制限をかけない場合
 	Wt = [len(word_count)] * args.num_tags
@@ -81,8 +82,8 @@ def main(args):
 		elapsed_time = time.time() - start
 		sys.stdout.write("\rEpoch {} / {} - {:.3f} sec".format(epoch, args.epoch, elapsed_time))		
 		sys.stdout.flush()
-		hmm.anneal_temperature(0.999)	# 温度を下げる
-		if epoch % 1 == 0:
+		hmm.anneal_temperature(0.9989)	# 温度を下げる
+		if epoch % 10 == 0:
 			print "\n"
 			hmm.show_beta()
 			hmm.show_random_line(20, True);	# ランダムなn個の文と推定結果のタグを表示
