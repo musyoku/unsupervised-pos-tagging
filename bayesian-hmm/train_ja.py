@@ -40,7 +40,7 @@ def main(args):
 				pos = (features[0] + "," + features[1]).decode("utf-8")
 				pos_count.add(pos)
 				if pos == u"名詞,数":
-					word = "##"
+					word = "##"		# 数字は全て置き換える
 				segmentation += word + " "
 				m = m.next
 			segmentation = re.sub(ur" +$", "",  segmentation)	# 行末の空白を除去
@@ -60,13 +60,7 @@ def main(args):
 	print "Wt:", Wt
 
 	hmm.set_num_tags(len(Wt));	# 品詞数を設定
-
-	# テキストファイルの読み込み
-	# 複数のファイルを読んでもOK
-	hmm.load_textfile(args.filename)
-
-	# 全てのテキストファイルを読み込み終わってから初期化
-	hmm.initialize()
+	hmm.initialize()	# 学習の準備
 
 	# Wtをセット
 	hmm.set_Wt(Wt)

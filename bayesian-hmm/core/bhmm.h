@@ -335,11 +335,11 @@ public:
 			}
 			assert(sum > 0);
 			double normalizer = 1.0 / sum;
-			double r = Sampler::uniform(0, 1);
+			double bernoulli = Sampler::uniform(0, 1);
 			sum = 0;
 			for(int tag = 0;tag < _num_tags;tag++){
 				sum += _sampling_table[tag] * normalizer;
-				if(sum >= r){
+				if(sum >= bernoulli){
 					new_ti = tag;
 					break;
 				}
@@ -348,6 +348,27 @@ public:
 			add_tag_to_model_parameters(ti_2, ti_1, new_ti, ti1, ti2, wi);
 			line[pos]->tag_id = new_ti;
 		}
+	}
+	// 論文(6)式と(7)式を掛けたものからtiをサンプリング
+	int sample_tag_from_Pt_w(int ti_2, int ti_1, int wi){
+		double sum_p = 0;
+		for(int tag = 0;tag < _num_tags;tag++){
+			double Pt_alpha = (_trigram_counts[ti_2][ti_1][tag] + _alpha) / (_bigram_counts[ti_1][tag] + _num_tags * _alpha)
+			double Pw_t_beta = (get_count_for_tag_word(tag, wi) + _beta[tag]) / (_trigram_counts[tag] + _Wt[tag] * _beta);
+			double Ptw_alpha_beta = Pw_t_beta * Pt_alpha;
+			_sampling_table[tag] = Ptw_alpha_beta;
+			sum_p += Ptw_alpha_beta;
+		}
+		double normalizer = 1.0 / sum_p;
+		double bernoulli = Sampler::uniform(0, 1);
+		sum_p = 0;
+		for(int tag = 0;tag < _num_tags;tag++){
+			sum_p += _sampling_table[tag] * normalizer;
+			if(sum_p > bernoulli){
+				return tag;
+			}
+		}
+		return _num_tags - 1;
 	}
 	Word* _get_random_word_with_tag(int tag, vector<vector<Word*>> &dataset){
 		int random_index = Sampler::uniform_int(0, dataset.size() - 1);
@@ -385,8 +406,8 @@ public:
 				continue;
 			}
 			double adoption_rate = std::min(1.0, Pti_wi_new_beta / Pti_wi_beta);
-			double u = Sampler::uniform(0, 1);
-			if(u < adoption_rate){
+			double bernoulli = Sampler::uniform(0, 1);
+			if(bernoulli < adoption_rate){
 				_beta[tag] = _new_beta[tag];
 			}
 		}
