@@ -100,8 +100,13 @@ public:
 		}
 	}
 	void initialize(vector<vector<Word*>> &dataset){
+		// その他
+		alloc_table();
 		// nグラムのカウントテーブル
 		init_ngram_counts(dataset);
+	}
+	void alloc_table(){
+		assert(_num_tags != -1);
 		// 各タグの可能な単語数
 		_Wt = (int*)calloc(_num_tags, sizeof(int));
 		// Betaの初期化
@@ -112,11 +117,7 @@ public:
 		}
 		// サンプリングした新しいBetaの一時保存用
 		_new_beta = (double*)calloc(_num_tags, sizeof(double));
-	}
-	void init_ngram_counts(vector<vector<Word*>> &dataset){
-		c_printf("[*]%s\n", "nグラムカウントを初期化してます ...");
-		assert(_num_tags != -1);
-		// メモリ確保
+		// 3-gram		
 		_trigram_counts = (int***)malloc(_num_tags * sizeof(int**));
 		for(int tri_tag = 0;tri_tag < _num_tags;tri_tag++){
 			_trigram_counts[tri_tag] = (int**)malloc(_num_tags * sizeof(int*));
@@ -124,11 +125,17 @@ public:
 				_trigram_counts[tri_tag][bi_tag] = (int*)calloc(_num_tags, sizeof(int));
 			}
 		}
+		// 2-gram
 		_bigram_counts = (int**)malloc(_num_tags * sizeof(int*));
 		for(int bi_tag = 0;bi_tag < _num_tags;bi_tag++){
 			_bigram_counts[bi_tag] = (int*)calloc(_num_tags, sizeof(int));
 		}
+		// 1-gram
 		_unigram_counts = (int*)calloc(_num_tags, sizeof(int));
+	}
+	void init_ngram_counts(vector<vector<Word*>> &dataset){
+		c_printf("[*]%s\n", "nグラムカウントを初期化してます ...");
+		assert(_num_tags != -1);
 		// 最初は品詞をランダムに割り当てる
 		set<int> word_set;
 		unordered_map<int, int> tag_for_word;
@@ -353,8 +360,8 @@ public:
 	int sample_tag_from_Pt_w(int ti_2, int ti_1, int wi){
 		double sum_p = 0;
 		for(int tag = 0;tag < _num_tags;tag++){
-			double Pt_alpha = (_trigram_counts[ti_2][ti_1][tag] + _alpha) / (_bigram_counts[ti_1][tag] + _num_tags * _alpha)
-			double Pw_t_beta = (get_count_for_tag_word(tag, wi) + _beta[tag]) / (_trigram_counts[tag] + _Wt[tag] * _beta);
+			double Pt_alpha = (_trigram_counts[ti_2][ti_1][tag] + _alpha) / (_bigram_counts[ti_1][tag] + _num_tags * _alpha);
+			double Pw_t_beta = (get_count_for_tag_word(tag, wi) + _beta[tag]) / (_unigram_counts[tag] + _Wt[tag] * _beta[tag]);
 			double Ptw_alpha_beta = Pw_t_beta * Pt_alpha;
 			_sampling_table[tag] = Ptw_alpha_beta;
 			sum_p += Ptw_alpha_beta;
@@ -369,6 +376,21 @@ public:
 			}
 		}
 		return _num_tags - 1;
+	}
+	// 論文(6)式と(7)式を掛けたものからtiをサンプリング
+	int argmax_tag_from_Pt_w(int ti_2, int ti_1, int wi){
+		double max_p = 0;
+		double max_tag = 0;
+		for(int tag = 0;tag < _num_tags;tag++){
+			double Pt_alpha = (_trigram_counts[ti_2][ti_1][tag] + _alpha) / (_bigram_counts[ti_1][tag] + _num_tags * _alpha);
+			double Pw_t_beta = (get_count_for_tag_word(tag, wi) + _beta[tag]) / (_unigram_counts[tag] + _Wt[tag] * _beta[tag]);
+			double Ptw_alpha_beta = Pw_t_beta * Pt_alpha;
+			if(Ptw_alpha_beta > max_p){
+				max_p = Ptw_alpha_beta;
+				max_tag = tag;
+			}
+		}
+		return max_tag;
 	}
 	Word* _get_random_word_with_tag(int tag, vector<vector<Word*>> &dataset){
 		int random_index = Sampler::uniform_int(0, dataset.size() - 1);
@@ -451,7 +473,7 @@ public:
 		}
 	}
 	bool save(string dir = "out"){
-		ofstream ofs(dir + "/hmm.count");
+		ofstream ofs(dir + "/hmm.obj");
 		boost::archive::binary_oarchive oarchive(ofs);
 		oarchive << static_cast<const BayesianHMM&>(*this);
 		ofs.close();
@@ -486,7 +508,7 @@ public:
 	}
 	bool load(string dir = "out"){
 		bool complete = true;
-		ifstream ifs(dir + "/hmm.count");
+		ifstream ifs(dir + "/hmm.obj");
 		if(ifs.good()){
 			boost::archive::binary_iarchive iarchive(ifs);
 			iarchive >> *this;
@@ -494,6 +516,11 @@ public:
 			complete = false;
 		}
 		ifs.close();
+
+		// ポインタの読み込み
+		if(_trigram_counts == NULL){
+			alloc_table();
+		}
 		ifstream ifs_bin;
 		// 3-gram
 		ifs_bin.open(dir + "/hmm.trigram", ios::binary);

@@ -57,7 +57,7 @@ public:
 		_max_num_words_in_line = -1;
 		_min_num_words_in_line = -1;
 	}
-	int string_to_word_id(wstring &word){
+	int string_to_word_id(wstring word){
 		auto itr = _dictionary_inv.find(word);
 		if(itr == _dictionary_inv.end()){
 			_dictionary[_autoincrement] = word;
@@ -133,9 +133,7 @@ public:
 			iarchive >> _dictionary;
 			ifs.close();
 		}
-		// 獲得された品詞と単語のリストを読み込み
-		string tags_filename = dirname + "/hmm.tags";
-		return _hmm->load(tags_filename);
+		return _hmm->load(dirname);
 	}
 	bool save(string dirname){
 		// 辞書を保存
@@ -161,6 +159,12 @@ public:
 			vector<Word*> &line = _dataset[data_index];
 			_hmm->perform_gibbs_sampling_with_line(line);
 		}
+	}
+	int sample_tag_from_Pt_w(int ti_2, int ti_1, int wi){
+		return _hmm->sample_tag_from_Pt_w(ti_2, ti_1, wi);
+	}
+	int argmax_tag_from_Pt_w(int ti_2, int ti_1, int wi){
+		return _hmm->argmax_tag_from_Pt_w(ti_2, ti_1, wi);
 	}
 	void sample_new_beta(){
 		_hmm->sample_new_beta(_dataset);
@@ -282,6 +286,8 @@ BOOST_PYTHON_MODULE(model){
 	.def("set_Wt", &PyBayesianHMM::set_Wt)
 	.def("add_line", &PyBayesianHMM::add_line)
 	.def("sample_new_beta", &PyBayesianHMM::sample_new_beta)
+	.def("sample_tag_from_Pt_w", &PyBayesianHMM::sample_tag_from_Pt_w)
+	.def("argmax_tag_from_Pt_w", &PyBayesianHMM::argmax_tag_from_Pt_w)
 	.def("anneal_temperature", &PyBayesianHMM::anneal_temperature)
 	.def("show_typical_words_for_each_tag", &PyBayesianHMM::show_typical_words_for_each_tag)
 	.def("show_random_line", &PyBayesianHMM::show_random_line)

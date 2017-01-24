@@ -24,7 +24,11 @@ def main(args):
 			if i % 100 == 0:
 				sys.stdout.write("\r{}行目を処理中です ...".format(i))
 				sys.stdout.flush()
-			segmentation = ""
+			bos_id = hmm.string_to_word_id("<bos>")
+			print bos_id
+			raise Exception()
+			tag_ids = [0, 0]	# <bos>の品詞IDは0
+			word_ids = [bos_id, bos_id]
 			line = re.sub(ur"\n", "", line)	# 開業を消す
 			string = line.encode("utf-8")
 			m = tagger.parseToNode(string)
