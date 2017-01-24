@@ -108,7 +108,7 @@ def main(args):
 		elapsed_time = time.time() - start
 		sys.stdout.write(" Epoch {} / {} - {:.3f} sec\r".format(epoch, args.epoch, elapsed_time))		
 		sys.stdout.flush()
-		hmm.anneal_temperature(0.998)	# 温度を下げる
+		hmm.anneal_temperature(0.9989)	# 温度を下げる
 		if epoch % 10 == 0:
 			print "\n"
 			hmm.show_beta()

@@ -45,7 +45,6 @@ public:
 	double* _sampling_table;	// キャッシュ
 	double _alpha;
 	double* _beta;
-	double* _new_beta;
 	double _temperature;
 	double _minimum_temperature;
 	BayesianHMM(){
@@ -56,9 +55,8 @@ public:
 		_Wt = NULL;
 		_num_tags = -1;
 		_num_words = -1;
-		_alpha = 0.003;
+		_alpha = 1;
 		_beta = NULL;
-		_new_beta = NULL;
 		_temperature = 1;
 		_minimum_temperature = 1;
 	}
@@ -87,9 +85,6 @@ public:
 		if(_beta != NULL){
 			free(_beta);
 		}
-		if(_new_beta != NULL){
-			free(_new_beta);
-		}
 		if(_Wt != NULL){
 			free(_Wt);
 		}
@@ -115,8 +110,6 @@ public:
 		for(int tag = 0;tag < _num_tags;tag++){
 			_beta[tag] = 1;
 		}
-		// サンプリングした新しいBetaの一時保存用
-		_new_beta = (double*)calloc(_num_tags, sizeof(double));
 		// 3-gram		
 		_trigram_counts = (int***)malloc(_num_tags * sizeof(int**));
 		for(int tri_tag = 0;tri_tag < _num_tags;tri_tag++){
@@ -231,7 +224,7 @@ public:
 		unordered_map<int, int> &word_counts = _tag_word_counts[tag_id];
 		return word_counts.size();
 	}
-	double compute_log_Pt_alpha(vector<Word*> &line){
+	double compute_log_Pt_alpha(vector<Word*> &line, double alpha){
 		double log_Pt_alpha = 0;
 		for(int pos = 2;pos < line.size() - 2;pos++){	// <bos>と<eos>の内側だけ考える
 			int ti_2 = line[pos - 2]->tag_id;
@@ -239,12 +232,12 @@ public:
 			int ti = line[pos]->tag_id;
 			double n_ti_2_ti_1_ti = _trigram_counts[ti_2][ti_1][ti];
 			double n_ti_2_ti_1 = _bigram_counts[ti_2][ti_1];
-			double Pt_i_alpha = (n_ti_2_ti_1_ti + _alpha) / (n_ti_2_ti_1 + _num_tags * _alpha);
+			double Pt_i_alpha = (n_ti_2_ti_1_ti + alpha) / (n_ti_2_ti_1 + _num_tags * alpha);
 			log_Pt_alpha += log(Pt_i_alpha);
 		}
 		return log_Pt_alpha;
 	}
-	double compute_log_Pw_t_alpha(vector<Word*> &line){
+	double compute_log_Pw_t_alpha(vector<Word*> &line, double alpha){
 		double log_Pt_alpha = 0;
 		for(int pos = 2;pos < line.size() - 2;pos++){	// <bos>と<eos>の内側だけ考える
 			int ti_2 = line[pos - 2]->tag_id;
@@ -252,7 +245,7 @@ public:
 			int ti = line[pos]->tag_id;
 			double n_ti_2_ti_1_ti = _trigram_counts[ti_2][ti_1][ti];
 			double n_ti_2_ti_1 = _bigram_counts[ti_2][ti_1];
-			double Pt_i_alpha = (n_ti_2_ti_1_ti + _alpha) / (n_ti_2_ti_1 + _num_tags * _alpha);
+			double Pt_i_alpha = (n_ti_2_ti_1_ti + alpha) / (n_ti_2_ti_1 + _num_tags * alpha);
 			log_Pt_alpha += log(Pt_i_alpha);
 		}
 		return log_Pt_alpha;
@@ -406,10 +399,37 @@ public:
 		}
 		return NULL;
 	}
+	// 新しいAlphaをサンプリング
+	void sample_new_alpha(vector<vector<Word*>> &dataset){
+		double new_alpha = Sampler::normal(_alpha, 0.1 * _alpha);
+		int random_index = Sampler::uniform_int(0, dataset.size() - 1);
+		vector<Word*> &line = dataset[random_index];
+		// メトロポリス・ヘイスティングス法
+		// http://ebsa.ism.ac.jp/ebooks/sites/default/files/ebook/1881/pdf/vol3_ch10.pdf
+		// 提案分布は正規分布
+		double log_Pt_alpha = compute_log_Pt_alpha(line, _alpha);
+		double log_Pt_new_alpha = compute_log_Pt_alpha(line, new_alpha);
+		// q(alpha|new_alpha) / q(new_alpha|alpha)の計算
+		double sigma_alpha = 0.1 * _alpha;
+		double sigma_new_alpha = 0.1 * new_alpha;
+		double var_alpha = sigma_alpha * sigma_alpha;
+		double var_new_alpha = sigma_new_alpha * sigma_new_alpha;
+		double correcting_term = (_alpha / new_alpha) * exp(0.5 * (var_new_alpha - var_alpha) * (_alpha - new_alpha) / (var_alpha * var_new_alpha));
+		if(log_Pt_new_alpha == 0){
+			return;
+		}
+		// 採択率
+		double adoption_rate = std::min(1.0, exp(log_Pt_new_alpha - log_Pt_alpha) * correcting_term);
+		double bernoulli = Sampler::uniform(0, 1);
+		if(bernoulli < adoption_rate){
+			_alpha = new_alpha;
+		}
+	}
 	// 新しいBetaをサンプリング
 	void sample_new_beta(vector<vector<Word*>> &dataset){
 		for(int tag = 0;tag < _num_tags;tag++){
-			_new_beta[tag] = Sampler::normal(_beta[tag], 0.1 * _beta[tag]);
+			double beta = _beta[tag];
+			double new_beta = Sampler::normal(beta, 0.1 * beta);
 			Word* random_word = NULL;
 			int limit = 100;
 			while(random_word == NULL){
@@ -425,15 +445,25 @@ public:
 			if(random_word == NULL){
 				continue;
 			}
-			double Pti_wi_beta = compute_Pti_wi_beta(random_word->tag_id, random_word->word_id, _beta[tag]);
-			double Pti_wi_new_beta = compute_Pti_wi_beta(random_word->tag_id, random_word->word_id, _new_beta[tag]);
+			// メトロポリス・ヘイスティングス法
+			// http://ebsa.ism.ac.jp/ebooks/sites/default/files/ebook/1881/pdf/vol3_ch10.pdf
+			// 提案分布は正規分布
+			double Pti_wi_beta = compute_Pti_wi_beta(random_word->tag_id, random_word->word_id, beta);
+			double Pti_wi_new_beta = compute_Pti_wi_beta(random_word->tag_id, random_word->word_id, new_beta);
+			// q(beta|new_beta) / q(new_beta|beta)の計算
+			double sigma_beta = 0.1 * beta;
+			double sigma_new_beta = 0.1 * new_beta;
+			double var_beta = sigma_beta * sigma_beta;
+			double var_new_beta = sigma_new_beta * sigma_new_beta;
+			double correcting_term = (beta / new_beta) * exp(0.5 * (var_new_beta - var_beta) * (beta - new_beta) / (var_beta * var_new_beta));
 			if(Pti_wi_new_beta == 0){
 				continue;
 			}
-			double adoption_rate = std::min(1.0, Pti_wi_new_beta / Pti_wi_beta);
+			// 採択率
+			double adoption_rate = std::min(1.0, Pti_wi_new_beta * correcting_term / Pti_wi_beta);
 			double bernoulli = Sampler::uniform(0, 1);
 			if(bernoulli < adoption_rate){
-				_beta[tag] = _new_beta[tag];
+				_beta[tag] = new_beta;
 			}
 		}
 	}
