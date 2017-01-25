@@ -10,8 +10,8 @@ class posset:
 	rb = {"RB", "RBR", "RBS"}
 	vb = {"VB", "VBD", "VBG", "VBN", "VBZ", "VBP"}
 	vd = {"VD", "VDD", "VDG", "VDN", "VDZ", "VDP"}
-	vh = {"VH", "VH", "VHG", "VHN", "VHZ", "VHP"}
-	vv = {"VV", "VV", "VVG", "VVN", "VVZ", "VVP"}
+	vh = {"VH", "VH", "VHG", "VHN", "VHZ", "VHP", "VHD"}
+	vv = {"VV", "VV", "VVG", "VVN", "VVZ", "VVP", "VVD"}
 
 # 品詞をまとめる
 def colapse_pos(pos):
@@ -29,6 +29,8 @@ def colapse_pos(pos):
 		return "VH"
 	if pos in posset.vv:
 		return "VV"
+	if pos in posset.jj:
+		return "JJ"
 	return pos
 
 class stdout:
