@@ -30,6 +30,7 @@ def main(args):
 			for i, word_pos_lowercase in enumerate(poses):
 				pos = colapse_pos(word_pos_lowercase.split("\t")[1])
 				lowercase = colapse_pos(word_pos_lowercase.split("\t")[2])
+				all_types_of_pos.add(pos)
 				word_id = hmm.string_to_word_id(lowercase)
 				tag_id = hmm.argmax_tag_from_Pt_w(tag_ids[-2], tag_ids[-1], word_id)
 				tag_ids.append(tag_id)
