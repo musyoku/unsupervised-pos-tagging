@@ -75,7 +75,6 @@ def main(args):
 	dataframe = pd.DataFrame(num_occurrence_of_pos_for_tag)
 	ax = sns.heatmap(dataframe, annot=False, fmt="f", linewidths=0)
 	ax.tick_params(labelsize=20) 
-	plt.xticks(rotation=0)
 	plt.yticks(rotation=0)
 	plt.xlabel(u"予測タグ")
 	plt.ylabel(u"正解品詞")

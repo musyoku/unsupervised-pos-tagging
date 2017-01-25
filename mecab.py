@@ -32,7 +32,7 @@ def main(args):
 	with codecs.open(args.output, "w", "utf-8") as f:
 		for line in dataset:
 			f.write(line)
-			f.write(u"\n")
+			f.write("\n")
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()

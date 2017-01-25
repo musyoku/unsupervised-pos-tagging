@@ -44,8 +44,9 @@ def main(args):
 	except:
 		pass
 
+	hmm = model.bayesian_hmm()
 	# 訓練データを形態素解析して各品詞ごとにその品詞になりうる単語の総数を求めておく
-	print stdout.BOLD + "品詞辞書を構成しています ..." + stdout.END
+	print stdout.BOLD + "データを準備しています ..." + stdout.END
 	Wt_count = {}
 	word_count = set()	# 単語の種類の総数
 	# 似たような品詞をまとめる
@@ -54,14 +55,22 @@ def main(args):
 		tagger = treetaggerwrapper.TreeTagger(TAGLANG="en")
 		for i, line in enumerate(f):
 			line = re.sub(ur"\n", "", line)
+			line = re.sub(ur" +$", "",  line)	# 行末の空白を除去
+			line = re.sub(ur"^ +", "",  line)	# 行頭の空白を除去
 			sys.stdout.write("\r{}行目を処理中です ...".format(i))
 			sys.stdout.flush()
 			result = tagger.tag_text(line)
 			if len(result) == 0:
 				continue
+			# 形態素解析を行いながら訓練データも作る
+			# 英語は通常スペース区切りなので不要と思うかもしれないが、TreeTaggerを使うと$600が$ 600に分割されたりする
+			# そのためplot_en.pyで評価の際に文の単語数が[スペース区切り]と[TreeTagger]で異なる場合があり正しく評価を行えなくなる
+			# よって単語分割は全てTreeTaggerによるものに統一しておく
+			segmentation = ""
 			for poses in result:
 				word, pos, lowercase = poses.split("\t")
 				word_count.add(lowercase)
+				segmentation += lowercase + " "
 				pos = colapse_pos(pos)
 				if pos not in Wt_count:
 					Wt_count[pos] = {}
@@ -69,6 +78,8 @@ def main(args):
 					Wt_count[pos][lowercase] = 1
 				else:
 					Wt_count[pos][lowercase] += 1
+			segmentation = re.sub(ur" +$", "",  segmentation)	# 行末の空白を除去
+			hmm.add_line(segmentation.decode("utf-8"))	# 学習用データに追加
 	if args.supervised:
 		# Wtは各タグについて、そのタグになりうる単語の数が入っている
 		# タグ0には<bos>と<eos>だけ含まれることにする
@@ -84,15 +95,8 @@ def main(args):
 
 	print "Wt:", Wt
 
-	hmm = model.bayesian_hmm()
 	hmm.set_num_tags(len(Wt));	# 品詞数を設定
-
-	# テキストファイルの読み込み
-	# 複数のファイルを読んでもOK
-	hmm.load_textfile(args.filename)
-
-	# 全てのテキストファイルを読み込み終わってから初期化
-	hmm.initialize()
+	hmm.initialize()	# 品詞数をセットしてから初期化
 
 	# Wtをセット
 	hmm.set_Wt(Wt)
@@ -103,6 +107,7 @@ def main(args):
 		start = time.time()
 
 		hmm.perform_gibbs_sampling()
+		hmm.sample_new_alpha()
 		hmm.sample_new_beta()
 
 		elapsed_time = time.time() - start
@@ -111,6 +116,7 @@ def main(args):
 		hmm.anneal_temperature(0.9989)	# 温度を下げる
 		if epoch % 10 == 0:
 			print "\n"
+			hmm.show_alpha()
 			hmm.show_beta()
 			hmm.show_random_line(20, True);	# ランダムなn個の文と推定結果のタグを表示
 			hmm.show_typical_words_for_each_tag(20);	# それぞれのタグにつき上位n個の単語を表示
@@ -125,4 +131,7 @@ if __name__ == "__main__":
 	parser.add_argument("-s", "--supervised", dest="supervised", default=True, action="store_true", help="各タグのWtを訓練データで制限するかどうか.")
 	parser.add_argument("-u", "--unsupervised", dest="supervised", action="store_false", help="各タグのWtを訓練データで制限するかどうか.")
 	parser.add_argument("-n", "--num-tags", type=int, default=20, help="タグの種類（semi_supervisedがFalseの時のみ有効）.")
+	parser.add_argument("--start-temperature", type=float, default=2, help="開始温度.")
+	parser.add_argument("--min-temperature", type=float, default=0.08, help="最小温度.")
+	parser.add_argument("--anneal", type=float, default=0.9989, help="温度の減少に使う係数.")
 	main(parser.parse_args())

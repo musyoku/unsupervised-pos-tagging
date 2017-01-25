@@ -68,8 +68,8 @@ def main(args):
 	# alphaの初期値
 	hmm.set_alpha(1)
 
-	hmm.set_temperature(2)	# 温度の初期設定
-	hmm.set_minimum_temperature(0.08)	# 温度の下限
+	hmm.set_temperature(args.start_temperature)	# 温度の初期設定
+	hmm.set_minimum_temperature(args.min_temperature)	# 温度の下限
 	for epoch in xrange(1, args.epoch + 1):
 		start = time.time()
 
@@ -80,7 +80,7 @@ def main(args):
 		elapsed_time = time.time() - start
 		sys.stdout.write("\rEpoch {} / {} - {:.3f} sec".format(epoch, args.epoch, elapsed_time))		
 		sys.stdout.flush()
-		hmm.anneal_temperature(0.9989)	# 温度を下げる
+		hmm.anneal_temperature(args.anneal)	# 温度を下げる
 		if epoch % 10 == 0:
 			print "\n"
 			hmm.show_alpha()
@@ -96,4 +96,7 @@ if __name__ == "__main__":
 	parser.add_argument("-e", "--epoch", type=int, default=20000, help="総epoch.")
 	parser.add_argument("-m", "--model", type=str, default="out", help="保存フォルダ名.")
 	parser.add_argument("-n", "--num-tags", type=int, default=20, help="タグの種類.")
+	parser.add_argument("--start-temperature", type=float, default=2, help="開始温度.")
+	parser.add_argument("--min-temperature", type=float, default=0.08, help="最小温度.")
+	parser.add_argument("--anneal", type=float, default=0.9989, help="温度の減少に使う係数.")
 	main(parser.parse_args())
