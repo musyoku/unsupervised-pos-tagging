@@ -48,6 +48,11 @@ def main(args):
 		for pos in all_types_of_pos:
 			if pos not in occurrence:
 				occurrence[pos] = 0
+	for tag in xrange(hmm.get_num_tags()):
+		if tag not in num_occurrence_of_pos_for_tag:
+			num_occurrence_of_pos_for_tag[tag] = {}
+			for pos in all_types_of_pos:
+				num_occurrence_of_pos_for_tag[tag][pos] = 0
 
 	# 正解品詞ごとに正規化
 	for pos in all_types_of_pos:
