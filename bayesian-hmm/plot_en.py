@@ -4,10 +4,13 @@ import treetaggerwrapper
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-sns.set(font_scale=3)
 import model
-from train_en import colapse_pos, posset
+from train_en import collapse_pos, posset
 from train_ja import stdout
+
+# フォントをセット
+# UbuntuならTakaoGothicなどが標準で入っている
+sns.set(font=["MS Gothic"], font_scale=3)
 
 def main(args):
 	hmm = model.bayesian_hmm()
@@ -28,8 +31,8 @@ def main(args):
 			line = re.sub(ur"\n", "", line)	# 開業を消す
 			poses = tagger.tag_text(line)	# 形態素解析
 			for i, word_pos_lowercase in enumerate(poses):
-				pos = colapse_pos(word_pos_lowercase.split("\t")[1])
-				lowercase = colapse_pos(word_pos_lowercase.split("\t")[2])
+				pos = collapse_pos(word_pos_lowercase.split("\t")[1])
+				lowercase = collapse_pos(word_pos_lowercase.split("\t")[2])
 				all_types_of_pos.add(pos)
 				word_id = hmm.string_to_word_id(lowercase)
 				tag_id = hmm.argmax_tag_from_Pt_w(tag_ids[-2], tag_ids[-1], word_id)

@@ -14,7 +14,7 @@ class posset:
 	vv = {"VV", "VV", "VVG", "VVN", "VVZ", "VVP", "VVD"}
 
 # 品詞をまとめる
-def colapse_pos(pos):
+def collapse_pos(pos):
 	if pos in posset.sym:
 		return "SYM"
 	if pos in posset.nn:
@@ -73,7 +73,7 @@ def main(args):
 				word, pos, lowercase = poses.split("\t")
 				word_count.add(lowercase)
 				segmentation += lowercase + " "
-				pos = colapse_pos(pos)
+				pos = collapse_pos(pos)
 				if pos not in Wt_count:
 					Wt_count[pos] = {}
 				if lowercase not in Wt_count[pos]:
