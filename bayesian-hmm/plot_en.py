@@ -26,16 +26,11 @@ def main(args):
 				sys.stdout.flush()
 			tag_ids = [0, 0]	# <bos>の品詞IDは0. 3-gramなので文脈は2つ
 			line = re.sub(ur"\n", "", line)	# 開業を消す
-			words = line.split(" ")
 			poses = tagger.tag_text(line)	# 形態素解析
-			if len(words) != len(poses):
-				print words
-				print poses
-				raise Exception()
-
-			for i, word in enumerate(words):
-				pos = colapse_pos(poses[i].split("\t")[1])
-				word_id = hmm.string_to_word_id(word)
+			for i, word_pos_lowercase in enumerate(poses):
+				pos = colapse_pos(word_pos_lowercase.split("\t")[1])
+				lowercase = colapse_pos(word_pos_lowercase.split("\t")[2])
+				word_id = hmm.string_to_word_id(lowercase)
 				tag_id = hmm.argmax_tag_from_Pt_w(tag_ids[-2], tag_ids[-1], word_id)
 				tag_ids.append(tag_id)
 				if tag_id not in num_occurrence_of_pos_for_tag:
