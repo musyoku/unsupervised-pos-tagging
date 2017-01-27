@@ -174,14 +174,14 @@ public:
 		_hmm->sample_new_alpha(_dataset);
 	}
 	void show_alpha(){
-		cout << (boost::format("alpha <- %f") % _hmm->_alpha).str() << endl;
+		cout << (boost::format("alpha <- %e") % _hmm->_alpha).str() << endl;
 	}
 	void sample_new_beta(){
 		_hmm->sample_new_beta(_dataset);
 	}
 	void show_beta(){
 		for(int tag = 0;tag < _hmm->_num_tags;tag++){
-			cout << (boost::format("beta[%d] <- %f") % tag % _hmm->_beta[tag]).str() << endl;
+			cout << (boost::format("beta[%d] <- %e") % tag % _hmm->_beta[tag]).str() << endl;
 		}
 	}
 	void show_random_line(int num_to_show, bool show_most_co_occurring_tag = true){
