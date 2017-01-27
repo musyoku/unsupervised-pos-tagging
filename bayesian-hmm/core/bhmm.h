@@ -414,7 +414,10 @@ public:
 		double sigma_new_alpha = 0.1 * new_alpha;
 		double var_alpha = sigma_alpha * sigma_alpha;
 		double var_new_alpha = sigma_new_alpha * sigma_new_alpha;
-		double correcting_term = (_alpha / new_alpha) * exp(0.5 * (var_new_alpha - var_alpha) * (_alpha - new_alpha) / (var_alpha * var_new_alpha));
+		double correcting_term = (_alpha / new_alpha) * exp(
+			  0.5 * (new_alpha - _alpha) * (new_alpha - _alpha) / var_alpha
+			+ 0.5 * (_alpha - new_alpha) * (_alpha - new_alpha) / var_new_alpha
+		);
 		if(log_Pt_new_alpha == 0){
 			return;
 		}
