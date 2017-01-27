@@ -10,11 +10,11 @@ class posset:
 	rb = {"RB", "RBR", "RBS"}
 	vb = {"VB", "VBD", "VBG", "VBN", "VBZ", "VBP"}
 	vd = {"VD", "VDD", "VDG", "VDN", "VDZ", "VDP"}
-	vh = {"VH", "VH", "VHG", "VHN", "VHZ", "VHP"}
-	vv = {"VV", "VV", "VVG", "VVN", "VVZ", "VVP"}
+	vh = {"VH", "VH", "VHG", "VHN", "VHZ", "VHP", "VHD"}
+	vv = {"VV", "VV", "VVG", "VVN", "VVZ", "VVP", "VVD"}
 
 # 品詞をまとめる
-def colapse_pos(pos):
+def collapse_pos(pos):
 	if pos in posset.sym:
 		return "SYM"
 	if pos in posset.nn:
@@ -29,8 +29,9 @@ def colapse_pos(pos):
 		return "VH"
 	if pos in posset.vv:
 		return "VV"
+	if pos in posset.jj:
+		return "JJ"
 	return pos
-
 def main(args):
 	if args.filename is None:
 		raise Exception()
@@ -43,7 +44,8 @@ def main(args):
 
 	# テキストファイルの読み込み
 	# 複数のファイルを読んでもOK
-	hmm.load_textfile(args.filename)
+	split_probability = 0.05	# 読み込んだデータの何%をテストデータにするか
+	hmm.load_textfile(args.filename, split_probability)
 
 	# 学習
 	hmm.prepare_for_training()
@@ -68,5 +70,5 @@ if __name__ == "__main__":
 	parser.add_argument("-f", "--filename", type=str, default=None, help="訓練用のテキストファイルのパス.")
 	parser.add_argument("-e", "--epoch", type=int, default=20000, help="総epoch.")
 	parser.add_argument("-m", "--model", type=str, default="out", help="保存フォルダ名.")
-	parser.add_argument("-n", "--num_tags", type=int, default=30, help="品詞数.")
+	parser.add_argument("-n", "--num-tags", type=int, default=30, help="品詞数.")
 	main(parser.parse_args())

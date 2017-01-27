@@ -31,7 +31,8 @@ private:
 	Lattice* _lattice;
 	unordered_map<int, wstring> _dictionary;
 	unordered_map<wstring, int> _dictionary_inv;
-	vector<vector<Word*>> _dataset;
+	vector<vector<Word*>> _train_dataset;
+	vector<vector<Word*>> _test_dataset;
 	vector<int> _rand_indices;
 	set<int> _types_of_words;
 	int _autoincrement;
@@ -82,7 +83,7 @@ public:
 		}
 		return itr->second;
 	}
-	void load_textfile(string filename){
+	void load_textfile(string filename, double split_probability=0.05){
 		c_printf("[*]%s\n", (boost::format("%sを読み込んでいます ...") % filename.c_str()).str().c_str());
 		wifstream ifs(filename.c_str());
 		wstring line_str;
@@ -90,7 +91,8 @@ public:
 			c_printf("[R]%s [*]%s", "エラー", (boost::format("%sを開けません.") % filename.c_str()).str().c_str());
 			exit(1);
 		}
-		int prev_dataset_size = _dataset.size();
+		int prev_train_dataset_size = _train_dataset.size();
+		int prev_test_dataset_size = _test_dataset.size();
 		while (getline(ifs, line_str) && !line_str.empty()){
 			vector<wstring> word_strs = split_word_by(line_str, L' ');	// スペースで分割
 			if(word_strs.size() > 0){
@@ -121,12 +123,17 @@ public:
 				if(words.size() > _max_num_words_in_sentence){
 					_max_num_words_in_sentence = words.size();
 				}
-				// 訓練データに追加
-				_dataset.push_back(words);
+				// 訓練データかテストデータどちらに含めるかを決める
+				double bernoulli = Sampler::uniform(0, 1);
+				if(bernoulli < split_probability){
+					_test_dataset.push_back(words);
+				}else{
+					_train_dataset.push_back(words);
+				}
 			}
 		}
-		c_printf("[*]%s\n", (boost::format("%sを読み込みました. (%d行)") % filename.c_str() % (_dataset.size() - prev_dataset_size)).str().c_str());
-		c_printf("[*]%s\n", (boost::format("単語数: %d") % _types_of_words.size()).str().c_str());
+		c_printf("[*]%s\n", (boost::format("%sを読み込みました.") % filename.c_str()).str().c_str());
+		c_printf("[*]%s\n", (boost::format("訓練データ: %d行, テストデータ: %d行, 単語数: %d") % (_train_dataset.size() - prev_train_dataset_size) % (_test_dataset.size() - prev_test_dataset_size) % _types_of_words.size()).str().c_str());
 	}
 	void load(string dirname){
 		// 辞書を読み込み
@@ -161,9 +168,9 @@ public:
 		if(_lattice == NULL){
 			_lattice = new Lattice(_max_num_words_in_sentence, _num_tags, _pos_hpylm, _word_hpylm_for_tag);
 		}
-		if(_rand_indices.size() != _dataset.size()){
+		if(_rand_indices.size() != _train_dataset.size()){
 			_rand_indices.clear();
-			for(int data_index = 0;data_index < _dataset.size();data_index++){
+			for(int data_index = 0;data_index < _train_dataset.size();data_index++){
 				_rand_indices.push_back(data_index);
 			}
 		}
@@ -177,11 +184,11 @@ public:
 		}
 		// 各文にランダムに品詞を割り当ててモデルに追加
 		vector<int> token_ids = {0, 0, 0};
-		for(int data_index = 0;data_index < _dataset.size();data_index++){
+		for(int data_index = 0;data_index < _train_dataset.size();data_index++){
 			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
 				return;
 			}
-			vector<Word*> &sentence = _dataset[data_index];
+			vector<Word*> &sentence = _train_dataset[data_index];
 			// HPYLMを更新
 			for(int t = 2;t < sentence.size();t++){
 				sentence[t]->tag_id = Sampler::uniform_int(0, _num_tags - 1);
@@ -193,10 +200,11 @@ public:
 				hpylm->add_customer_at_timestep(token_ids, 2);
 			}
 			// プログレスバー
-			if(data_index % 100 == 0 || data_index == _dataset.size() - 1){
-				show_progress(data_index, _dataset.size());
+			if(data_index % 100 == 0 || data_index == _train_dataset.size() - 1){
+				show_progress(data_index, _train_dataset.size());
 			}
 		}
+		cout << "\r\33[2K";
 		_is_ready = true;
 	}
 	void generate_pos_token_ids(vector<Word*> &sentence, vector<int> &token_ids, int t){
@@ -211,15 +219,15 @@ public:
 	}
 	void perform_gibbs_sampling(){
 		assert(_is_ready);
-		assert(_rand_indices.size() == _dataset.size());
+		assert(_rand_indices.size() == _train_dataset.size());
 		shuffle(_rand_indices.begin(), _rand_indices.end(), Sampler::mt);	// データをシャッフル
 		vector<int> token_ids = {0, 0, 0};
-		for(int n = 0;n < _dataset.size();n++){
+		for(int n = 0;n < _train_dataset.size();n++){
 			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
 				return;
 			}
 			int data_index = _rand_indices[n];
-			vector<Word*> &sentence = _dataset[data_index];
+			vector<Word*> &sentence = _train_dataset[data_index];
 			// 以前のサンプリング結果を削除
 			for(int t = 2;t < sentence.size();t++){
 				generate_pos_token_ids(sentence, token_ids, t);
@@ -241,8 +249,8 @@ public:
 				hpylm->add_customer_at_timestep(token_ids, 2);
 			}
 			// プログレスバー
-			if(n % 100 == 0 || n == _dataset.size() - 1){
-				show_progress(n, _dataset.size());
+			if(n % 100 == 0 || n == _train_dataset.size() - 1){
+				show_progress(n, _train_dataset.size());
 			}
 		}
 		_is_first_run = false;
@@ -261,10 +269,10 @@ public:
 	}
 	double compute_perplexity(){
 		double ppl = 0;
-		int num_lines = _dataset.size();
+		int num_lines = _test_dataset.size();
 		vector<int> context_token_ids = {0, 0};
 		for(int data_index = 0;data_index < num_lines;data_index++){
-			vector<Word*> &sentence = _dataset[data_index];
+			vector<Word*> &sentence = _test_dataset[data_index];
 			double log_Pw = 0;
 			for(int t = 2;t < sentence.size();t++){
 				context_token_ids[0] = sentence[t - 2]->word_id;
