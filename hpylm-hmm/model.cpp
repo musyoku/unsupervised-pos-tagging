@@ -255,6 +255,26 @@ public:
 		}
 		_is_first_run = false;
 	}
+	// デバッグ用
+	void remove_all_customers(){
+		assert(_is_ready);
+		vector<int> token_ids = {0, 0, 0};
+		for(int data_index = 0;data_index < _train_dataset.size();data_index++){
+			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
+				return;
+			}
+			vector<Word*> &sentence = _train_dataset[data_index];
+			// 以前のサンプリング結果を削除
+			for(int t = 2;t < sentence.size();t++){
+				generate_pos_token_ids(sentence, token_ids, t);
+				_pos_hpylm->remove_customer_at_timestep(token_ids, 2);
+				generate_word_token_ids(sentence, token_ids, t);
+				int tag = sentence[t]->tag_id;
+				HPYLM* hpylm = _word_hpylm_for_tag[tag];
+				hpylm->remove_customer_at_timestep(token_ids, 2);
+			}
+		}
+	}
 	void sample_hyperparams(){
 		_pos_hpylm->sample_hyperparams();
 		for(int tag = 0;tag < _num_tags;tag++){
@@ -277,7 +297,7 @@ public:
 			for(int t = 2;t < sentence.size();t++){
 				context_token_ids[0] = sentence[t - 2]->word_id;
 				context_token_ids[1] = sentence[t - 1]->word_id;
-				int token_id = sentence[t]->word_id;
+				cout << context_token_ids[0] << "," << context_token_ids[1] << endl;
 				int tag = sentence[t]->tag_id;
 				HPYLM* hpylm = _word_hpylm_for_tag[tag];
 				double Pw_h = hpylm->compute_Pw_h(token_id, context_token_ids);
@@ -294,6 +314,8 @@ public:
 			cout << "hpylm: " << tag << endl;
 			cout << "# of customers: " << hpylm->get_num_customers() << endl;
 		}
+		cout << "hpylm (pos)" << endl;
+		cout << "# of customers: " << _pos_hpylm->get_num_customers() << endl;
 	}
 	void show_typical_words_for_each_tag(int number_to_show_for_each_tag){
 		for(int tag = 0;tag < _num_tags;tag++){
@@ -335,5 +357,6 @@ BOOST_PYTHON_MODULE(model){
 	.def("get_num_tags", &PyHpylmHMM::get_num_tags)
 	.def("dump_hpylm", &PyHpylmHMM::dump_hpylm)
 	.def("show_typical_words_for_each_tag", &PyHpylmHMM::show_typical_words_for_each_tag)
+	.def("remove_all_customers", &PyHpylmHMM::remove_all_customers)
 	.def("load_textfile", &PyHpylmHMM::load_textfile);
 }

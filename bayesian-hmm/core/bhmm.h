@@ -458,10 +458,10 @@ public:
 			double sigma_new_beta = 0.1 * new_beta;
 			double var_beta = sigma_beta * sigma_beta;
 			double var_new_beta = sigma_new_beta * sigma_new_beta;
-			double correcting_term = (beta / new_beta) * exp(0.5 * (var_new_beta - var_beta) * (beta - new_beta) / (var_beta * var_new_beta));
-			if(Pti_wi_new_beta == 0){
-				continue;
-			}
+			double correcting_term = (beta / new_beta) * exp(
+				  0.5 * (new_beta - beta) * (new_beta - beta) / var_beta
+				+ 0.5 * (beta - new_beta) * (beta - new_beta) / var_new_beta
+			);
 			// 採択率
 			double adoption_rate = std::min(1.0, Pti_wi_new_beta * correcting_term / Pti_wi_beta);
 			double bernoulli = Sampler::uniform(0, 1);

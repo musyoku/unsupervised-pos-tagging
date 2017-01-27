@@ -65,6 +65,9 @@ def main(args):
 			hmm.show_typical_words_for_each_tag(20)
 			hmm.save(args.model);
 
+	hmm.remove_all_customers()
+	hmm.dump_hpylm()
+
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument("-f", "--filename", type=str, default=None, help="訓練用のテキストファイルのパス.")
