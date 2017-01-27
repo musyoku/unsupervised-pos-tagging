@@ -103,8 +103,8 @@ def main(args):
 	# Wtをセット
 	hmm.set_Wt(Wt)
 
-	hmm.set_temperature(2)	# 温度の初期設定
-	hmm.set_minimum_temperature(0.08)	# 温度の下限
+	hmm.set_temperature(args.start_temperature)	# 温度の初期設定
+	hmm.set_minimum_temperature(args.min_temperature)	# 温度の下限
 	for epoch in xrange(1, args.epoch + 1):
 		start = time.time()
 
@@ -115,7 +115,7 @@ def main(args):
 		elapsed_time = time.time() - start
 		sys.stdout.write(" Epoch {} / {} - {:.3f} sec\r".format(epoch, args.epoch, elapsed_time))		
 		sys.stdout.flush()
-		hmm.anneal_temperature(0.9989)	# 温度を下げる
+		hmm.anneal_temperature(args.anneal)	# 温度を下げる
 		if epoch % 10 == 0:
 			print "\n"
 			hmm.show_alpha()
