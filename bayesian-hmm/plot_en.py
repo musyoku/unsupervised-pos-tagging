@@ -64,7 +64,7 @@ def main(args):
 				occurrence[pos] = float(occurrence[pos]) / float(z)
 
 	fig = pylab.gcf()
-	fig.set_size_inches(hmm.get_num_tags(), len(all_types_of_pos))
+	fig.set_size_inches(hmm.get_num_tags() + 3, len(all_types_of_pos))
 	pylab.clf()
 	dataframe = pd.DataFrame(num_occurrence_of_pos_for_tag)
 	ax = sns.heatmap(dataframe, annot=False, fmt="f", linewidths=0)
