@@ -28,104 +28,33 @@ private:
 	{
 		static_cast<void>(version);
 		archive & _num_tags;
-		archive & _num_words;
-		archive & _alpha;
-		archive & _temperature;
-		archive & _minimum_temperature;
-		archive & _tag_word_counts;
 	}
 public:
 	int _num_tags;	// 品詞数
 	int _num_words;		// 単語数
-	int** _bigram_tag_counts;	// 品詞2-gramのカウント
-	int* _oracle_tag_counts;	// 品詞1-gramのカウント
-	int _n;
-	int _n_oracle;
-	int* _Wt;
-	vector<int> _all_states_count;	// 全ての状態とそのカウント
+	vecor<int> _all_states_count;	// 全ての状態とそのカウント
+	unordered_map<int, unordered_map<int, int>> _bigram_tag_counts;	// 品詞と単語のペアの出現頻度
 	unordered_map<int, unordered_map<int, int>> _tag_word_counts;	// 品詞と単語のペアの出現頻度
 	unordered_map<int, int> _oracle_word_counts;	// 品詞と単語のペアの出現頻度
-	double* _sampling_table;	// キャッシュ
+	unordered_map<int, int> _oracle_tag_counts;	// 品詞と単語のペアの出現頻度
 	double _alpha;
-	double* _beta;
+	double _beta;
+	double _gamma;
+	double _beta_emission;
+	double _gamma_emission;
 	InfiniteHMM(){
-		_trigram_counts = NULL;
-		_bigram_tag_counts = NULL;
-		_oracle_tag_counts = NULL;
-		_sampling_table = NULL;
-		_Wt = NULL;
 		_num_tags = -1;
 		_num_words = -1;
 		_alpha = 1;
-		_beta = NULL;
-		_temperature = 1;
-		_minimum_temperature = 1;
-	}
-	~InfiniteHMM(){
-		if(_trigram_counts != NULL){
-			for(int tri_tag = 0;tri_tag < _num_tags;tri_tag++){
-				for(int bi_tag = 0;bi_tag < _num_tags;bi_tag++){
-					free(_trigram_counts[tri_tag][bi_tag]);
-				}
-				free(_trigram_counts[tri_tag]);
-			}
-			free(_trigram_counts);
-		}
-		if(_bigram_tag_counts != NULL){
-			for(int bi_tag = 0;bi_tag < _num_tags;bi_tag++){
-				free(_bigram_tag_counts);
-			}
-			free(_bigram_tag_counts);
-		}
-		if(_oracle_tag_counts != NULL){
-			free(_oracle_tag_counts);
-		}
-		if(_sampling_table != NULL){
-			free(_sampling_table);
-		}
-		if(_beta != NULL){
-			free(_beta);
-		}
-		if(_Wt != NULL){
-			free(_Wt);
-		}
-	}
-	void anneal_temperature(double multiplier){
-		if(_temperature > _minimum_temperature){
-			_temperature *= multiplier;
-		}
+		_beta = 1;
+		_gamma = 1;
+		_beta_emission = 1;
+		_gamma_emission = 1;
+		_K = 0;
 	}
 	void initialize(vector<vector<Word*>> &dataset){
-		// その他
-		alloc_table();
 		// nグラムのカウントテーブル
 		init_ngram_counts(dataset);
-	}
-	void alloc_table(){
-		assert(_num_tags != -1);
-		// 各タグの可能な単語数
-		_Wt = (int*)calloc(_num_tags, sizeof(int));
-		// Betaの初期化
-		// 初期値は1
-		_beta = (double*)malloc(_num_tags * sizeof(double));
-		for(int tag = 0;tag < _num_tags;tag++){
-			_beta[tag] = 1;
-		}
-		// 3-gram		
-		_trigram_counts = (int***)malloc(_num_tags * sizeof(int**));
-		for(int tri_tag = 0;tri_tag < _num_tags;tri_tag++){
-			_trigram_counts[tri_tag] = (int**)malloc(_num_tags * sizeof(int*));
-			for(int bi_tag = 0;bi_tag < _num_tags;bi_tag++){
-				_trigram_counts[tri_tag][bi_tag] = (int*)calloc(_num_tags, sizeof(int));
-			}
-		}
-		// 2-gram
-		_bigram_tag_counts = (int**)malloc(_num_tags * sizeof(int*));
-		for(int bi_tag = 0;bi_tag < _num_tags;bi_tag++){
-			_bigram_tag_counts[bi_tag] = (int*)calloc(_num_tags, sizeof(int));
-		}
-		// 1-gram
-		_oracle_tag_counts = (int*)calloc(_num_tags, sizeof(int));
 	}
 	void init_ngram_counts(vector<vector<Word*>> &dataset){
 		c_printf("[*]%s\n", "n-gramモデルを構築してます ...");
@@ -135,17 +64,9 @@ public:
 		unordered_map<int, int> tag_for_word;
 		for(int data_index = 0;data_index < dataset.size();data_index++){
 			vector<Word*> &line = dataset[data_index];
-			// pos < 2
-			// <bos>2つ
-			_bigram_tag_counts[line[0]->tag_id][line[1]->tag_id] += 1;
-			_oracle_tag_counts[line[0]->tag_id] += 1;
-			_oracle_tag_counts[line[1]->tag_id] += 1;
 			word_set.insert(line[0]->word_id);
-			word_set.insert(line[1]->word_id);
-			increment_tag_word_count(line[0]->tag_id, line[0]->word_id);
-			increment_tag_word_count(line[1]->tag_id, line[1]->word_id);
-			// line.size() - 2 > pos >= 2
-			for(int pos = 2;pos < line.size() - 2;pos++){	// 3-gramなので3番目から.
+			increment_tag_word_count(line[0]);
+			for(int pos = 1;pos < line.size();pos++){	// 2-gramなので3番目から.
 				Word* word = line[pos];
 				auto itr = tag_for_word.find(word->word_id);
 				if(itr == tag_for_word.end()){
@@ -154,43 +75,19 @@ public:
 				}else{
 					word->tag_id = itr->second;
 				}
-				update_ngram_count(line[pos - 2], line[pos - 1], line[pos]);
 				word_set.insert(word->word_id);
-				// 同じタグの単語集合をカウント
-				increment_tag_word_count(word->tag_id, word->word_id);
+				increment_tag_bigram_count(line[pos - 1], word);
+				increment_tag_word_count(word);
 			}
-			// pos >= line.size() - 2
-			// <eos>2つ
-			int end_index = line.size() - 1;
-			int t_end = line[end_index]->tag_id;
-			int t_end_1 = line[end_index - 1]->tag_id;
-			int t_end_2 = line[end_index - 2]->tag_id;
-			int t_end_3 = line[end_index - 3]->tag_id;
-			_oracle_tag_counts[t_end] += 1;
-			_oracle_tag_counts[t_end_1] += 1;
-			_bigram_tag_counts[t_end_2][t_end_1] += 1;
-			_bigram_tag_counts[t_end_1][t_end] += 1;
-			_trigram_counts[t_end_3][t_end_2][t_end_1] += 1;
-			_trigram_counts[t_end_2][t_end_1][t_end] += 1;
-			int w_end = line[end_index]->word_id;
-			int w_end_1 = line[end_index - 1]->word_id;
-			word_set.insert(w_end);
-			word_set.insert(w_end_1);
-			increment_tag_word_count(t_end, w_end);
-			increment_tag_word_count(t_end_1, w_end_1);
 		}
 		_num_words = word_set.size();
 		c_printf("[*]%s\n", (boost::format("単語数: %d - 行数: %d") % _num_words % dataset.size()).str().c_str());
 	}
-	void set_Wt_for_tag(int tag_id, int number){
-		assert(_Wt != NULL);
-		assert(tag_id < _num_tags);
-		_Wt[tag_id] = number;
-	}
-	void update_ngram_count(Word* tri_word, Word* bi_word, Word* uni_word){
-		_trigram_counts[tri_word->tag_id][bi_word->tag_id][uni_word->tag_id] += 1;
+	void increment_tag_bigram_count(Word* bi_word, Word* uni_word){
 		_bigram_tag_counts[bi_word->tag_id][uni_word->tag_id] += 1;
-		_oracle_tag_counts[uni_word->tag_id] += 1;
+	}
+	void increment_tag_word_count(Word* word){
+		increment_tag_word_count(word->tag_id, word->word_id);
 	}
 	void increment_tag_word_count(int tag_id, int word_id){
 		unordered_map<int, int> &word_counts = _tag_word_counts[tag_id];
@@ -224,6 +121,10 @@ public:
 	int get_word_types_for_tag(int tag_id){
 		unordered_map<int, int> &word_counts = _tag_word_counts[tag_id];
 		return word_counts.size();
+	}
+	// P(s_{t+1}|s_t)
+	double compute_likelihood_Ptag_context(int tag_id, int context_id){
+
 	}
 	double compute_log_Pt_alpha(vector<Word*> &line, double alpha){
 		double log_Pt_alpha = 0;
