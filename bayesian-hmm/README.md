@@ -20,7 +20,7 @@ python train_en.py -f ../alice.txt -n 7
 ### 日本語
 
 ```
-python train_ja.py -f ../alice.txt -n 7
+python train_ja.py -f ../aozora.txt -n 20
 ```
 
 ## 結果の可視化
