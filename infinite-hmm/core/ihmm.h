@@ -80,11 +80,13 @@ public:
 			vector<Word*> &line = dataset[data_index];
 			word_set.insert(line[0]->word_id);
 			increment_tag_word_count(line[0]);
+			increment_tag_count(line[0]->tag_id);
+			
 			for(int pos = 1;pos < line.size();pos++){	// 2-gramなので3番目から.
 				Word* word = line[pos];
 
 				int ti_1 = line[pos - 1]->tag_id;
-				int ti = Sampler::uniform_int(0, _initial_num_tags - 1);
+				int ti = (pos == line.size() - 1) ? 0 :  Sampler::uniform_int(0, _initial_num_tags - 1);
 				int wi = word->word_id;
 				double empirical_p, coeff_oracle_p;
 
@@ -96,8 +98,8 @@ public:
 					increment_tag_count(ti);
 				}else{	// oracleから生成された場合
 					increment_tag_bigram_count(ti_1, ti);
-					increment_oracle_tag_count(ti);
 					increment_tag_count(ti);
+					increment_oracle_tag_count(ti);
 				}
 
 				_compute_Pword_tag(wi, ti, empirical_p, coeff_oracle_p);
@@ -129,14 +131,8 @@ public:
 		_tag_count[tag_id] -= 1;
 		assert(_tag_count[tag_id] >= 0);
 	}
-	void increment_tag_bigram_count(Word* conext_word, Word* word){
-		_bigram_tag_counts[conext_word->tag_id][word->tag_id] += 1;
-		increment_tag_count(word->tag_id);
-		_sum_bigram_destination[conext_word->tag_id] += 1;
-	}
 	void increment_tag_bigram_count(int context_tag_id, int tag_id){
 		_bigram_tag_counts[context_tag_id][tag_id] += 1;
-		increment_tag_count(tag_id);
 		_sum_bigram_destination[context_tag_id] += 1;
 	}
 	void increment_tag_word_count(Word* word){
@@ -175,13 +171,12 @@ public:
 	void decrement_tag_bigram_count(int context_tag_id, int tag_id){
 		_bigram_tag_counts[context_tag_id][tag_id] -= 1;
 		assert(_bigram_tag_counts[context_tag_id][tag_id] >= 0);
-		decrement_tag_count(tag_id);
 		auto itr = _sum_bigram_destination.find(context_tag_id);
 		assert(itr != _sum_bigram_destination.end());
 		itr->second -= 1;
 		assert(itr->second >= 0);
 		if(itr->second == 0){
-			_sum_bigram_destination.erase(itr);			
+			_sum_bigram_destination.erase(itr);
 		}
 	}
 	void decrement_tag_word_count(int tag_id, int word_id){
@@ -368,10 +363,7 @@ public:
 	}
 	// t_{i-1} -> t_i -> t_{i+1}
 	int sampling_new_tag(int ti_1, int ti, int ti1, int wi){
-		// 現在のtiをモデルから除去
-		remove_tag_from_model(ti_1, ti);
-		remove_tag_from_model(ti, ti1);
-		remove_word_from_model(wi, ti);
+		cout << "sampling_new_tag" << endl;
 		// ギブスサンプリング
 		vector<double> sampling_table;
 		bool new_tag_included = false;
@@ -384,7 +376,10 @@ public:
 			double p_generation = compute_Ptag_context(tag, ti_1);
 			double p_likelihood = compute_Ptag_context(ti1, tag);
 			double p_conditional = p_emission * p_generation * p_likelihood;
-			cout << tag << ": " << p_emission << " * " << p_generation << " * " << p_conditional << endl;
+			cout << p_emission << ",";
+			cout << p_generation << ",";
+			cout << p_likelihood << ",";
+			cout << endl;
 			sampling_table.push_back(p_conditional);
 			sum += p_conditional;
 		}
@@ -394,10 +389,10 @@ public:
 			double p_generation = compute_Ptag_context(new_tag, ti_1);
 			double p_likelihood = compute_Ptag_context(ti1, new_tag);
 			double p_conditional = p_emission * p_generation * p_likelihood;
-			cout << new_tag << ": " << p_emission << " * " << p_generation << " * " << p_conditional << endl;
 			sampling_table.push_back(p_conditional);
 			sum += p_conditional;
 		}
+		assert(sum > 0);
 		double normalizer = 1 / sum;
 		double bernoulli = Sampler::uniform(0, 1);
 		sum = 0;
@@ -407,6 +402,8 @@ public:
 				return tag;
 			}
 		}
+		cout << sum << endl;
+		cout << "new_tag generated" << endl;
 		return new_tag;
 	}
 	void perform_gibbs_sampling_with_line(vector<Word*> &line){
@@ -415,15 +412,23 @@ public:
 			int ti = line[pos]->tag_id;
 			int wi = line[pos]->word_id;
 			int ti1 = line[pos + 1]->tag_id;
+
+			// 現在のtiをモデルから除去
+			// remove_word_from_model(wi, ti);	// 先に品詞-単語ペアから除去するとassrtで引っかからない
+			remove_tag_from_model(ti_1, ti);
+			remove_tag_from_model(ti, ti1);
+			decrement_tag_count(ti);
+			decrement_tag_word_count(ti, wi);
+
 			int new_tag = sampling_new_tag(ti_1, ti, ti1, wi);
-			cout << new_tag << " sampled." << endl;
 			// モデルに追加
 			increment_tag_word_count(new_tag, wi);
 			increment_tag_bigram_count(ti_1, new_tag);
 			increment_tag_bigram_count(new_tag, ti1);
+			increment_tag_count(new_tag);
 			if(is_tag_new(new_tag)){
 				increment_oracle_tag_count(new_tag);
-				increment_oracle_word_count(wi);
+				// increment_oracle_word_count(wi);
 			}
 			line[pos]->tag_id = new_tag;
 		}

@@ -20,7 +20,7 @@ int main(){
 	PyBayesianHMM* hmm = new PyBayesianHMM(5);
 	hmm->load_textfile("../test.txt");
 	hmm->initialize();
-	for(int i = 0;i < 1000;i++){
+	for(int i = 0;i < 100;i++){
 		hmm->perform_gibbs_sampling();
 	}
 	return 0;
