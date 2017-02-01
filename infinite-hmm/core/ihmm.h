@@ -90,8 +90,11 @@ public:
 		}
 		c_printf("[*]%s\n", (boost::format("単語数: %d - 行数: %d") % word_set.size() % dataset.size()).str().c_str());
 	}
-	void increment_tag_bigram_count(Word* bi_word, Word* uni_word){
-		_bigram_tag_counts[bi_word->tag_id][uni_word->tag_id] += 1;
+	void increment_tag_bigram_count(Word* conext_word, Word* word){
+		_bigram_tag_counts[conext_word->tag_id][word->tag_id] += 1;
+	}
+	void increment_tag_bigram_count(int context_tag_id, int tag_id){
+		_bigram_tag_counts[context_tag_id][tag_id] += 1;
 	}
 	void increment_tag_word_count(Word* word){
 		increment_tag_word_count(word->tag_id, word->word_id);
@@ -111,8 +114,12 @@ public:
 	void increment_oracle_word_count(int word_id){
 		_oracle_word_counts[word_id] += 1;
 	}
-	void decrement_tag_oracle_count(int tag_id){
-		_oracle_tag_counts[tag_id] -= 0;
+	void decrement_oracle_word_count(int word_id){
+		_oracle_word_counts[word_id] += 1;
+		assert(_oracle_word_counts[word_id] >= 0);
+	}
+	void decrement_oracle_tag_count(int tag_id){
+		_oracle_tag_counts[tag_id] -= 1;
 		assert(_oracle_tag_counts[tag_id] >= 0);
 	}
 	void decrement_tag_bigram_count(int context_tag_id, int tag_id){
@@ -229,6 +236,7 @@ public:
 		return empirical_p + coeff_oracle_p * oracle_p;
 	}
 	void remove_tag_from_model(int context_tag_id, int tag_id){
+		assert(is_tag_new(tag_id) == false);
 		double n_ij = _bigram_tag_counts[context_tag_id][tag_id];
 		double n_i = sum_bigram_destination(context_tag_id);
 		double empirical_p = n_ij / (n_i + _beta);
@@ -245,11 +253,28 @@ public:
 		if(bernoulli < empirical_p * normalizer){
 			decrement_tag_bigram_count(context_tag_id, tag_id);
 		}else{
-			decrement_tag_oracle_count(tag_id);
+			decrement_oracle_tag_count(tag_id);
+		}
+	}
+	void remove_word_from_model(int word_id, int tag_id){
+		assert(is_tag_new(tag_id) == false);
+		double m_iq = _tag_word_counts[tag_id][word_id];
+		double m_i = sum_word_count_for_tag(tag_id);
+		double empirical_p = m_iq / (m_i + _beta_emission);
+		double coeff_oracle_p = _beta_emission / (m_i + _beta_emission);
+		double m_oq = _oracle_word_counts[word_id];
+		double m_o = sum_oracle_words_count();
+		double oracle_p = m_oq / (m_o + _gamma_emission);
+		double normalizer = 1 / (empirical_p + coeff_oracle_p * oracle_p);
+		double bernoulli = Sampler::uniform(0, 1);
+		if(bernoulli < empirical_p * normalizer){
+			decrement_tag_word_count(tag_id, word_id);
+		}else{
+			decrement_oracle_word_count(word_id);
 		}
 	}
 	// t_{i-1} -> t_i -> t_{i+1}
-	void sampling_new_tag(int ti_1, int ti, int ti1, int wi){
+	int sampling_new_tag(int ti_1, int ti, int ti1, int wi){
 		// 現在のtiをモデルから除去
 		remove_tag_from_model(ti_1, ti);
 		remove_tag_from_model(ti, ti1);
@@ -283,15 +308,9 @@ public:
 		for(int tag = 0;tag < _tag_count.size();tag++){
 			sum += sampling_table[tag] * normalizer;
 			if(bernoulli < sum){
-				// モデルに追加
-				increment_tag_word_count(tag, wi);
-				increment_tag_bigram_count()
 				return tag;
 			}
 		}
-		// モデルに追加
-		increment_tag_word_count(new_tag, wi);
-		increment_oracle_word_count(wi);
 		return new_tag;
 	}
 	void perform_gibbs_sampling_with_line(vector<Word*> &line){
@@ -300,7 +319,16 @@ public:
 			int ti = line[pos]->tag_id;
 			int wi = line[pos]->word_id;
 			int ti1 = line[pos + 1]->tag_id;
-			line[pos]->tag_id = sampling_new_tag(ti_1, ti, ti1, wi);;
+			int new_tag = sampling_new_tag(ti_1, ti, ti1, wi);
+			// モデルに追加
+			increment_tag_word_count(new_tag, wi);
+			increment_tag_bigram_count(ti_1, new_tag);
+			increment_tag_bigram_count(new_tag, ti1);
+			if(is_tag_new(new_tag)){
+				increment_oracle_tag_count(new_tag);
+				increment_oracle_word_count(wi);
+			}
+			line[pos]->tag_id = new_tag;
 		}
 	}
 	bool load(string dir = "out"){
