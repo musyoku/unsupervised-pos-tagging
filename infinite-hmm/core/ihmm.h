@@ -50,6 +50,9 @@ public:
 	double _beta_emission;
 	double _gamma_emission;
 	int _initial_num_tags;
+	int _sum_oracle_tags_count;
+	int _sum_oracle_words_count;
+	unordered_map<int, int> _sum_bigram_destination;
 	InfiniteHMM(int initial_num_tags){
 		_alpha = 1;
 		_beta = 1;
@@ -57,6 +60,8 @@ public:
 		_beta_emission = 1;
 		_gamma_emission = 1;
 		_initial_num_tags = initial_num_tags;
+		_sum_oracle_words_count = 0;
+		_sum_oracle_tags_count = 0;
 	}
 	void initialize(vector<vector<Word*>> &dataset){
 		for(int tag = 0;tag < _initial_num_tags;tag++){
@@ -90,11 +95,26 @@ public:
 		}
 		c_printf("[*]%s\n", (boost::format("単語数: %d - 行数: %d") % word_set.size() % dataset.size()).str().c_str());
 	}
+	void increment_tag_count(int tag_id){
+		while(tag_id >= _tag_count.size()){
+			_tag_count.push_back(0);
+		}
+		_tag_count[tag_id] += 1;
+	}
+	void decrement_tag_count(int tag_id){
+		while(tag_id >= _tag_count.size()){
+			_tag_count.push_back(0);
+		}
+		_tag_count[tag_id] -= 1;
+		assert(_tag_count[tag_id] >= 0);
+	}
 	void increment_tag_bigram_count(Word* conext_word, Word* word){
 		_bigram_tag_counts[conext_word->tag_id][word->tag_id] += 1;
+		increment_tag_count(word->tag_id);
 	}
 	void increment_tag_bigram_count(int context_tag_id, int tag_id){
 		_bigram_tag_counts[context_tag_id][tag_id] += 1;
+		increment_tag_count(tag_id);
 	}
 	void increment_tag_word_count(Word* word){
 		increment_tag_word_count(word->tag_id, word->word_id);
@@ -110,21 +130,35 @@ public:
 	}
 	void increment_oracle_tag_count(int tag_id){
 		_oracle_tag_counts[tag_id] += 1;
+		_sum_oracle_tags_count += 1;
 	}
 	void increment_oracle_word_count(int word_id){
 		_oracle_word_counts[word_id] += 1;
+		_sum_oracle_words_count += 1;
 	}
 	void decrement_oracle_word_count(int word_id){
-		_oracle_word_counts[word_id] += 1;
+		_oracle_word_counts[word_id] -= 1;
 		assert(_oracle_word_counts[word_id] >= 0);
+		_sum_oracle_words_count -= 1;
+		assert(_sum_oracle_words_count >= 0);
 	}
 	void decrement_oracle_tag_count(int tag_id){
 		_oracle_tag_counts[tag_id] -= 1;
 		assert(_oracle_tag_counts[tag_id] >= 0);
+		_sum_oracle_tags_count -= 1;
+		assert(_sum_oracle_tags_count >= 0);
 	}
 	void decrement_tag_bigram_count(int context_tag_id, int tag_id){
 		_bigram_tag_counts[context_tag_id][tag_id] -= 1;
 		assert(_bigram_tag_counts[context_tag_id][tag_id] >= 0);
+		decrement_tag_count(tag_id);
+		auto itr = _sum_bigram_destination.find(context_tag_id);
+		assert(itr != _sum_bigram_destination.end());
+		itr.second -= 1;
+		assert(itr.second >= 0);
+		if(itr.second == 0){
+			_sum_bigram_destination.erase(itr);			
+		}
 	}
 	void decrement_tag_word_count(int tag_id, int word_id){
 		unordered_map<int, int> &word_counts = _tag_word_counts[tag_id];
@@ -168,11 +202,12 @@ public:
 		return _tag_count.size();
 	}
 	int sum_oracle_words_count(){
-		int sum = 0;
-		for(const auto &count: _oracle_word_counts){
-			sum += count.second;
-		}
-		return sum;
+		return _sum_oracle_words_count;
+		// int sum = 0;
+		// for(const auto &count: _oracle_word_counts){
+		// 	sum += count.second;
+		// }
+		// return sum;
 	}
 	int sum_word_count_for_tag(int tag_id){
 		int sum = 0;
@@ -183,19 +218,25 @@ public:
 		return sum;
 	}
 	int sum_bigram_destination(int tag_id){
-		int sum = 0;
-		unordered_map<int, int> &unigram_table = _bigram_tag_counts[tag_id];
-		for(const auto &unigram: unigram_table){
-			sum += unigram.second;
+		auto itr = _sum_bigram_destination.find(tag_id);
+		if(itr == _sum_bigram_destination.end()){
+			int sum = 0;
+			unordered_map<int, int> &unigram_table = _bigram_tag_counts[tag_id];
+			for(const auto &unigram: unigram_table){
+				sum += unigram.second;
+			}
+			_sum_bigram_destination[tag_id] = sum;
+			return sum;
 		}
-		return sum;
+		return itr.second;
 	}
 	int sum_oracle_tags_count(){
-		int sum = 0;
-		for(const auto &unigram: _oracle_tag_counts){
-			sum += unigram.second;
-		}
-		return sum;
+		return _sum_oracle_tags_count;
+		// int sum = 0;
+		// for(const auto &unigram: _oracle_tag_counts){
+		// 	sum += unigram.second;
+		// }
+		// return sum;
 	}
 	// P(s_{t+1}|s_t)
 	double compute_Ptag_context(int tag_id, int context_tag_id){
@@ -330,6 +371,12 @@ public:
 			}
 			line[pos]->tag_id = new_tag;
 		}
+	}
+	void dump_tags(){
+		for(int tag = 0;tag < _tag_count.size();tag++){
+			cout << _tag_count[tag] << ", ";
+		}
+		cout << endl;
 	}
 	bool load(string dir = "out"){
 		return true;

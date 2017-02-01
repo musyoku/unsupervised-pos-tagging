@@ -163,6 +163,7 @@ public:
 			vector<Word*> &line = _dataset[data_index];
 			_hmm->perform_gibbs_sampling_with_line(line);
 		}
+		_hmm->dump_tags();
 	}
 };
 
