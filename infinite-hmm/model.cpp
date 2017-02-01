@@ -12,7 +12,7 @@
 #include <functional>
 #include <fstream>
 #include <cassert>
-#include "core/bhmm.h"
+#include "core/ihmm.h"
 #include "core/util.h"
 using namespace std;
 using namespace boost;
@@ -25,7 +25,7 @@ struct value_comparator {
 
 class PyBayesianHMM{
 private:
-	BayesianHMM* _hmm;
+	InfiniteHMM* _hmm;
 	unordered_map<int, wstring> _dictionary;
 	unordered_map<wstring, int> _dictionary_inv;
 	vector<vector<Word*>> _dataset;
@@ -36,7 +36,7 @@ private:
 	int _max_num_words_in_line;
 	int _min_num_words_in_line;
 public:
-	PyBayesianHMM(){
+	PyBayesianHMM(int initial_num_tags){
 		// 日本語周り
 		// ただのテンプレ
 		setlocale(LC_CTYPE, "ja_JP.UTF-8");
@@ -47,7 +47,7 @@ public:
 		wcout.imbue(ctype_default);
 		wcin.imbue(ctype_default);
 
-		_hmm = new BayesianHMM();
+		_hmm = new InfiniteHMM(initial_num_tags);
 		_bos_id = 0;
 		_dictionary[_bos_id] = L"<bos>";
 		_eos_id = 1;
