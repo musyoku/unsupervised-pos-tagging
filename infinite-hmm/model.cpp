@@ -95,12 +95,11 @@ public:
 		if(word_strs.size() > 0){
 			vector<Word*> words;
 			// <bos>
-			for(int n = 0;n < 2;n++){
-				Word* bos = new Word();
-				bos->word_id = _bos_id;
-				bos->tag_id = 0;
-				words.push_back(bos);
-			}
+			Word* bos = new Word();
+			bos->word_id = _bos_id;
+			bos->tag_id = 0;
+			words.push_back(bos);
+
 			for(auto &word_str: word_strs){
 				if(word_str.size() == 0){
 					continue;
@@ -110,13 +109,12 @@ public:
 				word->tag_id = 0;
 				words.push_back(word);
 			}
-			// <eos>も2つ追加しておくとt_{i+1}, t_{i+2}が常に存在するのでギブスサンプリング時に場合分けしなくてもいいかもしれない
-			for(int n = 0;n < 2;n++){
-				Word* eos = new Word();
-				eos->word_id = _eos_id;
-				eos->tag_id = 0;
-				words.push_back(eos);
-			}
+
+			Word* eos = new Word();
+			eos->word_id = _eos_id;
+			eos->tag_id = 0;
+			words.push_back(eos);
+			
 			// 訓練データに追加
 			_dataset.push_back(words);
 		}
