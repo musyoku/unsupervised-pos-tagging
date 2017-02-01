@@ -27,7 +27,7 @@ private:
 	void serialize(Archive& archive, unsigned int version)
 	{
 		static_cast<void>(version);
-		archive & _all_states_count;
+		archive & _tag_count;
 		archive & _bigram_tag_counts;
 		archive & _tag_word_counts;
 		archive & _oracle_word_counts;
@@ -39,7 +39,7 @@ private:
 		archive & _gamma_emission;
 	}
 public:
-	vector<int> _all_states_count;	// 全ての状態とそのカウント
+	vector<int> _tag_count;	// 全ての状態とそのカウント
 	unordered_map<int, unordered_map<int, int>> _bigram_tag_counts;	// 品詞と単語のペアの出現頻度
 	unordered_map<int, unordered_map<int, int>> _tag_word_counts;	// 品詞と単語のペアの出現頻度
 	unordered_map<int, int> _oracle_word_counts;	// 品詞と単語のペアの出現頻度
@@ -60,7 +60,7 @@ public:
 	}
 	void initialize(vector<vector<Word*>> &dataset){
 		for(int tag = 0;tag < _initial_num_tags;tag++){
-			_all_states_count.push_back(0);
+			_tag_count.push_back(0);
 		}
 		// nグラムのカウントテーブル
 		init_ngram_counts(dataset);
@@ -105,6 +105,12 @@ public:
 		}
 		itr->second += 1;
 	}
+	void increment_oracle_tag_count(int tag_id){
+		_oracle_tag_counts[tag_id] += 1;
+	}
+	void increment_oracle_word_count(int word_id){
+		_oracle_word_counts[word_id] += 1;
+	}
 	void decrement_tag_oracle_count(int tag_id){
 		_oracle_tag_counts[tag_id] -= 0;
 		assert(_oracle_tag_counts[tag_id] >= 0);
@@ -138,21 +144,21 @@ public:
 		return word_counts.size();
 	}
 	bool is_tag_new(int tag_id){
-		if(tag_id >= _all_states_count.size()){
+		if(tag_id >= _tag_count.size()){
 			return true;
 		}
-		if(_all_states_count[tag_id] == 0){
+		if(_tag_count[tag_id] == 0){
 			return true;
 		}
 		return false;
 	}
 	int get_new_tag_id(){
-		for(int tag = 0;tag < _all_states_count.size();tag++){
-			if(_all_states_count[tag] == 0){
+		for(int tag = 0;tag < _tag_count.size();tag++){
+			if(_tag_count[tag] == 0){
 				return tag;
 			}
 		}
-		return _all_states_count.size();
+		return _tag_count.size();
 	}
 	int sum_oracle_words_count(){
 		int sum = 0;
@@ -222,7 +228,7 @@ public:
 		}
 		return empirical_p + coeff_oracle_p * oracle_p;
 	}
-	void remove_tag_from_model(int context_tag_id, int tag_id, int word_id){
+	void remove_tag_from_model(int context_tag_id, int tag_id){
 		double n_ij = _bigram_tag_counts[context_tag_id][tag_id];
 		double n_i = sum_bigram_destination(context_tag_id);
 		double empirical_p = n_ij / (n_i + _beta);
@@ -242,15 +248,59 @@ public:
 			decrement_tag_oracle_count(tag_id);
 		}
 	}
+	// t_{i-1} -> t_i -> t_{i+1}
+	void sampling_new_tag(int ti_1, int ti, int ti1, int wi){
+		// 現在のtiをモデルから除去
+		remove_tag_from_model(ti_1, ti);
+		remove_tag_from_model(ti, ti1);
+		// ギブスサンプリング
+		vector<double> sampling_table;
+		bool new_tag_included = false;
+		double sum = 0;
+		for(int tag = 0;tag < _tag_count.size();tag++){
+			if(is_tag_new(tag)){
+				new_tag_included = true;
+			}
+			double p_emission = compute_Pword_tag(wi, ti);
+			double p_generation = compute_Ptag_context(tag, ti_1);
+			double p_likelihood = compute_Ptag_context(ti1, tag);
+			double p_conditional = p_emission * p_generation * p_likelihood;
+			sampling_table.push_back(p_conditional);
+			sum += p_conditional;
+		}
+		int new_tag = _tag_count.size();
+		if(new_tag_included == false){
+			double p_emission = compute_Pword_tag(wi, ti);
+			double p_generation = compute_Ptag_context(new_tag, ti_1);
+			double p_likelihood = compute_Ptag_context(ti1, new_tag);
+			double p_conditional = p_emission * p_generation * p_likelihood;
+			sampling_table.push_back(p_conditional);
+			sum += p_conditional;
+		}
+		double normalizer = 1 / sum;
+		double bernoulli = Sampler::uniform(0, 1);
+		sum = 0;
+		for(int tag = 0;tag < _tag_count.size();tag++){
+			sum += sampling_table[tag] * normalizer;
+			if(bernoulli < sum){
+				// モデルに追加
+				increment_tag_word_count(tag, wi);
+				increment_tag_bigram_count()
+				return tag;
+			}
+		}
+		// モデルに追加
+		increment_tag_word_count(new_tag, wi);
+		increment_oracle_word_count(wi);
+		return new_tag;
+	}
 	void perform_gibbs_sampling_with_line(vector<Word*> &line){
-		for(int pos = 1;pos < line.size();pos++){
+		for(int pos = 1;pos < line.size() - 1;pos++){
 			int ti_1 = line[pos - 1]->tag_id;
 			int ti = line[pos]->tag_id;
 			int wi = line[pos]->word_id;
 			int ti1 = line[pos + 1]->tag_id;
-
-			int new_ti;
-			line[pos]->tag_id = new_ti;
+			line[pos]->tag_id = sampling_new_tag(ti_1, ti, ti1, wi);;
 		}
 	}
 	bool load(string dir = "out"){
