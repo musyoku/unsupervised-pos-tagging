@@ -105,6 +105,14 @@ public:
 		}
 		itr->second += 1;
 	}
+	void decrement_tag_oracle_count(int tag_id){
+		_oracle_tag_counts[tag_id] -= 0;
+		assert(_oracle_tag_counts[tag_id] >= 0);
+	}
+	void decrement_tag_bigram_count(int context_tag_id, int tag_id){
+		_bigram_tag_counts[context_tag_id][tag_id] -= 1;
+		assert(_bigram_tag_counts[context_tag_id][tag_id] >= 0);
+	}
 	void decrement_tag_word_count(int tag_id, int word_id){
 		unordered_map<int, int> &word_counts = _tag_word_counts[tag_id];
 		auto itr = word_counts.find(word_id);
@@ -177,11 +185,11 @@ public:
 		return sum;
 	}
 	// P(s_{t+1}|s_t)
-	double compute_Ptag_context(int tag_id, int context_id){
+	double compute_Ptag_context(int tag_id, int context_tag_id){
 		double empirical_p = 0;		// 自分が生成したサンプルからなる経験確率.新しい品詞の場合は存在しないので0.
-		double n_i = sum_bigram_destination(context_id);
+		double n_i = sum_bigram_destination(context_tag_id);
 		if(is_tag_new(tag_id) == false){
-			double n_ij = _bigram_tag_counts[context_id][tag_id];
+			double n_ij = _bigram_tag_counts[context_tag_id][tag_id];
 			empirical_p = n_ij / (n_i + _beta);
 		}
 		double coeff_oracle_p = _beta / (n_i + _beta);	// 親の分布から生成される確率. 親からtag_idが生成される確率とは別物.
@@ -213,6 +221,37 @@ public:
 			oracle_p = m_oq / (m_o + _gamma_emission);
 		}
 		return empirical_p + coeff_oracle_p * oracle_p;
+	}
+	void remove_tag_from_model(int context_tag_id, int tag_id, int word_id){
+		double n_ij = _bigram_tag_counts[context_tag_id][tag_id];
+		double n_i = sum_bigram_destination(context_tag_id);
+		double empirical_p = n_ij / (n_i + _beta);
+		double coeff_oracle_p = _beta / (n_i + _beta);	// 親の分布から生成される確率. 親からtag_idが生成される確率とは別物.
+		double n_o = sum_oracle_tags_count();
+		double n_oj = _oracle_tag_counts[tag_id];
+		if(n_oj == 0){
+			decrement_tag_bigram_count(context_tag_id, tag_id);
+			return;
+		}
+		double oracle_p = n_oj / (n_o + _gamma);
+		double normalizer = 1 / (empirical_p + coeff_oracle_p * oracle_p);
+		double bernoulli = Sampler::uniform(0, 1);
+		if(bernoulli < empirical_p * normalizer){
+			decrement_tag_bigram_count(context_tag_id, tag_id);
+		}else{
+			decrement_tag_oracle_count(tag_id);
+		}
+	}
+	void perform_gibbs_sampling_with_line(vector<Word*> &line){
+		for(int pos = 1;pos < line.size();pos++){
+			int ti_1 = line[pos - 1]->tag_id;
+			int ti = line[pos]->tag_id;
+			int wi = line[pos]->word_id;
+			int ti1 = line[pos + 1]->tag_id;
+
+			int new_ti;
+			line[pos]->tag_id = new_ti;
+		}
 	}
 	bool load(string dir = "out"){
 		return true;

@@ -164,150 +164,15 @@ public:
 			_hmm->perform_gibbs_sampling_with_line(line);
 		}
 	}
-	int sample_tag_from_Pt_w(int ti_2, int ti_1, int wi){
-		return _hmm->sample_tag_from_Pt_w(ti_2, ti_1, wi);
-	}
-	int argmax_tag_from_Pt_w(int ti_2, int ti_1, int wi){
-		return _hmm->argmax_tag_from_Pt_w(ti_2, ti_1, wi);
-	}
-	void sample_new_alpha(){
-		_hmm->sample_new_alpha(_dataset);
-	}
-	void show_alpha(){
-		cout << (boost::format("alpha <- %e") % _hmm->_alpha).str() << endl;
-	}
-	void sample_new_beta(){
-		_hmm->sample_new_beta(_dataset);
-	}
-	void show_beta(){
-		for(int tag = 0;tag < _hmm->_num_tags;tag++){
-			cout << (boost::format("beta[%d] <- %e") % tag % _hmm->_beta[tag]).str() << endl;
-		}
-	}
-	void show_random_line(int num_to_show, bool show_most_co_occurring_tag = true){
-		for(int n = 0;n < num_to_show;n++){
-			int data_index = Sampler::uniform_int(0, _dataset.size() - 1);
-			vector<Word*> &line = _dataset[data_index];
-			for(int pos = 2;pos < line.size() - 2;pos++){
-				Word* word = line[pos];
-				int tag_id = word->tag_id;
-				if(show_most_co_occurring_tag){
-					tag_id = _hmm->get_most_co_occurring_tag(word->word_id);
-				}
-				wcout << _dictionary[word->word_id] << L"/" << tag_id << L" ";
-			}
-			wcout << endl;
-		}
-	}
-	python::list get_all_words_for_each_tag(int threshold = 0){
-		vector<python::list> result;
-		for(int tag = 0;tag < _hmm->_num_tags;tag++){
-			vector<python::tuple> words;
-			unordered_map<int, int> &word_counts = _hmm->_tag_word_counts[tag];
-			multiset<pair<int, int>, value_comparator> ranking;
-			for(auto elem: word_counts){
-				ranking.insert(std::make_pair(elem.first, elem.second));
-			}
-			for(auto elem: ranking){
-				if(elem.second <= threshold){
-					continue;
-				}
-				wstring word = _dictionary[elem.first];
-				words.push_back(python::make_tuple(word, elem.second));
-			}
-			result.push_back(list_from_vector(words));
-		}
-		return list_from_vector(result);
-	}
-	void show_typical_words_for_each_tag(int number_to_show_for_each_tag){
-		for(int tag = 0;tag < _hmm->_num_tags;tag++){
-			unordered_map<int, int> &word_counts = _hmm->_tag_word_counts[tag];
-			int n = 0;
-			c_printf("[*]%s\n", (boost::format("tag %d:") % tag).str().c_str());
-			wcout << L"\t";
-			multiset<pair<int, int>, value_comparator> ranking;
-			for(auto elem: word_counts){
-				ranking.insert(std::make_pair(elem.first, elem.second));
-			}
-			for(auto elem: ranking){
-				wstring word = _dictionary[elem.first];
-				wcout << word << L"/" << elem.second << L", ";
-				n++;
-				if(n > number_to_show_for_each_tag){
-					break;
-				}
-				if(elem.second < 10){
-					break;
-				}
-			}
-			wcout << endl;
-		}
-	}
-	void set_alpha(double alpha){
-		_hmm->_alpha = alpha;
-	}
-	void set_num_tags(int number){
-		_hmm->_num_tags = number;
-	}
-	int get_num_tags(){
-		return _hmm->_num_tags;
-	}
-	double get_temperature(){
-		return _hmm->_temperature;
-	}
-	void set_temperature(double temperature){
-		_hmm->_temperature = temperature;
-	}
-	void set_Wt(python::list Wt){
-		int length = python::len(Wt);
-		for(int tag = 0;tag < length;tag++){
-			_hmm->set_Wt_for_tag(tag, python::extract<int>(Wt[tag]));
-		}
-	}
-	void set_minimum_temperature(double temperature){
-		_hmm->_minimum_temperature = temperature;
-	}
-	void anneal_temperature(double temperature){
-		_hmm->anneal_temperature(temperature);
-	}
-	int get_max_num_words_in_line(){
-		return _max_num_words_in_line;
-	}
-	int get_min_num_words_in_line(){
-		return _min_num_words_in_line;
-	}
-	int get_vocabrary_size(){
-		return _dictionary_inv.size();
-	}
 };
 
 BOOST_PYTHON_MODULE(model){
-	python::class_<PyBayesianHMM>("bayesian_hmm")
+	python::class_<PyBayesianHMM>("bayesian_hmm", python::init<int>())
 	.def("string_to_word_id", &PyBayesianHMM::string_to_word_id)
 	.def("perform_gibbs_sampling", &PyBayesianHMM::perform_gibbs_sampling)
 	.def("initialize", &PyBayesianHMM::initialize)
 	.def("load", &PyBayesianHMM::load)
 	.def("save", &PyBayesianHMM::save)
-	.def("get_num_tags", &PyBayesianHMM::get_num_tags)
-	.def("get_all_words_for_each_tag", &PyBayesianHMM::get_all_words_for_each_tag)
-	.def("get_temperature", &PyBayesianHMM::get_temperature)
-	.def("get_max_num_words_in_line", &PyBayesianHMM::get_max_num_words_in_line)
-	.def("get_min_num_words_in_line", &PyBayesianHMM::get_min_num_words_in_line)
-	.def("get_vocabrary_size", &PyBayesianHMM::get_vocabrary_size)
-	.def("set_temperature", &PyBayesianHMM::set_temperature)
-	.def("set_num_tags", &PyBayesianHMM::set_num_tags)
-	.def("set_minimum_temperature", &PyBayesianHMM::set_minimum_temperature)
-	.def("set_Wt", &PyBayesianHMM::set_Wt)
-	.def("set_alpha", &PyBayesianHMM::set_alpha)
 	.def("add_line", &PyBayesianHMM::add_line)
-	.def("sample_new_alpha", &PyBayesianHMM::sample_new_alpha)
-	.def("sample_new_beta", &PyBayesianHMM::sample_new_beta)
-	.def("sample_tag_from_Pt_w", &PyBayesianHMM::sample_tag_from_Pt_w)
-	.def("argmax_tag_from_Pt_w", &PyBayesianHMM::argmax_tag_from_Pt_w)
-	.def("anneal_temperature", &PyBayesianHMM::anneal_temperature)
-	.def("show_typical_words_for_each_tag", &PyBayesianHMM::show_typical_words_for_each_tag)
-	.def("show_random_line", &PyBayesianHMM::show_random_line)
-	.def("show_alpha", &PyBayesianHMM::show_alpha)
-	.def("show_beta", &PyBayesianHMM::show_beta)
 	.def("load_textfile", &PyBayesianHMM::load_textfile);
 }
