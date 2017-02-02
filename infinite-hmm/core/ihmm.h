@@ -21,26 +21,35 @@ typedef struct Word {
 } Word;
 
 class Table{
+private:
+	friend class boost::serialization::access;
+	template <class Archive>
+	void serialize(Archive& archive, unsigned int version)
+	{
+		static_cast<void>(version);
+		archive & _arrangement;
+		archive & _num_customers;
+	}
 public:
 	vector<int> _arrangement;
 	int _num_customers;
 	Table(){
 		_num_customers = 0;
 	}
-	void add_customer(double concentration_parameter, bool &new_table_generated){
+	void add_customer(double self_transition_alpha, double concentration_parameter, bool &new_table_generated){
+		_num_customers += 1;
 		if(_arrangement.size() == 0){
 			_arrangement.push_back(1);
 			new_table_generated = true;
 			return;
 		}
 		new_table_generated = false;
-		_num_customers += 1;
-		double sum = std::accumulate(_arrangement.begin(), _arrangement.end(), 0) + concentration_parameter;
+		double sum = std::accumulate(_arrangement.begin(), _arrangement.end(), 0) + self_transition_alpha + concentration_parameter;
 		double normalizer = 1 / sum;
 		double bernoulli = Sampler::uniform(0, 1);
 		sum = 0;
 		for(int i = 0;i < _arrangement.size();i++){
-			sum += _arrangement[i] * normalizer;
+			sum += (_arrangement[i] + self_transition_alpha / _arrangement.size()) * normalizer;
 			if(bernoulli < sum){
 				_arrangement[i] += 1;
 				return;
@@ -70,7 +79,7 @@ public:
 			empty_table_deleted = true;
 		}
 	}
-}
+};
 
 class InfiniteHMM{
 private:
@@ -93,7 +102,7 @@ private:
 public:
 	vector<int> _tag_count;	// 全ての状態とそのカウント
 	unordered_map<int, unordered_map<int, Table*>> _bigram_tag_table;	// 品詞と単語のペアの出現頻度
-	unordered_map<int, unordered_map<int, vector<int>>> _tag_word_counts;	// 品詞と単語のペアの出現頻度
+	unordered_map<int, unordered_map<int, int>> _tag_word_counts;	// 品詞と単語のペアの出現頻度
 	unordered_map<int, int> _oracle_word_counts;	// 品詞と単語のペアの出現頻度
 	unordered_map<int, int> _oracle_tag_counts;	// 品詞と単語のペアの出現頻度
 	double _alpha;
@@ -151,7 +160,6 @@ public:
 				}else{	// oracleから生成された場合
 					increment_tag_bigram_count(ti_1, ti);
 					increment_tag_count(ti);
-					increment_oracle_tag_count(ti);
 				}
 
 				_compute_Pword_tag(wi, ti, empirical_p, coeff_oracle_p);
@@ -185,17 +193,27 @@ public:
 	}
 	void increment_tag_bigram_count(int context_tag_id, int tag_id){
 		_sum_bigram_destination[context_tag_id] += 1;
-		vector<int> &table = _bigram_tag_counts[context_tag_id][tag_id];
-		int sum = std::accumulate(table.begin(), table.end(), 0);
-		int bernoulli = Sampler::uniform_int(0, sum);
-		sum = 0;
-		for(int i = 0;i < table.size();i++){
-			sum += table[i];
-			if(bernoulli < sum){
-				table[i] += 1;
+
+		Table* table = NULL;
+		auto itr_context = _bigram_tag_table.find(context_tag_id);
+		if(itr_context == _bigram_tag_table.end()){
+			table = new Table();
+			_bigram_tag_table[context_tag_id][tag_id] = table;
+		}else{
+			unordered_map<int, Table*> &tables = itr_context->second;
+			auto itr_table = tables.find(tag_id);
+			if(itr_table == tables.end()){
+				table = new Table();
+			}else{
+				table = itr_table->second;
 			}
 		}
-		table[table.size() - 1] += 1;
+		bool new_table_generated = false;
+		double alpha = (context_tag_id == tag_id) ? _alpha : 0;
+		table->add_customer(alpha, _beta, new_table_generated);
+		if(new_table_generated){
+			increment_oracle_tag_count(tag_id);
+		}
 	}
 	void increment_tag_word_count(Word* word){
 		increment_tag_word_count(word->tag_id, word->word_id);
@@ -239,20 +257,25 @@ public:
 			_sum_bigram_destination.erase(itr);
 		}
 
-		vector<int> &table = _bigram_tag_counts[context_tag_id][tag_id];
-		int sum = std::accumulate(table.begin(), table.end(), 0);
-		int bernoulli = Sampler::uniform_int(0, sum);
-		sum = 0;
-		for(int i = 0;i < table.size();i++){
-			sum += table[i];
-			if(bernoulli < sum){
-				table[i] -= 1;
-				assert(table[i] >= 0);
-				return;
+		Table* table = NULL;
+		auto itr_context = _bigram_tag_table.find(context_tag_id);
+		if(itr_context == _bigram_tag_table.end()){
+			table = new Table();
+			_bigram_tag_table[context_tag_id][tag_id] = table;
+		}else{
+			unordered_map<int, Table*> &tables = itr_context->second;
+			auto itr_table = tables.find(tag_id);
+			if(itr_table == tables.end()){
+				table = new Table();
+			}else{
+				table = itr_table->second;
 			}
 		}
-		table[table.size() - 1] -= 1;
-		assert(table[table.size() - 1] >= 0);
+		bool empty_table_deleted = false;
+		table->remove_customer(empty_table_deleted);
+		if(empty_table_deleted){
+			decrement_oracle_tag_count(tag_id);
+		}
 	}
 	void decrement_tag_word_count(int tag_id, int word_id){
 		unordered_map<int, int> &word_counts = _tag_word_counts[tag_id];
@@ -274,7 +297,20 @@ public:
 			_sum_word_count_for_tag.erase(itr_sum);
 		}
 	}
-	int get_count_for_tag_word(int tag_id, int word_id){
+	int get_bigram_tag_count(int context_tag_id, int tag_id){
+		auto itr_context = _bigram_tag_table.find(context_tag_id);
+		if(itr_context == _bigram_tag_table.end()){
+			return 0;
+		}
+		unordered_map<int, Table*> &tables = itr_context->second;
+		auto itr_table = tables.find(tag_id);
+		if(itr_table == tables.end()){
+			return 0;
+		}
+		Table* table = itr_table->second;
+		return table->_num_customers;
+	}
+	int get_tag_word_count(int tag_id, int word_id){
 		unordered_map<int, int> &word_counts = _tag_word_counts[tag_id];
 		auto itr = word_counts.find(word_id);
 		if(itr == word_counts.end()){
@@ -346,7 +382,7 @@ public:
 		empirical_p = 0;
 		double n_i = sum_bigram_destination(context_tag_id);
 		if(is_tag_new(tag_id) == false){
-			double n_ij = _bigram_tag_counts[context_tag_id][tag_id];
+			double n_ij = get_bigram_tag_count(context_tag_id, tag_id);
 			empirical_p = n_ij / (n_i + _beta);
 		}
 		coeff_oracle_p = _beta / (n_i + _beta);
@@ -356,7 +392,7 @@ public:
 		double empirical_p = 0;		// 自分が生成したサンプルからなる経験確率.新しい品詞の場合は存在しないので0.
 		double n_i = sum_bigram_destination(context_tag_id);
 		if(is_tag_new(tag_id) == false){
-			double n_ij = _bigram_tag_counts[context_tag_id][tag_id];
+			double n_ij = get_bigram_tag_count(context_tag_id, tag_id);
 			empirical_p = n_ij / (n_i + _beta);
 		}
 		double coeff_oracle_p = _beta / (n_i + _beta);	// 親の分布から生成される確率. 親からtag_idが生成される確率とは別物.
@@ -398,26 +434,26 @@ public:
 		}
 		return empirical_p + coeff_oracle_p * oracle_p;
 	}
-	void remove_tag_from_model(int context_tag_id, int tag_id){
-		assert(is_tag_new(tag_id) == false);
-		double n_ij = _bigram_tag_counts[context_tag_id][tag_id];
-		double n_i = sum_bigram_destination(context_tag_id);
-		double empirical_p = n_ij / (n_i + _beta);
-		double coeff_oracle_p = _beta / (n_i + _beta);	// 親の分布から生成される確率. 親からtag_idが生成される確率とは別物.
-		double n_o = sum_oracle_tags_count();
-		double n_oj = _oracle_tag_counts[tag_id];
-		if(n_oj == 0){
-			decrement_tag_bigram_count(context_tag_id, tag_id);
-			return;
-		}
-		// double oracle_p = n_oj / (n_o + _gamma);
-		double normalizer = 1 / (empirical_p + coeff_oracle_p);
-		double bernoulli = Sampler::uniform(0, 1);
-		if(bernoulli < empirical_p * normalizer){
-			decrement_tag_bigram_count(context_tag_id, tag_id);
-		}else{
-			decrement_oracle_tag_count(tag_id);
-		}
+	void remove_tag_from_bigram_count(int context_tag_id, int tag_id){
+		// assert(is_tag_new(tag_id) == false);
+		// double n_ij = get_bigram_tag_count(context_tag_id, tag_id);
+		// double n_i = sum_bigram_destination(context_tag_id);
+		// double empirical_p = n_ij / (n_i + _beta);
+		// double coeff_oracle_p = _beta / (n_i + _beta);	// 親の分布から生成される確率. 親からtag_idが生成される確率とは別物.
+		// double n_o = sum_oracle_tags_count();
+		// double n_oj = _oracle_tag_counts[tag_id];
+		// if(n_oj == 0){
+		// 	decrement_tag_bigram_count(context_tag_id, tag_id);
+		// 	return;
+		// }
+		// // double oracle_p = n_oj / (n_o + _gamma);
+		// double normalizer = 1 / (empirical_p + coeff_oracle_p);
+		// double bernoulli = Sampler::uniform(0, 1);
+		// if(bernoulli < empirical_p * normalizer){
+		// 	decrement_tag_bigram_count(context_tag_id, tag_id);
+		// }else{
+		// 	decrement_oracle_tag_count(tag_id);
+		// }
 	}
 	void remove_word_from_model(int word_id, int tag_id){
 		assert(is_tag_new(tag_id) == false);
@@ -490,8 +526,8 @@ public:
 
 			// 現在のtiをモデルから除去
 			// remove_word_from_model(wi, ti);	// 先に品詞-単語ペアから除去するとassrtで引っかからない
-			remove_tag_from_model(ti_1, ti);
-			remove_tag_from_model(ti, ti1);
+			decrement_tag_bigram_count(ti_1, ti);
+			decrement_tag_bigram_count(ti, ti1);
 			decrement_tag_count(ti);
 			decrement_tag_word_count(ti, wi);
 
@@ -501,10 +537,6 @@ public:
 			increment_tag_bigram_count(ti_1, new_tag);
 			increment_tag_bigram_count(new_tag, ti1);
 			increment_tag_count(new_tag);
-			if(is_tag_new(new_tag)){
-				increment_oracle_tag_count(new_tag);
-				// increment_oracle_word_count(wi);
-			}
 			line[pos]->tag_id = new_tag;
 		}
 	}
