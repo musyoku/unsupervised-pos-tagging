@@ -20,6 +20,58 @@ typedef struct Word {
 	int tag_id;
 } Word;
 
+class Table{
+public:
+	vector<int> _arrangement;
+	int _num_customers;
+	Table(){
+		_num_customers = 0;
+	}
+	void add_customer(double concentration_parameter, bool &new_table_generated){
+		if(_arrangement.size() == 0){
+			_arrangement.push_back(1);
+			new_table_generated = true;
+			return;
+		}
+		new_table_generated = false;
+		_num_customers += 1;
+		double sum = std::accumulate(_arrangement.begin(), _arrangement.end(), 0) + concentration_parameter;
+		double normalizer = 1 / sum;
+		double bernoulli = Sampler::uniform(0, 1);
+		sum = 0;
+		for(int i = 0;i < _arrangement.size();i++){
+			sum += _arrangement[i] * normalizer;
+			if(bernoulli < sum){
+				_arrangement[i] += 1;
+				return;
+			}
+		}
+		_arrangement.push_back(1);
+		new_table_generated = true;
+	}
+	void remove_customer(bool &empty_table_deleted){
+		assert(_arrangement.size() > 0);
+		empty_table_deleted = false;
+		_num_customers -= 1;
+		int sum = std::accumulate(_arrangement.begin(), _arrangement.end(), 0);
+		int bernoulli = Sampler::uniform_int(0, sum);
+		sum = 0;
+		int target_index = _arrangement[_arrangement.size() - 1];
+		for(int i = 0;i < _arrangement.size();i++){
+			sum += _arrangement[i];
+			if(bernoulli < sum){
+				target_index = i;
+				break;
+			}
+		}
+		_arrangement[target_index] -= 1;
+		if(_arrangement[target_index] == 0){
+			_arrangement.erase(_arrangement.begin() + target_index);
+			empty_table_deleted = true;
+		}
+	}
+}
+
 class InfiniteHMM{
 private:
 	friend class boost::serialization::access;
@@ -28,7 +80,7 @@ private:
 	{
 		static_cast<void>(version);
 		archive & _tag_count;
-		archive & _bigram_tag_counts;
+		archive & _bigram_tag_table;
 		archive & _tag_word_counts;
 		archive & _oracle_word_counts;
 		archive & _oracle_tag_counts;
@@ -40,8 +92,8 @@ private:
 	}
 public:
 	vector<int> _tag_count;	// 全ての状態とそのカウント
-	unordered_map<int, unordered_map<int, int>> _bigram_tag_counts;	// 品詞と単語のペアの出現頻度
-	unordered_map<int, unordered_map<int, int>> _tag_word_counts;	// 品詞と単語のペアの出現頻度
+	unordered_map<int, unordered_map<int, Table*>> _bigram_tag_table;	// 品詞と単語のペアの出現頻度
+	unordered_map<int, unordered_map<int, vector<int>>> _tag_word_counts;	// 品詞と単語のペアの出現頻度
 	unordered_map<int, int> _oracle_word_counts;	// 品詞と単語のペアの出現頻度
 	unordered_map<int, int> _oracle_tag_counts;	// 品詞と単語のペアの出現頻度
 	double _alpha;
@@ -132,8 +184,18 @@ public:
 		assert(_tag_count[tag_id] >= 0);
 	}
 	void increment_tag_bigram_count(int context_tag_id, int tag_id){
-		_bigram_tag_counts[context_tag_id][tag_id] += 1;
 		_sum_bigram_destination[context_tag_id] += 1;
+		vector<int> &table = _bigram_tag_counts[context_tag_id][tag_id];
+		int sum = std::accumulate(table.begin(), table.end(), 0);
+		int bernoulli = Sampler::uniform_int(0, sum);
+		sum = 0;
+		for(int i = 0;i < table.size();i++){
+			sum += table[i];
+			if(bernoulli < sum){
+				table[i] += 1;
+			}
+		}
+		table[table.size() - 1] += 1;
 	}
 	void increment_tag_word_count(Word* word){
 		increment_tag_word_count(word->tag_id, word->word_id);
@@ -169,8 +231,6 @@ public:
 		assert(_sum_oracle_tags_count >= 0);
 	}
 	void decrement_tag_bigram_count(int context_tag_id, int tag_id){
-		_bigram_tag_counts[context_tag_id][tag_id] -= 1;
-		assert(_bigram_tag_counts[context_tag_id][tag_id] >= 0);
 		auto itr = _sum_bigram_destination.find(context_tag_id);
 		assert(itr != _sum_bigram_destination.end());
 		itr->second -= 1;
@@ -178,6 +238,21 @@ public:
 		if(itr->second == 0){
 			_sum_bigram_destination.erase(itr);
 		}
+
+		vector<int> &table = _bigram_tag_counts[context_tag_id][tag_id];
+		int sum = std::accumulate(table.begin(), table.end(), 0);
+		int bernoulli = Sampler::uniform_int(0, sum);
+		sum = 0;
+		for(int i = 0;i < table.size();i++){
+			sum += table[i];
+			if(bernoulli < sum){
+				table[i] -= 1;
+				assert(table[i] >= 0);
+				return;
+			}
+		}
+		table[table.size() - 1] -= 1;
+		assert(table[table.size() - 1] >= 0);
 	}
 	void decrement_tag_word_count(int tag_id, int word_id){
 		unordered_map<int, int> &word_counts = _tag_word_counts[tag_id];
