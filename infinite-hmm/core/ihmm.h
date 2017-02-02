@@ -157,16 +157,7 @@ public:
 				double empirical_p, coeff_oracle_p;
 				increment_tag_bigram_count(ti_1, ti);
 				increment_tag_count(ti);
-
-				_compute_Pword_tag(wi, ti, empirical_p, coeff_oracle_p);
-				double normalizer = 1 / (empirical_p + coeff_oracle_p);
-				double bernoulli = Sampler::uniform(0, 1);
-				if(bernoulli < empirical_p * normalizer){
-					increment_tag_word_count(ti, wi);
-				}else{	// oracleから生成された場合
-					increment_tag_word_count(ti, wi);
-					increment_oracle_word_count(wi);
-				}
+				increment_tag_word_count(ti, wi);
 
 				word_set.insert(wi);
 				word->tag_id = ti;
@@ -338,6 +329,13 @@ public:
 		}
 		return itr->second;
 	}
+	int get_oracle_word_count(int word_id){
+		auto itr = _oracle_word_counts.find(word_id);
+		if(itr == _oracle_word_counts.end()){
+			return 0;
+		}
+		return itr->second;
+	}
 	int get_tag_word_count(int tag_id, int word_id){
 		auto itr_tag = _tag_word_table.find(tag_id);
 		if(itr_tag == _tag_word_table.end()){
@@ -449,7 +447,7 @@ public:
 		}
 		double coeff_oracle_p = _beta_emission / (m_i + _beta_emission);	// 親の分布から生成される確率. 親からword_idが生成される確率とは別物.
 		double m_o = sum_oracle_words_count();
-		double m_oq = _oracle_word_counts[word_id];
+		double m_oq = get_oracle_word_count(word_id);
 		double oracle_p = (m_oq + _gamma_emission) / (m_o + _gamma_emission);
 		return empirical_p + coeff_oracle_p * oracle_p;
 	}
@@ -480,7 +478,7 @@ public:
 		double m_i = sum_word_count_for_tag(tag_id);
 		double empirical_p = m_iq / (m_i + _beta_emission);
 		double coeff_oracle_p = _beta_emission / (m_i + _beta_emission);
-		double m_oq = _oracle_word_counts[word_id];
+		double m_oq = get_oracle_word_count(word_id);
 		double m_o = sum_oracle_words_count();
 		// double oracle_p = m_oq / (m_o + _gamma_emission);
 		double normalizer = 1 / (empirical_p + coeff_oracle_p);
@@ -554,10 +552,10 @@ public:
 			// 現在のtiをモデルから除去
 			// remove_word_from_model(wi, ti);	// 先に品詞-単語ペアから除去するとassrtで引っかからない
 			decrement_tag_bigram_count(ti_1, ti);
-				// dump_oracle_tag();
+				// dump_oracle_tags();
 				// dump_bigram_table();
 			decrement_tag_bigram_count(ti, ti1);
-				// dump_oracle_tag();
+				// dump_oracle_tags();
 				// dump_bigram_table();
 			decrement_tag_count(ti);
 			decrement_tag_word_count(ti, wi);
@@ -566,10 +564,10 @@ public:
 			// モデルに追加
 			increment_tag_word_count(new_tag, wi);
 			increment_tag_bigram_count(ti_1, new_tag);
-				// dump_oracle_tag();
+				// dump_oracle_tags();
 				// dump_bigram_table();
 			increment_tag_bigram_count(new_tag, ti1);
-				// dump_oracle_tag();
+				// dump_oracle_tags();
 				// dump_bigram_table();
 			increment_tag_count(new_tag);
 			line[pos]->tag_id = new_tag;
@@ -581,9 +579,15 @@ public:
 		}
 		cout << endl;
 	}
-	void dump_oracle_tag(){
-		c_printf("[*]%s\n", "dump_oracle_tag");
+	void dump_oracle_tags(){
+		c_printf("[*]%s\n", "dump_oracle_tags");
 		for(const auto &elem: _oracle_tag_counts){
+			cout << elem.first << ": " << elem.second << endl;
+		}
+	}
+	void dump_oracle_words(){
+		c_printf("[*]%s\n", "dump_oracle_words");
+		for(const auto &elem: _oracle_word_counts){
 			cout << elem.first << ": " << elem.second << endl;
 		}
 	}
@@ -600,6 +604,38 @@ public:
 				}
 				cout << endl;
 			}
+		}
+	}
+	void check_oracle_tag_count(){
+		unordered_map<int, int> counts;
+		for(const auto &contexts: _bigram_tag_table){
+			for(const auto &tags: contexts.second){
+				vector<int> &table = tags.second->_arrangement;
+				int num_tables = table.size();
+				counts[tags.first] += num_tables;
+			}
+		}
+		for(const auto &elem: counts){
+			int tag_id = elem.first;
+			int num_tables = elem.second;
+			int count = get_oracle_tag_count(tag_id);
+			assert(num_tables == count);
+		}
+	}
+	void check_oracle_word_count(){
+		unordered_map<int, int> counts;
+		for(const auto &tags: _tag_word_table){
+			for(const auto &words: tags.second){
+				vector<int> &table = words.second->_arrangement;
+				int num_tables = table.size();
+				counts[words.first] += num_tables;
+			}
+		}
+		for(const auto &elem: counts){
+			int word_id = elem.first;
+			int num_tables = elem.second;
+			int count = get_oracle_word_count(word_id);
+			assert(num_tables == count);
 		}
 	}
 	bool load(string dir = "out"){

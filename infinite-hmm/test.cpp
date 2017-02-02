@@ -22,7 +22,10 @@ int main(){
 	hmm->initialize();
 	for(int i = 0;i < 1000;i++){
 		hmm->perform_gibbs_sampling();
-		hmm->_hmm->dump_oracle_tag();
+		hmm->_hmm->dump_oracle_tags();
+		// hmm->_hmm->dump_oracle_words();
+		hmm->_hmm->check_oracle_tag_count();
+		hmm->_hmm->check_oracle_word_count();
 	}
 	return 0;
 }
