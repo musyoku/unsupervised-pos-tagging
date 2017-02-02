@@ -25,7 +25,6 @@ struct value_comparator {
 
 class PyBayesianHMM{
 private:
-	InfiniteHMM* _hmm;
 	unordered_map<int, wstring> _dictionary;
 	unordered_map<wstring, int> _dictionary_inv;
 	vector<vector<Word*>> _dataset;
@@ -36,6 +35,7 @@ private:
 	int _max_num_words_in_line;
 	int _min_num_words_in_line;
 public:
+	InfiniteHMM* _hmm;
 	PyBayesianHMM(int initial_num_tags){
 		// 日本語周り
 		// ただのテンプレ

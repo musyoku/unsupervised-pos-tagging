@@ -17,11 +17,12 @@ using namespace std;
 using namespace boost;
 
 int main(){
-	PyBayesianHMM* hmm = new PyBayesianHMM(5);
-	hmm->load_textfile("../test.txt");
+	PyBayesianHMM* hmm = new PyBayesianHMM(20);
+	hmm->load_textfile("../alice.txt");
 	hmm->initialize();
 	for(int i = 0;i < 1000;i++){
 		hmm->perform_gibbs_sampling();
+		hmm->_hmm->dump_oracle_tag();
 	}
 	return 0;
 }
