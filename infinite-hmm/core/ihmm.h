@@ -33,10 +33,16 @@ private:
 public:
 	vector<int> _arrangement;
 	int _num_customers;
-	Table(){
+	int _token_id;
+	Table(int token_id){
 		_num_customers = 0;
+		_token_id = token_id;
+	}
+	bool is_empty(){
+		return _arrangement.size() == 0;
 	}
 	void add_customer(double self_transition_alpha, double concentration_parameter, bool &new_table_generated){
+		cout << _token_id << "++" << endl;
 		_num_customers += 1;
 		if(_arrangement.size() == 0){
 			_arrangement.push_back(1);
@@ -59,16 +65,17 @@ public:
 		new_table_generated = true;
 	}
 	void remove_customer(bool &empty_table_deleted){
+		cout << _token_id << "--" << endl;
 		assert(_arrangement.size() > 0);
 		empty_table_deleted = false;
 		_num_customers -= 1;
 		int sum = std::accumulate(_arrangement.begin(), _arrangement.end(), 0);
 		int bernoulli = Sampler::uniform_int(0, sum);
 		sum = 0;
-		int target_index = _arrangement[_arrangement.size() - 1];
+		int target_index = _arrangement.size() - 1;
 		for(int i = 0;i < _arrangement.size();i++){
 			sum += _arrangement[i];
-			if(bernoulli < sum){
+			if(bernoulli <= sum){
 				target_index = i;
 				break;
 			}
@@ -150,21 +157,12 @@ public:
 				int ti = (pos == line.size() - 1) ? 0 :  Sampler::uniform_int(0, _initial_num_tags - 1);
 				int wi = word->word_id;
 				double empirical_p, coeff_oracle_p;
-
-				_compute_Ptag_context(ti, ti_1, empirical_p, coeff_oracle_p);
-				double normalizer = 1 / (empirical_p + coeff_oracle_p);
-				double bernoulli = Sampler::uniform(0, 1);
-				if(bernoulli < empirical_p * normalizer){
-					increment_tag_bigram_count(ti_1, ti);
-					increment_tag_count(ti);
-				}else{	// oracleから生成された場合
-					increment_tag_bigram_count(ti_1, ti);
-					increment_tag_count(ti);
-				}
+				increment_tag_bigram_count(ti_1, ti);
+				increment_tag_count(ti);
 
 				_compute_Pword_tag(wi, ti, empirical_p, coeff_oracle_p);
-				normalizer = 1 / (empirical_p + coeff_oracle_p);
-				bernoulli = Sampler::uniform(0, 1);
+				double normalizer = 1 / (empirical_p + coeff_oracle_p);
+				double bernoulli = Sampler::uniform(0, 1);
 				if(bernoulli < empirical_p * normalizer){
 					increment_tag_word_count(ti, wi);
 				}else{	// oracleから生成された場合
@@ -197,13 +195,14 @@ public:
 		Table* table = NULL;
 		auto itr_context = _bigram_tag_table.find(context_tag_id);
 		if(itr_context == _bigram_tag_table.end()){
-			table = new Table();
+			table = new Table(tag_id);
 			_bigram_tag_table[context_tag_id][tag_id] = table;
 		}else{
 			unordered_map<int, Table*> &tables = itr_context->second;
 			auto itr_table = tables.find(tag_id);
 			if(itr_table == tables.end()){
-				table = new Table();
+				table = new Table(tag_id);
+				tables[tag_id] = table;
 			}else{
 				table = itr_table->second;
 			}
@@ -259,22 +258,21 @@ public:
 
 		Table* table = NULL;
 		auto itr_context = _bigram_tag_table.find(context_tag_id);
-		if(itr_context == _bigram_tag_table.end()){
-			table = new Table();
-			_bigram_tag_table[context_tag_id][tag_id] = table;
-		}else{
-			unordered_map<int, Table*> &tables = itr_context->second;
-			auto itr_table = tables.find(tag_id);
-			if(itr_table == tables.end()){
-				table = new Table();
-			}else{
-				table = itr_table->second;
-			}
-		}
+		assert(itr_context != _bigram_tag_table.end());
+		unordered_map<int, Table*> &tables = itr_context->second;
+		auto itr_table = tables.find(tag_id);
+		assert(itr_table != tables.end());
+		table = itr_table->second;
 		bool empty_table_deleted = false;
 		table->remove_customer(empty_table_deleted);
 		if(empty_table_deleted){
 			decrement_oracle_tag_count(tag_id);
+		}
+		if(table->is_empty()){
+			tables.erase(itr_table);
+		}
+		if(tables.size() == 0){
+			_bigram_tag_table.erase(itr_context);
 		}
 	}
 	void decrement_tag_word_count(int tag_id, int word_id){
@@ -398,12 +396,8 @@ public:
 		double coeff_oracle_p = _beta / (n_i + _beta);	// 親の分布から生成される確率. 親からtag_idが生成される確率とは別物.
 		double oracle_p;
 		double n_o = sum_oracle_tags_count();
-		if(is_tag_new(tag_id)){
-			oracle_p = _gamma / (n_o + _gamma);
-		}else{
-			double n_oj = _oracle_tag_counts[tag_id];
-			oracle_p = n_oj / (n_o + _gamma);
-		}
+		double n_oj = _oracle_tag_counts[tag_id];
+		oracle_p = (n_oj + _gamma) / (n_o + _gamma);
 		return empirical_p + coeff_oracle_p * oracle_p;
 	}
 	void _compute_Pword_tag(int word_id, int tag_id, double &empirical_p, double &coeff_oracle_p){
@@ -487,10 +481,11 @@ public:
 			double p_generation = compute_Ptag_context(tag, ti_1);
 			double p_likelihood = compute_Ptag_context(ti1, tag);
 			double p_conditional = p_emission * p_generation * p_likelihood;
-			cout << p_emission << ",";
-			cout << p_generation << ",";
-			cout << p_likelihood << ",";
-			cout << endl;
+				// cout << "tag: " << tag << endl;
+				// cout << p_emission << ",";
+				// cout << p_generation << ",";
+				// cout << p_likelihood << ",";
+				// cout << endl;
 			sampling_table.push_back(p_conditional);
 			sum += p_conditional;
 		}
@@ -518,7 +513,14 @@ public:
 		return new_tag;
 	}
 	void perform_gibbs_sampling_with_line(vector<Word*> &line){
+		c_printf("[*]%s\n", "perform_gibbs_sampling_with_line");
+		for(int pos = 0;pos < line.size();pos++){
+			cout << line[pos]->tag_id << " -> ";
+		}
+		cout << endl;
+
 		for(int pos = 1;pos < line.size() - 1;pos++){
+			c_printf("[*]%s\n", (boost::format("pos = %d") % pos).str().c_str());
 			int ti_1 = line[pos - 1]->tag_id;
 			int ti = line[pos]->tag_id;
 			int wi = line[pos]->word_id;
@@ -527,7 +529,11 @@ public:
 			// 現在のtiをモデルから除去
 			// remove_word_from_model(wi, ti);	// 先に品詞-単語ペアから除去するとassrtで引っかからない
 			decrement_tag_bigram_count(ti_1, ti);
+				// dump_oracle_tag();
+				// dump_bigram_table();
 			decrement_tag_bigram_count(ti, ti1);
+				// dump_oracle_tag();
+				// dump_bigram_table();
 			decrement_tag_count(ti);
 			decrement_tag_word_count(ti, wi);
 
@@ -535,7 +541,11 @@ public:
 			// モデルに追加
 			increment_tag_word_count(new_tag, wi);
 			increment_tag_bigram_count(ti_1, new_tag);
+				// dump_oracle_tag();
+				// dump_bigram_table();
 			increment_tag_bigram_count(new_tag, ti1);
+				// dump_oracle_tag();
+				// dump_bigram_table();
 			increment_tag_count(new_tag);
 			line[pos]->tag_id = new_tag;
 		}
@@ -545,6 +555,27 @@ public:
 			cout << _tag_count[tag] << ", ";
 		}
 		cout << endl;
+	}
+	void dump_oracle_tag(){
+		c_printf("[*]%s\n", "dump_oracle_tag");
+		for(const auto &elem: _oracle_tag_counts){
+			cout << elem.first << ": " << elem.second << endl;
+		}
+	}
+	void dump_bigram_table(){
+		c_printf("[*]%s\n", "dump_bigram_table");
+		for(const auto &contexts: _bigram_tag_table){
+			cout << contexts.first << ":" << endl;
+			for(const auto &tables: contexts.second){
+				cout << "	" << tables.first << ":" << endl;
+				cout << "		";
+				Table* table = tables.second;
+				for(int i = 0;i < table->_arrangement.size();i++){
+					cout << table->_arrangement[i] << ", ";
+				}
+				cout << endl;
+			}
+		}
 	}
 	bool load(string dir = "out"){
 		return true;
