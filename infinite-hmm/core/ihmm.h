@@ -10,6 +10,7 @@
 #include <cmath>
 #include <unordered_map>
 #include <set>
+#include <algorithm>
 #include "cprintf.h"
 #include "sampler.h"
 #include "util.h"
@@ -118,6 +119,7 @@ public:
 	int _initial_num_tags;
 	int _sum_oracle_tags_count;
 	int _sum_oracle_words_count;
+	int _num_words;
 	unordered_map<int, int> _sum_bigram_destination;
 	unordered_map<int, int> _sum_word_count_for_tag;
 	InfiniteHMM(int initial_num_tags){
@@ -129,6 +131,7 @@ public:
 		_initial_num_tags = initial_num_tags;
 		_sum_oracle_words_count = 0;
 		_sum_oracle_tags_count = 0;
+		_num_words = 0;
 	}
 	void initialize(vector<vector<Word*>> &dataset){
 		for(int tag = 0;tag < _initial_num_tags;tag++){
@@ -141,29 +144,32 @@ public:
 		c_printf("[*]%s\n", "n-gramモデルを構築してます ...");
 		// 最初は品詞をランダムに割り当てる
 		set<int> word_set;
+		int num_words = 0;
 		unordered_map<int, int> tag_for_word;
 		for(int data_index = 0;data_index < dataset.size();data_index++){
 			vector<Word*> &line = dataset[data_index];
 			word_set.insert(line[0]->word_id);
-			increment_tag_word_count(line[0]);
-			increment_tag_count(line[0]->tag_id);
+			// increment_tag_word_count(line[0]);
+			// increment_tag_count(line[0]->tag_id);
 			
 			for(int pos = 1;pos < line.size();pos++){	// 2-gramなので3番目から.
 				Word* word = line[pos];
 
 				int ti_1 = line[pos - 1]->tag_id;
-				int ti = (pos == line.size() - 1) ? 0 :  Sampler::uniform_int(0, _initial_num_tags - 1);
+					// int ti = (pos == line.size() - 1) ? 0 :  Sampler::uniform_int(0, _initial_num_tags - 1);
+				int ti = Sampler::uniform_int(0, _initial_num_tags - 1);
 				int wi = word->word_id;
-				double empirical_p, coeff_oracle_p;
 				increment_tag_bigram_count(ti_1, ti);
 				increment_tag_count(ti);
 				increment_tag_word_count(ti, wi);
 
 				word_set.insert(wi);
+				num_words += 1;
 				word->tag_id = ti;
 			}
 		}
-		c_printf("[*]%s\n", (boost::format("単語数: %d - 行数: %d") % word_set.size() % dataset.size()).str().c_str());
+		c_printf("[*]%s\n", (boost::format("単語数: %d - 単語の異なり数: %d - 行数: %d") % num_words % word_set.size() % dataset.size()).str().c_str());
+		_num_words += num_words;
 	}
 	void increment_tag_count(int tag_id){
 		while(tag_id >= _tag_count.size()){
@@ -349,6 +355,27 @@ public:
 		Table* table = itr_table->second;
 		return table->_num_customers;
 	}
+	int get_num_times_oracle_tag_used(){
+		int count = 0;
+		for(const auto &tags: _bigram_tag_table){
+			for(const auto &words: tags.second){
+				count += words.second->_arrangement.size();
+			}
+		}
+		return count;
+	}
+	int get_num_times_oracle_word_used(){
+		int count = 0;
+		for(const auto &tags: _tag_word_table){
+			for(const auto &words: tags.second){
+				count += words.second->_arrangement.size();
+			}
+		}
+		return count;
+	}
+	int get_num_tags(){
+		return _oracle_tag_counts.size();
+	}
 	bool is_tag_new(int tag_id){
 		if(tag_id >= _tag_count.size()){
 			return true;
@@ -405,93 +432,95 @@ public:
 		// }
 		// return sum;
 	}
-	void _compute_Ptag_context(int tag_id, int context_tag_id, double &empirical_p, double &coeff_oracle_p){
-		empirical_p = 0;
-		double n_i = sum_bigram_destination(context_tag_id);
-		if(is_tag_new(tag_id) == false){
-			double n_ij = get_bigram_tag_count(context_tag_id, tag_id);
-			empirical_p = n_ij / (n_i + _beta);
-		}
-		coeff_oracle_p = _beta / (n_i + _beta);
-	}
 	// P(s_{t+1}|s_t)
 	double compute_Ptag_context(int tag_id, int context_tag_id){
-		double empirical_p = 0;		// 自分が生成したサンプルからなる経験確率.新しい品詞の場合は存在しないので0.
 		double n_i = sum_bigram_destination(context_tag_id);
-		if(is_tag_new(tag_id) == false){
-			double n_ij = get_bigram_tag_count(context_tag_id, tag_id);
-			empirical_p = n_ij / (n_i + _beta);
-		}
+		double n_ij = get_bigram_tag_count(context_tag_id, tag_id);
+		double empirical_p = n_ij / (n_i + _beta);
 		double coeff_oracle_p = _beta / (n_i + _beta);	// 親の分布から生成される確率. 親からtag_idが生成される確率とは別物.
 		double n_o = sum_oracle_tags_count();
 		double n_oj = get_oracle_tag_count(tag_id);
 		double oracle_p = (n_oj + _gamma) / (n_o + _gamma);
 		return empirical_p + coeff_oracle_p * oracle_p;
 	}
-	void _compute_Pword_tag(int word_id, int tag_id, double &empirical_p, double &coeff_oracle_p){
-		empirical_p = 0;
-		double m_i = sum_word_count_for_tag(tag_id);
-		if(is_tag_new(tag_id) == false){
-			double m_iq = get_tag_word_count(tag_id, word_id);
-			empirical_p = m_iq / (m_i + _beta_emission);
-		}
-		coeff_oracle_p = _beta_emission / (m_i + _beta_emission);
-	}
 	// P(y_t|s_t)
 	double compute_Pword_tag(int word_id, int tag_id){
-		double empirical_p = 0;		// 自分が生成したサンプルからなる経験確率.新しい品詞の場合は存在しないので0.
 		double m_i = sum_word_count_for_tag(tag_id);
-		if(is_tag_new(tag_id) == false){
-			double m_iq = get_tag_word_count(tag_id, word_id);
-			empirical_p = m_iq / (m_i + _beta_emission);
-		}
+		double m_iq = get_tag_word_count(tag_id, word_id);
+		double empirical_p = m_iq / (m_i + _beta_emission);
 		double coeff_oracle_p = _beta_emission / (m_i + _beta_emission);	// 親の分布から生成される確率. 親からword_idが生成される確率とは別物.
 		double m_o = sum_oracle_words_count();
 		double m_oq = get_oracle_word_count(word_id);
 		double oracle_p = (m_oq + _gamma_emission) / (m_o + _gamma_emission);
 		return empirical_p + coeff_oracle_p * oracle_p;
 	}
-	void remove_tag_from_bigram_count(int context_tag_id, int tag_id){
-		// assert(is_tag_new(tag_id) == false);
-		// double n_ij = get_bigram_tag_count(context_tag_id, tag_id);
-		// double n_i = sum_bigram_destination(context_tag_id);
-		// double empirical_p = n_ij / (n_i + _beta);
-		// double coeff_oracle_p = _beta / (n_i + _beta);	// 親の分布から生成される確率. 親からtag_idが生成される確率とは別物.
-		// double n_o = sum_oracle_tags_count();
-		// double n_oj = _oracle_tag_counts[tag_id];
-		// if(n_oj == 0){
-		// 	decrement_tag_bigram_count(context_tag_id, tag_id);
-		// 	return;
-		// }
-		// // double oracle_p = n_oj / (n_o + _gamma);
-		// double normalizer = 1 / (empirical_p + coeff_oracle_p);
-		// double bernoulli = Sampler::uniform(0, 1);
-		// if(bernoulli < empirical_p * normalizer){
-		// 	decrement_tag_bigram_count(context_tag_id, tag_id);
-		// }else{
-		// 	decrement_oracle_tag_count(tag_id);
-		// }
+	double compute_log_posterior_gamma(double gamma){
+		double a = 1;
+		double b = 1;
+		double gamma_dist = pow(b, a) / tgamma(a) * pow(gamma, a - 1) * exp(-b * gamma);
+		double K = get_num_tags();
+		double To = get_num_times_oracle_tag_used();
+		double log_term = K * log(gamma) + lgamma(gamma) - lgamma(To + gamma);
+		return log(gamma_dist) + log_term;
 	}
-	void remove_word_from_model(int word_id, int tag_id){
-		assert(is_tag_new(tag_id) == false);
-		double m_iq = get_tag_word_count(tag_id, word_id);
-		double m_i = sum_word_count_for_tag(tag_id);
-		double empirical_p = m_iq / (m_i + _beta_emission);
-		double coeff_oracle_p = _beta_emission / (m_i + _beta_emission);
-		double m_oq = get_oracle_word_count(word_id);
-		double m_o = sum_oracle_words_count();
-		// double oracle_p = m_oq / (m_o + _gamma_emission);
-		double normalizer = 1 / (empirical_p + coeff_oracle_p);
+	double compute_log_posterior_gamma_emission(double gamma){
+		double a = 1;
+		double b = 1;
+		double gamma_dist = pow(b, a) / tgamma(a) * pow(gamma, a - 1) * exp(-b * gamma);
+		double K = _num_words;
+		double To = get_num_times_oracle_word_used();
+		double log_term = K * log(gamma) + lgamma(gamma) - lgamma(To + gamma);
+		// cout << gamma << endl;
+		// cout << gamma_dist << endl;
+		// cout << K << endl;
+		// cout << To << endl;
+		// cout << log(gamma) << endl;
+		// cout << lgamma(gamma) << endl;
+		// cout << lgamma(To + gamma) << endl;
+		// cout << log_term << endl;
+		// cout << endl;
+		return log(gamma_dist) + log_term;
+	}
+	void sample_gamma(){
+		double new_gamma = Sampler::normal(_gamma, 0.1);
+		double log_p_old = compute_log_posterior_gamma(_gamma);
+		double log_p_new = compute_log_posterior_gamma(new_gamma);
+		if(new_gamma == 0 || log_p_old == 0){
+			return;
+		}
+
+		double sigma_gamma = 0.1 * _gamma;
+		double sigma_new_gamma = 0.1 * new_gamma;
+		double var_gamma = sigma_gamma * sigma_gamma;
+		double var_new_gamma = sigma_new_gamma * sigma_new_gamma;
+		double correcting_term = (_gamma / new_gamma) * exp(
+			  0.5 * (new_gamma - _gamma) * (new_gamma - _gamma) / var_gamma
+			+ 0.5 * (_gamma - new_gamma) * (_gamma - new_gamma) / var_new_gamma
+		);
+		// 採択率
+		double adoption_rate = std::min(1.0, exp(log_p_new - log_p_old) * correcting_term);
 		double bernoulli = Sampler::uniform(0, 1);
-		if(bernoulli < empirical_p * normalizer){
-			decrement_tag_word_count(tag_id, word_id);
-		}else{
-			decrement_oracle_word_count(word_id);
+		if(bernoulli < adoption_rate){
+			_gamma = new_gamma;
+		}
+	}
+	void sample_gamma_emission(){
+		double new_gamma = Sampler::normal(_gamma_emission, 0.1);
+		if(new_gamma == 0){
+			return;
+		}
+		double log_p_old = compute_log_posterior_gamma_emission(_gamma_emission);
+		double log_p_new = compute_log_posterior_gamma_emission(new_gamma);
+		cout << exp(log_p_new - log_p_old) << endl;
+		double acception = std::min(1.0, exp(log_p_new / log_p_old));
+		double bernoulli = Sampler::uniform(0, 1);
+		if(bernoulli < acception){
+			_gamma_emission = new_gamma;
 		}
 	}
 	// t_{i-1} -> t_i -> t_{i+1}
-	int sampling_new_tag(int ti_1, int ti, int ti1, int wi){
-			// cout << "sampling_new_tag" << endl;
+	int sample_new_tag(int ti_1, int ti, int ti1, int wi){
+			// cout << "sample_new_tag" << endl;
 		// ギブスサンプリング
 		vector<double> sampling_table;
 		bool new_tag_included = false;
@@ -500,7 +529,7 @@ public:
 			if(is_tag_new(tag)){
 				new_tag_included = true;
 			}
-			double p_emission = compute_Pword_tag(wi, ti);
+			double p_emission = compute_Pword_tag(wi, tag);
 			double p_generation = compute_Ptag_context(tag, ti_1);
 			double p_likelihood = compute_Ptag_context(ti1, tag);
 			double p_conditional = p_emission * p_generation * p_likelihood;
@@ -514,7 +543,7 @@ public:
 		}
 		int new_tag = _tag_count.size();
 		if(new_tag_included == false){
-			double p_emission = compute_Pword_tag(wi, ti);
+			double p_emission = compute_Pword_tag(wi, new_tag);
 			double p_generation = compute_Ptag_context(new_tag, ti_1);
 			double p_likelihood = compute_Ptag_context(ti1, new_tag);
 			double p_conditional = p_emission * p_generation * p_likelihood;
@@ -550,7 +579,6 @@ public:
 			int ti1 = line[pos + 1]->tag_id;
 
 			// 現在のtiをモデルから除去
-			// remove_word_from_model(wi, ti);	// 先に品詞-単語ペアから除去するとassrtで引っかからない
 			decrement_tag_bigram_count(ti_1, ti);
 				// dump_oracle_tags();
 				// dump_bigram_table();
@@ -560,7 +588,7 @@ public:
 			decrement_tag_count(ti);
 			decrement_tag_word_count(ti, wi);
 
-			int new_tag = sampling_new_tag(ti_1, ti, ti1, wi);
+			int new_tag = sample_new_tag(ti_1, ti, ti1, wi);
 			// モデルに追加
 			increment_tag_word_count(new_tag, wi);
 			increment_tag_bigram_count(ti_1, new_tag);
@@ -606,6 +634,14 @@ public:
 			}
 		}
 	}
+	void dump_hyperparameters(){
+		c_printf("[*]%s\n", "dump_hyperparameters");
+		cout << "alpha <- " << _alpha << endl;
+		cout << "beta <- " << _beta << endl;
+		cout << "beta_e <- " << _beta_emission << endl;
+		cout << "gamma <- " << _gamma << endl;
+		cout << "gamma_e <- " << _gamma_emission << endl;
+	}
 	void check_oracle_tag_count(){
 		unordered_map<int, int> counts;
 		for(const auto &contexts: _bigram_tag_table){
@@ -637,6 +673,36 @@ public:
 			int count = get_oracle_word_count(word_id);
 			assert(num_tables == count);
 		}
+	}
+	void check_sum_bigram_destination(){
+		for(const auto &tag: _sum_bigram_destination){
+			int tag_id = tag.first;
+			int count = tag.second;
+			int sum = 0;
+			for(const auto &table: _bigram_tag_table[tag_id]){
+				sum += table.second->_num_customers;
+			}
+			assert(count == sum);
+		}
+	}
+	void check_tag_count(){
+		int num_non_zero = 0;
+		for(int i = 0;i < _tag_count.size();i++){
+			if(_tag_count[i] > 0){
+				num_non_zero += 1;
+			}
+		}
+		assert(num_non_zero == _oracle_tag_counts.size());
+	}
+	void check_sum_word_customers(){
+		int num_customers = 0;
+		for(const auto &tag: _tag_word_table){
+			for(const auto &word: tag.second){
+				Table* table = word.second;
+				num_customers += table->_num_customers;
+			}
+		}
+		assert(num_customers == _num_words);
 	}
 	bool load(string dir = "out"){
 		return true;

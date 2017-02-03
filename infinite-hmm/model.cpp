@@ -114,7 +114,7 @@ public:
 			eos->word_id = _eos_id;
 			eos->tag_id = 0;
 			words.push_back(eos);
-			
+
 			// 訓練データに追加
 			_dataset.push_back(words);
 		}
@@ -161,7 +161,33 @@ public:
 			vector<Word*> &line = _dataset[data_index];
 			_hmm->perform_gibbs_sampling_with_line(line);
 		}
-		// _hmm->dump_tags();
+	}
+	void show_typical_words_for_each_tag(int number_to_show_for_each_tag){
+		for(int tag = 0;tag < _hmm->_tag_count.size();tag++){
+			if(_hmm->_tag_count[tag] == 0){
+				continue;
+			}
+			unordered_map<int, Table*> &tables = _hmm->_tag_word_table[tag];
+			int n = 0;
+			c_printf("[*]%s\n", (boost::format("tag %d:") % tag).str().c_str());
+			wcout << L"\t";
+			multiset<pair<int, int>, value_comparator> ranking;
+			for(const auto &elem: tables){
+				ranking.insert(std::make_pair(elem.first, elem.second->_num_customers));
+			}
+			for(const auto &elem: ranking){
+				wstring word = _dictionary[elem.first];
+				wcout << word << L"/" << elem.second << L", ";
+				n++;
+				if(n > number_to_show_for_each_tag){
+					break;
+				}
+				// if(elem.second < 10){
+				// 	break;
+				// }
+			}
+			wcout << endl;
+		}
 	}
 };
 

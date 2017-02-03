@@ -10,6 +10,7 @@
 #include <functional>
 #include <fstream>
 #include <cassert>
+#include <algorithm>
 #include "core/ihmm.h"
 #include "core/util.h"
 #include "model.cpp"
@@ -17,15 +18,22 @@ using namespace std;
 using namespace boost;
 
 int main(){
-	PyBayesianHMM* hmm = new PyBayesianHMM(20);
-	hmm->load_textfile("../alice.txt");
-	hmm->initialize();
-	for(int i = 0;i < 1000;i++){
-		hmm->perform_gibbs_sampling();
-		hmm->_hmm->dump_oracle_tags();
-		// hmm->_hmm->dump_oracle_words();
-		hmm->_hmm->check_oracle_tag_count();
-		hmm->_hmm->check_oracle_word_count();
+	PyBayesianHMM* model = new PyBayesianHMM(20);
+	model->load_textfile("../alice.txt");
+	model->initialize();
+	for(int i = 0;i < 10000;i++){
+		model->perform_gibbs_sampling();
+		model->_hmm->dump_oracle_tags();
+		model->show_typical_words_for_each_tag(20);
+		// model->_hmm->dump_oracle_words();
+		model->_hmm->check_oracle_tag_count();
+		model->_hmm->check_oracle_word_count();
+		model->_hmm->check_sum_bigram_destination();
+		model->_hmm->check_sum_word_customers();
+		model->_hmm->check_tag_count();
+		model->_hmm->sample_gamma();
+		model->_hmm->sample_gamma_emission();
+		model->_hmm->dump_hyperparameters();
 	}
 	return 0;
 }
