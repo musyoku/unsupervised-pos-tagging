@@ -566,19 +566,19 @@ public:
 			double p_generation = compute_Ptag_context(tag, ti_1);
 			double p_likelihood = compute_Ptag_context(ti1, tag);
 			double p_conditional = p_emission * p_generation * p_likelihood;
-				if(p_likelihood == 0){
-					cout << "tag: " << tag << endl;
-					cout << "ti1: " << ti1 << endl;
-					cout << p_emission << ",";
-					cout << p_generation << ",";
-					cout << p_likelihood << ",";
-					cout << p_conditional << ",";
-					cout << endl;
-					cout << get_oracle_tag_count(ti1) << endl;
-					cout << get_bigram_tag_count(tag, ti1) << endl;
-					cout << new_tag_included << endl;
-					exit(0);
-				}
+				// if(p_likelihood == 0){
+				// 	cout << "tag: " << tag << endl;
+				// 	cout << "ti1: " << ti1 << endl;
+				// 	cout << p_emission << ",";
+				// 	cout << p_generation << ",";
+				// 	cout << p_likelihood << ",";
+				// 	cout << p_conditional << ",";
+				// 	cout << endl;
+				// 	cout << get_oracle_tag_count(ti1) << endl;
+				// 	cout << get_bigram_tag_count(tag, ti1) << endl;
+				// 	cout << new_tag_included << endl;
+				// 	exit(0);
+				// }
 			sampling_table.push_back(p_conditional);
 			sum += p_conditional;
 		}
