@@ -236,9 +236,6 @@ public:
 				if(n > number_to_show_for_each_tag){
 					break;
 				}
-				if(elem.second < 10){
-					break;
-				}
 			}
 			wcout << endl;
 		}

@@ -396,6 +396,13 @@ public:
 		}
 		return _tag_count.size();
 	}
+	bool is_word_new(int word_id){
+		auto itr = _oracle_word_counts.find(word_id);
+		if(itr == _oracle_word_counts.end()){
+			return false;
+		}
+		return itr->second == 0;
+	}
 	int sum_oracle_words_count(){
 		return _sum_oracle_words_count;
 		// int sum = 0;
@@ -445,7 +452,9 @@ public:
 		double n_oj = get_oracle_tag_count(tag_id);
 		double T = get_num_tags();
 		double g0 = 1.0 / (T + 1);
-		double oracle_p = (n_oj + _gamma * g0) / (n_o + _gamma);
+		double numerator = is_tag_new(tag_id) ? _gamma : n_oj;
+		// double oracle_p = (n_oj + _gamma * g0) / (n_o + _gamma);
+		double oracle_p = numerator / (n_o + _gamma);
 		return empirical_p + coeff_oracle_p * oracle_p;
 	}
 	// P(y_t|s_t)
@@ -458,7 +467,9 @@ public:
 		double m_oq = get_oracle_word_count(word_id);
 		double W = get_num_words();
 		double g0 = 1.0 / (W + 1);
-		double oracle_p = (m_oq + _gamma_emission * g0) / (m_o + _gamma_emission);
+		double numerator = is_word_new(word_id) ? _gamma_emission : m_oq;
+		// double oracle_p = (m_oq + _gamma_emission * g0) / (m_o + _gamma_emission);
+		double oracle_p = numerator / (m_o + _gamma_emission);
 		return empirical_p + coeff_oracle_p * oracle_p;
 	}
 	double compute_log_posterior_gamma(double gamma){
@@ -555,12 +566,19 @@ public:
 			double p_generation = compute_Ptag_context(tag, ti_1);
 			double p_likelihood = compute_Ptag_context(ti1, tag);
 			double p_conditional = p_emission * p_generation * p_likelihood;
-				// cout << "tag: " << tag << endl;
-				// cout << p_emission << ",";
-				// cout << p_generation << ",";
-				// cout << p_likelihood << ",";
-				// cout << p_conditional << ",";
-				// cout << endl;
+				if(p_likelihood == 0){
+					cout << "tag: " << tag << endl;
+					cout << "ti1: " << ti1 << endl;
+					cout << p_emission << ",";
+					cout << p_generation << ",";
+					cout << p_likelihood << ",";
+					cout << p_conditional << ",";
+					cout << endl;
+					cout << get_oracle_tag_count(ti1) << endl;
+					cout << get_bigram_tag_count(tag, ti1) << endl;
+					cout << new_tag_included << endl;
+					exit(0);
+				}
 			sampling_table.push_back(p_conditional);
 			sum += p_conditional;
 		}
@@ -616,6 +634,7 @@ public:
 				// dump_bigram_table();
 			decrement_tag_count(ti);
 			decrement_tag_word_count(ti, wi);
+			increment_tag_bigram_count(ti_1, ti1);
 
 			int new_tag = sample_new_tag(ti_1, ti, ti1, wi);
 			// モデルに追加
@@ -627,6 +646,7 @@ public:
 				// dump_oracle_tags();
 				// dump_bigram_table();
 			increment_tag_count(new_tag);
+			decrement_tag_bigram_count(ti_1, ti1);
 			line[pos]->tag_id = new_tag;
 		}
 	}
