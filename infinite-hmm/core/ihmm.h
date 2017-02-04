@@ -376,6 +376,9 @@ public:
 	int get_num_tags(){
 		return _oracle_tag_counts.size();
 	}
+	int get_num_words(){
+		return _num_words;
+	}
 	bool is_tag_new(int tag_id){
 		if(tag_id >= _tag_count.size()){
 			return true;
@@ -440,7 +443,9 @@ public:
 		double coeff_oracle_p = _beta / (n_i + _beta);	// 親の分布から生成される確率. 親からtag_idが生成される確率とは別物.
 		double n_o = sum_oracle_tags_count();
 		double n_oj = get_oracle_tag_count(tag_id);
-		double oracle_p = (n_oj + _gamma) / (n_o + _gamma);
+		double T = get_num_tags();
+		double g0 = 1.0 / (T + 1);
+		double oracle_p = (n_oj + _gamma * g0) / (n_o + _gamma);
 		return empirical_p + coeff_oracle_p * oracle_p;
 	}
 	// P(y_t|s_t)
@@ -451,7 +456,9 @@ public:
 		double coeff_oracle_p = _beta_emission / (m_i + _beta_emission);	// 親の分布から生成される確率. 親からword_idが生成される確率とは別物.
 		double m_o = sum_oracle_words_count();
 		double m_oq = get_oracle_word_count(word_id);
-		double oracle_p = (m_oq + _gamma_emission) / (m_o + _gamma_emission);
+		double W = get_num_words();
+		double g0 = 1.0 / (W + 1);
+		double oracle_p = (m_oq + _gamma_emission * g0) / (m_o + _gamma_emission);
 		return empirical_p + coeff_oracle_p * oracle_p;
 	}
 	double compute_log_posterior_gamma(double gamma){
@@ -482,10 +489,13 @@ public:
 		return log(gamma_dist) + log_term;
 	}
 	void sample_gamma(){
-		double new_gamma = Sampler::normal(_gamma, 0.1);
+		double new_gamma = Sampler::normal(_gamma, 0.1 * _gamma);
+		if(new_gamma <= 0){
+			return;
+		}
 		double log_p_old = compute_log_posterior_gamma(_gamma);
 		double log_p_new = compute_log_posterior_gamma(new_gamma);
-		if(new_gamma == 0 || log_p_old == 0){
+		if(log_p_old == 0){
 			return;
 		}
 
@@ -505,16 +515,28 @@ public:
 		}
 	}
 	void sample_gamma_emission(){
-		double new_gamma = Sampler::normal(_gamma_emission, 0.1);
-		if(new_gamma == 0){
+		double new_gamma = Sampler::normal(_gamma_emission, 0.1 * _gamma_emission);
+		if(new_gamma <= 0){
 			return;
 		}
 		double log_p_old = compute_log_posterior_gamma_emission(_gamma_emission);
 		double log_p_new = compute_log_posterior_gamma_emission(new_gamma);
-		cout << exp(log_p_new - log_p_old) << endl;
-		double acception = std::min(1.0, exp(log_p_new / log_p_old));
+		if(log_p_old == 0){
+			return;
+		}
+
+		double sigma_gamma = 0.1 * _gamma_emission;
+		double sigma_new_gamma = 0.1 * new_gamma;
+		double var_gamma = sigma_gamma * sigma_gamma;
+		double var_new_gamma = sigma_new_gamma * sigma_new_gamma;
+		double correcting_term = (_gamma_emission / new_gamma) * exp(
+			  0.5 * (new_gamma - _gamma_emission) * (new_gamma - _gamma_emission) / var_gamma
+			+ 0.5 * (_gamma_emission - new_gamma) * (_gamma_emission - new_gamma) / var_new_gamma
+		);
+		// 採択率
+		double adoption_rate = std::min(1.0, exp(log_p_new - log_p_old) * correcting_term);
 		double bernoulli = Sampler::uniform(0, 1);
-		if(bernoulli < acception){
+		if(bernoulli < adoption_rate){
 			_gamma_emission = new_gamma;
 		}
 	}
@@ -537,6 +559,7 @@ public:
 				// cout << p_emission << ",";
 				// cout << p_generation << ",";
 				// cout << p_likelihood << ",";
+				// cout << p_conditional << ",";
 				// cout << endl;
 			sampling_table.push_back(p_conditional);
 			sum += p_conditional;
@@ -547,6 +570,12 @@ public:
 			double p_generation = compute_Ptag_context(new_tag, ti_1);
 			double p_likelihood = compute_Ptag_context(ti1, new_tag);
 			double p_conditional = p_emission * p_generation * p_likelihood;
+				// cout << "tag: " << new_tag << endl;
+				// cout << p_emission << ",";
+				// cout << p_generation << ",";
+				// cout << p_likelihood << ",";
+				// cout << p_conditional << ",";
+				// cout << endl;
 			sampling_table.push_back(p_conditional);
 			sum += p_conditional;
 		}

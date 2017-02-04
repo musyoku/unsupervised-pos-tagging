@@ -10,7 +10,6 @@
 #include <functional>
 #include <fstream>
 #include <cassert>
-#include <algorithm>
 #include "core/ihmm.h"
 #include "core/util.h"
 #include "model.cpp"
@@ -18,7 +17,7 @@ using namespace std;
 using namespace boost;
 
 int main(){
-	PyBayesianHMM* model = new PyBayesianHMM(20);
+	PyBayesianHMM* model = new PyBayesianHMM(2);
 	model->load_textfile("../alice.txt");
 	model->initialize();
 	for(int i = 0;i < 10000;i++){
@@ -31,8 +30,8 @@ int main(){
 		model->_hmm->check_sum_bigram_destination();
 		model->_hmm->check_sum_word_customers();
 		model->_hmm->check_tag_count();
-		model->_hmm->sample_gamma();
-		model->_hmm->sample_gamma_emission();
+		// model->_hmm->sample_gamma();
+		// model->_hmm->sample_gamma_emission();
 		model->_hmm->dump_hyperparameters();
 	}
 	return 0;
