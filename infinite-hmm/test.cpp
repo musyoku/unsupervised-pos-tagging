@@ -33,6 +33,7 @@ int main(){
 		// model->_hmm->sample_gamma();
 		// model->_hmm->sample_gamma_emission();
 		model->_hmm->dump_hyperparameters();
+		model->show_log_Pdata();
 	}
 	return 0;
 }

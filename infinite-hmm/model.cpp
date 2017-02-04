@@ -162,6 +162,14 @@ public:
 			_hmm->perform_gibbs_sampling_with_line(line);
 		}
 	}
+	void show_log_Pdata(){
+		double log_p = 0;
+		for(int data_index = 0;data_index < _dataset.size();data_index++){
+			vector<Word*> &line = _dataset[data_index];
+			log_p += _hmm->compute_log_Pdata(line);
+		}
+		c_printf("[*]%s: %lf\n", "log_Pdata", log_p);
+	}
 	void show_typical_words_for_each_tag(int number_to_show_for_each_tag){
 		for(int tag = 0;tag < _hmm->_tag_count.size();tag++){
 			if(_hmm->_tag_count[tag] == 0){

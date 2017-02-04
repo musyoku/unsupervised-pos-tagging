@@ -443,9 +443,9 @@ public:
 		// return sum;
 	}
 	// P(s_{t+1}|s_t)
-	double compute_Ptag_context(int tag_id, int context_tag_id){
-		double n_i = sum_bigram_destination(context_tag_id);
-		double n_ij = get_bigram_tag_count(context_tag_id, tag_id);
+	double compute_Ptag_context(int tag_id, int context_tag_id, int correcting_count_for_bigram = 0, int correcting_count_for_destination = 0){
+		double n_i = sum_bigram_destination(context_tag_id) + correcting_count_for_destination;
+		double n_ij = get_bigram_tag_count(context_tag_id, tag_id) + correcting_count_for_bigram;
 		double empirical_p = n_ij / (n_i + _beta);
 		double coeff_oracle_p = _beta / (n_i + _beta);	// 親の分布から生成される確率. 親からtag_idが生成される確率とは別物.
 		double n_o = sum_oracle_tags_count();
@@ -498,6 +498,18 @@ public:
 		// cout << log_term << endl;
 		// cout << endl;
 		return log(gamma_dist) + log_term;
+	}
+	double compute_log_Pdata(vector<Word*> &line){
+		double p = 0;
+		for(int pos = 1;pos < line.size();pos++){
+			int ti_1 = line[pos - 1]->tag_id;
+			int ti = line[pos]->tag_id;
+			int wi = line[pos]->word_id;
+			double log_p_tag = log(compute_Ptag_context(ti, ti_1));
+			double log_p_word = log(compute_Pword_tag(wi, ti));
+			p += log_p_tag + log_p_word;
+		}
+		return p;
 	}
 	void sample_gamma(){
 		double new_gamma = Sampler::normal(_gamma, 0.1 * _gamma);
@@ -564,7 +576,9 @@ public:
 			}
 			double p_emission = compute_Pword_tag(wi, tag);
 			double p_generation = compute_Ptag_context(tag, ti_1);
-			double p_likelihood = compute_Ptag_context(ti1, tag);
+			int correcting_count_for_bigram = (ti_1 == tag == ti1) ? 1 : 0;
+			int correcting_count_for_destination = (ti_1 == tag) ? 1 : 0;
+			double p_likelihood = compute_Ptag_context(ti1, tag, correcting_count_for_bigram, correcting_count_for_destination);
 			double p_conditional = p_emission * p_generation * p_likelihood;
 				// if(p_likelihood == 0){
 				// 	cout << "tag: " << tag << endl;
