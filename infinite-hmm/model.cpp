@@ -171,8 +171,8 @@ public:
 		c_printf("[*]%s: %lf\n", "log_Pdata", log_p);
 	}
 	void show_typical_words_for_each_tag(int number_to_show_for_each_tag){
-		for(int tag = 0;tag < _hmm->_tag_count.size();tag++){
-			if(_hmm->_tag_count[tag] == 0){
+		for(int tag = 0;tag < _hmm->_tag_unigram_count.size();tag++){
+			if(_hmm->_tag_unigram_count[tag] == 0){
 				continue;
 			}
 			unordered_map<int, Table*> &tables = _hmm->_tag_word_table[tag];

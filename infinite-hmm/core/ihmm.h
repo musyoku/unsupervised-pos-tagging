@@ -94,7 +94,7 @@ private:
 	void serialize(Archive& archive, unsigned int version)
 	{
 		static_cast<void>(version);
-		archive & _tag_count;
+		archive & _tag_unigram_count;
 		archive & _bigram_tag_table;
 		archive & _tag_word_table;
 		archive & _oracle_word_counts;
@@ -106,7 +106,7 @@ private:
 		archive & _gamma_emission;
 	}
 public:
-	vector<int> _tag_count;	// 全ての状態とそのカウント
+	vector<int> _tag_unigram_count;	// 全ての状態とそのカウント
 	unordered_map<int, unordered_map<int, Table*>> _bigram_tag_table;	// 品詞と単語のペアの出現頻度
 	unordered_map<int, unordered_map<int, Table*>> _tag_word_table;	// 品詞と単語のペアの出現頻度
 	unordered_map<int, int> _oracle_word_counts;	// 品詞と単語のペアの出現頻度
@@ -135,7 +135,7 @@ public:
 	}
 	void initialize(vector<vector<Word*>> &dataset){
 		for(int tag = 0;tag < _initial_num_tags;tag++){
-			_tag_count.push_back(0);
+			_tag_unigram_count.push_back(0);
 		}
 		// nグラムのカウントテーブル
 		init_ngram_counts(dataset);
@@ -150,17 +150,17 @@ public:
 			vector<Word*> &line = dataset[data_index];
 			word_set.insert(line[0]->word_id);
 			// increment_tag_word_count(line[0]);
-			// increment_tag_count(line[0]->tag_id);
+			// increment_tag_unigram_count(line[0]->tag_id);
 			
 			for(int pos = 1;pos < line.size();pos++){	// 2-gramなので3番目から.
 				Word* word = line[pos];
 
 				int ti_1 = line[pos - 1]->tag_id;
-					// int ti = (pos == line.size() - 1) ? 0 :  Sampler::uniform_int(0, _initial_num_tags - 1);
-				int ti = Sampler::uniform_int(0, _initial_num_tags - 1);
+				int ti = (pos == line.size() - 1) ? 0 :  Sampler::uniform_int(0, _initial_num_tags - 1);
+				// int ti = Sampler::uniform_int(0, _initial_num_tags - 1);
 				int wi = word->word_id;
 				increment_tag_bigram_count(ti_1, ti);
-				increment_tag_count(ti);
+				increment_tag_unigram_count(ti);
 				increment_tag_word_count(ti, wi);
 
 				word_set.insert(wi);
@@ -171,18 +171,16 @@ public:
 		c_printf("[*]%s\n", (boost::format("単語数: %d - 単語の異なり数: %d - 行数: %d") % num_words % word_set.size() % dataset.size()).str().c_str());
 		_num_words += num_words;
 	}
-	void increment_tag_count(int tag_id){
-		while(tag_id >= _tag_count.size()){
-			_tag_count.push_back(0);
+	void increment_tag_unigram_count(int tag_id){
+		while(tag_id >= _tag_unigram_count.size()){
+			_tag_unigram_count.push_back(0);
 		}
-		_tag_count[tag_id] += 1;
+		_tag_unigram_count[tag_id] += 1;
 	}
-	void decrement_tag_count(int tag_id){
-		while(tag_id >= _tag_count.size()){
-			_tag_count.push_back(0);
-		}
-		_tag_count[tag_id] -= 1;
-		assert(_tag_count[tag_id] >= 0);
+	void decrement_tag_unigram_count(int tag_id){
+		assert(tag_id < _tag_unigram_count.size());
+		_tag_unigram_count[tag_id] -= 1;
+		assert(_tag_unigram_count[tag_id] >= 0);
 	}
 	void increment_tag_bigram_count(int context_tag_id, int tag_id){
 		_sum_bigram_destination[context_tag_id] += 1;
@@ -380,21 +378,21 @@ public:
 		return _num_words;
 	}
 	bool is_tag_new(int tag_id){
-		if(tag_id >= _tag_count.size()){
+		if(tag_id >= _tag_unigram_count.size()){
 			return true;
 		}
-		if(_tag_count[tag_id] == 0){
+		if(_tag_unigram_count[tag_id] == 0){
 			return true;
 		}
 		return false;
 	}
 	int get_new_tag_id(){
-		for(int tag = 0;tag < _tag_count.size();tag++){
-			if(_tag_count[tag] == 0){
+		for(int tag = 0;tag < _tag_unigram_count.size();tag++){
+			if(_tag_unigram_count[tag] == 0){
 				return tag;
 			}
 		}
-		return _tag_count.size();
+		return _tag_unigram_count.size();
 	}
 	bool is_word_new(int word_id){
 		auto itr = _oracle_word_counts.find(word_id);
@@ -425,7 +423,7 @@ public:
 		// auto itr = _sum_bigram_destination.find(tag_id);
 		// if(itr == _sum_bigram_destination.end()){
 		// 	int sum = 0;
-		// 	unordered_map<int, int> &unigram_table = _bigram_tag_counts[tag_id];
+		// 	unordered_map<int, int> &unigram_table = _bigram_tag_table[tag_id];
 		// 	for(const auto &unigram: unigram_table){
 		// 		sum += unigram.second;
 		// 	}
@@ -449,12 +447,18 @@ public:
 		double empirical_p = n_ij / (n_i + _beta);
 		double coeff_oracle_p = _beta / (n_i + _beta);	// 親の分布から生成される確率. 親からtag_idが生成される確率とは別物.
 		double n_o = sum_oracle_tags_count();
-		double n_oj = get_oracle_tag_count(tag_id);
-		double T = get_num_tags();
-		double g0 = 1.0 / (T + 1);
-		double numerator = is_tag_new(tag_id) ? _gamma : n_oj;
-		// double oracle_p = (n_oj + _gamma * g0) / (n_o + _gamma);
-		double oracle_p = numerator / (n_o + _gamma);
+		// double g0 = 1.0 / (T + 1);
+		double oracle_p;
+		if(is_tag_new(tag_id)){
+			oracle_p = _gamma / (n_o + _gamma);
+		}else{
+			double n_oj = get_oracle_tag_count(tag_id);
+			// double T = get_num_tags();
+			// return (n_ij + _beta * g0) / (n_i + _beta);
+			// double numerator = is_tag_new(tag_id) ? _gamma : n_oj;
+			oracle_p = n_oj / (n_o + _gamma);
+		}
+		// double oracle_p = numerator / (n_o + _gamma);
 		return empirical_p + coeff_oracle_p * oracle_p;
 	}
 	// P(y_t|s_t)
@@ -467,9 +471,14 @@ public:
 		double m_oq = get_oracle_word_count(word_id);
 		double W = get_num_words();
 		double g0 = 1.0 / (W + 1);
-		double numerator = is_word_new(word_id) ? _gamma_emission : m_oq;
-		// double oracle_p = (m_oq + _gamma_emission * g0) / (m_o + _gamma_emission);
-		double oracle_p = numerator / (m_o + _gamma_emission);
+		double oracle_p;
+		if(is_word_new(word_id)){
+			oracle_p = _gamma_emission / (m_o + _gamma_emission);
+		}else{
+			oracle_p = m_oq / (m_o + _gamma_emission);
+		}
+		// double numerator = is_word_new(word_id) ? _gamma_emission : m_oq;
+		// double oracle_p = numerator / (m_o + _gamma_emission);
 		return empirical_p + coeff_oracle_p * oracle_p;
 	}
 	double compute_log_posterior_gamma(double gamma){
@@ -565,13 +574,16 @@ public:
 	}
 	// t_{i-1} -> t_i -> t_{i+1}
 	int sample_new_tag(int ti_1, int ti, int ti1, int wi){
-			// cout << "sample_new_tag" << endl;
 		// ギブスサンプリング
 		vector<double> sampling_table;
 		bool new_tag_included = false;
 		double sum = 0;
-		for(int tag = 0;tag < _tag_count.size();tag++){
+		for(int tag = 0;tag < _tag_unigram_count.size();tag++){
 			if(is_tag_new(tag)){
+				if(new_tag_included){
+					sampling_table.push_back(0);
+					continue;
+				}
 				new_tag_included = true;
 			}
 			double p_emission = compute_Pword_tag(wi, tag);
@@ -580,7 +592,8 @@ public:
 			int correcting_count_for_destination = (ti_1 == tag) ? 1 : 0;
 			double p_likelihood = compute_Ptag_context(ti1, tag, correcting_count_for_bigram, correcting_count_for_destination);
 			double p_conditional = p_emission * p_generation * p_likelihood;
-				// if(p_likelihood == 0){
+				// if(p_conditional == 0){
+				// 	cout << "ti_1: " << ti_1 << endl;
 				// 	cout << "tag: " << tag << endl;
 				// 	cout << "ti1: " << ti1 << endl;
 				// 	cout << p_emission << ",";
@@ -596,7 +609,7 @@ public:
 			sampling_table.push_back(p_conditional);
 			sum += p_conditional;
 		}
-		int new_tag = _tag_count.size();
+		int new_tag = _tag_unigram_count.size();
 		if(new_tag_included == false){
 			double p_emission = compute_Pword_tag(wi, new_tag);
 			double p_generation = compute_Ptag_context(new_tag, ti_1);
@@ -612,10 +625,10 @@ public:
 			sum += p_conditional;
 		}
 		assert(sum > 0);
-		double normalizer = 1 / sum;
+		double normalizer = 1.0 / sum;
 		double bernoulli = Sampler::uniform(0, 1);
 		sum = 0;
-		for(int tag = 0;tag < _tag_count.size();tag++){
+		for(int tag = 0;tag < _tag_unigram_count.size();tag++){
 			sum += sampling_table[tag] * normalizer;
 			if(bernoulli < sum){
 				return tag;
@@ -646,9 +659,9 @@ public:
 			decrement_tag_bigram_count(ti, ti1);
 				// dump_oracle_tags();
 				// dump_bigram_table();
-			decrement_tag_count(ti);
+			decrement_tag_unigram_count(ti);
 			decrement_tag_word_count(ti, wi);
-			increment_tag_bigram_count(ti_1, ti1);
+			// increment_tag_bigram_count(ti_1, ti1);
 
 			int new_tag = sample_new_tag(ti_1, ti, ti1, wi);
 			// モデルに追加
@@ -659,14 +672,14 @@ public:
 			increment_tag_bigram_count(new_tag, ti1);
 				// dump_oracle_tags();
 				// dump_bigram_table();
-			increment_tag_count(new_tag);
-			decrement_tag_bigram_count(ti_1, ti1);
+			increment_tag_unigram_count(new_tag);
+			// decrement_tag_bigram_count(ti_1, ti1);
 			line[pos]->tag_id = new_tag;
 		}
 	}
 	void dump_tags(){
-		for(int tag = 0;tag < _tag_count.size();tag++){
-			cout << _tag_count[tag] << ", ";
+		for(int tag = 0;tag < _tag_unigram_count.size();tag++){
+			cout << _tag_unigram_count[tag] << ", ";
 		}
 		cout << endl;
 	}
@@ -750,8 +763,8 @@ public:
 	}
 	void check_tag_count(){
 		int num_non_zero = 0;
-		for(int i = 0;i < _tag_count.size();i++){
-			if(_tag_count[i] > 0){
+		for(int i = 0;i < _tag_unigram_count.size();i++){
+			if(_tag_unigram_count[i] > 0){
 				num_non_zero += 1;
 			}
 		}
@@ -766,6 +779,20 @@ public:
 			}
 		}
 		assert(num_customers == _num_words);
+	}
+	void check_sum_tag_customers(){
+		int num_customers_in_bigram = 0;
+		for(const auto &bigram: _bigram_tag_table){
+			for(const auto &unigram: bigram.second){
+				Table* table = unigram.second;
+				num_customers_in_bigram += table->_num_customers;
+			}
+		}
+		int num_customers_in_unigram = 0;
+		for(auto itr = _tag_unigram_count.begin();itr != _tag_unigram_count.end();itr++){
+			num_customers_in_unigram += *itr;
+		}
+		assert(num_customers_in_bigram == num_customers_in_unigram);
 	}
 	bool load(string dir = "out"){
 		return true;
