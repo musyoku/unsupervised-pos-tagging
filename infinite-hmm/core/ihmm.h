@@ -123,11 +123,11 @@ public:
 	unordered_map<int, int> _sum_bigram_destination;
 	unordered_map<int, int> _sum_word_count_for_tag;
 	InfiniteHMM(int initial_num_tags){
-		_alpha = 1;
-		_beta = 1;
-		_gamma = 1;
-		_beta_emission = 1;
-		_gamma_emission = 1;
+		_alpha = 8;
+		_beta = 2;
+		_gamma = 2;
+		_beta_emission = 2;
+		_gamma_emission = 2;
 		_initial_num_tags = initial_num_tags;
 		_sum_oracle_words_count = 0;
 		_sum_oracle_tags_count = 0;
@@ -150,7 +150,7 @@ public:
 			vector<Word*> &line = dataset[data_index];
 			word_set.insert(line[0]->word_id);
 			// increment_tag_word_count(line[0]);
-			// increment_tag_unigram_count(line[0]->tag_id);
+			increment_tag_unigram_count(line[0]->tag_id);
 			
 			for(int pos = 1;pos < line.size();pos++){	// 2-gramなので3番目から.
 				Word* word = line[pos];
@@ -201,8 +201,8 @@ public:
 			}
 		}
 		bool new_table_generated = false;
-		double alpha = (context_tag_id == tag_id) ? _alpha : 0;
-		table->add_customer(alpha, _beta, new_table_generated);
+		// double alpha = (context_tag_id == tag_id) ? _alpha : 0;
+		table->add_customer(0, _beta, new_table_generated);
 		if(new_table_generated){
 			increment_oracle_tag_count(tag_id);
 		}
@@ -326,14 +326,14 @@ public:
 		Table* table = itr_table->second;
 		return table->_num_customers;
 	}
-	int get_oracle_tag_count(int tag_id){
+	int get_oracle_count_for_tag(int tag_id){
 		auto itr = _oracle_tag_counts.find(tag_id);
 		if(itr == _oracle_tag_counts.end()){
 			return 0;
 		}
 		return itr->second;
 	}
-	int get_oracle_word_count(int word_id){
+	int get_oracle_count_for_word(int word_id){
 		auto itr = _oracle_word_counts.find(word_id);
 		if(itr == _oracle_word_counts.end()){
 			return 0;
@@ -442,22 +442,25 @@ public:
 	}
 	// P(s_{t+1}|s_t)
 	double compute_Ptag_context(int tag_id, int context_tag_id, int correcting_count_for_bigram = 0, int correcting_count_for_destination = 0){
-		double n_i = sum_bigram_destination(context_tag_id) + correcting_count_for_destination;
-		double n_ij = get_bigram_tag_count(context_tag_id, tag_id) + correcting_count_for_bigram;
-		double empirical_p = n_ij / (n_i + _beta);
+		double n_i = sum_bigram_destination(context_tag_id);
+		double n_ij = get_bigram_tag_count(context_tag_id, tag_id);
+		double alpha = (tag_id == context_tag_id) ? _alpha : 0;
+		double empirical_p = (n_ij + alpha) / (n_i + _beta + _alpha);
 		double coeff_oracle_p = _beta / (n_i + _beta);	// 親の分布から生成される確率. 親からtag_idが生成される確率とは別物.
 		double n_o = sum_oracle_tags_count();
-		// double g0 = 1.0 / (T + 1);
-		double oracle_p;
-		if(is_tag_new(tag_id)){
-			oracle_p = _gamma / (n_o + _gamma);
-		}else{
-			double n_oj = get_oracle_tag_count(tag_id);
-			// double T = get_num_tags();
-			// return (n_ij + _beta * g0) / (n_i + _beta);
-			// double numerator = is_tag_new(tag_id) ? _gamma : n_oj;
-			oracle_p = n_oj / (n_o + _gamma);
-		}
+		double n_oj = get_oracle_count_for_tag(tag_id);
+		double T = get_num_tags();
+		double g0 = 1.0 / (T + 1);
+		double oracle_p = (n_oj + _gamma * g0) / (n_o + _gamma);
+		// if(is_tag_new(tag_id)){
+		// 	oracle_p = _gamma / (n_o + _gamma);
+		// }else{
+		// 	double n_oj = get_oracle_count_for_tag(tag_id);
+		// 	// double T = get_num_tags();
+		// 	// return (n_ij + _beta * g0) / (n_i + _beta);
+		// 	// double numerator = is_tag_new(tag_id) ? _gamma : n_oj;
+		// 	oracle_p = n_oj / (n_o + _gamma);
+		// }
 		// double oracle_p = numerator / (n_o + _gamma);
 		return empirical_p + coeff_oracle_p * oracle_p;
 	}
@@ -468,15 +471,15 @@ public:
 		double empirical_p = m_iq / (m_i + _beta_emission);
 		double coeff_oracle_p = _beta_emission / (m_i + _beta_emission);	// 親の分布から生成される確率. 親からword_idが生成される確率とは別物.
 		double m_o = sum_oracle_words_count();
-		double m_oq = get_oracle_word_count(word_id);
+		double m_oq = get_oracle_count_for_word(word_id);
 		double W = get_num_words();
 		double g0 = 1.0 / (W + 1);
-		double oracle_p;
-		if(is_word_new(word_id)){
-			oracle_p = _gamma_emission / (m_o + _gamma_emission);
-		}else{
-			oracle_p = m_oq / (m_o + _gamma_emission);
-		}
+		double oracle_p = (m_oq + _gamma_emission * g0) / (m_o + _gamma_emission);
+		// if(is_word_new(word_id)){
+		// 	oracle_p = _gamma_emission / (m_o + _gamma_emission);
+		// }else{
+		// 	oracle_p = m_oq / (m_o + _gamma_emission);
+		// }
 		// double numerator = is_word_new(word_id) ? _gamma_emission : m_oq;
 		// double oracle_p = numerator / (m_o + _gamma_emission);
 		return empirical_p + coeff_oracle_p * oracle_p;
@@ -573,7 +576,7 @@ public:
 		}
 	}
 	// t_{i-1} -> t_i -> t_{i+1}
-	int sample_new_tag(int ti_1, int ti, int ti1, int wi){
+	int sample_new_tag(int ti_1, int ti1, int wi){
 		// ギブスサンプリング
 		vector<double> sampling_table;
 		bool new_tag_included = false;
@@ -601,7 +604,7 @@ public:
 				// 	cout << p_likelihood << ",";
 				// 	cout << p_conditional << ",";
 				// 	cout << endl;
-				// 	cout << get_oracle_tag_count(ti1) << endl;
+				// 	cout << get_oracle_count_for_tag(ti1) << endl;
 				// 	cout << get_bigram_tag_count(tag, ti1) << endl;
 				// 	cout << new_tag_included << endl;
 				// 	exit(0);
@@ -661,9 +664,9 @@ public:
 				// dump_bigram_table();
 			decrement_tag_unigram_count(ti);
 			decrement_tag_word_count(ti, wi);
-			// increment_tag_bigram_count(ti_1, ti1);
+			increment_tag_bigram_count(ti_1, ti1);
 
-			int new_tag = sample_new_tag(ti_1, ti, ti1, wi);
+			int new_tag = sample_new_tag(ti_1, ti1, wi);
 			// モデルに追加
 			increment_tag_word_count(new_tag, wi);
 			increment_tag_bigram_count(ti_1, new_tag);
@@ -673,7 +676,7 @@ public:
 				// dump_oracle_tags();
 				// dump_bigram_table();
 			increment_tag_unigram_count(new_tag);
-			// decrement_tag_bigram_count(ti_1, ti1);
+			decrement_tag_bigram_count(ti_1, ti1);
 			line[pos]->tag_id = new_tag;
 		}
 	}
@@ -730,7 +733,7 @@ public:
 		for(const auto &elem: counts){
 			int tag_id = elem.first;
 			int num_tables = elem.second;
-			int count = get_oracle_tag_count(tag_id);
+			int count = get_oracle_count_for_tag(tag_id);
 			assert(num_tables == count);
 		}
 	}
@@ -746,7 +749,7 @@ public:
 		for(const auto &elem: counts){
 			int word_id = elem.first;
 			int num_tables = elem.second;
-			int count = get_oracle_word_count(word_id);
+			int count = get_oracle_count_for_word(word_id);
 			assert(num_tables == count);
 		}
 	}
