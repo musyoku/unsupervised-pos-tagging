@@ -123,11 +123,11 @@ public:
 	unordered_map<int, int> _sum_bigram_destination;
 	unordered_map<int, int> _sum_word_count_for_tag;
 	InfiniteHMM(int initial_num_tags){
-		_alpha = 8;
-		_beta = 2;
-		_gamma = 2;
-		_beta_emission = 2;
-		_gamma_emission = 2;
+		_alpha = 1;
+		_beta = 1;
+		_gamma = 1;
+		_beta_emission = 1;
+		_gamma_emission = 1;
 		_initial_num_tags = initial_num_tags;
 		_sum_oracle_words_count = 0;
 		_sum_oracle_tags_count = 0;
@@ -150,7 +150,7 @@ public:
 			vector<Word*> &line = dataset[data_index];
 			word_set.insert(line[0]->word_id);
 			// increment_tag_word_count(line[0]);
-			increment_tag_unigram_count(line[0]->tag_id);
+			// increment_tag_unigram_count(line[0]->tag_id);
 			
 			for(int pos = 1;pos < line.size();pos++){	// 2-gramなので3番目から.
 				Word* word = line[pos];

@@ -17,8 +17,9 @@ using namespace std;
 using namespace boost;
 
 int main(){
-	PyBayesianHMM* model = new PyBayesianHMM(8);
+	PyBayesianHMM* model = new PyBayesianHMM(1);
 	model->load_textfile("../alice.txt");
+	model->mark_low_frequency_words_as_unknown(1);
 	model->initialize();
 	for(int i = 0;i < 10000;i++){
 		model->perform_gibbs_sampling();
