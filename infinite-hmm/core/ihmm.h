@@ -5,6 +5,7 @@
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/serialization/unordered_map.hpp>
+#include <boost/serialization/vector.hpp>
 #include <boost/format.hpp>
 #include <cassert>
 #include <cmath>
@@ -30,11 +31,16 @@ private:
 		static_cast<void>(version);
 		archive & _arrangement;
 		archive & _num_customers;
+		archive & _token_id;
 	}
 public:
 	vector<int> _arrangement;
 	int _num_customers;
 	int _token_id;
+	Table(){
+		_num_customers = 0;
+		_token_id = 0;
+	}
 	Table(int token_id){
 		_num_customers = 0;
 		_token_id = token_id;
@@ -56,7 +62,7 @@ public:
 		sum = 0;
 		for(int i = 0;i < _arrangement.size();i++){
 			sum += _arrangement[i] * normalizer;
-			if(bernoulli < sum){
+			if(bernoulli <= sum){
 				_arrangement[i] += 1;
 				return;
 			}
@@ -104,6 +110,12 @@ private:
 		archive & _gamma;
 		archive & _beta_emission;
 		archive & _gamma_emission;
+		archive & _initial_num_tags;
+		archive & _sum_oracle_tags_count;
+		archive & _sum_oracle_words_count;
+		archive & _num_words;
+		archive & _sum_bigram_destination;
+		archive & _sum_word_count_for_tag;
 	}
 public:
 	vector<int> _tag_unigram_count;	// 全ての状態とそのカウント
@@ -117,9 +129,9 @@ public:
 	double _beta_emission;
 	double _gamma_emission;
 	int _initial_num_tags;
+	int _num_words;
 	int _sum_oracle_tags_count;
 	int _sum_oracle_words_count;
-	int _num_words;
 	unordered_map<int, int> _sum_bigram_destination;
 	unordered_map<int, int> _sum_word_count_for_tag;
 	InfiniteHMM(int initial_num_tags){
@@ -443,17 +455,17 @@ public:
 	double compute_Ptag_context(int tag_id, int context_tag_id, int correcting_count_for_bigram = 0, int correcting_count_for_destination = 0){
 		double n_i = sum_bigram_destination(context_tag_id);
 		double n_ij = get_bigram_tag_count(context_tag_id, tag_id);
+		// if(is_tag_new(tag_id) == false){
+		// 	assert(n_ij > 0);
+		// }
 		double alpha = (tag_id == context_tag_id) ? _alpha : 0;
 		double empirical_p = (n_ij + alpha) / (n_i + _beta + _alpha);
 		double coeff_oracle_p = _beta / (n_i + _beta);	// 親の分布から生成される確率. 親からtag_idが生成される確率とは別物.
 		double n_o = sum_oracle_tags_count();
 		double n_oj = get_oracle_count_for_tag(tag_id);
 		double T = get_num_tags();
-		double g0 = 1.0 / (T + 1);
-		double oracle_p = (n_oj + _gamma * g0) / (n_o + _gamma);
-		// if(is_tag_new(tag_id)){
-		// 	return oracle_p;
-		// }
+		double g0 = 1.0 / (T + 1.0);
+		double oracle_p = (n_oj + _gamma) / (n_o + _gamma);
 		// if(is_tag_new(tag_id)){
 		// 	oracle_p = _gamma / (n_o + _gamma);
 		// }else{
@@ -470,13 +482,16 @@ public:
 	double compute_Pword_tag(int word_id, int tag_id){
 		double m_i = sum_word_count_for_tag(tag_id);
 		double m_iq = get_tag_word_count(tag_id, word_id);
+		// if(is_word_new(word_id) == false){
+		// 	assert(m_iq > 0);
+		// }
 		double empirical_p = m_iq / (m_i + _beta_emission);
 		double coeff_oracle_p = _beta_emission / (m_i + _beta_emission);	// 親の分布から生成される確率. 親からword_idが生成される確率とは別物.
 		double m_o = sum_oracle_words_count();
 		double m_oq = get_oracle_count_for_word(word_id);
 		double W = get_num_words();
 		double g0 = 1.0 / (W + 1);
-		double oracle_p = (m_oq + _gamma_emission * g0) / (m_o + _gamma_emission);
+		double oracle_p = (m_oq + _gamma_emission) / (m_o + _gamma_emission);
 		// if(is_word_new(word_id)){
 		// 	oracle_p = _gamma_emission / (m_o + _gamma_emission);
 		// }else{
@@ -486,10 +501,35 @@ public:
 		// double oracle_p = numerator / (m_o + _gamma_emission);
 		return empirical_p + coeff_oracle_p * oracle_p;
 	}
+	double compute_gamma_distribution(double v, double a, double b){
+		return pow(b, a) / tgamma(a) * pow(v, a - 1) * exp(-b * v);
+	}
+	double compute_log_posterior_alpha_and_beta(double alpha, double beta){
+		assert(beta > 0);
+		double a_alpha = 1;
+		double b_alpha = 1;
+		double gamma_dist_alpha = compute_gamma_distribution(_alpha, a_alpha, b_alpha);
+		double a_beta = 1;
+		double b_beta = 1;
+		double gamma_dist_beta = compute_gamma_distribution(_beta, a_beta, b_beta);
+		double log_sum = 0;
+		for(int tag = 0;tag < _tag_unigram_count.size();tag++){
+			if(is_tag_new(tag)){
+				continue;
+			}
+			double Ki = sum_bigram_destination(tag);
+			double log_first_term = (Ki - 1) * log(beta) + lgamma(alpha + beta) - lgamma(alpha);
+			double n_ii = get_bigram_tag_count(tag, tag);
+			double n_i = sum_bigram_destination(tag);
+			double log_second_term = lgamma(n_ii + alpha) - lgamma(n_i + alpha + beta);
+			log_sum += log_first_term + log_second_term;
+		}
+		return log(gamma_dist_alpha) + log(gamma_dist_beta) + log_sum;
+	}
 	double compute_log_posterior_gamma(double gamma){
 		double a = 1;
 		double b = 1;
-		double gamma_dist = pow(b, a) / tgamma(a) * pow(gamma, a - 1) * exp(-b * gamma);
+		double gamma_dist = compute_gamma_distribution(gamma, a, b);
 		double K = get_num_tags();
 		double To = get_num_times_oracle_tag_used();
 		double log_term = K * log(gamma) + lgamma(gamma) - lgamma(To + gamma);
@@ -498,7 +538,7 @@ public:
 	double compute_log_posterior_gamma_emission(double gamma){
 		double a = 1;
 		double b = 1;
-		double gamma_dist = pow(b, a) / tgamma(a) * pow(gamma, a - 1) * exp(-b * gamma);
+		double gamma_dist = compute_gamma_distribution(gamma, a, b);
 		double K = _num_words;
 		double To = get_num_times_oracle_word_used();
 		double log_term = K * log(gamma) + lgamma(gamma) - lgamma(To + gamma);
@@ -525,64 +565,48 @@ public:
 		}
 		return p;
 	}
-	void sample_gamma(){
-		double new_gamma = Sampler::normal(_gamma, 0.1 * _gamma);
-		if(new_gamma <= 0){
-			return;
+	void sample_alpha_and_beta(double lr = 1e-2){
+		double eps = 1e-6;
+		{
+			double log_p_old = compute_log_posterior_alpha_and_beta(_alpha, _beta);
+			double log_p_new = compute_log_posterior_alpha_and_beta(_alpha + eps, _beta);
+			double grad = (log_p_new - log_p_old) / eps;
+			_alpha -= grad * lr;
+			_alpha = std::max(eps, _alpha);
 		}
-		double log_p_old = compute_log_posterior_gamma(_gamma);
-		double log_p_new = compute_log_posterior_gamma(new_gamma);
-		if(log_p_old == 0){
-			return;
-		}
-
-		double sigma_gamma = 0.1 * _gamma;
-		double sigma_new_gamma = 0.1 * new_gamma;
-		double var_gamma = sigma_gamma * sigma_gamma;
-		double var_new_gamma = sigma_new_gamma * sigma_new_gamma;
-		double correcting_term = (_gamma / new_gamma) * exp(
-			  0.5 * (new_gamma - _gamma) * (new_gamma - _gamma) / var_gamma
-			+ 0.5 * (_gamma - new_gamma) * (_gamma - new_gamma) / var_new_gamma
-		);
-		// 採択率
-		double adoption_rate = std::min(1.0, exp(log_p_new - log_p_old) * correcting_term);
-		double bernoulli = Sampler::uniform(0, 1);
-		if(bernoulli < adoption_rate){
-			_gamma = new_gamma;
+		{
+			double log_p_old = compute_log_posterior_alpha_and_beta(_alpha, _beta);
+			double log_p_new = compute_log_posterior_alpha_and_beta(_alpha, _beta + eps);
+			double grad = (log_p_new - log_p_old) / eps;
+			_beta -= grad * lr;
+			_beta = std::max(eps, _beta);
 		}
 	}
-	void sample_gamma_emission(){
-		double new_gamma = Sampler::normal(_gamma_emission, 0.1 * _gamma_emission);
-		if(new_gamma <= 0){
-			return;
-		}
-		double log_p_old = compute_log_posterior_gamma_emission(_gamma_emission);
-		double log_p_new = compute_log_posterior_gamma_emission(new_gamma);
-		if(log_p_old == 0){
-			return;
-		}
+	void sample_beta_emission(double lr = 1e-2){
 
-		double sigma_gamma = 0.1 * _gamma_emission;
-		double sigma_new_gamma = 0.1 * new_gamma;
-		double var_gamma = sigma_gamma * sigma_gamma;
-		double var_new_gamma = sigma_new_gamma * sigma_new_gamma;
-		double correcting_term = (_gamma_emission / new_gamma) * exp(
-			  0.5 * (new_gamma - _gamma_emission) * (new_gamma - _gamma_emission) / var_gamma
-			+ 0.5 * (_gamma_emission - new_gamma) * (_gamma_emission - new_gamma) / var_new_gamma
-		);
-		// 採択率
-		double adoption_rate = std::min(1.0, exp(log_p_new - log_p_old) * correcting_term);
-		double bernoulli = Sampler::uniform(0, 1);
-		if(bernoulli < adoption_rate){
-			_gamma_emission = new_gamma;
-		}
+	}
+	void sample_gamma(double lr = 1e-2){
+		double eps = 1e-6;
+		double log_p_old = compute_log_posterior_gamma(_gamma);
+		double log_p_new = compute_log_posterior_gamma(_gamma + eps);
+		double grad = (log_p_new - log_p_old) / eps;
+		_gamma -= grad * lr;
+		_gamma = std::max(eps, _gamma);
+	}
+	void sample_gamma_emission(double lr = 1e-2){
+		double eps = 1e-6;
+		double log_p_old = compute_log_posterior_gamma_emission(_gamma_emission);
+		double log_p_new = compute_log_posterior_gamma_emission(_gamma_emission + eps);
+		double grad = (log_p_new - log_p_old) / eps;
+		_gamma_emission -= grad * lr;
+		_gamma_emission = std::max(eps, _gamma_emission);
 	}
 	// t_{i-1} -> t_i -> t_{i+1}
 	int sample_new_tag(int ti_1, int ti1, int wi){
 		// ギブスサンプリング
 		vector<double> sampling_table;
-		bool new_tag_included = false;
 		double sum = 0;
+		bool new_tag_included = false;
 		for(int tag = 0;tag < _tag_unigram_count.size();tag++){
 			if(is_tag_new(tag)){
 				if(new_tag_included){
@@ -614,6 +638,7 @@ public:
 			sampling_table.push_back(p_conditional);
 			sum += p_conditional;
 		}
+		assert(sampling_table.size() == _tag_unigram_count.size());
 		int new_tag = _tag_unigram_count.size();
 		if(new_tag_included == false){
 			double p_emission = compute_Pword_tag(wi, new_tag);
@@ -629,13 +654,64 @@ public:
 			sampling_table.push_back(p_conditional);
 			sum += p_conditional;
 		}
+		if(sum <= 0){
+			sum = 0;
+			bool new_tag_included = false;
+			for(int tag = 0;tag < _tag_unigram_count.size();tag++){
+				if(is_tag_new(tag)){
+					if(new_tag_included){
+						sampling_table.push_back(0);
+						continue;
+					}
+					cout << tag << " is a new tag." << endl;
+					new_tag_included = true;
+				}
+				double p_emission = compute_Pword_tag(wi, tag);
+				double p_generation = compute_Ptag_context(tag, ti_1);
+				int correcting_count_for_bigram = (ti_1 == tag == ti1) ? 1 : 0;
+				int correcting_count_for_destination = (ti_1 == tag) ? 1 : 0;
+				double p_likelihood = compute_Ptag_context(ti1, tag, correcting_count_for_bigram, correcting_count_for_destination);
+				double p_conditional = p_emission * p_generation * p_likelihood;
+					// if(p_conditional == 0){
+						cout << "ti_1: " << ti_1 << endl;
+						cout << "tag: " << tag << endl;
+						cout << "ti1: " << ti1 << endl;
+						cout << p_emission << ",";
+						cout << p_generation << ",";
+						cout << p_likelihood << ",";
+						cout << p_conditional << ",";
+						cout << endl;
+						cout << get_oracle_count_for_tag(ti1) << endl;
+						cout << get_bigram_tag_count(tag, ti1) << endl;
+						cout << new_tag_included << endl;
+					// }
+				sampling_table.push_back(p_conditional);
+				sum += p_conditional;
+			}
+			assert(sampling_table.size() == _tag_unigram_count.size());
+			int new_tag = _tag_unigram_count.size();
+			if(new_tag_included == false){
+				double p_emission = compute_Pword_tag(wi, new_tag);
+				double p_generation = compute_Ptag_context(new_tag, ti_1);
+				double p_likelihood = compute_Ptag_context(ti1, new_tag);
+				double p_conditional = p_emission * p_generation * p_likelihood;
+					cout << "new_tag: " << new_tag << endl;
+					cout << p_emission << ",";
+					cout << p_generation << ",";
+					cout << p_likelihood << ",";
+					cout << p_conditional << ",";
+					cout << endl;
+				sampling_table.push_back(p_conditional);
+				sum += p_conditional;
+			}
+		}
 		assert(sum > 0);
 		double normalizer = 1.0 / sum;
 		double bernoulli = Sampler::uniform(0, 1);
 		sum = 0;
 		for(int tag = 0;tag < _tag_unigram_count.size();tag++){
 			sum += sampling_table[tag] * normalizer;
-			if(bernoulli < sum){
+			if(bernoulli <= sum){
 				return tag;
 			}
 		}
@@ -799,11 +875,27 @@ public:
 		}
 		assert(num_customers_in_bigram == num_customers_in_unigram);
 	}
-	bool load(string dir = "out"){
-		return true;
-	}
 	bool save(string dir = "out"){
-		return true;
+		bool success = false;
+		ofstream ofs(dir + "/ihmm.model");
+		if(ofs.good()){
+			boost::archive::binary_oarchive oarchive(ofs);
+			oarchive << static_cast<const InfiniteHMM&>(*this);
+			success = true;
+		}
+		ofs.close();
+		return success;
+	}
+	bool load(string dir = "out"){
+		bool success = false;
+		ifstream ifs(dir + "/ihmm.model");
+		if(ifs.good()){
+			boost::archive::binary_iarchive iarchive(ifs);
+			iarchive >> *this;
+			success = true;
+		}
+		ifs.close();
+		return success;
 	}
 
 };

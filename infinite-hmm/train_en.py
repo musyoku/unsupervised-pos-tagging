@@ -45,7 +45,7 @@ def main(args):
 		os.mkdir(args.model)
 	except:
 		pass
-		
+
 	hmm = model.bayesian_hmm(args.initial_num_tags)
 
 	# 訓練データを形態素解析して各品詞ごとにその品詞になりうる単語の総数を求めておく
@@ -96,6 +96,8 @@ def main(args):
 		sys.stdout.flush()
 		if epoch % 10 == 0:
 			print "\n"
+			hmm.show_typical_words_for_each_tag(20);
+			hmm.show_log_Pdata();
 			hmm.save(args.model);
 
 if __name__ == "__main__":

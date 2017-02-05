@@ -17,11 +17,11 @@ using namespace std;
 using namespace boost;
 
 int main(){
-	PyBayesianHMM* model = new PyBayesianHMM(10);
-	model->load_textfile("../test.txt");
+	PyBayesianHMM* model = new PyBayesianHMM(2);
+	model->load_textfile("../alice.txt");
 	model->mark_low_frequency_words_as_unknown(1);
 	model->initialize();
-	for(int i = 0;i < 10000;i++){
+	for(int i = 0;i < 1000;i++){
 		model->perform_gibbs_sampling();
 		model->_hmm->dump_oracle_tags();
 		model->show_typical_words_for_each_tag(20);
@@ -32,10 +32,14 @@ int main(){
 		model->_hmm->check_sum_tag_customers();
 		model->_hmm->check_sum_word_customers();
 		model->_hmm->check_tag_count();
+		// model->_hmm->sample_alpha_and_beta();
 		// model->_hmm->sample_gamma();
 		// model->_hmm->sample_gamma_emission();
 		model->_hmm->dump_hyperparameters();
 		model->show_log_Pdata();
+		if(i % 10 == 0){
+			model->_hmm->save();
+		}
 	}
 	return 0;
 }
