@@ -42,7 +42,7 @@ public:
 	bool is_empty(){
 		return _arrangement.size() == 0;
 	}
-	void add_customer(double self_transition_alpha, double concentration_parameter, bool &new_table_generated){
+	void add_customer(double concentration_parameter, bool &new_table_generated){
 		_num_customers += 1;
 		if(_arrangement.size() == 0){
 			_arrangement.push_back(1);
@@ -50,12 +50,12 @@ public:
 			return;
 		}
 		new_table_generated = false;
-		double sum = std::accumulate(_arrangement.begin(), _arrangement.end(), 0) + self_transition_alpha + concentration_parameter;
+		double sum = std::accumulate(_arrangement.begin(), _arrangement.end(), 0) + concentration_parameter;
 		double normalizer = 1 / sum;
 		double bernoulli = Sampler::uniform(0, 1);
 		sum = 0;
 		for(int i = 0;i < _arrangement.size();i++){
-			sum += (_arrangement[i] + self_transition_alpha / _arrangement.size()) * normalizer;
+			sum += _arrangement[i] * normalizer;
 			if(bernoulli < sum){
 				_arrangement[i] += 1;
 				return;
@@ -201,8 +201,7 @@ public:
 			}
 		}
 		bool new_table_generated = false;
-		// double alpha = (context_tag_id == tag_id) ? _alpha : 0;
-		table->add_customer(0, _beta, new_table_generated);
+		table->add_customer(_beta, new_table_generated);
 		if(new_table_generated){
 			increment_oracle_tag_count(tag_id);
 		}
@@ -229,7 +228,7 @@ public:
 			}
 		}
 		bool new_table_generated = false;
-		table->add_customer(0, _beta_emission, new_table_generated);
+		table->add_customer(_beta_emission, new_table_generated);
 		if(new_table_generated){
 			increment_oracle_word_count(word_id);
 		}
@@ -452,6 +451,9 @@ public:
 		double T = get_num_tags();
 		double g0 = 1.0 / (T + 1);
 		double oracle_p = (n_oj + _gamma * g0) / (n_o + _gamma);
+		// if(is_tag_new(tag_id)){
+		// 	return oracle_p;
+		// }
 		// if(is_tag_new(tag_id)){
 		// 	oracle_p = _gamma / (n_o + _gamma);
 		// }else{
