@@ -36,6 +36,7 @@ private:
 	int _unk_id;
 	int _max_num_words_in_line;
 	int _min_num_words_in_line;
+	double _minimum_temperature;
 public:
 	InfiniteHMM* _hmm;
 	PyBayesianHMM(int initial_num_tags){
@@ -60,6 +61,8 @@ public:
 
 		_max_num_words_in_line = -1;
 		_min_num_words_in_line = -1;
+
+		_minimum_temperature = 0.08;
 	}
 	int string_to_word_id(wstring word){
 		auto itr = _dictionary_inv.find(word);
@@ -188,6 +191,17 @@ public:
 			_hmm->perform_gibbs_sampling_with_line(line);
 		}
 	}
+	void set_temperature(double temperature){
+		_hmm->_temperature = temperature;
+	}
+	void anneal_temperature(double multiplier){
+		if(_hmm->_temperature > _minimum_temperature){
+			_hmm->_temperature *= multiplier;
+		}
+	}
+	void show_temperature(){
+		c_printf("[*]%s: %lf\n", "temperature", _hmm->_temperature);
+	}
 	void show_log_Pdata(){
 		double log_p = 0;
 		for(int data_index = 0;data_index < _dataset.size();data_index++){
@@ -230,8 +244,14 @@ BOOST_PYTHON_MODULE(model){
 	.def("string_to_word_id", &PyBayesianHMM::string_to_word_id)
 	.def("perform_gibbs_sampling", &PyBayesianHMM::perform_gibbs_sampling)
 	.def("initialize", &PyBayesianHMM::initialize)
+	.def("set_temperature", &PyBayesianHMM::set_temperature)
+	.def("anneal_temperature", &PyBayesianHMM::anneal_temperature)
 	.def("load", &PyBayesianHMM::load)
 	.def("save", &PyBayesianHMM::save)
 	.def("add_line", &PyBayesianHMM::add_line)
+	.def("mark_low_frequency_words_as_unknown", &PyBayesianHMM::mark_low_frequency_words_as_unknown)
+	.def("show_typical_words_for_each_tag", &PyBayesianHMM::show_typical_words_for_each_tag)
+	.def("show_log_Pdata", &PyBayesianHMM::show_log_Pdata)
+	.def("show_temperature", &PyBayesianHMM::show_temperature)
 	.def("load_textfile", &PyBayesianHMM::load_textfile);
 }

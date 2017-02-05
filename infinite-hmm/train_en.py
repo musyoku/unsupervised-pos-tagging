@@ -84,12 +84,15 @@ def main(args):
 			segmentation = re.sub(ur" +$", "",  segmentation)	# 行末の空白を除去
 			hmm.add_line(segmentation.decode("utf-8"))	# 学習用データに追加
 
+	hmm.mark_low_frequency_words_as_unknown(1)	# 低頻度語を全て<unk>に置き換える
 	hmm.initialize()	# 品詞数をセットしてから初期化
+	hmm.set_temperature(1.5)
 
 	for epoch in xrange(1, args.epoch + 1):
 		start = time.time()
 
 		hmm.perform_gibbs_sampling()
+		hmm.anneal_temperature(0.998)
 
 		elapsed_time = time.time() - start
 		sys.stdout.write(" Epoch {} / {} - {:.3f} sec\r".format(epoch, args.epoch, elapsed_time))		
@@ -98,6 +101,7 @@ def main(args):
 			print "\n"
 			hmm.show_typical_words_for_each_tag(20);
 			hmm.show_log_Pdata();
+			hmm.show_temperature();
 			hmm.save(args.model);
 
 if __name__ == "__main__":

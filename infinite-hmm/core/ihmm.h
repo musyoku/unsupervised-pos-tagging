@@ -132,6 +132,7 @@ public:
 	int _num_words;
 	int _sum_oracle_tags_count;
 	int _sum_oracle_words_count;
+	double _temperature;
 	unordered_map<int, int> _sum_bigram_destination;
 	unordered_map<int, int> _sum_word_count_for_tag;
 	InfiniteHMM(int initial_num_tags){
@@ -144,6 +145,7 @@ public:
 		_sum_oracle_words_count = 0;
 		_sum_oracle_tags_count = 0;
 		_num_words = 0;
+		_temperature = 1;
 	}
 	void initialize(vector<vector<Word*>> &dataset){
 		for(int tag = 0;tag < _initial_num_tags;tag++){
@@ -180,7 +182,7 @@ public:
 				word->tag_id = ti;
 			}
 		}
-		c_printf("[*]%s\n", (boost::format("単語数: %d - 単語の異なり数: %d - 行数: %d") % num_words % word_set.size() % dataset.size()).str().c_str());
+		c_printf("[*]%s\n", (boost::format("単語数: %d - 単語種: %d - 行数: %d") % num_words % word_set.size() % dataset.size()).str().c_str());
 		_num_words += num_words;
 	}
 	void increment_tag_unigram_count(int tag_id){
@@ -635,6 +637,7 @@ public:
 				// 	cout << new_tag_included << endl;
 				// 	exit(0);
 				// }
+			p_conditional = pow(p_conditional, 1.0 / _temperature);
 			sampling_table.push_back(p_conditional);
 			sum += p_conditional;
 		}
@@ -651,59 +654,9 @@ public:
 				// cout << p_likelihood << ",";
 				// cout << p_conditional << ",";
 				// cout << endl;
+			p_conditional = pow(p_conditional, 1.0 / _temperature);
 			sampling_table.push_back(p_conditional);
 			sum += p_conditional;
-		}
-		if(sum <= 0){
-			sum = 0;
-			bool new_tag_included = false;
-			for(int tag = 0;tag < _tag_unigram_count.size();tag++){
-				if(is_tag_new(tag)){
-					if(new_tag_included){
-						sampling_table.push_back(0);
-						continue;
-					}
-					cout << tag << " is a new tag." << endl;
-					new_tag_included = true;
-				}
-				double p_emission = compute_Pword_tag(wi, tag);
-				double p_generation = compute_Ptag_context(tag, ti_1);
-				int correcting_count_for_bigram = (ti_1 == tag == ti1) ? 1 : 0;
-				int correcting_count_for_destination = (ti_1 == tag) ? 1 : 0;
-				double p_likelihood = compute_Ptag_context(ti1, tag, correcting_count_for_bigram, correcting_count_for_destination);
-				double p_conditional = p_emission * p_generation * p_likelihood;
-					// if(p_conditional == 0){
-						cout << "ti_1: " << ti_1 << endl;
-						cout << "tag: " << tag << endl;
-						cout << "ti1: " << ti1 << endl;
-						cout << p_emission << ",";
-						cout << p_generation << ",";
-						cout << p_likelihood << ",";
-						cout << p_conditional << ",";
-						cout << endl;
-						cout << get_oracle_count_for_tag(ti1) << endl;
-						cout << get_bigram_tag_count(tag, ti1) << endl;
-						cout << new_tag_included << endl;
-					// }
-				sampling_table.push_back(p_conditional);
-				sum += p_conditional;
-			}
-			assert(sampling_table.size() == _tag_unigram_count.size());
-			int new_tag = _tag_unigram_count.size();
-			if(new_tag_included == false){
-				double p_emission = compute_Pword_tag(wi, new_tag);
-				double p_generation = compute_Ptag_context(new_tag, ti_1);
-				double p_likelihood = compute_Ptag_context(ti1, new_tag);
-				double p_conditional = p_emission * p_generation * p_likelihood;
-					cout << "new_tag: " << new_tag << endl;
-					cout << p_emission << ",";
-					cout << p_generation << ",";
-					cout << p_likelihood << ",";
-					cout << p_conditional << ",";
-					cout << endl;
-				sampling_table.push_back(p_conditional);
-				sum += p_conditional;
-			}
 		}
 		assert(sum > 0);
 		double normalizer = 1.0 / sum;
