@@ -46,7 +46,7 @@ def main(args):
 	except:
 		pass
 
-	hmm = model.bayesian_hmm(args.initial_num_tags)
+	hmm = model.ihmm(args.initial_num_tags)
 
 	# 訓練データを形態素解析して各品詞ごとにその品詞になりうる単語の総数を求めておく
 	print stdout.BOLD + "データを準備しています ..." + stdout.END
@@ -86,13 +86,13 @@ def main(args):
 
 	hmm.mark_low_frequency_words_as_unknown(1)	# 低頻度語を全て<unk>に置き換える
 	hmm.initialize()	# 品詞数をセットしてから初期化
-	hmm.set_temperature(1.5)
 
+	# hmm.set_temperature(1)
 	for epoch in xrange(1, args.epoch + 1):
 		start = time.time()
 
 		hmm.perform_gibbs_sampling()
-		hmm.anneal_temperature(0.998)
+		# hmm.anneal_temperature(0.9985)
 
 		elapsed_time = time.time() - start
 		sys.stdout.write(" Epoch {} / {} - {:.3f} sec\r".format(epoch, args.epoch, elapsed_time))		

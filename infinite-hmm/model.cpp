@@ -23,7 +23,7 @@ struct value_comparator {
 	}   
 };
 
-class PyBayesianHMM{
+class PyInfiniteHMM{
 private:
 	unordered_map<int, wstring> _dictionary;
 	unordered_map<wstring, int> _dictionary_inv;
@@ -39,7 +39,7 @@ private:
 	double _minimum_temperature;
 public:
 	InfiniteHMM* _hmm;
-	PyBayesianHMM(int initial_num_tags){
+	PyInfiniteHMM(int initial_num_tags){
 		// 日本語周り
 		// ただのテンプレ
 		setlocale(LC_CTYPE, "ja_JP.UTF-8");
@@ -174,6 +174,9 @@ public:
 		ofs.close();
 		return _hmm->save(dirname);
 	}
+	void argmax_Ptag_context_word(int context_tag_id, int word_id){
+		return _hmm->argmax_Ptag_context_word(context_tag_id, word_id);
+	}
 	void perform_gibbs_sampling(){
 		if(_rand_indices.size() != _dataset.size()){
 			_rand_indices.clear();
@@ -240,18 +243,19 @@ public:
 };
 
 BOOST_PYTHON_MODULE(model){
-	python::class_<PyBayesianHMM>("bayesian_hmm", python::init<int>())
-	.def("string_to_word_id", &PyBayesianHMM::string_to_word_id)
-	.def("perform_gibbs_sampling", &PyBayesianHMM::perform_gibbs_sampling)
-	.def("initialize", &PyBayesianHMM::initialize)
-	.def("set_temperature", &PyBayesianHMM::set_temperature)
-	.def("anneal_temperature", &PyBayesianHMM::anneal_temperature)
-	.def("load", &PyBayesianHMM::load)
-	.def("save", &PyBayesianHMM::save)
-	.def("add_line", &PyBayesianHMM::add_line)
-	.def("mark_low_frequency_words_as_unknown", &PyBayesianHMM::mark_low_frequency_words_as_unknown)
-	.def("show_typical_words_for_each_tag", &PyBayesianHMM::show_typical_words_for_each_tag)
-	.def("show_log_Pdata", &PyBayesianHMM::show_log_Pdata)
-	.def("show_temperature", &PyBayesianHMM::show_temperature)
-	.def("load_textfile", &PyBayesianHMM::load_textfile);
+	python::class_<PyInfiniteHMM>("ihmm", python::init<int>())
+	.def("string_to_word_id", &PyInfiniteHMM::string_to_word_id)
+	.def("perform_gibbs_sampling", &PyInfiniteHMM::perform_gibbs_sampling)
+	.def("initialize", &PyInfiniteHMM::initialize)
+	.def("set_temperature", &PyInfiniteHMM::set_temperature)
+	.def("anneal_temperature", &PyInfiniteHMM::anneal_temperature)
+	.def("load", &PyInfiniteHMM::load)
+	.def("save", &PyInfiniteHMM::save)
+	.def("add_line", &PyInfiniteHMM::add_line)
+	.def("mark_low_frequency_words_as_unknown", &PyInfiniteHMM::mark_low_frequency_words_as_unknown)
+	.def("show_typical_words_for_each_tag", &PyInfiniteHMM::show_typical_words_for_each_tag)
+	.def("show_log_Pdata", &PyInfiniteHMM::show_log_Pdata)
+	.def("show_temperature", &PyInfiniteHMM::show_temperature)
+	.def("argmax_Ptag_context_word", &PyInfiniteHMM::argmax_Ptag_context_word)
+	.def("load_textfile", &PyInfiniteHMM::load_textfile);
 }

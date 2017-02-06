@@ -468,6 +468,7 @@ public:
 		double T = get_num_tags();
 		double g0 = 1.0 / (T + 1.0);
 		double oracle_p = (n_oj + _gamma) / (n_o + _gamma);
+		// double oracle_p = (n_oj + _gamma * g0) / (n_o + _gamma);
 		// if(is_tag_new(tag_id)){
 		// 	oracle_p = _gamma / (n_o + _gamma);
 		// }else{
@@ -494,6 +495,7 @@ public:
 		double W = get_num_words();
 		double g0 = 1.0 / (W + 1);
 		double oracle_p = (m_oq + _gamma_emission) / (m_o + _gamma_emission);
+		// double oracle_p = (m_oq + _gamma_emission * g0) / (m_o + _gamma_emission);
 		// if(is_word_new(word_id)){
 		// 	oracle_p = _gamma_emission / (m_o + _gamma_emission);
 		// }else{
@@ -621,7 +623,10 @@ public:
 			double p_generation = compute_Ptag_context(tag, ti_1);
 			int correcting_count_for_bigram = (ti_1 == tag == ti1) ? 1 : 0;
 			int correcting_count_for_destination = (ti_1 == tag) ? 1 : 0;
-			double p_likelihood = compute_Ptag_context(ti1, tag, correcting_count_for_bigram, correcting_count_for_destination);
+			double p_likelihood = 1;
+			if(ti1 != -1){
+				p_likelihood = compute_Ptag_context(ti1, tag, correcting_count_for_bigram, correcting_count_for_destination);
+			}
 			double p_conditional = p_emission * p_generation * p_likelihood;
 				// if(p_conditional == 0){
 				// 	cout << "ti_1: " << ti_1 << endl;
@@ -646,7 +651,10 @@ public:
 		if(new_tag_included == false){
 			double p_emission = compute_Pword_tag(wi, new_tag);
 			double p_generation = compute_Ptag_context(new_tag, ti_1);
-			double p_likelihood = compute_Ptag_context(ti1, new_tag);
+			double p_likelihood = 1;
+			if(ti1 != -1){
+				p_likelihood = compute_Ptag_context(ti1, new_tag);
+			}
 			double p_conditional = p_emission * p_generation * p_likelihood;
 				// cout << "tag: " << new_tag << endl;
 				// cout << p_emission << ",";
@@ -672,14 +680,33 @@ public:
 			// cout << "new_tag generated" << endl;
 		return new_tag;
 	}
+	int argmax_Ptag_context_word(int context_tag_id, int word_id){
+		double max_p = 0;
+		double max_tag = 0;
+		for(int tag = 0;tag < _tag_unigram_count.size();tag++){
+			if(is_tag_new(tag)){
+				continue;
+			}
+			double Ptag = compute_Ptag_context(tag, context_tag_id);
+			double Pword = compute_Pword_tag(word_id, tag);
+			double p = Ptag * Pword;
+			if(p > max_p){
+				max_tag = tag;
+			}
+		}
+		return tag;
+	}
 	void perform_gibbs_sampling_with_line(vector<Word*> &line){
 			// c_printf("[*]%s\n", "perform_gibbs_sampling_with_line");
 			// for(int pos = 0;pos < line.size();pos++){
 			// 	cout << line[pos]->tag_id << " -> ";
 			// }
 			// cout << endl;
-
-		for(int pos = 1;pos < line.size() - 1;pos++){
+		if(line.size() < 2){
+			return;
+		}
+		int pos = 1;
+		for(;pos < line.size() - 1;pos++){
 				// c_printf("[*]%s\n", (boost::format("pos = %d") % pos).str().c_str());
 			int ti_1 = line[pos - 1]->tag_id;
 			int ti = line[pos]->tag_id;
@@ -688,28 +715,33 @@ public:
 
 			// 現在のtiをモデルから除去
 			decrement_tag_bigram_count(ti_1, ti);
-				// dump_oracle_tags();
-				// dump_bigram_table();
 			decrement_tag_bigram_count(ti, ti1);
-				// dump_oracle_tags();
-				// dump_bigram_table();
 			decrement_tag_unigram_count(ti);
 			decrement_tag_word_count(ti, wi);
 			increment_tag_bigram_count(ti_1, ti1);
-
+			// 新しい状態をサンプリング
 			int new_tag = sample_new_tag(ti_1, ti1, wi);
 			// モデルに追加
 			increment_tag_word_count(new_tag, wi);
 			increment_tag_bigram_count(ti_1, new_tag);
-				// dump_oracle_tags();
-				// dump_bigram_table();
 			increment_tag_bigram_count(new_tag, ti1);
-				// dump_oracle_tags();
-				// dump_bigram_table();
 			increment_tag_unigram_count(new_tag);
 			decrement_tag_bigram_count(ti_1, ti1);
 			line[pos]->tag_id = new_tag;
 		}
+		// EOS
+		assert(pos == line.size() - 1);
+		int ti_1 = line[pos - 1]->tag_id;
+		int ti = line[pos]->tag_id;
+		int wi = line[pos]->word_id;
+		decrement_tag_bigram_count(ti_1, ti);
+		decrement_tag_unigram_count(ti);
+		decrement_tag_word_count(ti, wi);
+		int new_tag = sample_new_tag(ti_1, -1, wi);
+		increment_tag_word_count(new_tag, wi);
+		increment_tag_bigram_count(ti_1, new_tag);
+		increment_tag_unigram_count(new_tag);
+		line[pos]->tag_id = new_tag;
 	}
 	void dump_tags(){
 		for(int tag = 0;tag < _tag_unigram_count.size();tag++){

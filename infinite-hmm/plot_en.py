@@ -13,7 +13,7 @@ from train_ja import stdout
 sns.set(font=["MS Gothic"], font_scale=3)
 
 def main(args):
-	hmm = model.bayesian_hmm()
+	hmm = model.ihmm()
 	if hmm.load(args.model) == False:
 		raise Exception("モデルが見つかりません.")
 
@@ -35,7 +35,7 @@ def main(args):
 				lowercase = collapse_pos(word_pos_lowercase.split("\t")[2])
 				all_types_of_pos.add(pos)
 				word_id = hmm.string_to_word_id(lowercase)
-				tag_id = hmm.argmax_tag_from_Pt_w(tag_ids[-2], tag_ids[-1], word_id)
+				tag_id = hmm.argmax_Ptag_context_word(tag_ids[-1], word_id)
 				tag_ids.append(tag_id)
 				if tag_id not in num_occurrence_of_pos_for_tag:
 					num_occurrence_of_pos_for_tag[tag_id] = {}
