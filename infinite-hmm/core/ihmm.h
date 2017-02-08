@@ -133,10 +133,13 @@ public:
 	int _num_words;
 	int _sum_oracle_tags_count;
 	int _sum_oracle_words_count;
+	int _max_sequence_length;
 	double _temperature;
 	unordered_map<int, int> _sum_bigram_destination;
 	unordered_map<int, int> _sum_word_count_for_tag;
 	double* _gibbs_sampling_table;
+	double* _beam_sampling_table_u;
+	double** _beam_sampling_table_s;
 	InfiniteHMM(int initial_num_tags){
 		_alpha = 1;
 		_beta = 1;
@@ -148,15 +151,23 @@ public:
 		_sum_oracle_tags_count = 0;
 		_num_words = 0;
 		_temperature = 1;
+		_max_sequence_length = 0;
 	}
 	void initialize(vector<vector<Word*>> &dataset){
+		// nグラムのカウントテーブル
+		init_ngram_counts(dataset);
+		// サンプリングテーブル
 		for(int tag = 0;tag < _initial_num_tags;tag++){
 			_tag_unigram_count.push_back(0);
 		}
 		_prev_tag_unigram_count_size = _tag_unigram_count.size();
 		_gibbs_sampling_table = (double*)malloc(_prev_tag_unigram_count_size * sizeof(double));
-		// nグラムのカウントテーブル
-		init_ngram_counts(dataset);
+		assert(_max_sequence_length > 0);
+		_beam_sampling_table_u = (double*)malloc(_max_sequence_length * sizeof(double));
+		_beam_sampling_table_s = (double**)malloc(_max_sequence_length * sizeof(double));
+		for(int pos = 0;pos < _max_sequence_length;pos++){
+			_beam_sampling_table_s[pos] = (double*)malloc((_initial_num_tags + 1) * sizeof(double));
+		}
 	}
 	void init_ngram_counts(vector<vector<Word*>> &dataset){
 		c_printf("[*]%s\n", "n-gramモデルを構築してます ...");
@@ -166,6 +177,9 @@ public:
 		unordered_map<int, int> tag_for_word;
 		for(int data_index = 0;data_index < dataset.size();data_index++){
 			vector<Word*> &line = dataset[data_index];
+			if(line.size() > _max_sequence_length){
+				_max_sequence_length = line.size();
+			}
 			word_set.insert(line[0]->word_id);
 			// increment_tag_word_count(line[0]);
 			// increment_tag_unigram_count(line[0]->tag_id);
@@ -216,8 +230,17 @@ public:
 		}
 		if(_tag_unigram_count.size() != _prev_tag_unigram_count_size){
 			free(_gibbs_sampling_table);
+			for(int pos = 0;pos < _max_sequence_length;pos++){
+				free(_beam_sampling_table_s[pos]);
+			}
+			// 更新
 			_prev_tag_unigram_count_size = _tag_unigram_count.size();
+			// re-alloc
 			_gibbs_sampling_table = (double*)malloc(_prev_tag_unigram_count_size * sizeof(double));
+			for(int pos = 0;pos < _max_sequence_length;pos++){
+				// ここだけは既存タグ数+1
+				_beam_sampling_table_s[pos] = (double*)malloc((_prev_tag_unigram_count_size + 1) * sizeof(double));
+			}
 		}
 	}
 	void increment_tag_bigram_count(int context_tag_id, int tag_id){
@@ -493,18 +516,13 @@ public:
 		return p;
 	}
 	// t_{i-1} -> t_i -> t_{i+1}
-	int sample_new_tag(int ti_1, int ti1, int wi){
+	int gibbs_sample_new_tag(int ti_1, int ti1, int wi){
 		// ギブスサンプリング
 		double sum = 0;
-		bool new_tag_included = false;
 		for(int tag = 0;tag < _tag_unigram_count.size();tag++){
 			if(is_tag_new(tag)){
-				if(new_tag_included){
-					// sampling_table.push_back(0);
-					_gibbs_sampling_table[tag] = 0;
-					continue;
-				}
-				new_tag_included = true;
+				_gibbs_sampling_table[tag] = 0;
+				continue;
 			}
 			double p_emission = compute_Pword_tag(wi, tag);
 			double p_generation = compute_Ptag_context(tag, ti_1);
@@ -516,24 +534,22 @@ public:
 			}
 			double p_conditional = p_emission * p_generation * p_likelihood;
 			p_conditional = pow(p_conditional, 1.0 / _temperature);
-			// sampling_table.push_back(p_conditional);
 			_gibbs_sampling_table[tag] = p_conditional;
 			sum += p_conditional;
 		}
-		// assert(sampling_table.size() == _tag_unigram_count.size());
-		if(new_tag_included == false){
-			int new_tag = _tag_unigram_count.size();
-			double p_emission = compute_Pword_tag(wi, new_tag);
-			double p_generation = compute_Ptag_context(new_tag, ti_1);
-			double p_likelihood = 1;
-			if(ti1 != -1){
-				p_likelihood = compute_Ptag_context(ti1, new_tag);
-			}
-			double p_conditional = p_emission * p_generation * p_likelihood;
-			p_conditional = pow(p_conditional, 1.0 / _temperature);
-			// sampling_table.push_back(p_conditional);
-			// _gibbs_sampling_table[new_tag] = p_conditional;
-			sum += p_conditional;
+		int new_tag = get_new_tag_id();
+		double p_emission = compute_Pword_tag(wi, new_tag);
+		double p_generation = compute_Ptag_context(new_tag, ti_1);
+		double p_likelihood = 1;
+		if(ti1 != -1){
+			p_likelihood = compute_Ptag_context(ti1, new_tag);
+		}
+		double p_conditional = p_emission * p_generation * p_likelihood;
+		p_conditional = pow(p_conditional, 1.0 / _temperature);
+		sum += p_conditional;
+		// new_tag > _tag_unigram_count.size()ならサンプリングテーブルに入れなくてもよい.
+		if(new_tag < _tag_unigram_count.size()){
+			_gibbs_sampling_table[new_tag] = p_conditional;
 		}
 		assert(sum > 0);
 		double normalizer = 1.0 / sum;
@@ -545,7 +561,7 @@ public:
 				return tag;
 			}
 		}
-		return _tag_unigram_count.size();
+		return new_tag;
 	}
 	int argmax_Ptag_context_word(int context_tag_id, int word_id){
 		double max_p = 0;
@@ -582,7 +598,7 @@ public:
 			decrement_tag_word_count(ti, wi);
 			increment_tag_bigram_count(ti_1, ti1);
 			// 新しい状態をサンプリング
-			int new_tag = sample_new_tag(ti_1, ti1, wi);
+			int new_tag = gibbs_sample_new_tag(ti_1, ti1, wi);
 			// モデルに追加
 			increment_tag_word_count(new_tag, wi);
 			increment_tag_bigram_count(ti_1, new_tag);
@@ -599,11 +615,92 @@ public:
 		decrement_tag_bigram_count(ti_1, ti);
 		decrement_tag_unigram_count(ti);
 		decrement_tag_word_count(ti, wi);
-		int new_tag = sample_new_tag(ti_1, -1, wi);
+		int new_tag = gibbs_sample_new_tag(ti_1, -1, wi);
 		increment_tag_word_count(new_tag, wi);
 		increment_tag_bigram_count(ti_1, new_tag);
 		increment_tag_unigram_count(new_tag);
 		line[pos]->tag_id = new_tag;
+	}
+	void perform_beam_sampling_with_line(vector<Word*> &line){
+		if(line.size() < 3){
+			return;
+		}
+		// 現在のパラメータをモデルから除去
+		for(int pos = 1;pos < line.size() - 1;pos++){
+			int ti_1 = line[pos - 1]->tag_id;
+			int ti = line[pos]->tag_id;
+			int wi = line[pos]->word_id;
+			decrement_tag_bigram_count(ti_1, ti);
+			decrement_tag_unigram_count(ti);
+			decrement_tag_word_count(ti, wi);
+		}
+		// uのサンプリング
+		for(int pos = 1;pos < line.size() - 1;pos++){
+			int ti_1 = line[pos - 1]->tag_id;
+			int ti = line[pos]->tag_id;
+			int p = compute_Ptag_context(ti, ti_1);
+			_beam_sampling_table_u[pos] = Sampler::uniform(0, p);
+		}
+		// sのサンプリング
+		int new_tag = get_new_tag_id();
+		//// forwardパス
+		////// pos == 1
+		int wi = line[1]->word_id;
+		for(int tag = 0;tag < _tag_unigram_count.size();tag++){
+			if(is_tag_new(tag)){
+				continue;
+			}
+			_beam_sampling_table_s[1][tag] = compute_Pword_tag(wi, tag); 
+		}
+		_beam_sampling_table_s[1][new_tag] = compute_Pword_tag(wi, new_tag); 
+		////// pos > 1
+		for(int pos = 2;pos < line.size() - 1;pos++){
+			int wi = line[pos]->word_id;
+			double ui = _beam_sampling_table_u[pos];
+			// 新しい品詞以外
+			for(int ti = 0;ti < _tag_unigram_count.size();ti++){
+				if(is_tag_new(ti)){
+					continue;
+				}
+				double Pwi_ti = compute_Pword_tag(wi, ti);
+				// 周辺化
+				double sum = 0;
+				for(int ti_1 = 0;ti_1 < _tag_unigram_count.size();ti_1++){
+					if(is_tag_new(ti_1)){
+						continue;
+					}
+					double Pti_ti_1 = compute_Ptag_context(ti, ti_1);
+					if(Pti_ti_1 > ui){
+						sum += _beam_sampling_table_s[pos - 1][ti_1];
+					}
+				}
+				double Pti_ti_1 = compute_Ptag_context(ti, new_tag);
+				if(Pti_ti_1 > ui){
+					sum += _beam_sampling_table_s[pos - 1][new_tag];
+				}
+				_beam_sampling_table_s[pos][ti] = Pwi_ti * sum;
+			}
+			// 新しい品詞
+			{
+				double Pwi_ti = compute_Pword_tag(wi, new_tag);
+				// 周辺化
+				double sum = 0;
+				for(int ti_1 = 0;ti_1 < _tag_unigram_count.size();ti_1++){
+					if(is_tag_new(ti_1)){
+						continue;
+					}
+					double Pti_ti_1 = compute_Ptag_context(new_tag, ti_1);
+					if(Pti_ti_1 > ui){
+						sum += _beam_sampling_table_s[pos - 1][ti_1];
+					}
+				}
+				double Pti_ti_1 = compute_Ptag_context(new_tag, new_tag);
+				if(Pti_ti_1 > ui){
+					sum += _beam_sampling_table_s[pos - 1][new_tag];
+				}
+				_beam_sampling_table_s[pos][new_tag] = Pwi_ti * sum;
+			}
+		}
 	}
 	void dump_tags(){
 		for(int tag = 0;tag < _tag_unigram_count.size();tag++){

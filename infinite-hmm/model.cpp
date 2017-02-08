@@ -197,6 +197,23 @@ public:
 			_hmm->perform_gibbs_sampling_with_line(line);
 		}
 	}
+	void perform_beam_sampling(){
+		if(_rand_indices.size() != _dataset.size()){
+			_rand_indices.clear();
+			for(int data_index = 0;data_index < _dataset.size();data_index++){
+				_rand_indices.push_back(data_index);
+			}
+		}
+		shuffle(_rand_indices.begin(), _rand_indices.end(), Sampler::mt);	// データをシャッフル
+		for(int n = 0;n < _dataset.size();n++){
+			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
+				return;
+			}
+			int data_index = _rand_indices[n];
+			vector<Word*> &line = _dataset[data_index];
+			_hmm->perform_beam_sampling_with_line(line);
+		}
+	}
 	void set_temperature(double temperature){
 		_hmm->_temperature = temperature;
 	}
@@ -249,6 +266,7 @@ BOOST_PYTHON_MODULE(model){
 	python::class_<PyInfiniteHMM>("ihmm", python::init<int>())
 	.def("string_to_word_id", &PyInfiniteHMM::string_to_word_id)
 	.def("perform_gibbs_sampling", &PyInfiniteHMM::perform_gibbs_sampling)
+	.def("perform_beam_sampling", &PyInfiniteHMM::perform_beam_sampling)
 	.def("initialize", &PyInfiniteHMM::initialize)
 	.def("set_temperature", &PyInfiniteHMM::set_temperature)
 	.def("anneal_temperature", &PyInfiniteHMM::anneal_temperature)
