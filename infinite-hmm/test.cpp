@@ -17,12 +17,12 @@ using namespace std;
 using namespace boost;
 
 int main(){
-	PyBayesianHMM* model = new PyBayesianHMM(2);
+	PyInfiniteHMM* model = new PyInfiniteHMM(2);
 	model->load_textfile("../alice.txt");
 	model->mark_low_frequency_words_as_unknown(1);
 	model->initialize();
 	for(int i = 0;i < 1000;i++){
-		model->perform_gibbs_sampling();
+		model->perform_beam_sampling();
 		model->_hmm->dump_oracle_tags();
 		model->show_typical_words_for_each_tag(20);
 		// model->_hmm->dump_oracle_words();

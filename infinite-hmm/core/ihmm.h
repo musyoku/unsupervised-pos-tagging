@@ -152,11 +152,18 @@ public:
 		_num_words = 0;
 		_temperature = 1;
 		_max_sequence_length = 0;
+		_gibbs_sampling_table = NULL;
+		_beam_sampling_table_u = NULL;
+		_beam_sampling_table_s = NULL;
 	}
 	void initialize(vector<vector<Word*>> &dataset){
-		// nグラムのカウントテーブル
-		init_ngram_counts(dataset);
 		// サンプリングテーブル
+		for(int data_index = 0;data_index < dataset.size();data_index++){
+			vector<Word*> &line = dataset[data_index];
+			if(line.size() > _max_sequence_length){
+				_max_sequence_length = line.size();
+			}
+		}
 		for(int tag = 0;tag < _initial_num_tags;tag++){
 			_tag_unigram_count.push_back(0);
 		}
@@ -168,6 +175,8 @@ public:
 		for(int pos = 0;pos < _max_sequence_length;pos++){
 			_beam_sampling_table_s[pos] = (double*)malloc((_initial_num_tags + 1) * sizeof(double));
 		}
+		// nグラムカウントテーブル
+		init_ngram_counts(dataset);
 	}
 	void init_ngram_counts(vector<vector<Word*>> &dataset){
 		c_printf("[*]%s\n", "n-gramモデルを構築してます ...");
@@ -177,9 +186,6 @@ public:
 		unordered_map<int, int> tag_for_word;
 		for(int data_index = 0;data_index < dataset.size();data_index++){
 			vector<Word*> &line = dataset[data_index];
-			if(line.size() > _max_sequence_length){
-				_max_sequence_length = line.size();
-			}
 			word_set.insert(line[0]->word_id);
 			// increment_tag_word_count(line[0]);
 			// increment_tag_unigram_count(line[0]->tag_id);
@@ -209,9 +215,21 @@ public:
 		}
 		_tag_unigram_count[tag_id] += 1;
 		if(_tag_unigram_count.size() != _prev_tag_unigram_count_size){
+			assert(_gibbs_sampling_table != NULL);
 			free(_gibbs_sampling_table);
+			assert(_beam_sampling_table_s != NULL);
+			for(int pos = 0;pos < _max_sequence_length;pos++){
+				assert(_beam_sampling_table_s[pos] != NULL);
+				free(_beam_sampling_table_s[pos]);
+			}
+			// 更新
 			_prev_tag_unigram_count_size = _tag_unigram_count.size();
+			// re-alloc
 			_gibbs_sampling_table = (double*)malloc(_prev_tag_unigram_count_size * sizeof(double));
+			for(int pos = 0;pos < _max_sequence_length;pos++){
+				// ここだけは既存タグ数+1
+				_beam_sampling_table_s[pos] = (double*)malloc((_prev_tag_unigram_count_size + 1) * sizeof(double));
+			}
 		}
 	}
 	void decrement_tag_unigram_count(int tag_id){
@@ -229,8 +247,11 @@ public:
 			_tag_unigram_count.pop_back();
 		}
 		if(_tag_unigram_count.size() != _prev_tag_unigram_count_size){
+			assert(_gibbs_sampling_table != NULL);
 			free(_gibbs_sampling_table);
+			assert(_beam_sampling_table_s != NULL);
 			for(int pos = 0;pos < _max_sequence_length;pos++){
+				assert(_beam_sampling_table_s[pos] != NULL);
 				free(_beam_sampling_table_s[pos]);
 			}
 			// 更新
@@ -625,23 +646,33 @@ public:
 		if(line.size() < 3){
 			return;
 		}
-		// 現在のパラメータをモデルから除去
-		for(int pos = 1;pos < line.size() - 1;pos++){
+		cout << "perform_beam_sampling_with_line" << endl;
+		for(int i = 0;i < line.size();i++){
+			cout << line[i]->tag_id << " -> ";
+		}
+		cout << endl;
+		assert(_tag_unigram_count.size() == _prev_tag_unigram_count_size);
+		// 品詞をモデルから除去
+		for(int pos = 1;pos < line.size();pos++){
 			int ti_1 = line[pos - 1]->tag_id;
 			int ti = line[pos]->tag_id;
 			int wi = line[pos]->word_id;
+			cout << "pos = " << pos << endl;
 			decrement_tag_bigram_count(ti_1, ti);
 			decrement_tag_unigram_count(ti);
 			decrement_tag_word_count(ti, wi);
 		}
+		cout << "starting u" << endl;
 		// uのサンプリング
 		for(int pos = 1;pos < line.size() - 1;pos++){
 			int ti_1 = line[pos - 1]->tag_id;
 			int ti = line[pos]->tag_id;
-			int p = compute_Ptag_context(ti, ti_1);
+			double p = compute_Ptag_context(ti, ti_1);
 			_beam_sampling_table_u[pos] = Sampler::uniform(0, p);
+			cout << (boost::format("u[%d] <- %f; p = %f; %d -> %d") % pos % _beam_sampling_table_u[pos] % p % ti_1 % ti).str() << endl;
 		}
 		// sのサンプリング
+		cout << "starting s" << endl;
 		int new_tag = get_new_tag_id();
 		//// forwardパス
 		////// pos == 1
@@ -651,10 +682,12 @@ public:
 				continue;
 			}
 			_beam_sampling_table_s[1][tag] = compute_Pword_tag(wi, tag); 
+			cout << (boost::format("s[%d][%d] <- %e") % 1 % tag % _beam_sampling_table_s[1][tag]).str() << endl;
 		}
 		_beam_sampling_table_s[1][new_tag] = compute_Pword_tag(wi, new_tag); 
+		cout << (boost::format("s[%d][%d] <- %e") % 1 % new_tag % _beam_sampling_table_s[1][new_tag]).str() << endl;
 		////// pos > 1
-		for(int pos = 2;pos < line.size() - 1;pos++){
+		for(int pos = 2;pos < line.size();pos++){
 			int wi = line[pos]->word_id;
 			double ui = _beam_sampling_table_u[pos];
 			// 新しい品詞以外
@@ -670,15 +703,18 @@ public:
 						continue;
 					}
 					double Pti_ti_1 = compute_Ptag_context(ti, ti_1);
-					if(Pti_ti_1 > ui){
+					if(Pti_ti_1 >= ui){
 						sum += _beam_sampling_table_s[pos - 1][ti_1];
+						cout << (boost::format("sum += %e; %f > %f") % _beam_sampling_table_s[pos - 1][ti_1] % Pti_ti_1 % ui).str() << endl;
 					}
 				}
 				double Pti_ti_1 = compute_Ptag_context(ti, new_tag);
-				if(Pti_ti_1 > ui){
+				if(Pti_ti_1 >= ui){
 					sum += _beam_sampling_table_s[pos - 1][new_tag];
+					cout << (boost::format("sum += %e; %f > %f") % _beam_sampling_table_s[pos - 1][new_tag] % Pti_ti_1 % ui).str() << endl;
 				}
 				_beam_sampling_table_s[pos][ti] = Pwi_ti * sum;
+				cout << (boost::format("s[%d][%d] <- %e; p = %e * %e") % pos % ti % (Pwi_ti * sum) % Pwi_ti % sum).str() << endl;
 			}
 			// 新しい品詞
 			{
@@ -690,16 +726,64 @@ public:
 						continue;
 					}
 					double Pti_ti_1 = compute_Ptag_context(new_tag, ti_1);
-					if(Pti_ti_1 > ui){
+					if(Pti_ti_1 >= ui){
 						sum += _beam_sampling_table_s[pos - 1][ti_1];
+						cout << (boost::format("sum += %e; %f > %f") % _beam_sampling_table_s[pos - 1][ti_1] % Pti_ti_1 % ui).str() << endl;
 					}
 				}
 				double Pti_ti_1 = compute_Ptag_context(new_tag, new_tag);
-				if(Pti_ti_1 > ui){
+				if(Pti_ti_1 >= ui){
 					sum += _beam_sampling_table_s[pos - 1][new_tag];
+					cout << (boost::format("sum += %e; %f > %f") % _beam_sampling_table_s[pos - 1][new_tag] % Pti_ti_1 % ui).str() << endl;
 				}
 				_beam_sampling_table_s[pos][new_tag] = Pwi_ti * sum;
+				cout << (boost::format("s[%d][%d] <- %e; p = %e * %e") % pos % new_tag % (Pwi_ti * sum) % Pwi_ti % sum).str() << endl;
 			}
+		}
+		//// backwardパス
+		cout << "backward" << endl;
+		for(int pos = line.size() - 1;pos > 0;pos--){
+			double sum = 0;
+			for(int tag = 0;tag < _tag_unigram_count.size();tag++){
+				if(is_tag_new(tag)){
+					_gibbs_sampling_table[tag] = 0;
+					continue;
+				}
+				double p = _beam_sampling_table_s[pos][tag];
+				cout << (boost::format("sum += %e; sum = %e; s[%d][%d] = %e;") % p % sum % pos % tag % p).str() << endl;
+				sum += p;
+				_gibbs_sampling_table[tag] = p;
+			}
+			double p = _beam_sampling_table_s[pos][new_tag];
+			sum += p;
+			// new_tag > _tag_unigram_count.size()ならサンプリングテーブルに入れない.
+			if(new_tag < _tag_unigram_count.size()){
+				_gibbs_sampling_table[new_tag] = p;
+			}
+			assert(sum > 0);
+			double normalizer = 1.0 / sum;
+			double bernoulli = Sampler::uniform(0, 1);
+			sum = 0;
+			int sampled_tag = -1;
+			for(int tag = 0;tag < _tag_unigram_count.size();tag++){
+				sum += _gibbs_sampling_table[tag] * normalizer;
+				if(bernoulli <= sum){
+					sampled_tag = tag;
+					break;
+				}
+			}
+			sampled_tag = (sampled_tag == -1) ? new_tag : sampled_tag;
+			line[pos]->tag_id = sampled_tag;
+		}
+
+		// サンプリングした品詞をモデルに追加
+		for(int pos = 1;pos < line.size();pos++){
+			int ti_1 = line[pos - 1]->tag_id;
+			int ti = line[pos]->tag_id;
+			int wi = line[pos]->word_id;
+			increment_tag_bigram_count(ti_1, ti);
+			increment_tag_unigram_count(ti);
+			increment_tag_word_count(ti, wi);
 		}
 	}
 	void dump_tags(){
