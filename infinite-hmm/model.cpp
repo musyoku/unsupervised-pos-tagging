@@ -136,6 +136,9 @@ public:
 		}
 		return itr->second;
 	}
+	int get_num_tags(){
+		return _hmm->get_num_tags();
+	}
 	void mark_low_frequency_words_as_unknown(int threshold = 1){
 		for(int data_index = 0;data_index < _dataset.size();data_index++){
 			vector<Word*> &line = _dataset[data_index];
@@ -174,7 +177,7 @@ public:
 		ofs.close();
 		return _hmm->save(dirname);
 	}
-	void argmax_Ptag_context_word(int context_tag_id, int word_id){
+	int argmax_Ptag_context_word(int context_tag_id, int word_id){
 		return _hmm->argmax_Ptag_context_word(context_tag_id, word_id);
 	}
 	void perform_gibbs_sampling(){
@@ -257,5 +260,6 @@ BOOST_PYTHON_MODULE(model){
 	.def("show_log_Pdata", &PyInfiniteHMM::show_log_Pdata)
 	.def("show_temperature", &PyInfiniteHMM::show_temperature)
 	.def("argmax_Ptag_context_word", &PyInfiniteHMM::argmax_Ptag_context_word)
+	.def("get_num_tags", &PyInfiniteHMM::get_num_tags)
 	.def("load_textfile", &PyInfiniteHMM::load_textfile);
 }

@@ -467,8 +467,8 @@ public:
 		double n_oj = get_oracle_count_for_tag(tag_id);
 		double T = get_num_tags();
 		double g0 = 1.0 / (T + 1.0);
-		double oracle_p = (n_oj + _gamma) / (n_o + _gamma);
-		// double oracle_p = (n_oj + _gamma * g0) / (n_o + _gamma);
+		// double oracle_p = (n_oj + _gamma) / (n_o + _gamma);
+		double oracle_p = (n_oj + _gamma * g0) / (n_o + _gamma);
 		// if(is_tag_new(tag_id)){
 		// 	oracle_p = _gamma / (n_o + _gamma);
 		// }else{
@@ -494,8 +494,8 @@ public:
 		double m_oq = get_oracle_count_for_word(word_id);
 		double W = get_num_words();
 		double g0 = 1.0 / (W + 1);
-		double oracle_p = (m_oq + _gamma_emission) / (m_o + _gamma_emission);
-		// double oracle_p = (m_oq + _gamma_emission * g0) / (m_o + _gamma_emission);
+		// double oracle_p = (m_oq + _gamma_emission) / (m_o + _gamma_emission);
+		double oracle_p = (m_oq + _gamma_emission * g0) / (m_o + _gamma_emission);
 		// if(is_word_new(word_id)){
 		// 	oracle_p = _gamma_emission / (m_o + _gamma_emission);
 		// }else{
@@ -691,10 +691,11 @@ public:
 			double Pword = compute_Pword_tag(word_id, tag);
 			double p = Ptag * Pword;
 			if(p > max_p){
+				max_p = p;
 				max_tag = tag;
 			}
 		}
-		return tag;
+		return max_tag;
 	}
 	void perform_gibbs_sampling_with_line(vector<Word*> &line){
 			// c_printf("[*]%s\n", "perform_gibbs_sampling_with_line");

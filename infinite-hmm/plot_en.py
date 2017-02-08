@@ -5,15 +5,14 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import model
-from train_en import collapse_pos, posset
-from train_ja import stdout
+from train_en import collapse_pos, posset, stdout
 
 # フォントをセット
 # UbuntuならTakaoGothicなどが標準で入っている
 sns.set(font=["MS Gothic"], font_scale=3)
 
 def main(args):
-	hmm = model.ihmm()
+	hmm = model.ihmm(1)
 	if hmm.load(args.model) == False:
 		raise Exception("モデルが見つかりません.")
 
