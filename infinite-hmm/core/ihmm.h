@@ -416,50 +416,20 @@ public:
 	}
 	int sum_oracle_words_count(){
 		return _sum_oracle_words_count;
-		// int sum = 0;
-		// for(const auto &count: _oracle_word_counts){
-		// 	sum += count.second;
-		// }
-		// return sum;
 	}
 	int sum_word_count_for_tag(int tag_id){
 		return _sum_word_count_for_tag[tag_id];
-		// int sum = 0;
-		// unordered_map<int, int> &counts = _tag_word_counts[tag_id];
-		// for(const auto &count: counts){
-		// 	sum += count.second;
-		// }
-		// return sum;
 	}
 	int sum_bigram_destination(int tag_id){
 		return _sum_bigram_destination[tag_id];
-		// auto itr = _sum_bigram_destination.find(tag_id);
-		// if(itr == _sum_bigram_destination.end()){
-		// 	int sum = 0;
-		// 	unordered_map<int, int> &unigram_table = _bigram_tag_table[tag_id];
-		// 	for(const auto &unigram: unigram_table){
-		// 		sum += unigram.second;
-		// 	}
-		// 	_sum_bigram_destination[tag_id] = sum;
-		// 	return sum;
-		// }
-		// return itr->second;
 	}
 	int sum_oracle_tags_count(){
 		return _sum_oracle_tags_count;
-		// int sum = 0;
-		// for(const auto &unigram: _oracle_tag_counts){
-		// 	sum += unigram.second;
-		// }
-		// return sum;
 	}
 	// P(s_{t+1}|s_t)
 	double compute_Ptag_context(int tag_id, int context_tag_id, int correcting_count_for_bigram = 0, int correcting_count_for_destination = 0){
 		double n_i = sum_bigram_destination(context_tag_id);
 		double n_ij = get_bigram_tag_count(context_tag_id, tag_id);
-		// if(is_tag_new(tag_id) == false){
-		// 	assert(n_ij > 0);
-		// }
 		double alpha = (tag_id == context_tag_id) ? _alpha : 0;
 		double empirical_p = (n_ij + alpha) / (n_i + _beta + _alpha);
 		double coeff_oracle_p = _beta / (n_i + _beta);	// 親の分布から生成される確率. 親からtag_idが生成される確率とは別物.
@@ -467,95 +437,24 @@ public:
 		double n_oj = get_oracle_count_for_tag(tag_id);
 		double T = get_num_tags();
 		double g0 = 1.0 / (T + 1.0);
-		// double oracle_p = (n_oj + _gamma) / (n_o + _gamma);
 		double oracle_p = (n_oj + _gamma * g0) / (n_o + _gamma);
-		// if(is_tag_new(tag_id)){
-		// 	oracle_p = _gamma / (n_o + _gamma);
-		// }else{
-		// 	double n_oj = get_oracle_count_for_tag(tag_id);
-		// 	// double T = get_num_tags();
-		// 	// return (n_ij + _beta * g0) / (n_i + _beta);
-		// 	// double numerator = is_tag_new(tag_id) ? _gamma : n_oj;
-		// 	oracle_p = n_oj / (n_o + _gamma);
-		// }
-		// double oracle_p = numerator / (n_o + _gamma);
 		return empirical_p + coeff_oracle_p * oracle_p;
 	}
 	// P(y_t|s_t)
 	double compute_Pword_tag(int word_id, int tag_id){
 		double m_i = sum_word_count_for_tag(tag_id);
 		double m_iq = get_tag_word_count(tag_id, word_id);
-		// if(is_word_new(word_id) == false){
-		// 	assert(m_iq > 0);
-		// }
 		double empirical_p = m_iq / (m_i + _beta_emission);
 		double coeff_oracle_p = _beta_emission / (m_i + _beta_emission);	// 親の分布から生成される確率. 親からword_idが生成される確率とは別物.
 		double m_o = sum_oracle_words_count();
 		double m_oq = get_oracle_count_for_word(word_id);
 		double W = get_num_words();
 		double g0 = 1.0 / (W + 1);
-		// double oracle_p = (m_oq + _gamma_emission) / (m_o + _gamma_emission);
 		double oracle_p = (m_oq + _gamma_emission * g0) / (m_o + _gamma_emission);
-		// if(is_word_new(word_id)){
-		// 	oracle_p = _gamma_emission / (m_o + _gamma_emission);
-		// }else{
-		// 	oracle_p = m_oq / (m_o + _gamma_emission);
-		// }
-		// double numerator = is_word_new(word_id) ? _gamma_emission : m_oq;
-		// double oracle_p = numerator / (m_o + _gamma_emission);
 		return empirical_p + coeff_oracle_p * oracle_p;
 	}
 	double compute_gamma_distribution(double v, double a, double b){
 		return pow(b, a) / tgamma(a) * pow(v, a - 1) * exp(-b * v);
-	}
-	double compute_log_posterior_alpha_and_beta(double alpha, double beta){
-		assert(beta > 0);
-		double a_alpha = 1;
-		double b_alpha = 1;
-		double gamma_dist_alpha = compute_gamma_distribution(_alpha, a_alpha, b_alpha);
-		double a_beta = 1;
-		double b_beta = 1;
-		double gamma_dist_beta = compute_gamma_distribution(_beta, a_beta, b_beta);
-		double log_sum = 0;
-		for(int tag = 0;tag < _tag_unigram_count.size();tag++){
-			if(is_tag_new(tag)){
-				continue;
-			}
-			double Ki = sum_bigram_destination(tag);
-			double log_first_term = (Ki - 1) * log(beta) + lgamma(alpha + beta) - lgamma(alpha);
-			double n_ii = get_bigram_tag_count(tag, tag);
-			double n_i = sum_bigram_destination(tag);
-			double log_second_term = lgamma(n_ii + alpha) - lgamma(n_i + alpha + beta);
-			log_sum += log_first_term + log_second_term;
-		}
-		return log(gamma_dist_alpha) + log(gamma_dist_beta) + log_sum;
-	}
-	double compute_log_posterior_gamma(double gamma){
-		double a = 1;
-		double b = 1;
-		double gamma_dist = compute_gamma_distribution(gamma, a, b);
-		double K = get_num_tags();
-		double To = get_num_times_oracle_tag_used();
-		double log_term = K * log(gamma) + lgamma(gamma) - lgamma(To + gamma);
-		return log(gamma_dist) + log_term;
-	}
-	double compute_log_posterior_gamma_emission(double gamma){
-		double a = 1;
-		double b = 1;
-		double gamma_dist = compute_gamma_distribution(gamma, a, b);
-		double K = _num_words;
-		double To = get_num_times_oracle_word_used();
-		double log_term = K * log(gamma) + lgamma(gamma) - lgamma(To + gamma);
-		// cout << gamma << endl;
-		// cout << gamma_dist << endl;
-		// cout << K << endl;
-		// cout << To << endl;
-		// cout << log(gamma) << endl;
-		// cout << lgamma(gamma) << endl;
-		// cout << lgamma(To + gamma) << endl;
-		// cout << log_term << endl;
-		// cout << endl;
-		return log(gamma_dist) + log_term;
 	}
 	double compute_log_Pdata(vector<Word*> &line){
 		double p = 0;
@@ -568,42 +467,6 @@ public:
 			p += log_p_tag + log_p_word;
 		}
 		return p;
-	}
-	void sample_alpha_and_beta(double lr = 1e-2){
-		double eps = 1e-6;
-		{
-			double log_p_old = compute_log_posterior_alpha_and_beta(_alpha, _beta);
-			double log_p_new = compute_log_posterior_alpha_and_beta(_alpha + eps, _beta);
-			double grad = (log_p_new - log_p_old) / eps;
-			_alpha -= grad * lr;
-			_alpha = std::max(eps, _alpha);
-		}
-		{
-			double log_p_old = compute_log_posterior_alpha_and_beta(_alpha, _beta);
-			double log_p_new = compute_log_posterior_alpha_and_beta(_alpha, _beta + eps);
-			double grad = (log_p_new - log_p_old) / eps;
-			_beta -= grad * lr;
-			_beta = std::max(eps, _beta);
-		}
-	}
-	void sample_beta_emission(double lr = 1e-2){
-
-	}
-	void sample_gamma(double lr = 1e-2){
-		double eps = 1e-6;
-		double log_p_old = compute_log_posterior_gamma(_gamma);
-		double log_p_new = compute_log_posterior_gamma(_gamma + eps);
-		double grad = (log_p_new - log_p_old) / eps;
-		_gamma -= grad * lr;
-		_gamma = std::max(eps, _gamma);
-	}
-	void sample_gamma_emission(double lr = 1e-2){
-		double eps = 1e-6;
-		double log_p_old = compute_log_posterior_gamma_emission(_gamma_emission);
-		double log_p_new = compute_log_posterior_gamma_emission(_gamma_emission + eps);
-		double grad = (log_p_new - log_p_old) / eps;
-		_gamma_emission -= grad * lr;
-		_gamma_emission = std::max(eps, _gamma_emission);
 	}
 	// t_{i-1} -> t_i -> t_{i+1}
 	int sample_new_tag(int ti_1, int ti1, int wi){
@@ -628,20 +491,6 @@ public:
 				p_likelihood = compute_Ptag_context(ti1, tag, correcting_count_for_bigram, correcting_count_for_destination);
 			}
 			double p_conditional = p_emission * p_generation * p_likelihood;
-				// if(p_conditional == 0){
-				// 	cout << "ti_1: " << ti_1 << endl;
-				// 	cout << "tag: " << tag << endl;
-				// 	cout << "ti1: " << ti1 << endl;
-				// 	cout << p_emission << ",";
-				// 	cout << p_generation << ",";
-				// 	cout << p_likelihood << ",";
-				// 	cout << p_conditional << ",";
-				// 	cout << endl;
-				// 	cout << get_oracle_count_for_tag(ti1) << endl;
-				// 	cout << get_bigram_tag_count(tag, ti1) << endl;
-				// 	cout << new_tag_included << endl;
-				// 	exit(0);
-				// }
 			p_conditional = pow(p_conditional, 1.0 / _temperature);
 			sampling_table.push_back(p_conditional);
 			sum += p_conditional;
@@ -656,12 +505,6 @@ public:
 				p_likelihood = compute_Ptag_context(ti1, new_tag);
 			}
 			double p_conditional = p_emission * p_generation * p_likelihood;
-				// cout << "tag: " << new_tag << endl;
-				// cout << p_emission << ",";
-				// cout << p_generation << ",";
-				// cout << p_likelihood << ",";
-				// cout << p_conditional << ",";
-				// cout << endl;
 			p_conditional = pow(p_conditional, 1.0 / _temperature);
 			sampling_table.push_back(p_conditional);
 			sum += p_conditional;
@@ -676,8 +519,6 @@ public:
 				return tag;
 			}
 		}
-			// cout << sum << endl;
-			// cout << "new_tag generated" << endl;
 		return new_tag;
 	}
 	int argmax_Ptag_context_word(int context_tag_id, int word_id){
@@ -698,17 +539,11 @@ public:
 		return max_tag;
 	}
 	void perform_gibbs_sampling_with_line(vector<Word*> &line){
-			// c_printf("[*]%s\n", "perform_gibbs_sampling_with_line");
-			// for(int pos = 0;pos < line.size();pos++){
-			// 	cout << line[pos]->tag_id << " -> ";
-			// }
-			// cout << endl;
 		if(line.size() < 2){
 			return;
 		}
 		int pos = 1;
 		for(;pos < line.size() - 1;pos++){
-				// c_printf("[*]%s\n", (boost::format("pos = %d") % pos).str().c_str());
 			int ti_1 = line[pos - 1]->tag_id;
 			int ti = line[pos]->tag_id;
 			int wi = line[pos]->word_id;
