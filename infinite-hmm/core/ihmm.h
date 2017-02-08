@@ -119,6 +119,7 @@ private:
 	}
 public:
 	vector<int> _tag_unigram_count;	// 全ての状態とそのカウント
+	int _prev_tag_unigram_count_size;
 	unordered_map<int, unordered_map<int, Table*>> _bigram_tag_table;	// 品詞と単語のペアの出現頻度
 	unordered_map<int, unordered_map<int, Table*>> _tag_word_table;	// 品詞と単語のペアの出現頻度
 	unordered_map<int, int> _oracle_word_counts;	// 品詞と単語のペアの出現頻度
@@ -135,6 +136,7 @@ public:
 	double _temperature;
 	unordered_map<int, int> _sum_bigram_destination;
 	unordered_map<int, int> _sum_word_count_for_tag;
+	double* _gibbs_sampling_table;
 	InfiniteHMM(int initial_num_tags){
 		_alpha = 1;
 		_beta = 1;
@@ -151,6 +153,8 @@ public:
 		for(int tag = 0;tag < _initial_num_tags;tag++){
 			_tag_unigram_count.push_back(0);
 		}
+		_prev_tag_unigram_count_size = _tag_unigram_count.size();
+		_gibbs_sampling_table = (double*)malloc(_prev_tag_unigram_count_size * sizeof(double));
 		// nグラムのカウントテーブル
 		init_ngram_counts(dataset);
 	}
@@ -190,11 +194,31 @@ public:
 			_tag_unigram_count.push_back(0);
 		}
 		_tag_unigram_count[tag_id] += 1;
+		if(_tag_unigram_count.size() != _prev_tag_unigram_count_size){
+			free(_gibbs_sampling_table);
+			_prev_tag_unigram_count_size = _tag_unigram_count.size();
+			_gibbs_sampling_table = (double*)malloc(_prev_tag_unigram_count_size * sizeof(double));
+		}
 	}
 	void decrement_tag_unigram_count(int tag_id){
 		assert(tag_id < _tag_unigram_count.size());
 		_tag_unigram_count[tag_id] -= 1;
 		assert(_tag_unigram_count[tag_id] >= 0);
+		int num_pop = 0;
+		for(int i = _tag_unigram_count.size() - 1;i >= 0;i--){
+			if(_tag_unigram_count[i]){
+				break;
+			}
+			num_pop += 1;
+		}
+		for(int n = 0;n < num_pop;n++){
+			_tag_unigram_count.pop_back();
+		}
+		if(_tag_unigram_count.size() != _prev_tag_unigram_count_size){
+			free(_gibbs_sampling_table);
+			_prev_tag_unigram_count_size = _tag_unigram_count.size();
+			_gibbs_sampling_table = (double*)malloc(_prev_tag_unigram_count_size * sizeof(double));
+		}
 	}
 	void increment_tag_bigram_count(int context_tag_id, int tag_id){
 		_sum_bigram_destination[context_tag_id] += 1;
@@ -471,13 +495,13 @@ public:
 	// t_{i-1} -> t_i -> t_{i+1}
 	int sample_new_tag(int ti_1, int ti1, int wi){
 		// ギブスサンプリング
-		vector<double> sampling_table;
 		double sum = 0;
 		bool new_tag_included = false;
 		for(int tag = 0;tag < _tag_unigram_count.size();tag++){
 			if(is_tag_new(tag)){
 				if(new_tag_included){
-					sampling_table.push_back(0);
+					// sampling_table.push_back(0);
+					_gibbs_sampling_table[tag] = 0;
 					continue;
 				}
 				new_tag_included = true;
@@ -492,12 +516,13 @@ public:
 			}
 			double p_conditional = p_emission * p_generation * p_likelihood;
 			p_conditional = pow(p_conditional, 1.0 / _temperature);
-			sampling_table.push_back(p_conditional);
+			// sampling_table.push_back(p_conditional);
+			_gibbs_sampling_table[tag] = p_conditional;
 			sum += p_conditional;
 		}
-		assert(sampling_table.size() == _tag_unigram_count.size());
-		int new_tag = _tag_unigram_count.size();
+		// assert(sampling_table.size() == _tag_unigram_count.size());
 		if(new_tag_included == false){
+			int new_tag = _tag_unigram_count.size();
 			double p_emission = compute_Pword_tag(wi, new_tag);
 			double p_generation = compute_Ptag_context(new_tag, ti_1);
 			double p_likelihood = 1;
@@ -506,7 +531,8 @@ public:
 			}
 			double p_conditional = p_emission * p_generation * p_likelihood;
 			p_conditional = pow(p_conditional, 1.0 / _temperature);
-			sampling_table.push_back(p_conditional);
+			// sampling_table.push_back(p_conditional);
+			// _gibbs_sampling_table[new_tag] = p_conditional;
 			sum += p_conditional;
 		}
 		assert(sum > 0);
@@ -514,12 +540,12 @@ public:
 		double bernoulli = Sampler::uniform(0, 1);
 		sum = 0;
 		for(int tag = 0;tag < _tag_unigram_count.size();tag++){
-			sum += sampling_table[tag] * normalizer;
+			sum += _gibbs_sampling_table[tag] * normalizer;
 			if(bernoulli <= sum){
 				return tag;
 			}
 		}
-		return new_tag;
+		return _tag_unigram_count.size();
 	}
 	int argmax_Ptag_context_word(int context_tag_id, int word_id){
 		double max_p = 0;
