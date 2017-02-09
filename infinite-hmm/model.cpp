@@ -102,11 +102,11 @@ public:
 		if(word_strs.size() > 0){
 			vector<Word*> words;
 			// <bos>
-			Word* bos = new Word();
-			bos->word_id = _bos_id;
-			bos->tag_id = 0;
-			words.push_back(bos);
-			_word_count[_bos_id] += 1;
+			// Word* bos = new Word();
+			// bos->word_id = -1;
+			// bos->tag_id = BOP;
+			// words.push_back(bos);
+			// _word_count[_bos_id] += 1;
 
 			for(auto &word_str: word_strs){
 				if(word_str.size() == 0){
@@ -114,16 +114,19 @@ public:
 				}
 				Word* word = new Word();
 				word->word_id = string_to_word_id(word_str);
-				word->tag_id = 0;
 				words.push_back(word);
 				_word_count[word->word_id] += 1;
 			}
 
 			Word* eos = new Word();
 			eos->word_id = _eos_id;
-			eos->tag_id = 0;
 			words.push_back(eos);
 			_word_count[_eos_id] += 1;
+
+			// Word* eop = new Word();
+			// eop->word_id = -1;
+			// eop->tag_id = EOP;
+			// words.push_back(eop);
 
 			// 訓練データに追加
 			_dataset.push_back(words);

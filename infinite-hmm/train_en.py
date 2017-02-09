@@ -91,8 +91,8 @@ def main(args):
 	for epoch in xrange(1, args.epoch + 1):
 		start = time.time()
 
-		# hmm.perform_gibbs_sampling()
-		hmm.perform_beam_sampling()
+		hmm.perform_gibbs_sampling()
+		# hmm.perform_beam_sampling()
 		# hmm.anneal_temperature(0.9985)
 
 		elapsed_time = time.time() - start

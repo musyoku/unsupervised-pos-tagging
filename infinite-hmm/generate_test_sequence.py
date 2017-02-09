@@ -18,18 +18,20 @@ def main(args):
 	B[1] = 0, 0, 0.6, 0.4, 0, 0
 	B[2] = 0, 0, 0, 0, 0.1, 0.9
 
-	state = 0
-	sequence = ""
-	for l in xrange(args.seq_length):
-		state = int(np.argwhere(np.random.multinomial(1, A[state]) == 1))
-		emission = int(np.argwhere(np.random.multinomial(1, B[state]) == 1))
-		sequence += str(emission) + " "
-	sequence = re.sub(r" $", "", sequence)
-	print sequence
 	with codecs.open("../test.txt", "w", "utf-8") as f:
-		f.write(sequence)
+		for n in xrange(args.num_seq):
+			state = 0
+			sequence = ""
+			for l in xrange(args.seq_length):
+				state = int(np.argwhere(np.random.multinomial(1, A[state]) == 1))
+				emission = int(np.argwhere(np.random.multinomial(1, B[state]) == 1))
+				sequence += str(emission) + " "
+			sequence = re.sub(r" $", "", sequence)
+			print sequence
+			f.write(sequence + "\n")
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument("-l", "--seq-length", type=int, default=20, help="品詞の個数.")
+	parser.add_argument("-n", "--num-seq", type=int, default=20, help="品詞の個数.")
 	main(parser.parse_args())
