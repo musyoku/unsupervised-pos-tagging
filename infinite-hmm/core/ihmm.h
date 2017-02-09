@@ -17,7 +17,7 @@
 #include "util.h"
 using namespace std;
 
-#define BOP -1
+#define BOP 0
 #define EOP 0
 
 typedef struct Word {
@@ -324,7 +324,6 @@ public:
 		}
 	}
 	void increment_oracle_tag_count(int tag_id){
-		assert(tag_id != BOP);
 		_oracle_tag_counts[tag_id] += 1;
 		_sum_oracle_tags_count += 1;
 	}
@@ -339,7 +338,6 @@ public:
 		assert(_sum_oracle_words_count >= 0);
 	}
 	void decrement_oracle_tag_count(int tag_id){
-		assert(tag_id != BOP);
 		auto itr = _oracle_tag_counts.find(tag_id);
 		assert(itr != _oracle_tag_counts.end());
 		itr->second -= 1;
@@ -351,9 +349,6 @@ public:
 		assert(_sum_oracle_tags_count >= 0);
 	}
 	void decrement_tag_bigram_count(int context_tag_id, int tag_id){
-		cout << "decrement_tag_bigram_count: " << context_tag_id << ", " << tag_id << endl;
-		assert(context_tag_id != EOP);
-		assert(tag_id != BOP);
 		auto itr = _sum_bigram_destination.find(context_tag_id);
 		assert(itr != _sum_bigram_destination.end());
 		itr->second -= 1;
@@ -567,10 +562,7 @@ public:
 			double p_generation = compute_Ptag_context(tag, ti_1);
 			int correcting_count_for_bigram = (ti_1 == tag == ti1) ? 1 : 0;
 			int correcting_count_for_destination = (ti_1 == tag) ? 1 : 0;
-			double p_likelihood = 1;
-			if(ti1 != -1){
-				p_likelihood = compute_Ptag_context(ti1, tag, correcting_count_for_bigram, correcting_count_for_destination);
-			}
+			double p_likelihood = compute_Ptag_context(ti1, tag, correcting_count_for_bigram, correcting_count_for_destination);
 			double p_conditional = p_emission * p_generation * p_likelihood;
 			p_conditional = pow(p_conditional, 1.0 / _temperature);
 			_gibbs_sampling_table[tag] = p_conditional;
@@ -579,10 +571,7 @@ public:
 		int new_tag = get_new_tag_id();
 		double p_emission = compute_Pword_tag(wi, new_tag);
 		double p_generation = compute_Ptag_context(new_tag, ti_1);
-		double p_likelihood = 1;
-		if(ti1 != -1){
-			p_likelihood = compute_Ptag_context(ti1, new_tag);
-		}
+		double p_likelihood = compute_Ptag_context(ti1, new_tag);
 		double p_conditional = p_emission * p_generation * p_likelihood;
 		p_conditional = pow(p_conditional, 1.0 / _temperature);
 		sum += p_conditional;
@@ -625,10 +614,10 @@ public:
 		}
 		int pos = 0;
 		int ti_1 = BOP;
-		for(;pos < line.size() - 1;pos++){
+		for(;pos < line.size();pos++){
 			int ti = line[pos]->tag_id;
 			int wi = line[pos]->word_id;
-			int ti1 = line[pos + 1]->tag_id;
+			int ti1 = (pos == line.size() - 1) ? EOP : line[pos + 1]->tag_id;
 
 			// 現在のtiをモデルから除去
 			decrement_tag_bigram_count(ti_1, ti);
@@ -645,28 +634,8 @@ public:
 			increment_tag_unigram_count(new_tag);
 			decrement_tag_bigram_count(ti_1, ti1);
 			line[pos]->tag_id = new_tag;
-			ti_1 = ti;
+			ti_1 = new_tag;
 		}
-		// EOS
-		assert(pos == line.size() - 1);
-		int ti = line[pos]->tag_id;
-		int wi = line[pos]->word_id;
-		int ti1 = EOP;
-		// 現在のtiをモデルから除去
-		decrement_tag_bigram_count(ti_1, ti);
-		decrement_tag_bigram_count(ti, ti1);
-		decrement_tag_unigram_count(ti);
-		decrement_tag_word_count(ti, wi);
-		increment_tag_bigram_count(ti_1, ti1);
-		// 新しい状態をサンプリング
-		int new_tag = gibbs_sample_new_tag(ti_1, ti1, wi);
-		// モデルに追加
-		increment_tag_word_count(new_tag, wi);
-		increment_tag_bigram_count(ti_1, new_tag);
-		increment_tag_bigram_count(new_tag, ti1);
-		increment_tag_unigram_count(new_tag);
-		decrement_tag_bigram_count(ti_1, ti1);
-		line[pos]->tag_id = new_tag;
 	}
 	void perform_beam_sampling_with_line(vector<Word*> &line){
 		if(line.size() < 3){
