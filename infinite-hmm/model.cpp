@@ -50,7 +50,7 @@ public:
 		wcout.imbue(ctype_default);
 		wcin.imbue(ctype_default);
 
-		_hmm = new InfiniteHMM(initial_num_tags);
+		_hmm = new InfiniteHMM(initial_num_tags + 1);
 		_bos_id = 0;
 		_dictionary[_bos_id] = L"<bos>";
 		_eos_id = 1;
