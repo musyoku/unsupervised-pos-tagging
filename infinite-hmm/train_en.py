@@ -39,7 +39,6 @@ class stdout:
 	CLEAR = "\033[2K"
 
 def main(args):
-	print args
 	if args.filename is None:
 		raise Exception()
 	try:
@@ -58,6 +57,8 @@ def main(args):
 	with codecs.open(args.filename, "r", "utf-8") as f:
 		tagger = treetaggerwrapper.TreeTagger(TAGLANG="en")
 		for i, line in enumerate(f):
+			if args.train_split is not None and i > args.train_split:
+				break
 			line = re.sub(ur"\n", "", line)
 			line = re.sub(ur" +$", "",  line)	# 行末の空白を除去
 			line = re.sub(ur"^ +", "",  line)	# 行頭の空白を除去
@@ -73,6 +74,8 @@ def main(args):
 			segmentation = ""
 			for poses in result:
 				word, pos, lowercase = poses.split("\t")
+				if lowercase == "@card@":
+					lowercase = "##"
 				word_count.add(lowercase)
 				segmentation += lowercase + " "
 				pos = collapse_pos(pos)
@@ -82,8 +85,8 @@ def main(args):
 					Wt_count[pos][lowercase] = 1
 				else:
 					Wt_count[pos][lowercase] += 1
-			segmentation = re.sub(ur" +$", "",  segmentation)	# 行末の空白を除去
-			hmm.add_line(segmentation.decode("utf-8"))	# 学習用データに追加
+			segmentation = re.sub(r" +$", "",  segmentation)	# 行末の空白を除去
+			hmm.add_line(segmentation)	# 学習用データに追加
 
 	hmm.mark_low_frequency_words_as_unknown(args.unknown_threshold)	# 低頻度語を全て<unk>に置き換える
 	hmm.initialize()	# 品詞数をセットしてから初期化
@@ -113,5 +116,6 @@ if __name__ == "__main__":
 	parser.add_argument("-m", "--model", type=str, default="out", help="保存フォルダ名.")
 	parser.add_argument("-n", "--initial-num-tags", type=int, default=20, help="品詞の個数.")
 	parser.add_argument("-u", "--unknown-threshold", type=int, default=1, help="出現回数がこの値以下の単語は<unk>に置き換える.")
+	parser.add_argument("-l", "--train-split", type=int, default=None, help="テキストデータの最初の何行を訓練データにするか.")
 	parser.add_argument("--beam", default=False, action="store_true", help="品詞の個数.")
 	main(parser.parse_args())
