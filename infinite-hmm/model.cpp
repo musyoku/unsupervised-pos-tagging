@@ -159,7 +159,7 @@ public:
 	}
 	bool load(string dirname){
 		// 辞書を読み込み
-		string dictionary_filename = dirname + "/hmm.dict";
+		string dictionary_filename = dirname + "/ihmm.dict";
 		std::ifstream ifs(dictionary_filename);
 		if(ifs.good()){
 			boost::archive::binary_iarchive iarchive(ifs);
@@ -172,7 +172,7 @@ public:
 	}
 	bool save(string dirname){
 		// 辞書を保存
-		std::ofstream ofs(dirname + "/hmm.dict");
+		std::ofstream ofs(dirname + "/ihmm.dict");
 		boost::archive::binary_oarchive oarchive(ofs);
 		oarchive << _dictionary;
 		oarchive << _dictionary_inv;
