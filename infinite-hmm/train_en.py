@@ -39,6 +39,7 @@ class stdout:
 	CLEAR = "\033[2K"
 
 def main(args):
+	print args
 	if args.filename is None:
 		raise Exception()
 	try:
@@ -87,13 +88,13 @@ def main(args):
 	hmm.mark_low_frequency_words_as_unknown(1)	# 低頻度語を全て<unk>に置き換える
 	hmm.initialize()	# 品詞数をセットしてから初期化
 
-	# hmm.set_temperature(1)
 	for epoch in xrange(1, args.epoch + 1):
 		start = time.time()
 
-		# hmm.perform_gibbs_sampling()
-		hmm.perform_beam_sampling()
-		# hmm.anneal_temperature(0.9985)
+		if args.beam:
+			hmm.perform_beam_sampling()
+		else:
+			hmm.perform_gibbs_sampling()
 
 		elapsed_time = time.time() - start
 		sys.stdout.write(" Epoch {} / {} - {:.3f} sec\r".format(epoch, args.epoch, elapsed_time))		
@@ -111,5 +112,5 @@ if __name__ == "__main__":
 	parser.add_argument("-e", "--epoch", type=int, default=20000, help="総epoch.")
 	parser.add_argument("-m", "--model", type=str, default="out", help="保存フォルダ名.")
 	parser.add_argument("-n", "--initial-num-tags", type=int, default=20, help="品詞の個数.")
-	parser.add_argument("--beam", type=int, default=20, help="品詞の個数.")
+	parser.add_argument("--beam", default=False, action="store_true", help="品詞の個数.")
 	main(parser.parse_args())

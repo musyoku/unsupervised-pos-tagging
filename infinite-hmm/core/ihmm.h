@@ -564,7 +564,7 @@ public:
 			int correcting_count_for_destination = (ti_1 == tag) ? 1 : 0;
 			double p_likelihood = compute_Ptag_context(ti1, tag, correcting_count_for_bigram, correcting_count_for_destination);
 			double p_conditional = p_emission * p_generation * p_likelihood;
-			p_conditional = pow(p_conditional, 1.0 / _temperature);
+			// p_conditional = pow(p_conditional, 1.0 / _temperature);
 			_gibbs_sampling_table[tag] = p_conditional;
 			sum += p_conditional;
 		}
@@ -573,7 +573,7 @@ public:
 		double p_generation = compute_Ptag_context(new_tag, ti_1);
 		double p_likelihood = compute_Ptag_context(ti1, new_tag);
 		double p_conditional = p_emission * p_generation * p_likelihood;
-		p_conditional = pow(p_conditional, 1.0 / _temperature);
+		// p_conditional = pow(p_conditional, 1.0 / _temperature);
 		sum += p_conditional;
 		// new_tag > _tag_unigram_count.size()ならサンプリングテーブルに入れなくてもよい.
 		if(new_tag < _tag_unigram_count.size()){
