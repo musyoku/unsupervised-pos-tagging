@@ -6,7 +6,7 @@
 
 :smile: [A Fully Bayesian Approach to Unsupervised Part-of-Speech Tagging](http://homepages.inf.ed.ac.uk/sgwater/papers/acl07-bhmm.pdf)
 
-::simple_smile:: [The Infinite Hidden Markov Model](http://mlg.eng.cam.ac.uk/zoubin/papers/ihmm.pdf)
+:simple_smile: [The Infinite Hidden Markov Model](http://mlg.eng.cam.ac.uk/zoubin/papers/ihmm.pdf)
 
 :white_circle: [隠れセミマルコフモデルに基づく教師なし完全形態素解析](http://www.anlp.jp/proceedings/annual_meeting/2015/pdf_dir/C6-3.pdf)
 
