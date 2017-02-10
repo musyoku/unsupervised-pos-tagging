@@ -47,7 +47,7 @@ def main(args):
 		for pos in all_types_of_pos:
 			if pos not in occurrence:
 				occurrence[pos] = 0
-	for tag in xrange(hmm.get_num_tags()):
+	for tag in xrange(1, hmm.get_num_tags()):	# ignore BOP and EOP
 		if tag not in num_occurrence_of_pos_for_tag:
 			num_occurrence_of_pos_for_tag[tag] = {}
 			for pos in all_types_of_pos:
