@@ -111,4 +111,5 @@ if __name__ == "__main__":
 	parser.add_argument("-e", "--epoch", type=int, default=20000, help="総epoch.")
 	parser.add_argument("-m", "--model", type=str, default="out", help="保存フォルダ名.")
 	parser.add_argument("-n", "--initial-num-tags", type=int, default=20, help="品詞の個数.")
+	parser.add_argument("--beam", type=int, default=20, help="品詞の個数.")
 	main(parser.parse_args())

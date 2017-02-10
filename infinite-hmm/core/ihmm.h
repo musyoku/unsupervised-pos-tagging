@@ -144,7 +144,7 @@ public:
 	double* _beam_sampling_table_u;
 	double** _beam_sampling_table_s;
 	InfiniteHMM(int initial_num_tags){
-		_alpha = 1;
+		_alpha = 0.1;
 		_beta = 1;
 		_gamma = 1;
 		_beta_emission = 1;
@@ -650,18 +650,26 @@ public:
 			decrement_tag_unigram_count(ti);
 			decrement_tag_word_count(ti, wi);
 			ti_1 = ti;
+			// cout << wi << " -> ";
 			// cout << "pos = " << pos << endl;
 		}
+		// cout << endl;
 		decrement_tag_bigram_count(ti_1, EOP);
 
-		dump_tags();
+		// dump_tags();
 
-		for(int ti_1 = BOP;ti_1 < _tag_unigram_count.size();ti_1++){
-			for(int ti = BOP;ti < _tag_unigram_count.size();ti++){
-				cout << (boost::format("p(%d|%d) = %f") % ti % ti_1 % compute_Ptag_context(ti, ti_1)).str() << endl;
-			}
-		}
-		
+		// for(int ti_1 = BOP;ti_1 < _tag_unigram_count.size();ti_1++){
+		// 	for(int ti = BOP;ti < _tag_unigram_count.size();ti++){
+		// 		cout << (boost::format("p(%d|%d) = %f") % ti % ti_1 % compute_Ptag_context(ti, ti_1)).str() << endl;
+		// 	}
+		// }
+
+		// for(int wi = 0;wi < _num_words;wi++){
+		// 	for(int ti = BOP;ti < _tag_unigram_count.size();ti++){
+		// 		cout << (boost::format("p(wi=%d|%d) = %f") % wi % ti % compute_Pword_tag(wi, ti)).str() << endl;
+		// 	}
+		// }
+
 		// cout << "starting u" << endl;
 		// uのサンプリング
 		ti_1 = BOP;
@@ -669,16 +677,16 @@ public:
 			int ti = line[pos]->tag_id;
 			double p = compute_Ptag_context(ti, ti_1);
 			_beam_sampling_table_u[pos] = Sampler::uniform(0, p);
-			cout << (boost::format("u[%d] <- %f; p = %f; %d -> %d") % pos % _beam_sampling_table_u[pos] % p % ti_1 % ti).str() << endl;
+			// cout << (boost::format("u[%d] <- %f; p = %f; %d -> %d") % pos % _beam_sampling_table_u[pos] % p % ti_1 % ti).str() << endl;
 			ti_1 = ti;
 		}
 		double p = compute_Ptag_context(EOP, ti_1);
 		_beam_sampling_table_u[line.size()] = Sampler::uniform(0, p);
-		cout << (boost::format("u[%d] <- %f; p = %f; %d -> %d") % line.size() % _beam_sampling_table_u[line.size()] % p % ti_1 % EOP).str() << endl;
+		// cout << (boost::format("u[%d] <- %f; p = %f; %d -> %d") % line.size() % _beam_sampling_table_u[line.size()] % p % ti_1 % EOP).str() << endl;
 		// sのサンプリング
 		// cout << "starting s" << endl;
 		int new_tag = get_new_tag_id();
-		cout << "new_tag: " << new_tag << endl;
+		// cout << "new_tag: " << new_tag << endl;
 		//// forwardパス
 		////// pos == 1
 		int wi = line[0]->word_id;
@@ -689,17 +697,19 @@ public:
 				continue;
 			}
 			double Pti_ti_1 = compute_Ptag_context(tag, BOP);
-			_beam_sampling_table_s[0][tag] = (Pti_ti_1 >= ui) ? compute_Pword_tag(wi, tag) : 0; 
+			double Pwi_ti = compute_Pword_tag(wi, tag);
+			_beam_sampling_table_s[0][tag] = (Pti_ti_1 >= ui) ? Pwi_ti : 0; 
 
 			// if(line.size() == 200){
-				cout << (boost::format("s[%d][%d] <- %e; %f > %f") % 0 % tag % _beam_sampling_table_s[0][tag] % Pti_ti_1 % ui).str() << endl;
+				// cout << (boost::format("s[%d][%d] <- %e; %f > %f; p(wi=%d|%d) = %f") % 0 % tag % _beam_sampling_table_s[0][tag] % Pti_ti_1 % ui % wi % tag % Pwi_ti).str() << endl;
 			// }
 		}
 		double Pti_ti_1 = compute_Ptag_context(new_tag, BOP);
-		_beam_sampling_table_s[0][new_tag] = (Pti_ti_1 > ui) ? compute_Pword_tag(wi, new_tag) : 0; 
+		double Pwi_ti = compute_Pword_tag(wi, new_tag);
+		_beam_sampling_table_s[0][new_tag] = (Pti_ti_1 > ui) ? Pwi_ti : 0; 
 
 		// if(line.size() == 200){
-			cout << (boost::format("s[%d][%d] <- %e; %f > %f") % 0 % new_tag % _beam_sampling_table_s[0][new_tag] % Pti_ti_1 % ui).str() << endl;
+			// cout << (boost::format("s[%d][%d] <- %e; %f > %f; p(wi=%d|%d) = %f") % 0 % new_tag % _beam_sampling_table_s[0][new_tag] % Pti_ti_1 % ui % wi % new_tag % Pwi_ti).str() << endl;
 		// }
 		////// pos > 1
 		for(int pos = 1;pos < line.size();pos++){
@@ -725,7 +735,7 @@ public:
 							sum += _beam_sampling_table_s[pos - 1][ti_1];
 
 							// if(line.size() == 200){
-								cout << (boost::format("sum += %e; %f > %f") % _beam_sampling_table_s[pos - 1][ti_1] % Pti_ti_1 % ui).str() << endl;
+								// cout << (boost::format("sum += %e; %f > %f") % _beam_sampling_table_s[pos - 1][ti_1] % Pti_ti_1 % ui).str() << endl;
 							// }
 						}
 					}
@@ -736,7 +746,7 @@ public:
 						sum += _beam_sampling_table_s[pos - 1][new_tag];
 
 						// if(line.size() == 200){
-							cout << (boost::format("sum += %e; %f > %f") % _beam_sampling_table_s[pos - 1][new_tag] % Pti_ti_1 % ui).str() << endl;
+							// cout << (boost::format("sum += %e; %f > %f") % _beam_sampling_table_s[pos - 1][new_tag] % Pti_ti_1 % ui).str() << endl;
 						// }
 					}
 				}
@@ -744,7 +754,7 @@ public:
 				sum_over_tag += Pwi_ti * sum;
 
 				// if(line.size() == 200){
-					cout << (boost::format("s[%d][%d] <- %e; p = %e * %e") % pos % ti % (Pwi_ti * sum) % Pwi_ti % sum).str() << endl;
+					// cout << (boost::format("s[%d][%d] <- %e; p = %e * %e") % pos % ti % (Pwi_ti * sum) % Pwi_ti % sum).str() << endl;
 				// }
 			}
 			// 新しい品詞
@@ -762,7 +772,7 @@ public:
 							sum += _beam_sampling_table_s[pos - 1][ti_1];
 
 							// if(line.size() == 200){
-								cout << (boost::format("sum += %e; %f > %f") % _beam_sampling_table_s[pos - 1][ti_1] % Pti_ti_1 % ui).str() << endl;
+								// cout << (boost::format("sum += %e; %f > %f") % _beam_sampling_table_s[pos - 1][ti_1] % Pti_ti_1 % ui).str() << endl;
 							// }
 						}
 					}
@@ -773,7 +783,7 @@ public:
 						sum += _beam_sampling_table_s[pos - 1][new_tag];
 
 						// if(line.size() == 200){
-							cout << (boost::format("sum += %e; %f > %f") % _beam_sampling_table_s[pos - 1][new_tag] % Pti_ti_1 % ui).str() << endl;
+							// cout << (boost::format("sum += %e; %f > %f") % _beam_sampling_table_s[pos - 1][new_tag] % Pti_ti_1 % ui).str() << endl;
 						// }
 					}
 				}
@@ -781,7 +791,7 @@ public:
 				sum_over_tag += Pwi_ti * sum;
 
 				// if(line.size() == 200){
-					cout << (boost::format("s[%d][%d] <- %e; p = %e * %e") % pos % new_tag % (Pwi_ti * sum) % Pwi_ti % sum).str() << endl;
+					// cout << (boost::format("s[%d][%d] <- %e; p = %e * %e") % pos % new_tag % (Pwi_ti * sum) % Pwi_ti % sum).str() << endl;
 				// }
 			}
 			assert(sum_over_tag > 0);
@@ -794,7 +804,7 @@ public:
 			_beam_sampling_table_s[pos][new_tag] /= sum_over_tag;
 		}
 		//// backwardパス
-		cout << "backward" << endl;
+		// cout << "backward" << endl;
 		int sampled_tag = EOP;
 		for(int pos = line.size() - 1;pos >= 0;pos--){
 			double sum = 0;
@@ -815,7 +825,7 @@ public:
 				// }
 				double Pti_ti1_yi_ui = Pti1_ti * Pti_yi_ui;
 				sum += Pti_ti1_yi_ui;
-				cout << (boost::format("sum += %e; sum = %e; s[%d][%d] = %e;") % p % sum % pos % tag % p).str() << endl;
+				// cout << (boost::format("sum += %e; sum = %e; s[%d][%d] = %e;") % p % sum % pos % tag % p).str() << endl;
 				_gibbs_sampling_table[tag] = Pti_ti1_yi_ui;
 			}
 			double Pti_yi_ui = _beam_sampling_table_s[pos][new_tag];
@@ -826,7 +836,7 @@ public:
 				Pti1_ti = 1;
 			}
 			double Pti_ti1_yi_ui = Pti1_ti * Pti_yi_ui;
-			cout << (boost::format("sum += %e; sum = %e; s[%d][%d] = %e;") % p % sum % pos % new_tag % p).str() << endl;
+			// cout << (boost::format("sum += %e; sum = %e; s[%d][%d] = %e;") % p % sum % pos % new_tag % p).str() << endl;
 			sum += Pti_ti1_yi_ui;
 			// new_tag > _tag_unigram_count.size()ならサンプリングテーブルに入れない.
 			if(new_tag < _tag_unigram_count.size()){
@@ -864,7 +874,7 @@ public:
 		}
 		increment_tag_bigram_count(ti_1, EOP);
 		// exit(0);
-		exit(0);
+		// exit(0);
 	}
 	void dump_tags(){
 		for(int tag = EOP + 1;tag < _tag_unigram_count.size();tag++){
