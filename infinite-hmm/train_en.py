@@ -73,8 +73,14 @@ def main(args):
 			# よって単語分割は全てTreeTaggerによるものに統一しておく
 			segmentation = ""
 			for poses in result:
-				word, pos, lowercase = poses.split("\t")
+				poses = poses.split("\t")
+				if len(poses) == 1:
+					lowercase = poses[0]
+				else:
+					word, pos, lowercase = poses
 				if lowercase == "@card@":
+					lowercase = "##"
+				if lowercase == "@ord@":
 					lowercase = "##"
 				word_count.add(lowercase)
 				segmentation += lowercase + " "
@@ -106,7 +112,6 @@ def main(args):
 			print "\n"
 			hmm.show_typical_words_for_each_tag(20);
 			hmm.show_log_Pdata();
-			hmm.show_temperature();
 			hmm.save(args.model);
 
 if __name__ == "__main__":

@@ -56,6 +56,8 @@ def main(args):
 	with codecs.open(args.filename, "r", "utf-8") as f:
 		tagger = treetaggerwrapper.TreeTagger(TAGLANG="en")
 		for i, line in enumerate(f):
+			if args.train_split is not None and i > args.train_split:
+				break
 			line = re.sub(ur"\n", "", line)
 			line = re.sub(ur" +$", "",  line)	# 行末の空白を除去
 			line = re.sub(ur"^ +", "",  line)	# 行頭の空白を除去
@@ -81,7 +83,7 @@ def main(args):
 				else:
 					Wt_count[pos][lowercase] += 1
 			segmentation = re.sub(ur" +$", "",  segmentation)	# 行末の空白を除去
-			hmm.add_line(segmentation.decode("utf-8"))	# 学習用データに追加
+			hmm.add_line(segmentation)	# 学習用データに追加
 	if args.supervised:
 		# Wtは各タグについて、そのタグになりうる単語の数が入っている
 		# タグ0には<bos>と<eos>だけ含まれることにする
@@ -98,6 +100,7 @@ def main(args):
 	print "Wt:", Wt
 
 	hmm.set_num_tags(len(Wt));	# 品詞数を設定
+	hmm.mark_low_frequency_words_as_unknown(args.unknown_threshold)	# 低頻度語を全て<unk>に置き換える
 	hmm.initialize()	# 品詞数をセットしてから初期化
 
 	# Wtをセット
@@ -120,7 +123,7 @@ def main(args):
 			print "\n"
 			hmm.show_alpha()
 			hmm.show_beta()
-			hmm.show_random_line(20, True);	# ランダムなn個の文と推定結果のタグを表示
+			# hmm.show_random_line(20, True);	# ランダムなn個の文と推定結果のタグを表示
 			hmm.show_typical_words_for_each_tag(20);	# それぞれのタグにつき上位n個の単語を表示
 			print "temperature: ", hmm.get_temperature()
 			hmm.save(args.model);
@@ -130,9 +133,11 @@ if __name__ == "__main__":
 	parser.add_argument("-f", "--filename", type=str, default=None, help="訓練用のテキストファイルのパス.")
 	parser.add_argument("-e", "--epoch", type=int, default=20000, help="総epoch.")
 	parser.add_argument("-m", "--model", type=str, default="out", help="保存フォルダ名.")
-	parser.add_argument("-s", "--supervised", dest="supervised", default=True, action="store_true", help="各タグのWtを訓練データで制限するかどうか.")
-	parser.add_argument("-u", "--unsupervised", dest="supervised", action="store_false", help="各タグのWtを訓練データで制限するかどうか.")
+	parser.add_argument("--supervised", dest="supervised", default=True, action="store_true", help="各タグのWtを訓練データで制限するかどうか.")
+	parser.add_argument("--unsupervised", dest="supervised", action="store_false", help="各タグのWtを訓練データで制限するかどうか.")
 	parser.add_argument("-n", "--num-tags", type=int, default=20, help="タグの種類（semi_supervisedがFalseの時のみ有効）.")
+	parser.add_argument("-l", "--train-split", type=int, default=None, help="テキストデータの最初の何行を訓練データにするか.")
+	parser.add_argument("-u", "--unknown-threshold", type=int, default=1, help="出現回数がこの値以下の単語は<unk>に置き換える.")
 	parser.add_argument("--start-temperature", type=float, default=1.5, help="開始温度.")
 	parser.add_argument("--min-temperature", type=float, default=0.08, help="最小温度.")
 	parser.add_argument("--anneal", type=float, default=0.99989, help="温度の減少に使う係数.")
