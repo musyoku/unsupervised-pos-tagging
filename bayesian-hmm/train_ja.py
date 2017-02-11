@@ -25,6 +25,8 @@ def main(args):
 	with codecs.open(args.filename, "r", "utf-8") as f:
 		tagger = MeCab.Tagger()
 		for i, line in enumerate(f):
+			if args.train_split is not None and i > args.train_split:
+				break
 			if i % 500 == 0:
 				sys.stdout.write("\r{}行目を処理中です ...".format(i))
 				sys.stdout.flush()
@@ -60,6 +62,7 @@ def main(args):
 	print "Wt:", Wt
 
 	hmm.set_num_tags(len(Wt));	# 品詞数を設定
+	hmm.mark_low_frequency_words_as_unknown(args.unknown_threshold)	# 低頻度語を全て<unk>に置き換える
 	hmm.initialize()	# 学習の準備
 
 	# Wtをセット
@@ -96,6 +99,8 @@ if __name__ == "__main__":
 	parser.add_argument("-e", "--epoch", type=int, default=20000, help="総epoch.")
 	parser.add_argument("-m", "--model", type=str, default="out", help="保存フォルダ名.")
 	parser.add_argument("-n", "--num-tags", type=int, default=20, help="タグの種類.")
+	parser.add_argument("-l", "--train-split", type=int, default=None, help="テキストデータの最初の何行を訓練データにするか.")
+	parser.add_argument("-u", "--unknown-threshold", type=int, default=1, help="出現回数がこの値以下の単語は<unk>に置き換える.")
 	parser.add_argument("--start-temperature", type=float, default=2, help="開始温度.")
 	parser.add_argument("--min-temperature", type=float, default=0.08, help="最小温度.")
 	parser.add_argument("--anneal", type=float, default=0.9989, help="温度の減少に使う係数.")

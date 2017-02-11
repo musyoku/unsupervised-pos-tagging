@@ -28,11 +28,13 @@ private:
 	BayesianHMM* _hmm;
 	unordered_map<int, wstring> _dictionary;
 	unordered_map<wstring, int> _dictionary_inv;
+	unordered_map<int, int> _word_count;
 	vector<vector<Word*>> _dataset;
 	vector<int> _rand_indices;
 	int _autoincrement;
 	int _bos_id;
 	int _eos_id;
+	int _unk_id;
 	int _max_num_words_in_line;
 	int _min_num_words_in_line;
 public:
@@ -52,7 +54,9 @@ public:
 		_dictionary[_bos_id] = L"<bos>";
 		_eos_id = 1;
 		_dictionary[_eos_id] = L"<eos>";
-		_autoincrement = _eos_id + 1;
+		_unk_id = 2;
+		_dictionary[_unk_id] = L"<unk>";
+		_autoincrement = _unk_id + 1;
 
 		_max_num_words_in_line = -1;
 		_min_num_words_in_line = -1;
@@ -100,6 +104,7 @@ public:
 				bos->word_id = _bos_id;
 				bos->tag_id = 0;
 				words.push_back(bos);
+				_word_count[_bos_id] += 1;
 			}
 			for(auto &word_str: word_strs){
 				if(word_str.size() == 0){
@@ -109,6 +114,7 @@ public:
 				word->word_id = string_to_word_id(word_str);
 				word->tag_id = 0;
 				words.push_back(word);
+				_word_count[word->word_id] += 1;
 			}
 			// <eos>も2つ追加しておくとt_{i+1}, t_{i+2}が常に存在するのでギブスサンプリング時に場合分けしなくてもいいかもしれない
 			for(int n = 0;n < 2;n++){
@@ -116,6 +122,7 @@ public:
 				eos->word_id = _eos_id;
 				eos->tag_id = 0;
 				words.push_back(eos);
+				_word_count[_eos_id] += 1;
 			}
 			// 訓練データに追加
 			_dataset.push_back(words);
@@ -123,6 +130,25 @@ public:
 	}
 	void initialize(){
 		_hmm->initialize(_dataset);
+	}
+	void mark_low_frequency_words_as_unknown(int threshold = 1){
+		for(int data_index = 0;data_index < _dataset.size();data_index++){
+			vector<Word*> &line = _dataset[data_index];
+			for(auto word = line.begin(), end = line.end();word != end;word++){
+				int word_id = (*word)->word_id;
+				int count = get_count_for_word(word_id);
+				if(count <= threshold){
+					(*word)->word_id = _unk_id;
+				}
+			}
+		}
+	}
+	int get_count_for_word(int word_id){
+		auto itr = _word_count.find(word_id);
+		if(itr == _word_count.end()){
+			return 0;
+		}
+		return itr->second;
 	}
 	bool load(string dirname){
 		// 辞書を読み込み
@@ -283,6 +309,7 @@ BOOST_PYTHON_MODULE(model){
 	.def("string_to_word_id", &PyBayesianHMM::string_to_word_id)
 	.def("perform_gibbs_sampling", &PyBayesianHMM::perform_gibbs_sampling)
 	.def("initialize", &PyBayesianHMM::initialize)
+	.def("mark_low_frequency_words_as_unknown", &PyBayesianHMM::mark_low_frequency_words_as_unknown)
 	.def("load", &PyBayesianHMM::load)
 	.def("save", &PyBayesianHMM::save)
 	.def("get_num_tags", &PyBayesianHMM::get_num_tags)

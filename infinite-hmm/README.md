@@ -47,3 +47,5 @@ tag 19:
 ```
 
 ## Beam Sampling
+
+実装途中です
