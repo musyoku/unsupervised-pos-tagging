@@ -104,6 +104,7 @@ public:
 				bos->word_id = _bos_id;
 				bos->tag_id = 0;
 				words.push_back(bos);
+				_word_count[_bos_id] += 1;
 			}
 			for(auto &word_str: word_strs){
 				if(word_str.size() == 0){
@@ -137,7 +138,6 @@ public:
 				int word_id = (*word)->word_id;
 				int count = get_count_for_word(word_id);
 				if(count <= threshold){
-					cout << count << "," << threshold << endl;
 					(*word)->word_id = _unk_id;
 				}
 			}
