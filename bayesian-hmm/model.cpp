@@ -64,6 +64,13 @@ public:
 	int string_to_word_id(wstring word){
 		auto itr = _dictionary_inv.find(word);
 		if(itr == _dictionary_inv.end()){
+			return _unk_id;
+		}
+		return itr->second;
+	}
+	int add_string(wstring word){
+		auto itr = _dictionary_inv.find(word);
+		if(itr == _dictionary_inv.end()){
 			_dictionary[_autoincrement] = word;
 			_dictionary_inv[word] = _autoincrement;
 			_autoincrement++;
@@ -111,7 +118,7 @@ public:
 					continue;
 				}
 				Word* word = new Word();
-				word->word_id = string_to_word_id(word_str);
+				word->word_id = add_string(word_str);
 				word->tag_id = 0;
 				words.push_back(word);
 				_word_count[word->word_id] += 1;
@@ -307,6 +314,7 @@ public:
 BOOST_PYTHON_MODULE(model){
 	python::class_<PyBayesianHMM>("bayesian_hmm")
 	.def("string_to_word_id", &PyBayesianHMM::string_to_word_id)
+	.def("add_string", &PyBayesianHMM::add_string)
 	.def("perform_gibbs_sampling", &PyBayesianHMM::perform_gibbs_sampling)
 	.def("initialize", &PyBayesianHMM::initialize)
 	.def("mark_low_frequency_words_as_unknown", &PyBayesianHMM::mark_low_frequency_words_as_unknown)

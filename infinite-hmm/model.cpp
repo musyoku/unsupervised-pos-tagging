@@ -64,13 +64,20 @@ public:
 
 		_minimum_temperature = 0.08;
 	}
-	int string_to_word_id(wstring word){
+	int add_string(wstring word){
 		auto itr = _dictionary_inv.find(word);
 		if(itr == _dictionary_inv.end()){
 			_dictionary[_autoincrement] = word;
 			_dictionary_inv[word] = _autoincrement;
 			_autoincrement++;
 			return _autoincrement - 1;
+		}
+		return itr->second;
+	}
+	int string_to_word_id(wstring word){
+		auto itr = _dictionary_inv.find(word);
+		if(itr == _dictionary_inv.end()){
+			return _unk_id;
 		}
 		return itr->second;
 	}
@@ -113,7 +120,7 @@ public:
 					continue;
 				}
 				Word* word = new Word();
-				word->word_id = string_to_word_id(word_str);
+				word->word_id = add_string(word_str);
 				words.push_back(word);
 				_word_count[word->word_id] += 1;
 			}
@@ -268,6 +275,7 @@ public:
 BOOST_PYTHON_MODULE(model){
 	python::class_<PyInfiniteHMM>("ihmm", python::init<int>())
 	.def("string_to_word_id", &PyInfiniteHMM::string_to_word_id)
+	.def("add_string", &PyInfiniteHMM::add_string)
 	.def("perform_gibbs_sampling", &PyInfiniteHMM::perform_gibbs_sampling)
 	.def("perform_beam_sampling", &PyInfiniteHMM::perform_beam_sampling)
 	.def("initialize", &PyInfiniteHMM::initialize)
