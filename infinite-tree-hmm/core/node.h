@@ -79,6 +79,23 @@ public:
 };
 
 class Node{
+private:
+	friend class boost::serialization::access;
+	template <class Archive>
+	void serialize(Archive& archive, unsigned int version)
+	{
+		static_cast<void>(version);
+		archive & _identifier;
+		archive & _parent;
+		archive & _depth_v;
+		archive & _depth_h;
+		archive & _pass_count_v;
+		archive & _stop_count_v;
+		archive & _pass_count_h;
+		archive & _stop_count_h;
+		archive & _table_v;
+		archive & _table_h;
+	}
 public:
 	static _auto_increment;
 	int _identifier;	// ノードID
@@ -154,7 +171,7 @@ public:
 		return itr->second;
 	}
 	// 縦の棒折り過程における、棒を折る比率の期待値を計算。論文中のコインの表が出る確率に相当
-	double compute_expectation_of_sbr_param_v(double alpha){
+	double compute_expectation_of_vertical_sbr_param(double alpha){
 		vector<double> expectation_over_parents;
 		// トップレベルのノードから順に下りながら計算すると効率が良い
 		int num_parents = _depth_v;
@@ -166,12 +183,12 @@ public:
 				assert(target != NULL;)
 			}
 			// 親のTSSBにおけるこのノードの期待値なので自分のメソッドを呼ぶ
-			double expectation = _compute_expectation_of_sbr_param_v(alpha, target, expectation_over_parents);
+			double expectation = _compute_expectation_of_vertical_sbr_param(alpha, target, expectation_over_parents);
 			expectation_over_parents.push_back(expectation);
 		}
-		return _compute_expectation_of_sbr_param_v(alpha, this, expectation_over_parents);
+		return _compute_expectation_of_vertical_sbr_param(alpha, this, expectation_over_parents);
 	}
-	double _compute_expectation_of_sbr_param_v(double alpha, Node* target, vector<double> &expectation_over_parents){
+	double _compute_expectation_of_vertical_sbr_param(double alpha, Node* target, vector<double> &expectation_over_parents){
 		int pass_count = get_vertical_pass_count(target->_identifier);
 		int stop_count = get_vertical_stop_count(target->_identifier);
 		if(target->_parent == NULL){
@@ -182,15 +199,15 @@ public:
 		return (alpha * v_parent + stop_count) / (alpha * (1.0 - sum_v_parents) + stop_count + pass_count);
 	}
 	// 縦の棒折り過程における、棒を折る比率をサンプリング。論文中のコインの表が出る確率に相当
-	double sample_sbr_param_v(){
+	double sample_vertical_sbr_param(){
 		
 	}
 	// 横の棒折り過程における、棒を折る比率を計算。論文中のコインの表が出る確率に相当
-	double compute_expectation_of_sbr_param_h(){
+	double compute_expectation_of_horizontal_sbr_param(){
 		
 	}
 	// 横の棒折り過程における、棒を折る比率の期待値を計算。論文中のコインの表が出る確率に相当
-	double sample_sbr_param_h(){
+	double sample_horizontal_sbr_param(){
 		
 	}
 	// TSSBでこのノードに止まる確率。
@@ -198,18 +215,54 @@ public:
 
 	}
 	// 客を追加
-	void add_customer_to_vertical_crp(int customer_id){
-		
+	void add_customer_to_vertical_crp(double concentration){
+		_add_customer_to_vertical_crp(concentration, this);
 	}
-	void add_customer_to_horizontal_crp(int customer_id){
-		
+	void _add_customer_to_vertical_crp(double concentration, Node* node){
+		Table* table = get_vertical_table_with_id(node->_identifier);
+		assert(table != NULL);
+		bool new_table_generated = false;
+		table->add_customer(concentration, new_table_generated);
+		if(new_table_generated && node->_parent != NULL){					// 新しいテーブルが作られたら親のTSSBのこのノードに代理客を追加
+			_add_customer_to_vertical_crp(concentration, node->_parent);	// 親のTSSBにおけるこのノードに客を追加するので自分のメソッドを呼ぶ
+		}
 	}
-	// 親のTSSBにおけるこのノードに代理客を追加
-	void add_customer_to_parent_tssb_vertical_crp(int customer_id){
-		
+	void add_customer_to_horizontal_crp(double concentration){
+		_add_customer_to_horizontal_crp(concentration, this);
 	}
-	void add_customer_to_parent_tssb_horizontal_crp(int customer_id){
-		
+	void _add_customer_to_horizontal_crp(double concentration){
+		Table* table = get_horizontal_table_with_id(node->_identifier);
+		assert(table != NULL);
+		bool new_table_generated = false;
+		table->add_customer(concentration, new_table_generated);
+		if(new_table_generated && node->_parent != NULL){					// 新しいテーブルが作られたら親のTSSBのこのノードに代理客を追加
+			_add_customer_to_vertical_crp(concentration, node->_parent);	// 親のTSSBにおけるこのノードに客を追加するので自分のメソッドを呼ぶ
+		}
+	}
+	// 客を除去
+	void remove_customer_from_vertical_crp(double concentration){
+		_remove_customer_from_vertical_crp(concentration, this);
+	}
+	void _remove_customer_from_vertical_crp(double concentration, Node* node){
+		Table* table = get_vertical_table_with_id(node->_identifier);
+		assert(table != NULL);
+		bool empty_table_deleted = false;
+		table->remove_customer(empty_table_deleted);
+		if(empty_table_deleted && node->_parent != NULL){						// テーブルが消えた場合は親TSSBのこのノードから代理客を削除
+			_remove_customer_from_vertical_crp(concentration, node->_parent);	// 親のTSSBにおけるこのノードから客を除去するので自分のメソッドを呼ぶ
+		}
+	}
+	void remove_customer_from_horizontal_crp(double concentration){
+		_remove_customer_from_horizontal_crp(concentration, this);
+	}
+	void _remove_customer_from_horizontal_crp(double concentration){
+		Table* table = get_horizontal_table_with_id(node->_identifier);
+		assert(table != NULL);
+		bool empty_table_deleted = false;
+		table->remove_customer(empty_table_deleted);
+		if(empty_table_deleted && node->_parent != NULL){						// テーブルが消えた場合は親TSSBのこのノードから代理客を削除
+			_remove_customer_from_vertical_crp(concentration, node->_parent);	// 親のTSSBにおけるこのノードから客を除去するので自分のメソッドを呼ぶ
+		}
 	}
 };
 int Node::_auto_increment = 0;
