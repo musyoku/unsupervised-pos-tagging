@@ -105,6 +105,7 @@ private:
 		archive & _stop_count_h;
 		archive & _table_v;
 		archive & _table_h;
+		archive & _children;
 	}
 public:
 	static int _auto_increment;
@@ -120,11 +121,16 @@ public:
 	unordered_map<int, int> _stop_count_h;	// 停止回数。 横方向のCDP
 	unordered_map<int, Table*> _table_v;	// 客を管理するテーブル。 縦方向のCRP
 	unordered_map<int, Table*> _table_h;	// 客を管理するテーブル。 横方向のCRP
+	vector<Node*> _children;
+	double _stick_length;					// 自分の棒の木全体に対する長さ
+	double _children_stick_length;			// 自分の棒の子ノードに割り当てる長さ
 	Node(Node* parent){
 		_identifier = _auto_increment;
 		_auto_increment++;
 		_parent = parent;
 		_depth_v = (parent != NULL) ? parent->_depth_v + 1 : 0;
+		_stick_length = -1;
+		_children_stick_length = -1;
 	}
 	~Node(){
 		for(auto &elem: _table_v){
@@ -143,6 +149,11 @@ public:
 			_table_h[parent->_identifier] = table_h;
 			parent = parent->_parent;
 		}
+	}
+	Node* generate_child(){
+		Node* child = new Node(this);
+		_children.push_back(child);
+		return child;
 	}
 	int get_vertical_stop_count(){
 		return get_vertical_stop_count_with_id(_identifier);
@@ -184,39 +195,48 @@ public:
 		}
 		return itr->second;
 	}
-	Table* get_vertical_table_with_id(int identifier){
+	Table* get_vertical_table_with_id(int identifier, bool generate_if_not_exist){
 		auto itr = _table_v.find(identifier);
 		if(itr == _table_v.end()){
+			if(generate_if_not_exist){
+				Table* table = new Table();
+				_table_v[identifier] = table;
+				return table;
+			}
 			return NULL;
 		}
 		return itr->second;
 	}
-	Table* get_horizontal_table_with_id(int identifier){
+	Table* get_horizontal_table_with_id(int identifier, bool generate_if_not_exist){
 		auto itr = _table_h.find(identifier);
 		if(itr == _table_h.end()){
+			if(generate_if_not_exist){
+				Table* table = new Table();
+				_table_h[identifier] = table;
+				return table;
+			}
 			return NULL;
 		}
 		return itr->second;
 	}
 	// 縦の棒折り過程における、棒を折る比率の期待値を計算。論文中のコインの表が出る確率に相当
-	double compute_expectation_of_vertical_sbr_param(double alpha){
+	double compute_expectation_of_vertical_sbr_ratio(double alpha){
 		vector<double> expectation_over_parents;
 		// トップレベルのノードから順に下りながら計算すると効率が良い
 		int num_parents = _depth_v;
 		for(int n = 0;n < num_parents;n++){
-			Node* target = _parent;
-			assert(target != NULL);
+			Node* target = this;
 			for(int step = 0;step < num_parents - n;step++){
 				target = target->_parent;
 				assert(target != NULL);
 			}
 			// 親のTSSBにおけるこのノードの期待値なので自分のメソッドを呼ぶ
-			double expectation = _compute_expectation_of_vertical_sbr_param(alpha, target, expectation_over_parents);
+			double expectation = _compute_expectation_of_vertical_sbr_ratio(alpha, target, expectation_over_parents);
 			expectation_over_parents.push_back(expectation);
 		}
-		return _compute_expectation_of_vertical_sbr_param(alpha, this, expectation_over_parents);
+		return _compute_expectation_of_vertical_sbr_ratio(alpha, this, expectation_over_parents);
 	}
-	double _compute_expectation_of_vertical_sbr_param(double alpha, Node* target, vector<double> &expectation_over_parents){
+	double _compute_expectation_of_vertical_sbr_ratio(double alpha, Node* target, vector<double> &expectation_over_parents){
 		int pass_count = get_vertical_pass_count_with_id(target->_identifier);
 		int stop_count = get_vertical_stop_count_with_id(target->_identifier);
 		if(target->_parent == NULL){
@@ -227,27 +247,27 @@ public:
 		return (alpha * v_parent + stop_count) / (alpha * (1.0 - sum_v_parents) + stop_count + pass_count);
 	}
 	// 縦の棒折り過程における、棒を折る比率をサンプリング。論文中のコインの表が出る確率に相当
-	double sample_vertical_sbr_param(){
-		return 0;
+	double sample_vertical_sbr_ratio(){
+		return 0.3;
 	}
 	// 横の棒折り過程における、棒を折る比率を計算。論文中のコインの表が出る確率に相当
-	double compute_expectation_of_horizontal_sbr_param(){
-		return 0;
+	double compute_expectation_of_horizontal_sbr_ratio(double gamma){
+		return 0.3;
 	}
 	// 横の棒折り過程における、棒を折る比率の期待値を計算。論文中のコインの表が出る確率に相当
-	double sample_horizontal_sbr_param(){
-		return 0;
+	double sample_horizontal_sbr_ratio(double gamma){
+		return 0.3;
 	}
 	// TSSBでこのノードに止まる確率。
 	double compute_stop_probability(){
-		return 0;
+		return 0.3;
 	}
 	// 客を追加
 	void add_customer_to_vertical_crp(double concentration){
 		_add_customer_to_vertical_crp(concentration, this);
 	}
 	void _add_customer_to_vertical_crp(double concentration, Node* node){
-		Table* table = get_vertical_table_with_id(node->_identifier);
+		Table* table = get_vertical_table_with_id(node->_identifier, true);
 		assert(table != NULL);
 		bool new_table_generated = false;
 		table->add_customer(concentration, new_table_generated);
@@ -259,7 +279,7 @@ public:
 		_add_customer_to_horizontal_crp(concentration, this);
 	}
 	void _add_customer_to_horizontal_crp(double concentration, Node* node){
-		Table* table = get_horizontal_table_with_id(node->_identifier);
+		Table* table = get_horizontal_table_with_id(node->_identifier, true);
 		assert(table != NULL);
 		bool new_table_generated = false;
 		table->add_customer(concentration, new_table_generated);
@@ -272,7 +292,7 @@ public:
 		_remove_customer_from_vertical_crp(concentration, this);
 	}
 	void _remove_customer_from_vertical_crp(double concentration, Node* node){
-		Table* table = get_vertical_table_with_id(node->_identifier);
+		Table* table = get_vertical_table_with_id(node->_identifier, false);
 		assert(table != NULL);
 		bool empty_table_deleted = false;
 		table->remove_customer(empty_table_deleted);
@@ -284,7 +304,7 @@ public:
 		_remove_customer_from_horizontal_crp(concentration, this);
 	}
 	void _remove_customer_from_horizontal_crp(double concentration, Node* node){
-		Table* table = get_horizontal_table_with_id(node->_identifier);
+		Table* table = get_horizontal_table_with_id(node->_identifier, false);
 		assert(table != NULL);
 		bool empty_table_deleted = false;
 		table->remove_customer(empty_table_deleted);
