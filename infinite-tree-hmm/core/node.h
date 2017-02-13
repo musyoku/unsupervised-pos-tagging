@@ -1,7 +1,17 @@
 #ifndef _node_
 #define _node_
+#include <boost/serialization/serialization.hpp>
+#include <boost/serialization/base_object.hpp>
+#include <boost/archive/binary_iarchive.hpp>
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/serialization/unordered_map.hpp>
+#include <boost/serialization/vector.hpp>
+#include <boost/format.hpp>
 #include <cassert>
 #include <unordered_map>
+#include <algorithm>
+#include "cprintf.h"
+#include "sampler.h"
 using namespace std;
 using namespace boost;
 
@@ -97,7 +107,7 @@ private:
 		archive & _table_h;
 	}
 public:
-	static _auto_increment;
+	static int _auto_increment;
 	int _identifier;	// ノードID
 	Node* _parent;		// 親ノード
 	int _depth_v;		// 縦の深さ。 論文中の|s|に相当
@@ -110,10 +120,28 @@ public:
 	unordered_map<int, int> _stop_count_h;	// 停止回数。 横方向のCDP
 	unordered_map<int, Table*> _table_v;	// 客を管理するテーブル。 縦方向のCRP
 	unordered_map<int, Table*> _table_h;	// 客を管理するテーブル。 横方向のCRP
-	Node(Node* _parent){
+	Node(Node* parent){
 		_identifier = _auto_increment;
 		_auto_increment++;
-		if(_parent != NULL){
+		_parent = parent;
+		_depth_v = (parent != NULL) ? parent->_depth_v + 1 : 0;
+	}
+	~Node(){
+		for(auto &elem: _table_v){
+			delete elem.second;
+		}
+		for(auto &elem: _table_h){
+			delete elem.second;
+		}
+	}
+	void init_table(){
+		Node* parent = _parent;
+		while(parent != NULL){
+			Table* table_v = new Table();
+			_table_v[parent->_identifier] = table_v;
+			Table* table_h = new Table();
+			_table_h[parent->_identifier] = table_h;
+			parent = parent->_parent;
 		}
 	}
 	int get_vertical_stop_count(){
@@ -177,10 +205,10 @@ public:
 		int num_parents = _depth_v;
 		for(int n = 0;n < num_parents;n++){
 			Node* target = _parent;
-			assert(target != NULL;)
-			for(step = 0;step < num_parents - n;step++){
+			assert(target != NULL);
+			for(int step = 0;step < num_parents - n;step++){
 				target = target->_parent;
-				assert(target != NULL;)
+				assert(target != NULL);
 			}
 			// 親のTSSBにおけるこのノードの期待値なので自分のメソッドを呼ぶ
 			double expectation = _compute_expectation_of_vertical_sbr_param(alpha, target, expectation_over_parents);
@@ -189,8 +217,8 @@ public:
 		return _compute_expectation_of_vertical_sbr_param(alpha, this, expectation_over_parents);
 	}
 	double _compute_expectation_of_vertical_sbr_param(double alpha, Node* target, vector<double> &expectation_over_parents){
-		int pass_count = get_vertical_pass_count(target->_identifier);
-		int stop_count = get_vertical_stop_count(target->_identifier);
+		int pass_count = get_vertical_pass_count_with_id(target->_identifier);
+		int stop_count = get_vertical_stop_count_with_id(target->_identifier);
 		if(target->_parent == NULL){
 			return (1.0 + stop_count) / (1.0 + alpha + stop_count + pass_count);
 		}
@@ -200,19 +228,19 @@ public:
 	}
 	// 縦の棒折り過程における、棒を折る比率をサンプリング。論文中のコインの表が出る確率に相当
 	double sample_vertical_sbr_param(){
-		
+		return 0;
 	}
 	// 横の棒折り過程における、棒を折る比率を計算。論文中のコインの表が出る確率に相当
 	double compute_expectation_of_horizontal_sbr_param(){
-		
+		return 0;
 	}
 	// 横の棒折り過程における、棒を折る比率の期待値を計算。論文中のコインの表が出る確率に相当
 	double sample_horizontal_sbr_param(){
-		
+		return 0;
 	}
 	// TSSBでこのノードに止まる確率。
 	double compute_stop_probability(){
-
+		return 0;
 	}
 	// 客を追加
 	void add_customer_to_vertical_crp(double concentration){
@@ -230,7 +258,7 @@ public:
 	void add_customer_to_horizontal_crp(double concentration){
 		_add_customer_to_horizontal_crp(concentration, this);
 	}
-	void _add_customer_to_horizontal_crp(double concentration){
+	void _add_customer_to_horizontal_crp(double concentration, Node* node){
 		Table* table = get_horizontal_table_with_id(node->_identifier);
 		assert(table != NULL);
 		bool new_table_generated = false;
@@ -255,7 +283,7 @@ public:
 	void remove_customer_from_horizontal_crp(double concentration){
 		_remove_customer_from_horizontal_crp(concentration, this);
 	}
-	void _remove_customer_from_horizontal_crp(double concentration){
+	void _remove_customer_from_horizontal_crp(double concentration, Node* node){
 		Table* table = get_horizontal_table_with_id(node->_identifier);
 		assert(table != NULL);
 		bool empty_table_deleted = false;
