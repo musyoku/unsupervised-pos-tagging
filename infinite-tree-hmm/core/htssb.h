@@ -18,8 +18,8 @@ public:
 	}
 	void add_customer_to_node(Node* node){
 		double alpha = _alpha * pow(_alpha, node->_depth_v);
-		node->add_customer_to_vertical_crp(alpha);
-		node->add_customer_to_horizontal_crp(_gamma);
+		node->add_customer_to_clustering_vertical_crp(alpha);
+		// node->add_customer_to_horizontal_crp(_gamma);
 	}
 	Node* sample_node(){
 		return _stop_node(_root);
