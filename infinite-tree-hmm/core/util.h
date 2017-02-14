@@ -68,4 +68,23 @@ void show_progress(int step, int total){
 		cout << endl;
 	}
 }
+double compute_sbr_probability_given_params(vector<double> &params){
+	double probability = 1;
+	for(int i = 0;i < params.size() - 1;i++){
+		probability *= 1 - params[i];
+	}
+	return probability * params.back();
+}
+void compute_sbr_probability_and_sum_given_params(vector<double> &params, double &probability, double &sum){
+	double stick = 1;
+	probability = 1;
+	sum = 0;
+	for(int i = 0;i < params.size() - 1;i++){
+		probability *= 1 - params[i];
+		sum += stick * params[i];
+		stick = stick * (1 - params[i]);
+	}
+	probability *= params.back();
+	sum += stick * params.back();
+}
 #endif

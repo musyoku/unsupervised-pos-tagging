@@ -12,6 +12,7 @@
 #include <algorithm>
 #include "cprintf.h"
 #include "sampler.h"
+#include "util.h"
 using namespace std;
 using namespace boost;
 
@@ -99,6 +100,12 @@ private:
 		archive & _parent;
 		archive & _depth_v;
 		archive & _depth_h;
+		archive & _htssb_pass_count_v;
+		archive & _htssb_stop_count_v;
+		archive & _htssb_pass_count_h;
+		archive & _htssb_stop_count_h;
+		archive & _htssb_table_v;
+		archive & _htssb_table_h;
 		archive & _pass_count_v;
 		archive & _stop_count_v;
 		archive & _pass_count_h;
@@ -113,14 +120,21 @@ public:
 	Node* _parent;		// 親ノード
 	int _depth_v;		// 縦の深さ。 論文中の|s|に相当
 	int _depth_h;		// 横の深さ。 論文中のkに相当
-	// 各ノードのTSSBは自己同型になっている必要があるため、構造を共有する
+	// 各ノードの遷移確率TSSBは自己同型になっている必要があるため、構造を共有する
 	// カウントは各ノードのIDごとに管理
-	unordered_map<int, int> _pass_count_v;	// 通過回数。 縦方向のCDP
-	unordered_map<int, int> _stop_count_v;	// 停止回数。 縦方向のCDP
-	unordered_map<int, int> _pass_count_h;	// 通過回数。 横方向のCDP
-	unordered_map<int, int> _stop_count_h;	// 停止回数。 横方向のCDP
-	unordered_map<int, Table*> _table_v;	// 客を管理するテーブル。 縦方向のCRP
-	unordered_map<int, Table*> _table_h;	// 客を管理するテーブル。 横方向のCRP
+	unordered_map<int, int> _htssb_pass_count_v;	// 通過回数。 縦方向のCDP
+	unordered_map<int, int> _htssb_stop_count_v;	// 停止回数。 縦方向のCDP
+	unordered_map<int, int> _htssb_pass_count_h;	// 通過回数。 横方向のCDP
+	unordered_map<int, int> _htssb_stop_count_h;	// 停止回数。 横方向のCDP
+	unordered_map<int, Table*> _htssb_table_v;	// 客を管理するテーブル。 縦方向のCRP
+	unordered_map<int, Table*> _htssb_table_h;	// 客を管理するテーブル。 横方向のCRP
+	// クラスタリングのカウント
+	int _pass_count_v;
+	int _stop_count_v;
+	int _pass_count_h;
+	int _stop_count_h;
+	Table* _table_v;
+	Table* _table_h;
 	vector<Node*> _children;
 	double _stick_length;					// 自分の棒の木全体に対する長さ
 	double _children_stick_length;			// 自分の棒の子ノードに割り当てる長さ
@@ -133,86 +147,94 @@ public:
 		_children_stick_length = -1;
 	}
 	~Node(){
-		for(auto &elem: _table_v){
+		for(auto &elem: _htssb_table_v){
 			delete elem.second;
 		}
-		for(auto &elem: _table_h){
+		for(auto &elem: _htssb_table_h){
 			delete elem.second;
 		}
+		delete _table_v;
+		delete _table_h;
 	}
 	void init_table(){
 		Node* parent = _parent;
 		while(parent != NULL){
 			Table* table_v = new Table();
-			_table_v[parent->_identifier] = table_v;
+			_htssb_table_v[parent->_identifier] = table_v;
 			Table* table_h = new Table();
-			_table_h[parent->_identifier] = table_h;
+			_htssb_table_h[parent->_identifier] = table_h;
 			parent = parent->_parent;
 		}
+		_table_v = new Table();
+		_table_h = new Table();
 	}
 	Node* generate_child(){
 		Node* child = new Node(this);
 		_children.push_back(child);
 		return child;
 	}
+	// クラスタリングTSSBでのカウント
 	int get_vertical_stop_count(){
-		return get_vertical_stop_count_with_id(_identifier);
+		return _stop_count_h;
 	}
-	int get_vertical_stop_count_with_id(int identifier){
-		auto itr = _stop_count_v.find(identifier);
-		if(itr == _stop_count_v.end()){
+	// 遷移確率TSSBでのカウント
+	int get_htssb_vertical_stop_count_with_id(int identifier){
+		auto itr = _htssb_stop_count_v.find(identifier);
+		if(itr == _htssb_stop_count_v.end()){
 			return 0;
 		}
 		return itr->second;
 	}
+	// クラスタリングTSSBでのカウント
 	int get_vertical_pass_count(){
-		return get_vertical_pass_count_with_id(_identifier);
+		return _pass_count_v;
 	}
-	int get_vertical_pass_count_with_id(int identifier){
-		auto itr = _pass_count_v.find(identifier);
-		if(itr == _pass_count_v.end()){
+	// 遷移確率TSSBでのカウント
+	int get_htssb_vertical_pass_count_with_id(int identifier){
+		auto itr = _htssb_pass_count_v.find(identifier);
+		if(itr == _htssb_pass_count_v.end()){
 			return 0;
 		}
 		return itr->second;
 	}
 	int get_horizontal_stop_count(){
-		return get_horizontal_stop_count_with_id(_identifier);
+		return _stop_count_h;
 	}
-	int get_horizontal_stop_count_with_id(int identifier){
-		auto itr = _stop_count_h.find(identifier);
-		if(itr == _stop_count_h.end()){
+	int get_htssb_horizontal_stop_count_with_id(int identifier){
+		auto itr = _htssb_stop_count_h.find(identifier);
+		if(itr == _htssb_stop_count_h.end()){
 			return 0;
 		}
 		return itr->second;
 	}
 	int get_horizontal_pass_count(){
-		return get_horizontal_pass_count_with_id(_identifier);
+		return _pass_count_h;
 	}
-	int get_horizontal_pass_count_with_id(int identifier){
-		auto itr = _pass_count_h.find(identifier);
-		if(itr == _pass_count_h.end()){
+	int get_htssb_horizontal_pass_count_with_id(int identifier){
+		auto itr = _htssb_pass_count_h.find(identifier);
+		if(itr == _htssb_pass_count_h.end()){
 			return 0;
 		}
 		return itr->second;
 	}
-	Table* get_vertical_table_with_id(int identifier, bool generate_if_not_exist){
-		auto itr = _table_v.find(identifier);
-		if(itr == _table_v.end()){
+	Table* get_htssb_vertical_table_with_id(int identifier, bool generate_if_not_exist){
+		auto itr = _htssb_table_v.find(identifier);
+		if(itr == _htssb_table_v.end()){
 			if(generate_if_not_exist){
 				Table* table = new Table();
-				_table_v[identifier] = table;
+				_htssb_table_v[identifier] = table;
 				return table;
 			}
 			return NULL;
 		}
 		return itr->second;
 	}
-	Table* get_horizontal_table_with_id(int identifier, bool generate_if_not_exist){
-		auto itr = _table_h.find(identifier);
-		if(itr == _table_h.end()){
+	Table* get_htssb_horizontal_table_with_id(int identifier, bool generate_if_not_exist){
+		auto itr = _htssb_table_h.find(identifier);
+		if(itr == _htssb_table_h.end()){
 			if(generate_if_not_exist){
 				Table* table = new Table();
-				_table_h[identifier] = table;
+				_htssb_table_h[identifier] = table;
 				return table;
 			}
 			return NULL;
@@ -220,8 +242,8 @@ public:
 		return itr->second;
 	}
 	// 縦の棒折り過程における、棒を折る比率の期待値を計算。論文中のコインの表が出る確率に相当
-	double compute_expectation_of_vertical_sbr_ratio(double alpha){
-		vector<double> expectation_over_parents;
+	double compute_htssb_expectation_of_vertical_sbr_ratio(double alpha){
+		vector<double> ratio_over_parents;	// 縦のSBRでの棒を折る比率をトップレベルから順に格納
 		// トップレベルのノードから順に下りながら計算すると効率が良い
 		int num_parents = _depth_v;
 		for(int n = 0;n < num_parents;n++){
@@ -231,14 +253,14 @@ public:
 				assert(target != NULL);
 			}
 			// 親のTSSBにおけるこのノードの期待値なので自分のメソッドを呼ぶ
-			double expectation = _compute_expectation_of_vertical_sbr_ratio(alpha, target, expectation_over_parents);
-			expectation_over_parents.push_back(expectation);
+			double expectation = _compute_htssb_expectation_of_vertical_sbr_ratio(alpha, target, ratio_over_parents);
+			ratio_over_parents.push_back(expectation);
 		}
-		return _compute_expectation_of_vertical_sbr_ratio(alpha, this, expectation_over_parents);
+		return _compute_htssb_expectation_of_vertical_sbr_ratio(alpha, this, ratio_over_parents);
 	}
-	double _compute_expectation_of_vertical_sbr_ratio(double alpha, Node* target, vector<double> &expectation_over_parents){
-		int pass_count = get_vertical_pass_count_with_id(target->_identifier);
-		int stop_count = get_vertical_stop_count_with_id(target->_identifier);
+	double _compute_htssb_expectation_of_vertical_sbr_ratio(double alpha, Node* target, vector<double> &expectation_over_parents){
+		int pass_count = get_htssb_vertical_pass_count_with_id(target->_identifier);
+		int stop_count = get_htssb_vertical_stop_count_with_id(target->_identifier);
 		if(target->_parent == NULL){
 			return (1.0 + stop_count) / (1.0 + alpha + stop_count + pass_count);
 		}
@@ -246,70 +268,119 @@ public:
 		double sum_v_parents = std::accumulate(expectation_over_parents.begin(), expectation_over_parents.end(), 0.0);
 		return (alpha * v_parent + stop_count) / (alpha * (1.0 - sum_v_parents) + stop_count + pass_count);
 	}
-	// 縦の棒折り過程における、棒を折る比率をサンプリング。論文中のコインの表が出る確率に相当
-	double sample_vertical_sbr_ratio(){
-		return 0.3;
-	}
 	// 横の棒折り過程における、棒を折る比率を計算。論文中のコインの表が出る確率に相当
-	double compute_expectation_of_horizontal_sbr_ratio(double gamma){
+	double compute_htssb_expectation_of_horizontal_sbr_ratio(double gamma){
 		return 0.3;
 	}
-	// 横の棒折り過程における、棒を折る比率の期待値を計算。論文中のコインの表が出る確率に相当
-	double sample_horizontal_sbr_ratio(double gamma){
-		return 0.3;
-	}
-	// TSSBでこのノードに止まる確率。
+	// クラスタリングTSSBでこのノードに止まる確率。
 	double compute_stop_probability(){
 		return 0.3;
 	}
-	// 客を追加
+	// クラスタリングTSSBに客を追加
 	void add_customer_to_vertical_crp(double concentration){
-		_add_customer_to_vertical_crp(concentration, this);
+		
 	}
-	void _add_customer_to_vertical_crp(double concentration, Node* node){
-		Table* table = get_vertical_table_with_id(node->_identifier, true);
+	// 遷移確率TSSBに客を追加
+	void _add_customer_to_htssb_vertical_crp(double concentration, Node* node){
+		Table* table = get_htssb_vertical_table_with_id(node->_identifier, true);
 		assert(table != NULL);
 		bool new_table_generated = false;
 		table->add_customer(concentration, new_table_generated);
 		if(new_table_generated && node->_parent != NULL){					// 新しいテーブルが作られたら親のTSSBのこのノードに代理客を追加
-			_add_customer_to_vertical_crp(concentration, node->_parent);	// 親のTSSBにおけるこのノードに客を追加するので自分のメソッドを呼ぶ
+			_add_customer_to_htssb_vertical_crp(concentration, node->_parent);	// 親のTSSBにおけるこのノードに客を追加するので自分のメソッドを呼ぶ
 		}
+		// 停止回数・通過回数を更新
+		increment_vertical_stop_count();
+		Node* parent = node->_parent;
+		while(parent){
+			parent->increment_vertical_pass_count();
+			parent = parent->_parent;
+		}
+	}
+	void increment_vertical_stop_count(){
+		_stop_count_v += 1;
+	}
+	void _increment_htssb_vertical_stop_count(int identifier){
+		_htssb_stop_count_v[identifier] += 1;
+	}
+	void increment_vertical_pass_count(){
+		_pass_count_v += 1;
+	}
+	void _increment_htssb_vertical_pass_count(int identifier){
+		_htssb_pass_count_v[identifier] += 1;
 	}
 	void add_customer_to_horizontal_crp(double concentration){
-		_add_customer_to_horizontal_crp(concentration, this);
+
 	}
-	void _add_customer_to_horizontal_crp(double concentration, Node* node){
-		Table* table = get_horizontal_table_with_id(node->_identifier, true);
+	void _add_customer_to_htssb_horizontal_crp(double concentration, Node* node){
+		Table* table = get_htssb_horizontal_table_with_id(node->_identifier, true);
 		assert(table != NULL);
 		bool new_table_generated = false;
 		table->add_customer(concentration, new_table_generated);
 		if(new_table_generated && node->_parent != NULL){					// 新しいテーブルが作られたら親のTSSBのこのノードに代理客を追加
-			_add_customer_to_vertical_crp(concentration, node->_parent);	// 親のTSSBにおけるこのノードに客を追加するので自分のメソッドを呼ぶ
+			_add_customer_to_htssb_vertical_crp(concentration, node->_parent);	// 親のTSSBにおけるこのノードに客を追加するので自分のメソッドを呼ぶ
 		}
+		// 停止回数・通過回数を更新
+		increment_horizontal_stop_count();
+		Node* parent = _parent;
+		while(parent){
+			parent->increment_horizontal_pass_count();
+			parent = parent->_parent;
+		}
+	}
+	void increment_horizontal_stop_count(){
+		_stop_count_h += 1;
+	}
+	void _increment_htssb_horizontal_stop_count(int identifier){
+		_htssb_stop_count_h[identifier] += 1;
+	}
+	void increment_horizontal_pass_count(){
+		_pass_count_h += 1;
+	}
+	void _increment_htssb_horizontal_pass_count(int identifier){
+		_htssb_pass_count_h[identifier] += 1;
 	}
 	// 客を除去
 	void remove_customer_from_vertical_crp(double concentration){
-		_remove_customer_from_vertical_crp(concentration, this);
+
 	}
-	void _remove_customer_from_vertical_crp(double concentration, Node* node){
-		Table* table = get_vertical_table_with_id(node->_identifier, false);
+	void _remove_customer_from_htssb_vertical_crp(double concentration, Node* node){
+		Table* table = get_htssb_vertical_table_with_id(node->_identifier, false);
 		assert(table != NULL);
 		bool empty_table_deleted = false;
 		table->remove_customer(empty_table_deleted);
 		if(empty_table_deleted && node->_parent != NULL){						// テーブルが消えた場合は親TSSBのこのノードから代理客を削除
-			_remove_customer_from_vertical_crp(concentration, node->_parent);	// 親のTSSBにおけるこのノードから客を除去するので自分のメソッドを呼ぶ
+			_remove_customer_from_htssb_vertical_crp(concentration, node->_parent);	// 親のTSSBにおけるこのノードから客を除去するので自分のメソッドを呼ぶ
+		}
+		// 停止回数・通過回数を更新
+		node->_htssb_stop_count_v -= 1;
+		assert(node->_htssb_stop_count_v >= 0);
+		assert(node->_htssb_stop_count_v == table->_num_customers);
+		Node* parent = _parent;
+		while(parent){
+			parent->_htssb_pass_count_v -= 1;
+			assert(parent->_htssb_pass_count_v >= 0);
+			parent = parent->_parent;
 		}
 	}
 	void remove_customer_from_horizontal_crp(double concentration){
-		_remove_customer_from_horizontal_crp(concentration, this);
+
 	}
-	void _remove_customer_from_horizontal_crp(double concentration, Node* node){
-		Table* table = get_horizontal_table_with_id(node->_identifier, false);
+	void _remove_customer_from_htssb_horizontal_crp(double concentration, Node* node){
+		Table* table = get_htssb_horizontal_table_with_id(node->_identifier, false);
 		assert(table != NULL);
 		bool empty_table_deleted = false;
 		table->remove_customer(empty_table_deleted);
 		if(empty_table_deleted && node->_parent != NULL){						// テーブルが消えた場合は親TSSBのこのノードから代理客を削除
-			_remove_customer_from_vertical_crp(concentration, node->_parent);	// 親のTSSBにおけるこのノードから客を除去するので自分のメソッドを呼ぶ
+			_remove_customer_from_htssb_vertical_crp(concentration, node->_parent);	// 親のTSSBにおけるこのノードから客を除去するので自分のメソッドを呼ぶ
+		}
+		// 停止回数・通過回数を更新
+		node->_htssb_stop_count_h += 1;
+		assert(node->_htssb_stop_count_h == table->_num_customers);
+		Node* parent = _parent;
+		while(parent){
+			parent->_htssb_pass_count_h += 1;
+			parent = parent->_parent;
 		}
 	}
 };

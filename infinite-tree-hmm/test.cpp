@@ -4,7 +4,7 @@ using namespace std;
 
 int main(){
 	HTSSB* model = new HTSSB();
-	for(int n = 0;n < 1000;n++){
+	for(int n = 0;n < 10;n++){
 		Node* node = model->sample_node();
 		cout << node << endl;
 		model->add_customer_to_node(node);
