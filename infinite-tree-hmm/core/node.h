@@ -298,13 +298,13 @@ public:
 		if(itr->second == 0){
 			_stop_count_v.erase(itr);
 		}
-		delete_node_if_needed(identifier);
+		// delete_node_if_needed(identifier);
 	}
 	void increment_vertical_pass_count(int identifier){
 		_pass_count_v[identifier] += 1;
 	}
 	void decrement_vertical_pass_count(int identifier){
-		cout << "decrement_vertical_pass_count: " << _identifier << endl;
+		// cout << "decrement_vertical_pass_count: " << _identifier << endl;
 		auto itr = _pass_count_v.find(identifier);
 		assert(itr != _pass_count_v.end());
 		itr->second -= 1;
@@ -312,7 +312,7 @@ public:
 		if(itr->second == 0){
 			_pass_count_v.erase(itr);
 		}
-		delete_node_if_needed(identifier);
+		// delete_node_if_needed(identifier);
 	}
 	void add_customer_to_clustering_horizontal_crp(double concentration){
 		add_customer_to_htssb_horizontal_crp(concentration, CLUSTERING_TSSB_ID, this);
@@ -354,7 +354,7 @@ public:
 		if(itr->second == 0){
 			_stop_count_h.erase(itr);
 		}
-		delete_node_if_needed(identifier);
+		// delete_node_if_needed(identifier);
 	}
 	void increment_horizontal_pass_count(int identifier){
 		_pass_count_h[identifier] += 1;
@@ -367,14 +367,14 @@ public:
 		if(itr->second == 0){
 			_pass_count_h.erase(itr);
 		}
-		delete_node_if_needed(identifier);
+		// delete_node_if_needed(identifier);
 	}
 	// 客を除去
 	void remove_customer_from_clustering_vertical_crp(){
 		remove_customer_from_htssb_vertical_crp(CLUSTERING_TSSB_ID, this);
 	}
 	void remove_customer_from_htssb_vertical_crp(int tssb_identifier, Node* node){
-		cout << "remove_customer_from_htssb_vertical_crp: " << tssb_identifier << ", " << node->_identifier << endl;
+		// cout << "remove_customer_from_htssb_vertical_crp: " << tssb_identifier << ", " << node->_identifier << endl;
 		Table* table = get_vertical_table(tssb_identifier, false);
 		assert(table != NULL);
 		bool empty_table_deleted = false;
@@ -384,9 +384,11 @@ public:
 		}
 		// 停止回数・通過回数を更新
 		decrement_vertical_stop_count(tssb_identifier);
+		delete_node_if_needed(tssb_identifier);
 		Node* parent = _parent;
 		while(parent){
 			parent->decrement_vertical_pass_count(tssb_identifier);
+			parent->delete_node_if_needed(tssb_identifier);
 			parent = parent->_parent;
 		}
 	}
@@ -406,24 +408,28 @@ public:
 		Node* stopped_child = node;
 		Node* parent = node->_parent;
 		while(parent){
-			// cout << "size: " << parent->_children.size() << endl;
 			bool found = false;
 			for(int i = parent->_children.size() - 1;i >= 0;i--){	// 逆向きに辿らないと通過ノードが先に消えてしまう
 				Node* child = parent->_children[i];
 				// cout << "foreach: " << child->_identifier << endl;
+				// cout << "foreach: " << child->_identifier << endl;
+
 				if(child == stopped_child){
 					found = true;
 					child->decrement_horizontal_stop_count(tssb_identifier);
+					child->delete_node_if_needed(tssb_identifier);
 					continue;
 				}
 				if(found){
 					child->decrement_horizontal_pass_count(tssb_identifier);
+					child->delete_node_if_needed(tssb_identifier);
 				}
 			}
 			stopped_child = parent;
 			parent = parent->_parent;
 		}
 		stopped_child->decrement_horizontal_stop_count(tssb_identifier);
+		stopped_child->delete_node_if_needed(tssb_identifier);
 	}
 	void delete_node_if_needed(int tssb_identifier){
 		int pass_count_v = get_vertical_pass_count_with_id(tssb_identifier);
@@ -445,9 +451,9 @@ public:
 			}
 			target->delete_node_if_needed(tssb_identifier);
 		}
-		if(_children.size() == 0 && _parent != NULL){
-			_parent->delete_child_node(tssb_identifier, _identifier);
-		}
+		// if(_children.size() == 0 && _parent != NULL){
+		// 	_parent->delete_child_node(tssb_identifier, _identifier);
+		// }
 	}
 };
 int Node::_auto_increment = CLUSTERING_TSSB_ID + 1;
