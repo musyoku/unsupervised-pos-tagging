@@ -89,7 +89,8 @@ public:
 		int pass_count_h = node->get_horizontal_pass_count_with_id(identifier);
 		int stop_count_h = node->get_horizontal_stop_count_with_id(identifier);
 		cout << (boost::format("%d [vp:%d,vs:%d,hp:%d,hs:%d][len:%f]") % node->_identifier % pass_count_v % stop_count_v % pass_count_h % stop_count_h % node->_stick_length).str() << endl;
-		for(const auto &child: node->_children){
+		for(int i = 0;i < node->_children.size();i++){
+			Node* child = node->_children[i];
 			_dump_tssb(child, identifier);
 		}
 	}
