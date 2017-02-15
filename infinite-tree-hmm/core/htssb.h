@@ -22,6 +22,10 @@ public:
 		node->add_customer_to_clustering_vertical_crp(alpha);
 		node->add_customer_to_clustering_horizontal_crp(_gamma);
 	}
+	void remove_customer_from_node(Node* node){
+		node->remove_customer_from_clustering_vertical_crp();
+		node->remove_customer_from_clustering_horizontal_crp();
+	}
 	Node* sample_node(){
 		return _stop_node(_root);
 	}
@@ -84,7 +88,7 @@ public:
 		int stop_count_v = node->get_vertical_stop_count_with_id(identifier);
 		int pass_count_h = node->get_horizontal_pass_count_with_id(identifier);
 		int stop_count_h = node->get_horizontal_stop_count_with_id(identifier);
-		cout << (boost::format("%d [vp:%d,vs:%d,hp:%d,hs:%d]") % node->_identifier % pass_count_v % stop_count_v % pass_count_h % stop_count_h).str() << endl;
+		cout << (boost::format("%d [vp:%d,vs:%d,hp:%d,hs:%d][len:%f]") % node->_identifier % pass_count_v % stop_count_v % pass_count_h % stop_count_h % node->_stick_length).str() << endl;
 		for(const auto &child: node->_children){
 			_dump_tssb(child, identifier);
 		}
