@@ -156,28 +156,28 @@ public:
 		_children.push_back(child);
 		return child;
 	}
-	int get_htssb_vertical_stop_count_with_id(int identifier){
+	int get_vertical_stop_count_with_id(int identifier){
 		auto itr = _stop_count_v.find(identifier);
 		if(itr == _stop_count_v.end()){
 			return 0;
 		}
 		return itr->second;
 	}
-	int get_htssb_vertical_pass_count_with_id(int identifier){
+	int get_vertical_pass_count_with_id(int identifier){
 		auto itr = _pass_count_v.find(identifier);
 		if(itr == _pass_count_v.end()){
 			return 0;
 		}
 		return itr->second;
 	}
-	int get_htssb_horizontal_stop_count_with_id(int identifier){
+	int get_horizontal_stop_count_with_id(int identifier){
 		auto itr = _stop_count_h.find(identifier);
 		if(itr == _stop_count_h.end()){
 			return 0;
 		}
 		return itr->second;
 	}
-	int get_htssb_horizontal_pass_count_with_id(int identifier){
+	int get_horizontal_pass_count_with_id(int identifier){
 		auto itr = _pass_count_h.find(identifier);
 		if(itr == _pass_count_h.end()){
 			return 0;
@@ -209,24 +209,24 @@ public:
 		return itr->second;
 	}
 	// 縦の棒折り過程における、棒を折る比率の期待値を計算。論文中のコインの表が出る確率に相当
-	double compute_clustering_expectation_of_vertical_sbr_ratio(double alpha){
-		vector<double> ratio_over_parents;	// 縦のSBRでの棒を折る比率をトップレベルから順に格納
-		// トップレベルのノードから順に下りながら計算すると効率が良い
+	double compute_expectation_of_clustering_vertical_sbr_ratio(double alpha){
+		int pass_count = get_vertical_pass_count_with_id(CLUSTERING_TSSB_ID);
+		int stop_count = get_vertical_stop_count_with_id(CLUSTERING_TSSB_ID);
+		return (1.0 + stop_count) / (1.0 + alpha + stop_count + pass_count);
+	}
+	double compute_stop_probability_of_vertical_sbr_ratio(double alpha){
+		vector<double> ratio_over_parents_reverse;	// 縦のSBRでの棒を折る比率を後ろから順に格納
 		int num_parents = _depth_v;
-		for(int n = 0;n < num_parents;n++){
-			Node* target = this;
-			for(int step = 0;step < num_parents - n;step++){
-				target = target->_parent;
-				assert(target != NULL);
-			}
-			// 親のTSSBにおけるこのノードの期待値なので自分のメソッドを呼ぶ
-			double expectation = _compute_htssb_expectation_of_vertical_sbr_ratio(alpha, target, ratio_over_parents);
-			ratio_over_parents.push_back(expectation);
+		Node* target = this;
+		for(int n = 0;n < num_parents + 1;n++){
+			double expectation = target->compute_expectation_of_clustering_vertical_sbr_ratio(alpha);
+			target = target->_parent;
+			ratio_over_parents_reverse.push_back(expectation);
 		}
-		return _compute_htssb_expectation_of_vertical_sbr_ratio(alpha, this, ratio_over_parents);
+		return compute_sbr_probability_given_params_reverse(ratio_over_parents_reverse);
 	}
 	// 縦の棒折り過程における、棒を折る比率の期待値を計算。論文中のコインの表が出る確率に相当
-	double compute_htssb_expectation_of_vertical_sbr_ratio(double alpha){
+	double compute_expectation_of_htssb_vertical_sbr_ratio(double alpha){
 		vector<double> ratio_over_parents;	// 縦のSBRでの棒を折る比率をトップレベルから順に格納
 		// トップレベルのノードから順に下りながら計算すると効率が良い
 		int num_parents = _depth_v;
@@ -237,14 +237,14 @@ public:
 				assert(target != NULL);
 			}
 			// 親のTSSBにおけるこのノードの期待値なので自分のメソッドを呼ぶ
-			double expectation = _compute_htssb_expectation_of_vertical_sbr_ratio(alpha, target, ratio_over_parents);
+			double expectation = _compute_expectation_of_htssb_vertical_sbr_ratio(alpha, target, ratio_over_parents);
 			ratio_over_parents.push_back(expectation);
 		}
-		return _compute_htssb_expectation_of_vertical_sbr_ratio(alpha, this, ratio_over_parents);
+		return _compute_expectation_of_htssb_vertical_sbr_ratio(alpha, this, ratio_over_parents);
 	}
-	double _compute_htssb_expectation_of_vertical_sbr_ratio(double alpha, Node* target, vector<double> &expectation_over_parents){
-		int pass_count = get_htssb_vertical_pass_count_with_id(target->_identifier);
-		int stop_count = get_htssb_vertical_stop_count_with_id(target->_identifier);
+	double _compute_expectation_of_htssb_vertical_sbr_ratio(double alpha, Node* target, vector<double> &expectation_over_parents){
+		int pass_count = get_vertical_pass_count_with_id(target->_identifier);
+		int stop_count = get_vertical_stop_count_with_id(target->_identifier);
 		if(target->_parent == NULL){
 			return (1.0 + stop_count) / (1.0 + alpha + stop_count + pass_count);
 		}
@@ -253,30 +253,34 @@ public:
 		return (alpha * v_parent + stop_count) / (alpha * (1.0 - sum_v_parents) + stop_count + pass_count);
 	}
 	// 横の棒折り過程における、棒を折る比率を計算。論文中のコインの表が出る確率に相当
-	double compute_htssb_expectation_of_horizontal_sbr_ratio(double gamma){
-		return 0.3;
+	double compute_expectation_of_clustering_horizontal_sbr_ratio(double gamma){
+		return 0.6;
+	}
+	// 横の棒折り過程における、棒を折る比率を計算。論文中のコインの表が出る確率に相当
+	double compute_expectation_of_htssb_horizontal_sbr_ratio(double gamma){
+		return 0.6;
 	}
 	// クラスタリングTSSBでこのノードに止まる確率。
 	double compute_stop_probability(){
-		return 0.3;
+		return 0.6;
 	}
 	// クラスタリングTSSBに客を追加
 	void add_customer_to_clustering_vertical_crp(double concentration){
-		add_customer_to_htssb_vertical_crp(concentration, CLUSTERING_TSSB_ID, this);
+		add_customer_to_htssb_vertical_crp(concentration, CLUSTERING_TSSB_ID);
 	}
 	// 遷移確率TSSBに客を追加
-	void add_customer_to_htssb_vertical_crp(double concentration, int tssb_identifier, Node* node){
+	void add_customer_to_htssb_vertical_crp(double concentration, int tssb_identifier){
 		// 階層TSSBに客を追加
 		Table* table = get_vertical_table(tssb_identifier, true);
 		assert(table != NULL);
 		bool new_table_generated = false;
 		table->add_customer(concentration, new_table_generated);
-		if(tssb_identifier != CLUSTERING_TSSB_ID && new_table_generated && node->_parent != NULL){	// 新しいテーブルが作られたら親のTSSBのこのノードに代理客を追加
-			add_customer_to_htssb_vertical_crp(concentration, tssb_identifier, node->_parent);		// 親のTSSBにおけるこのノードに客を追加するので自分のメソッドを呼ぶ
+		if(tssb_identifier != CLUSTERING_TSSB_ID && new_table_generated && _parent != NULL){	// 新しいテーブルが作られたら親のTSSBのこのノードに代理客を追加
+			add_customer_to_htssb_vertical_crp(concentration, tssb_identifier);		// 親のTSSBにおけるこのノードに客を追加するので自分のメソッドを呼ぶ
 		}
 		// 停止回数・通過回数を更新
-		node->increment_vertical_stop_count(tssb_identifier);
-		Node* parent = node->_parent;
+		increment_vertical_stop_count(tssb_identifier);
+		Node* parent = _parent;
 		while(parent){
 			parent->increment_vertical_pass_count(tssb_identifier);
 			parent = parent->_parent;
@@ -326,6 +330,7 @@ public:
 			stopped_child = parent;
 			parent = parent->_parent;
 		}
+		stopped_child->increment_horizontal_stop_count(tssb_identifier);
 	}
 	void increment_horizontal_stop_count(int identifier){
 		_stop_count_h[identifier] += 1;

@@ -1,5 +1,6 @@
 #ifndef _htssb_
 #define _htssb_
+#include <boost/format.hpp>
 #include <cmath>
 #include "node.h"
 
@@ -19,7 +20,7 @@ public:
 	void add_customer_to_node(Node* node){
 		double alpha = _alpha * pow(_alpha, node->_depth_v);
 		node->add_customer_to_clustering_vertical_crp(alpha);
-		// node->add_customer_to_horizontal_crp(_gamma);
+		node->add_customer_to_clustering_horizontal_crp(_gamma);
 	}
 	Node* sample_node(){
 		return _stop_node(_root);
@@ -28,7 +29,10 @@ public:
 	Node* _stop_node(Node* node){
 		assert(node != NULL);
 		double alpha = _alpha * pow(_lambda, node->_depth_v);
-		double head = node->compute_expectation_of_vertical_sbr_ratio(alpha);
+		double head = node->compute_expectation_of_clustering_vertical_sbr_ratio(alpha);
+		if(head == 0){
+			head = 16 * 0 - head;
+		}
 		node->_children_stick_length = 1 - node->_stick_length * head;
 		double bernoulli = Sampler::uniform(0, 1);
 		if(bernoulli <= head){			// 表が出たらこのノードに降りる
@@ -38,7 +42,7 @@ public:
 		for(int i = 0;i < node->_children.size();i++){
 			Node* child = node->_children[i];
 			assert(child != NULL);
-			double head = child->compute_expectation_of_horizontal_sbr_ratio(_gamma);
+			double head = child->compute_expectation_of_clustering_horizontal_sbr_ratio(_gamma);
 			double bernoulli = Sampler::uniform(0, 1);
 			if(bernoulli <= head){		// 表が出たら次に止まるかどうかを決める
 				return _stop_node(child);
@@ -47,7 +51,7 @@ public:
 		// ない場合生成しながらコインを投げる
 		while(true){
 			Node* child = node->generate_child();
-			double head = child->compute_expectation_of_horizontal_sbr_ratio(_gamma);
+			double head = child->compute_expectation_of_clustering_horizontal_sbr_ratio(_gamma);
 			double bernoulli = Sampler::uniform(0, 1);
 			if(bernoulli <= head){		// 表が出たら次に止まるかどうかを決める
 				return _stop_node(child);
@@ -67,20 +71,22 @@ public:
 		}
 		return max_depth;
 	}
-	void dump_nodes(){
-		int max_depth = get_max_depth();
-		cout << _root->compute_stop_probability() << endl;
-		for(int depth = 1;depth <= max_depth;depth++){
-			_dump_node(_root, depth);
-			cout << endl;
-		}
+	void dump_tssb(int identifier){
+		_dump_tssb(_root, identifier);
 	}
-	void _dump_node(Node* node, int target_depth){
+	void _dump_tssb(Node* node, int identifier){
+		string tab = "";
+		for(int i = 0;i < node->_depth_v;i++){
+			tab += "	";
+		}
+		cout << tab;
+		int pass_count_v = node->get_vertical_pass_count_with_id(identifier);
+		int stop_count_v = node->get_vertical_stop_count_with_id(identifier);
+		int pass_count_h = node->get_horizontal_pass_count_with_id(identifier);
+		int stop_count_h = node->get_horizontal_stop_count_with_id(identifier);
+		cout << (boost::format("%d [vp:%d,vs:%d,hp:%d,hs:%d]") % node->_identifier % pass_count_v % stop_count_v % pass_count_h % stop_count_h).str() << endl;
 		for(const auto &child: node->_children){
-			if(child->_depth_v == target_depth){
-				cout << child->compute_stop_probability() << " ";
-			}
-			_dump_node(child, target_depth);
+			_dump_tssb(child, identifier);
 		}
 	}
 };

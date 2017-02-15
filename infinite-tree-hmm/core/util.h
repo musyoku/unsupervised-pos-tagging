@@ -75,6 +75,13 @@ double compute_sbr_probability_given_params(vector<double> &params){
 	}
 	return probability * params.back();
 }
+double compute_sbr_probability_given_params_reverse(vector<double> &params_reverse){
+	double probability = 1;
+	for(int i = params_reverse.size() - 1;i > 0;i--){
+		probability *= 1 - params_reverse[i];
+	}
+	return probability * params_reverse.front();
+}
 void compute_sbr_probability_and_sum_given_params(vector<double> &params, double &probability, double &sum){
 	double stick = 1;
 	probability = 1;
