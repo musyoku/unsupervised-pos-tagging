@@ -17,14 +17,23 @@ public:
 		_gamma = 1;
 		_lambda = 1;
 	}
-	void add_customer_to_node(Node* node){
+	void add_customer_to_clustering_node(Node* node){
 		double alpha = _alpha * pow(_alpha, node->_depth_v);
 		node->add_customer_to_clustering_vertical_crp(alpha);
 		node->add_customer_to_clustering_horizontal_crp(_gamma);
 	}
-	void remove_customer_from_node(Node* node){
+	void remove_customer_from_clustering_node(Node* node){
 		node->remove_customer_from_clustering_vertical_crp();
 		node->remove_customer_from_clustering_horizontal_crp();
+	}
+	void add_customer_to_htssb_node(Node* node){
+		double alpha = _alpha * pow(_alpha, node->_depth_v);
+		node->add_customer_to_htssb_vertical_crp(alpha, node->_identifier, node);
+		node->add_customer_to_htssb_horizontal_crp(_gamma, node->_identifier, node);
+	}
+	void remove_customer_from_htssb_node(Node* node){
+		// node->remove_customer_from_htssb_vertical_crp();
+		// node->remove_customer_from_htssb_horizontal_crp();
 	}
 	Node* sample_node(){
 		return _stop_node(_root);
