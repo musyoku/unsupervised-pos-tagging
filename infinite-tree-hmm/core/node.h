@@ -318,27 +318,22 @@ public:
 		// delete_node_if_needed(identifier);
 	}
 	void add_customer_to_clustering_horizontal_crp(double concentration){
-		add_customer_to_htssb_horizontal_crp(concentration, CLUSTERING_TSSB_ID, this, _depth_v);
+		add_customer_to_htssb_horizontal_crp(concentration, CLUSTERING_TSSB_ID, this);
 	}
-	void add_customer_to_htssb_horizontal_crp(double concentration, int tssb_identifier, Node* node, int parent_depth){
+	void add_customer_to_htssb_horizontal_crp(double concentration, int tssb_identifier, Node* node){
 		Table* table = get_htssb_horizontal_table(tssb_identifier, true);
 		assert(table != NULL);
 		bool new_table_generated = false;
 		table->add_customer(concentration, new_table_generated);
 		if(tssb_identifier != CLUSTERING_TSSB_ID && new_table_generated){	// 新しいテーブルが作られたら親のTSSBのこのノードに代理客を追加
 			assert(node != NULL);
-			Node* parent = node;
-			for(int depth = 0;depth < node->_depth_v - parent_depth;){
-				assert(parent != NULL);
-				parent = parent->_parent;
-			}
-			if(parent != NULL){
-				add_customer_to_htssb_horizontal_crp(concentration, parent->_identifier, node, parent_depth - 1);	// 親のTSSBにおけるこのノードに客を追加するので自分のメソッドを呼ぶ
+			if(node->_parent != NULL){
+				add_customer_to_htssb_horizontal_crp(concentration, node->_parent->_identifier, node->_parent);	// 親のTSSBにおけるこのノードに客を追加するので自分のメソッドを呼ぶ
 			}
 		}
 		// 停止回数・通過回数を更新
-		Node* stopped_child = node;
-		Node* parent = node->_parent;
+		Node* stopped_child = this;
+		Node* parent = _parent;
 		while(parent){
 			for(int i = 0;i < parent->_children.size();i++){
 				Node* child = parent->_children[i];

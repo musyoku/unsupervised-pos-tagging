@@ -6,15 +6,19 @@ int main(){
 	HTSSB* model = new HTSSB();
 	Node* target = NULL;
 	vector<Node*> nodes;
-	for(int n = 0;n < 5;n++){
+	for(int n = 0;n < 20;n++){
 		Node* node = model->sample_node();
 		model->add_customer_to_clustering_node(node);
 		nodes.push_back(node);
-		if(node->_identifier == 6){
+		if(node->_identifier == 14){
 			target = node;
 		}
 	}
 	assert(target != NULL);
+	model->add_customer_to_htssb_node(target);
+	model->add_customer_to_htssb_node(target);
+	model->add_customer_to_htssb_node(target);
+	model->add_customer_to_htssb_node(target);
 	model->add_customer_to_htssb_node(target);
 	for(const auto &elem: target->_stop_count_v){
 		int identifier = elem.first;
