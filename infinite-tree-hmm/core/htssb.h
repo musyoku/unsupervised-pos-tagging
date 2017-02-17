@@ -77,24 +77,26 @@ public:
 		return NULL;
 	}
 	void update_stick_length(){
-		double ratio = _root->compute_expectation_of_clustering_vertical_sbr_ratio(_alpha);
-		double sum_probability = ratio;
+		double ratio_v = _root->compute_expectation_of_clustering_vertical_sbr_ratio(_gamma);
+		double sum_probability = ratio_v;
 		_root->_stick_length = 1;
-		_root->_children_stick_length = 1.0 - ratio;
+		_root->_children_stick_length = 1.0 - ratio_v;
+		_root->_probability = ratio_v;
 		_update_stick_length(sum_probability, _root);
 	}
 	void _update_stick_length(double &sum_probability, Node* node){
 		assert(node->_children_stick_length > 0);
-		double stick_length = node->_children_stick_length;
+		double rest_stick_length = node->_children_stick_length;
 		for(int i = 0;i < node->_children.size();i++){
 			Node* child = node->_children[i];
-			double ratio = child->compute_expectation_of_clustering_horizontal_sbr_ratio(_gamma);
-			sum_probability += stick_length * ratio;
-			stick_length *= 1.0 - ratio;
-			child->_stick_length = stick_length;
+			double ratio_h = child->compute_expectation_of_clustering_horizontal_sbr_ratio(_gamma);
+			child->_stick_length = rest_stick_length * ratio_h;
+			double ratio_v = child->compute_expectation_of_clustering_vertical_sbr_ratio(_gamma);
+			child->_probability = child->_stick_length * ratio_v;
+			sum_probability += child->_probability;
+			rest_stick_length *= 1.0 - ratio_h;
 			double alpha = _alpha * pow(_lambda, child->_depth_v);
-			ratio = child->compute_expectation_of_clustering_vertical_sbr_ratio(alpha);
-			child->_children_stick_length = stick_length * (1.0 - ratio);
+			child->_children_stick_length = child->_stick_length * (1.0 - ratio_v);
 			if(child->has_child()){
 				_update_stick_length(sum_probability, child);
 			}
@@ -159,7 +161,7 @@ public:
 		int stop_count_v = node->get_vertical_stop_count_with_id(identifier);
 		int pass_count_h = node->get_horizontal_pass_count_with_id(identifier);
 		int stop_count_h = node->get_horizontal_stop_count_with_id(identifier);
-		cout << (boost::format("%d [vp:%d,vs:%d,hp:%d,hs:%d][len:%f,self:%f,ch:%f]") % node->_identifier % pass_count_v % stop_count_v % pass_count_h % stop_count_h % node->_stick_length % (node->_stick_length - node->_children_stick_length) % node->_children_stick_length).str() << endl;
+		cout << (boost::format("%d [vp:%d,vs:%d,hp:%d,hs:%d][len:%f,self:%f,ch:%f,p:%f]") % node->_identifier % pass_count_v % stop_count_v % pass_count_h % stop_count_h % node->_stick_length % (node->_stick_length - node->_children_stick_length) % node->_children_stick_length % node->_probability).str() << endl;
 		for(int i = 0;i < node->_children.size();i++){
 			Node* child = node->_children[i];
 			_dump_tssb(child, identifier);

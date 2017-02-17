@@ -45,7 +45,7 @@ void test1(HTSSB* model){
 }
 void test2(HTSSB* model){
 	double uniform = Sampler::uniform(0, 1);
-	uniform = 0.75 + 0.041667 + 0.009259 + 0.001;
+	uniform = 0.75 + 0.041667 + 0.009259 + 0.009;
 	Node* node = model->retrospective_sampling(uniform);
 	cout << uniform << endl;
 	cout << node->_identifier << endl;

@@ -125,6 +125,7 @@ public:
 	vector<Node*> _children;
 	double _stick_length;					// 自分の棒の木全体に対する長さ
 	double _children_stick_length;			// 自分の棒の子ノードに割り当てる長さ
+	double _probability;					// このノードの確率
 	Node(Node* parent){
 		_identifier = _auto_increment;
 		_auto_increment++;
