@@ -208,6 +208,9 @@ public:
 		}
 		return itr->second;
 	}
+	bool has_child(){
+		return _children.size() != 0;
+	}
 	// 縦の棒折り過程における、棒を折る比率の期待値を計算。論文中のコインの表が出る確率に相当
 	double compute_expectation_of_clustering_vertical_sbr_ratio(double alpha){
 		int pass_count = get_vertical_pass_count_with_id(CLUSTERING_TSSB_ID);

@@ -2,8 +2,14 @@
 #include "core/htssb.h"
 using namespace std;
 
-int main(){
-	HTSSB* model = new HTSSB();
+void add_customer(HTSSB* model){
+	for(int n = 0;n < 10;n++){
+		Node* node = model->sample_node();
+		model->add_customer_to_clustering_node(node);
+	}
+}
+
+void test1(HTSSB* model){
 	Node* target = NULL;
 	vector<Node*> nodes;
 	for(int n = 0;n < 20;n++){
@@ -36,5 +42,19 @@ int main(){
 	// }
 	// cout << "depth: " << model->get_max_depth() << endl;
 	// model->dump_tssb(CLUSTERING_TSSB_ID);
+}
+void test2(HTSSB* model){
+	double uniform = Sampler::uniform(0, 1);
+	uniform = 0.75 + 0.041667 + 0.009259 + 0.001;
+	Node* node = model->retrospective_sampling(uniform);
+	cout << uniform << endl;
+	cout << node->_identifier << endl;
+	model->update_stick_length();
+	model->dump_tssb(CLUSTERING_TSSB_ID);
+}
+int main(){
+	HTSSB* model = new HTSSB();
+	add_customer(model);
+	test2(model);
 	return 0;
 }
