@@ -3,7 +3,7 @@
 using namespace std;
 
 void add_customer(HTSSB* model){
-	for(int n = 0;n < 10;n++){
+	for(int n = 0;n < 5000;n++){
 		Node* node = model->sample_node();
 		model->add_customer_to_clustering_node(node);
 	}
@@ -44,13 +44,33 @@ void test1(HTSSB* model){
 	// model->dump_tssb(CLUSTERING_TSSB_ID);
 }
 void test2(HTSSB* model){
-	double uniform = Sampler::uniform(0, 1);
-	uniform = 0.75 + 0.041667 + 0.009259 + 0.009;
-	Node* node = model->retrospective_sampling(uniform);
-	cout << uniform << endl;
-	cout << node->_identifier << endl;
+	double uniform = 0;
 	model->update_stick_length();
 	model->dump_tssb(CLUSTERING_TSSB_ID);
+	vector<Node*> nodes_true;
+	vector<Node*> nodes;
+	model->enumerate_nodes_from_left_to_right(nodes_true);
+	int num_nodes_true = model->get_num_nodes();
+	int num_nodes = 0;
+	int prev_id = -1;
+	for(int i = 0;i < 10000000;i++){
+		uniform = i / 10000000.0;
+		Node* node = model->retrospective_sampling(uniform);
+		if(node->_identifier != prev_id){
+			cout << uniform << ": " << node->_identifier << endl;
+			prev_id = node->_identifier;
+			num_nodes += 1;
+			nodes.push_back(node);
+		}
+	}
+	int limit = (nodes_true.size() > nodes.size()) ? nodes_true.size() : nodes.size();
+	for(int i = 0;i < limit;i++){
+		int identifier = (i < nodes.size()) ? nodes[i]->_identifier : -1;
+		int identifier_true = (i < nodes_true.size()) ? nodes_true[i]->_identifier : -1;
+		cout << identifier << " : " << identifier_true << endl;
+	}
+	cout << num_nodes << " == " << num_nodes_true << endl;
+	assert(num_nodes == num_nodes_true);
 }
 int main(){
 	HTSSB* model = new HTSSB();

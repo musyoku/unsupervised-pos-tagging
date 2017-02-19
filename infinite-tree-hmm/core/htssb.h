@@ -46,15 +46,31 @@ public:
 		if(uniform <= sum_probability){
 			return node;
 		}
+		// 棒の長さとノードの確率の関係に気をつける
+		// [<------------------- 棒の長さ -------------------]
+		// [<--親ノードの確率--><---子ノードに割り当てる長さ --->]
+		//					  [<---子1の棒---><---子2の棒--->]
 		assert(node->_children_stick_length > 0);
-		double stick_length = node->_children_stick_length;
+		double stick_length = node->_children_stick_length;	// 子ノードに割り当てる棒の長さの総和
+		double sum_stick_length_over_children = 0;			// 子ノードを走査する時の走査済みの棒の長さ
 		Node* last_node = NULL;
 		for(int i = 0;i < node->_children.size();i++){
 			Node* child = node->_children[i];
 			double ratio_h = child->compute_expectation_of_clustering_horizontal_sbr_ratio(_gamma);
-			if(uniform <= sum_probability + stick_length * ratio_h){
-				double ratio_v = child->compute_expectation_of_clustering_vertical_sbr_ratio(_gamma);
-				sum_probability += stick_length * ratio_h * ratio_v;
+			double alpha = _alpha * pow(_lambda, child->_depth_v);
+			double ratio_v = child->compute_expectation_of_clustering_vertical_sbr_ratio(alpha);
+			if(child->_identifier == 118){
+				// cout << (boost::format("id=%d, uniform=%f, sum=%f, sum_over=%f, len=%f, len + sum=%f, len * ratio_h=%f, sum + len * ratio_h=%f") % child->_identifier % uniform % sum_probability % sum_stick_length_over_children % child->_stick_length % (sum_probability + child->_stick_length) % (stick_length * ratio_h) % (sum_probability + stick_length * ratio_h)).str() << endl;
+			}
+			if(child->_identifier == 119){
+				// cout << (boost::format("id=%d, uniform=%f, sum=%f, sum_over=%f, len=%f, len + sum=%f, len * ratio_h=%f, sum + len * ratio_h=%f") % child->_identifier % uniform % sum_probability % sum_stick_length_over_children % child->_stick_length % (sum_probability + child->_stick_length) % (stick_length * ratio_h) % (sum_probability + stick_length * ratio_h)).str() << endl;
+			}
+			if(child->_identifier == 120){
+				// exit(0);
+			}
+			if(uniform <= sum_probability + sum_stick_length_over_children + stick_length * ratio_h){
+				// stick_length * ratio_hだけだとこのノードの棒の長さなのでratio_vも掛けてこのノードで止まる確率にする必要がある
+				sum_probability += sum_stick_length_over_children + stick_length * ratio_h * ratio_v;
 				if(uniform <= sum_probability){
 					return child;
 				}
@@ -62,8 +78,10 @@ public:
 					return _retrospective_sampling(uniform, sum_probability, child);
 				}
 				// 生成する
+				// cout << "will be " << child->_identifier << "'s child." << endl;
 				return child;
 			}
+			sum_stick_length_over_children += child->_stick_length;
 			stick_length *= 1.0 - ratio_h;
 			last_node = child;
 		}
@@ -83,6 +101,7 @@ public:
 		_root->_children_stick_length = 1.0 - ratio_v;
 		_root->_probability = ratio_v;
 		_update_stick_length(sum_probability, _root);
+		cout << "sum_probability: " << sum_probability << endl;
 	}
 	void _update_stick_length(double &sum_probability, Node* node){
 		assert(node->_children_stick_length > 0);
@@ -135,12 +154,31 @@ public:
 			}
 		}
 	}
+	void enumerate_nodes_from_left_to_right(vector<Node*> &nodes){
+		_enumerate_nodes_from_left_to_right(_root, nodes);
+	}
+	void _enumerate_nodes_from_left_to_right(Node* node, vector<Node*> &nodes){
+		nodes.push_back(node);
+		for(const auto child: node->_children){
+			_enumerate_nodes_from_left_to_right(child, nodes);
+		}
+	}
+	int get_num_nodes(){
+		return _get_num_children(_root) + 1;
+	}
+	int _get_num_children(Node* node){
+		int sum = node->_children.size();
+		for(const auto child: node->_children){
+			sum += _get_num_children(child);
+		}
+		return sum;
+	}
 	int get_max_depth(){
 		return _get_max_depth(_root);
 	}
 	int _get_max_depth(Node* node){
 		int max_depth = node->_depth_v;
-		for(const auto &child: node->_children){
+		for(const auto child: node->_children){
 			int depth = _get_max_depth(child);
 			if(depth > max_depth){
 				max_depth = depth;
