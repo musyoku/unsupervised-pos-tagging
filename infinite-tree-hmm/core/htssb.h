@@ -79,6 +79,25 @@ public:
 				}
 				// 生成する
 				// cout << "will be " << child->_identifier << "'s child." << endl;
+				//
+				//
+				//
+				//
+				//
+				//
+				//
+				//
+				//
+				//
+				//
+				//
+				//
+				//
+				//
+				//
+				//
+				//
+				//
 				return child;
 			}
 			sum_stick_length_over_children += child->_stick_length;
@@ -154,6 +173,9 @@ public:
 			}
 		}
 	}
+	double compute_expectation_of_htssb_vertical_sbr_ratio(Node* node){
+		return node->compute_expectation_of_htssb_vertical_sbr_ratio(_alpha, _lambda);
+	}
 	void enumerate_nodes_from_left_to_right(vector<Node*> &nodes){
 		_enumerate_nodes_from_left_to_right(_root, nodes);
 	}
@@ -162,6 +184,24 @@ public:
 		for(const auto child: node->_children){
 			_enumerate_nodes_from_left_to_right(child, nodes);
 		}
+	}
+	Node* find_node_with_id(int identifier){
+		if(_root->_identifier == identifier){
+			return _root;
+		}
+		return _find_node_with_id(identifier, _root);
+	}
+	Node* _find_node_with_id(int identifier,  Node* node){
+		for(const auto child: node->_children){
+			if(child->_identifier == identifier){
+				return child;
+			}
+			Node* found = _find_node_with_id(identifier, child);
+			if(found != NULL){
+				return found;
+			}
+		}
+		return NULL;
 	}
 	int get_num_nodes(){
 		return _get_num_children(_root) + 1;

@@ -44,6 +44,7 @@ void test1(HTSSB* model){
 	// model->dump_tssb(CLUSTERING_TSSB_ID);
 }
 void test2(HTSSB* model){
+	add_customer(model);
 	double uniform = 0;
 	model->update_stick_length();
 	model->dump_tssb(CLUSTERING_TSSB_ID);
@@ -72,9 +73,26 @@ void test2(HTSSB* model){
 	cout << num_nodes << " == " << num_nodes_true << endl;
 	assert(num_nodes == num_nodes_true);
 }
+void test3(HTSSB* model){
+	for(int n = 0;n < 10;n++){
+		Node* node = model->sample_node();
+		model->add_customer_to_clustering_node(node);
+	}
+	Node* target = model->find_node_with_id(7);
+	assert(target != NULL);
+	for(int n = 0;n < 100;n++){
+		model->add_customer_to_htssb_node(target);
+	}
+	Node* parent = target;
+	while(parent){
+		c_printf("[*]%d\n", parent->_identifier);
+		model->dump_tssb(parent->_identifier);
+		parent = parent->_parent;
+	}
+	double ratio = model->compute_expectation_of_htssb_vertical_sbr_ratio(target);
+}
 int main(){
 	HTSSB* model = new HTSSB();
-	add_customer(model);
-	test2(model);
+	test3(model);
 	return 0;
 }
