@@ -5,10 +5,12 @@
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/serialization/unordered_map.hpp>
+#include <boost/serialization/map.hpp>
 #include <boost/serialization/vector.hpp>
 #include <boost/format.hpp>
 #include <cassert>
 #include <unordered_map>
+#include <map>
 #include <algorithm>
 #include "cprintf.h"
 #include "sampler.h"
@@ -116,19 +118,21 @@ public:
 	int _depth_h;		// 横の深さ。 論文中のkに相当
 	// 各ノードの遷移確率TSSBは自己同型になっている必要があるため、構造を共有する
 	// カウントは各ノードのIDごとに管理
-	unordered_map<int, int> _pass_count_v;	// 通過回数。 縦方向のCDP
-	unordered_map<int, int> _stop_count_v;	// 停止回数。 縦方向のCDP
-	unordered_map<int, int> _pass_count_h;	// 通過回数。 横方向のCDP
-	unordered_map<int, int> _stop_count_h;	// 停止回数。 横方向のCDP
-	unordered_map<int, Table*> _table_v;	// 客を管理するテーブル。 縦方向のCRP
-	unordered_map<int, Table*> _table_h;	// 客を管理するテーブル。 横方向のCRP
+	map<int, int> _pass_count_v;	// 通過回数。 縦方向のCDP
+	map<int, int> _stop_count_v;	// 停止回数。 縦方向のCDP
+	map<int, int> _pass_count_h;	// 通過回数。 横方向のCDP
+	map<int, int> _stop_count_h;	// 停止回数。 横方向のCDP
+	map<int, Table*> _table_v;	// 客を管理するテーブル。 縦方向のCRP
+	map<int, Table*> _table_h;	// 客を管理するテーブル。 横方向のCRP
 	vector<Node*> _children;
 	double _stick_length;					// 自分の棒の木全体に対する長さ
 	double _children_stick_length;			// 自分の棒の子ノードに割り当てる長さ
 	double _probability;					// このノードの確率
 	double* _stop_probability_v_over_parent;
 	double* _stop_ratio_v_over_parent;
-	Node** _pointer_nodes;
+	Node** _pointer_nodes_v;
+	double* _stop_probability_h_over_parent;
+	double* _stop_ratio_h_over_parent;
 	Node(Node* parent){
 		_identifier = _auto_increment;
 		_auto_increment++;
@@ -139,7 +143,9 @@ public:
 		_children_stick_length = -1;
 		_stop_probability_v_over_parent = new double[_depth_v + 1];
 		_stop_ratio_v_over_parent = new double[_depth_v + 1];
-		_pointer_nodes = new Node*[_depth_v + 1];
+		_pointer_nodes_v = new Node*[_depth_v + 1];
+		_stop_probability_h_over_parent = new double[_depth_h + 1];
+		_stop_ratio_h_over_parent = new double[_depth_h + 1];
 	}
 	~Node(){
 		for(auto &elem: _table_v){
@@ -150,7 +156,7 @@ public:
 		}
 		delete[] _stop_probability_v_over_parent;
 		delete[] _stop_ratio_v_over_parent;
-		delete[] _pointer_nodes;
+		delete[] _pointer_nodes_v;
 	}
 	void init_table(){
 		Node* parent = _parent;
@@ -234,10 +240,10 @@ public:
 		int num_parents = _depth_v;
 		// トップレベルのノードから順に下りながら計算する
 		Node* parent = this;
-		_pointer_nodes[_depth_v] = parent;
+		_pointer_nodes_v[_depth_v] = parent;
 		for(int n = 0;n < num_parents;n++){
 			parent = parent->_parent;
-			_pointer_nodes[_depth_v - n - 1] = parent;
+			_pointer_nodes_v[_depth_v - n - 1] = parent;
 		}
 
 		for(int n = 0;n < num_parents + 1;n++){
@@ -252,7 +258,7 @@ public:
 			double sum_parent_stop_probability = 0;
 			for(int m = 0;m < num_parents + 1;m++){
 				// cout << "m = " << m << endl;
-				Node* pointer = _pointer_nodes[m];
+				Node* pointer = _pointer_nodes_v[m];
 				// cout << "pointer = " << pointer->_identifier << endl;
 				if(target->_depth_v == 0){	// 親ノードの場合
 					int pass_count = pointer->get_vertical_pass_count_with_id(target->_identifier);
@@ -278,7 +284,6 @@ public:
 					// rest_stick_length *= 1.0 - ratio_v;
 					// cout << "rest_stick_length = " << rest_stick_length << endl;
 					sum_parent_stop_probability += parent_probability_to_stop_pointer_node;
-					// cout << "sum_parent_stop_probability = " << sum_parent_stop_probability << endl;
 					// pointer->set_vertical_stop_probability_with_id(stop_probability, target->_identifier);
 					sbr_ratio = ratio_v;
 					// cout << "sbr_ratio = " << sbr_ratio << endl;
@@ -298,25 +303,71 @@ public:
 		}
 		return sbr_ratio;
 	}
-	double _compute_expectation_of_htssb_vertical_sbr_ratio(double alpha, Node* target, vector<double> &expectation_over_parents){
-		int pass_count = get_vertical_pass_count_with_id(target->_identifier);
-		int stop_count = get_vertical_stop_count_with_id(target->_identifier);
-		if(target->_parent == NULL){
-			return (1.0 + stop_count) / (1.0 + alpha + stop_count + pass_count);
-		}
-		double v_parent = expectation_over_parents.back();
-		double sum_v_parents = std::accumulate(expectation_over_parents.begin(), expectation_over_parents.end(), 0.0);
-		return (alpha * v_parent + stop_count) / (alpha * (1.0 - sum_v_parents) + stop_count + pass_count);
-	}
 	// 横の棒折り過程における、棒を折る比率を計算。論文中のコインの表が出る確率に相当
 	double compute_expectation_of_clustering_horizontal_sbr_ratio(double gamma){
 		int pass_count = get_horizontal_pass_count_with_id(CLUSTERING_TSSB_ID);
 		int stop_count = get_horizontal_stop_count_with_id(CLUSTERING_TSSB_ID);
 		return (1.0 + stop_count) / (1.0 + gamma + stop_count + pass_count);
 	}
-	// 横の棒折り過程における、棒を折る比率を計算。論文中のコインの表が出る確率に相当
+	// 横の棒折り過程における、棒を折る比率を計算。親のTSSBから階層的に生成
 	double compute_expectation_of_htssb_horizontal_sbr_ratio(double gamma){
-		return 0.6;
+		if(_depth_v == 0){
+			return 1;
+		}
+		double sbr_ratio = 0;
+		int num_parents = _depth_v;
+
+		for(int n = 0;n < num_parents;n++){
+			cout << "n = " << n << endl;
+			Node* target = this;
+			for(int step = 0;step < num_parents - n;step++){
+				target = target->_parent;
+				assert(target != NULL);
+			}
+			// cout << "target = " << target->_identifier << endl;
+			// トップレベルのノードから順に停止確率を計算
+			double sum_parent_stop_probability = 0;
+			for(int m = 0;m < _depth_h + 1;m++){
+				Node* pointer = _parent->_children[m];
+				// cout << "m = " << m << endl;
+				// cout << "size = " << _parent->_children.size() << endl;
+				// cout << "pointer = " << pointer->_identifier << endl;
+				if(target->_depth_v == 0){	// 親ノードの場合
+					int pass_count = pointer->get_horizontal_pass_count_with_id(target->_identifier);
+					int stop_count = pointer->get_horizontal_stop_count_with_id(target->_identifier);
+					double ratio_h = (1.0 + stop_count) / (1.0 + gamma + stop_count + pass_count);
+					// cout << "ratio_h = " << ratio_h << endl;
+					// pointer->set_horizontal_stop_probability_with_id(stop_probability, target->_identifier);
+					_stop_ratio_h_over_parent[m] = ratio_h;
+				}else{
+					int pass_count = pointer->get_horizontal_pass_count_with_id(target->_identifier);
+					int stop_count = pointer->get_horizontal_stop_count_with_id(target->_identifier);
+					// cout << "pass_count = " << pass_count << ", stop_count = " << stop_count << endl;
+					assert(target->_parent != NULL);
+					double parent_probability_to_stop_pointer_node = _stop_probability_h_over_parent[m];
+					// cout << "parent_probability_to_stop_pointer_node = " << parent_probability_to_stop_pointer_node << endl;
+					double ratio_h = (gamma * parent_probability_to_stop_pointer_node + stop_count) / (gamma * (1.0 - sum_parent_stop_probability) + stop_count + pass_count);
+					// cout << "ratio_h = " << ratio_h << endl;
+					_stop_ratio_h_over_parent[m] = ratio_h;
+					sum_parent_stop_probability += parent_probability_to_stop_pointer_node;
+					// cout << "sum_parent_stop_probability = " << sum_parent_stop_probability << endl;
+					sbr_ratio = ratio_h;
+					// cout << "sbr_ratio = " << sbr_ratio << endl;
+				}
+			}
+			if(n < num_parents - 1){
+				double rest_stick_length = 1;
+				for(int m = 0;m < num_parents + 1;m++){
+					double ratio_h = _stop_ratio_h_over_parent[m];
+					double stop_probability = rest_stick_length * ratio_h;
+					// cout << "stop_probability = " << stop_probability << endl;
+					rest_stick_length *= 1.0 - ratio_h;
+					// cout << "rest_stick_length = " << rest_stick_length << endl;
+					_stop_probability_h_over_parent[m] = stop_probability;
+				}
+			}
+		}
+		return sbr_ratio;
 	}
 	// クラスタリングTSSBでこのノードに止まる確率。
 	double compute_stop_probability(){

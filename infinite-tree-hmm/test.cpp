@@ -101,7 +101,26 @@ void test3(HTSSB* model){
 	auto msec = chrono::duration_cast<chrono::milliseconds>(duration).count();
 	cout << ratio << endl;
 	cout << msec << " msec" << endl;
-
+}
+void test4(HTSSB* model){
+	for(int n = 0;n < 10;n++){
+		Node* node = model->sample_node();
+		model->add_customer_to_clustering_node(node);
+	}
+	Node* target = model->find_node_with_id(11);
+	assert(target != NULL);
+	for(int n = 0;n < 100;n++){
+		model->add_customer_to_htssb_node(target);
+	}
+	Node* parent = target;
+	while(parent){
+		c_printf("[*]%d\n", parent->_identifier);
+		model->dump_tssb(parent->_identifier);
+		parent = parent->_parent;
+	}
+	target = model->find_node_with_id(7);
+	double ratio = model->compute_expectation_of_htssb_horizontal_sbr_ratio(target);
+	cout << ratio << endl;
 }
 int main(){
 	HTSSB* model = new HTSSB();

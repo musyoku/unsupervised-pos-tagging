@@ -176,6 +176,9 @@ public:
 	double compute_expectation_of_htssb_vertical_sbr_ratio(Node* node){
 		return node->compute_expectation_of_htssb_vertical_sbr_ratio(_alpha, _lambda);
 	}
+	double compute_expectation_of_htssb_horizontal_sbr_ratio(Node* node){
+		return node->compute_expectation_of_htssb_horizontal_sbr_ratio(_gamma);
+	}
 	void enumerate_nodes_from_left_to_right(vector<Node*> &nodes){
 		_enumerate_nodes_from_left_to_right(_root, nodes);
 	}
