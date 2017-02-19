@@ -91,33 +91,17 @@ void test3(HTSSB* model){
 		parent = parent->_parent;
 	}
 
+	double ratio = 0;
+	auto start_time = chrono::system_clock::now();
+	for(int i = 0;i < 10000;i++){
+		ratio = model->compute_expectation_of_htssb_vertical_sbr_ratio(target);
+	}
+	auto end_time = chrono::system_clock::now();
+	auto duration = end_time - start_time;
+	auto msec = chrono::duration_cast<chrono::milliseconds>(duration).count();
+	cout << ratio << endl;
+	cout << msec << " msec" << endl;
 
-	c_printf("[*]%s\n", "method1");
-	{
-		double ratio = 0;
-		auto start_time = chrono::system_clock::now();
-		for(int i = 0;i < 10000;i++){
-			ratio = model->compute_expectation_of_htssb_vertical_sbr_ratio(target);
-		}
-		auto end_time = chrono::system_clock::now();
-		auto duration = end_time - start_time;
-		auto msec = chrono::duration_cast<chrono::milliseconds>(duration).count();
-		cout << ratio << endl;
-		cout << msec << " msec" << endl;
-	}
-	c_printf("[*]%s\n", "method2");
-	{
-		double ratio = 0;
-		auto start_time = chrono::system_clock::now();
-		for(int i = 0;i < 10000;i++){
-			ratio = model->_compute_expectation_of_htssb_vertical_sbr_ratio(target);
-		}
-		auto end_time = chrono::system_clock::now();
-		auto duration = end_time - start_time;
-		auto msec = chrono::duration_cast<chrono::milliseconds>(duration).count();
-		cout << ratio << endl;
-		cout << msec << " msec" << endl;
-	}
 }
 int main(){
 	HTSSB* model = new HTSSB();
