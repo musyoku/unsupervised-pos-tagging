@@ -1,4 +1,5 @@
 #include  <iostream>
+#include  <chrono>
 #include "core/htssb.h"
 using namespace std;
 
@@ -78,7 +79,7 @@ void test3(HTSSB* model){
 		Node* node = model->sample_node();
 		model->add_customer_to_clustering_node(node);
 	}
-	Node* target = model->find_node_with_id(7);
+	Node* target = model->find_node_with_id(11);
 	assert(target != NULL);
 	for(int n = 0;n < 100;n++){
 		model->add_customer_to_htssb_node(target);
@@ -89,7 +90,34 @@ void test3(HTSSB* model){
 		model->dump_tssb(parent->_identifier);
 		parent = parent->_parent;
 	}
-	double ratio = model->compute_expectation_of_htssb_vertical_sbr_ratio(target);
+
+
+	c_printf("[*]%s\n", "method1");
+	{
+		double ratio = 0;
+		auto start_time = chrono::system_clock::now();
+		for(int i = 0;i < 10000;i++){
+			ratio = model->compute_expectation_of_htssb_vertical_sbr_ratio(target);
+		}
+		auto end_time = chrono::system_clock::now();
+		auto duration = end_time - start_time;
+		auto msec = chrono::duration_cast<chrono::milliseconds>(duration).count();
+		cout << ratio << endl;
+		cout << msec << " msec" << endl;
+	}
+	c_printf("[*]%s\n", "method2");
+	{
+		double ratio = 0;
+		auto start_time = chrono::system_clock::now();
+		for(int i = 0;i < 10000;i++){
+			ratio = model->_compute_expectation_of_htssb_vertical_sbr_ratio(target);
+		}
+		auto end_time = chrono::system_clock::now();
+		auto duration = end_time - start_time;
+		auto msec = chrono::duration_cast<chrono::milliseconds>(duration).count();
+		cout << ratio << endl;
+		cout << msec << " msec" << endl;
+	}
 }
 int main(){
 	HTSSB* model = new HTSSB();

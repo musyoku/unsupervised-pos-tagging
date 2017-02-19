@@ -127,13 +127,20 @@ public:
 	double _stick_length;					// 自分の棒の木全体に対する長さ
 	double _children_stick_length;			// 自分の棒の子ノードに割り当てる長さ
 	double _probability;					// このノードの確率
+	double* _stop_probability_v_over_parent;
+	double* _stop_ratio_v_over_parent;
+	Node** _pointer_nodes;
 	Node(Node* parent){
 		_identifier = _auto_increment;
 		_auto_increment++;
 		_parent = parent;
 		_depth_v = (parent != NULL) ? parent->_depth_v + 1 : 0;
+		_depth_h = (parent != NULL) ? parent->_children.size() : 0;
 		_stick_length = -1;
 		_children_stick_length = -1;
+		_stop_probability_v_over_parent = new double[_depth_v + 1];
+		_stop_ratio_v_over_parent = new double[_depth_v + 1];
+		_pointer_nodes = new Node*[_depth_v + 1];
 	}
 	~Node(){
 		for(auto &elem: _table_v){
@@ -142,6 +149,9 @@ public:
 		for(auto &elem: _table_h){
 			delete elem.second;
 		}
+		delete[] _stop_probability_v_over_parent;
+		delete[] _stop_ratio_v_over_parent;
+		delete[] _pointer_nodes;
 	}
 	void init_table(){
 		Node* parent = _parent;
@@ -227,17 +237,6 @@ public:
 		int stop_count = get_vertical_stop_count_with_id(CLUSTERING_TSSB_ID);
 		return (1.0 + stop_count) / (1.0 + alpha + stop_count + pass_count);
 	}
-	double compute_stop_probability_of_vertical_sbr_ratio(double alpha){
-		vector<double> ratio_over_parents_reverse;	// 縦のSBRでの棒を折る比率を後ろから順に格納
-		int num_parents = _depth_v;
-		Node* target = this;
-		for(int n = 0;n < num_parents + 1;n++){
-			double expectation = target->compute_expectation_of_clustering_vertical_sbr_ratio(alpha);
-			target = target->_parent;
-			ratio_over_parents_reverse.push_back(expectation);
-		}
-		return compute_sbr_probability_given_params_reverse(ratio_over_parents_reverse);
-	}
 	// 縦の棒折り過程における、棒を折る比率の期待値を計算。論文中のコインの表が出る確率に相当
 	double compute_expectation_of_htssb_vertical_sbr_ratio(double alpha, double lambda){
 		double sbr_ratio = 0;
@@ -253,50 +252,119 @@ public:
 		std::reverse(pointer_nodes.begin(), pointer_nodes.end());
 
 		for(int n = 0;n < num_parents + 1;n++){
-			cout << "n = " << n << endl;
+			// cout << "n = " << n << endl;
 			Node* target = this;
 			for(int step = 0;step < num_parents - n;step++){
 				target = target->_parent;
 				assert(target != NULL);
 			}
-			cout << "target = " << target->_identifier << endl;
+			// cout << "target = " << target->_identifier << endl;
 			// トップレベルのノードから順に停止確率を計算
 			double rest_stick_length = 1;
 			double sum_parent_stop_probability = 0;
 			for(int m = 0;m < pointer_nodes.size();m++){
-				cout << "m = " << m << endl;
+				// cout << "m = " << m << endl;
 				Node* pointer = pointer_nodes[m];
-				cout << "pointer = " << pointer->_identifier << endl;
+				// cout << "pointer = " << pointer->_identifier << endl;
 				if(target->_depth_v == 0){	// 親ノードの場合
 					int pass_count = pointer->get_vertical_pass_count_with_id(target->_identifier);
 					int stop_count = pointer->get_vertical_stop_count_with_id(target->_identifier);
 					double ratio_v = (1.0 + stop_count) / (1.0 + alpha + stop_count + pass_count);
-					cout << "ratio_v = " << ratio_v << endl;
+					// cout << "ratio_v = " << ratio_v << endl;
 					double stop_probability = rest_stick_length * ratio_v;
-					cout << "stop_probability = " << stop_probability << endl;
+					// cout << "stop_probability = " << stop_probability << endl;
 					rest_stick_length *= 1.0 - ratio_v;
-					cout << "rest_stick_length = " << rest_stick_length << endl;
+					// cout << "rest_stick_length = " << rest_stick_length << endl;
 					pointer->set_vertical_stop_probability_with_id(stop_probability, target->_identifier);
 				}else{
 					int pass_count = pointer->get_vertical_pass_count_with_id(target->_identifier);
 					int stop_count = pointer->get_vertical_stop_count_with_id(target->_identifier);
-					cout << "pass_count = " << pass_count << ", stop_count = " << stop_count << endl;
+					// cout << "pass_count = " << pass_count << ", stop_count = " << stop_count << endl;
 					assert(target->_parent != NULL);
 					double parent_probability_to_stop_pointer_node = pointer->get_vertical_stop_probability_with_id(target->_parent->_identifier);
-					cout << "parent_probability_to_stop_pointer_node = " << parent_probability_to_stop_pointer_node << endl;
+					// cout << "parent_probability_to_stop_pointer_node = " << parent_probability_to_stop_pointer_node << endl;
 					double _alpha = alpha * pow(lambda, target->_depth_v);
-					cout << "_alpha = " << _alpha << endl;
+					// cout << "_alpha = " << _alpha << endl;
 					double ratio_v = (_alpha * parent_probability_to_stop_pointer_node + stop_count) / (_alpha * (1.0 - sum_parent_stop_probability) + stop_count + pass_count);
-					cout << "ratio_v = " << ratio_v << endl;
+					// cout << "ratio_v = " << ratio_v << endl;
 					double stop_probability = rest_stick_length * ratio_v;
-					cout << "stop_probability = " << stop_probability << endl;
+					// cout << "stop_probability = " << stop_probability << endl;
 					rest_stick_length *= 1.0 - ratio_v;
-					cout << "rest_stick_length = " << rest_stick_length << endl;
+					// cout << "rest_stick_length = " << rest_stick_length << endl;
 					sum_parent_stop_probability += parent_probability_to_stop_pointer_node;
-					cout << "sum_parent_stop_probability = " << sum_parent_stop_probability << endl;
+					// cout << "sum_parent_stop_probability = " << sum_parent_stop_probability << endl;
 					pointer->set_vertical_stop_probability_with_id(stop_probability, target->_identifier);
 					sbr_ratio = ratio_v;
-					cout << "sbr_ratio = " << sbr_ratio << endl;
+					// cout << "sbr_ratio = " << sbr_ratio << endl;
+				}
+			}
+		}
+		return sbr_ratio;
+	}
+	double _compute_expectation_of_htssb_vertical_sbr_ratio(double alpha, double lambda){
+		double sbr_ratio = 0;
+		int num_parents = _depth_v;
+		// トップレベルのノードから順に下りながら計算する
+		Node* parent = this;
+		_pointer_nodes[_depth_v] = parent;
+		for(int n = 0;n < num_parents;n++){
+			parent = parent->_parent;
+			_pointer_nodes[_depth_v - n - 1] = parent;
+		}
+
+		for(int n = 0;n < num_parents + 1;n++){
+			// cout << "n = " << n << endl;
+			Node* target = this;
+			for(int step = 0;step < num_parents - n;step++){
+				target = target->_parent;
+				assert(target != NULL);
+			}
+			// cout << "target = " << target->_identifier << endl;
+			// トップレベルのノードから順に停止確率を計算
+			double sum_parent_stop_probability = 0;
+			for(int m = 0;m < num_parents + 1;m++){
+				// cout << "m = " << m << endl;
+				Node* pointer = _pointer_nodes[m];
+				// cout << "pointer = " << pointer->_identifier << endl;
+				if(target->_depth_v == 0){	// 親ノードの場合
+					int pass_count = pointer->get_vertical_pass_count_with_id(target->_identifier);
+					int stop_count = pointer->get_vertical_stop_count_with_id(target->_identifier);
+					double ratio_v = (1.0 + stop_count) / (1.0 + alpha + stop_count + pass_count);
+					// cout << "ratio_v = " << ratio_v << endl;
+					// pointer->set_vertical_stop_probability_with_id(stop_probability, target->_identifier);
+					_stop_ratio_v_over_parent[m] = ratio_v;
+				}else{
+					int pass_count = pointer->get_vertical_pass_count_with_id(target->_identifier);
+					int stop_count = pointer->get_vertical_stop_count_with_id(target->_identifier);
+					// cout << "pass_count = " << pass_count << ", stop_count = " << stop_count << endl;
+					assert(target->_parent != NULL);
+					double parent_probability_to_stop_pointer_node = _stop_probability_v_over_parent[m];
+					// cout << "parent_probability_to_stop_pointer_node = " << parent_probability_to_stop_pointer_node << endl;
+					double _alpha = alpha * pow(lambda, target->_depth_v);
+					// cout << "_alpha = " << _alpha << endl;
+					double ratio_v = (_alpha * parent_probability_to_stop_pointer_node + stop_count) / (_alpha * (1.0 - sum_parent_stop_probability) + stop_count + pass_count);
+					// cout << "ratio_v = " << ratio_v << endl;
+					_stop_ratio_v_over_parent[m] = ratio_v;
+					// double stop_probability = rest_stick_length * ratio_v;
+					// cout << "stop_probability = " << stop_probability << endl;
+					// rest_stick_length *= 1.0 - ratio_v;
+					// cout << "rest_stick_length = " << rest_stick_length << endl;
+					sum_parent_stop_probability += parent_probability_to_stop_pointer_node;
+					// cout << "sum_parent_stop_probability = " << sum_parent_stop_probability << endl;
+					// pointer->set_vertical_stop_probability_with_id(stop_probability, target->_identifier);
+					sbr_ratio = ratio_v;
+					// cout << "sbr_ratio = " << sbr_ratio << endl;
+				}
+			}
+			if(n < num_parents){
+				double rest_stick_length = 1;
+				for(int m = 0;m < num_parents + 1;m++){
+					double ratio_v = _stop_ratio_v_over_parent[m];
+					double stop_probability = rest_stick_length * ratio_v;
+					// cout << "stop_probability = " << stop_probability << endl;
+					rest_stick_length *= 1.0 - ratio_v;
+					// cout << "rest_stick_length = " << rest_stick_length << endl;
+					_stop_probability_v_over_parent[m] = stop_probability;
 				}
 			}
 		}
