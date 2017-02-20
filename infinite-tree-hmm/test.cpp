@@ -192,8 +192,38 @@ void test8(iTHMM* model){
 	cout << msec << " msec" << endl;
 }
 
+void test9(iTHMM* model){
+	add_customer(model, 3000);
+	double uniform = 0;
+	model->_clustering_tssb->update_stick_length();
+	model->_clustering_tssb->dump();
+	vector<Node*> nodes_true;
+	vector<Node*> nodes;
+	model->_clustering_tssb->enumerate_nodes_from_left_to_right(nodes_true);
+	int num_nodes_true = model->_clustering_tssb->get_num_nodes();
+	int num_nodes = 0;
+	int prev_id = -1;
+	for(int i = 0;i < 100000000;i++){
+		uniform = i / 100000000.0;
+		Node* node = model->retrospective_sampling(uniform);
+		if(node->_identifier != prev_id){
+			cout << uniform << ": " << node->_identifier << endl;
+			prev_id = node->_identifier;
+			num_nodes += 1;
+			nodes.push_back(node);
+		}
+	}
+	int limit = (nodes_true.size() > nodes.size()) ? nodes_true.size() : nodes.size();
+	for(int i = 0;i < limit;i++){
+		int identifier = (i < nodes.size()) ? nodes[i]->_identifier : -1;
+		int identifier_true = (i < nodes_true.size()) ? nodes_true[i]->_identifier : -1;
+		cout << identifier << " : " << identifier_true << endl;
+	}
+	cout << num_nodes << " == " << num_nodes_true << endl;
+	assert(num_nodes == num_nodes_true);
+}
 int main(){
 	iTHMM* model = new iTHMM();
-	test8(model);
+	test9(model);
 	return 0;
 }
