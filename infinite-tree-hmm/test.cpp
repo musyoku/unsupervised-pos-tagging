@@ -169,8 +169,31 @@ void test7(iTHMM* model){
 	cout << msec << " msec" << endl;
 }
 
+void test8(iTHMM* model){
+	add_customer(model, 20);
+	c_printf("[*]%s\n", "cluster");
+	model->_clustering_tssb->dump();
+	Node* target_on_cluster = model->_clustering_tssb->find_node_with_id(14);
+	assert(target_on_cluster != NULL);
+	c_printf("[*]%s\n", "target");
+	target_on_cluster->dump();
+	for(int i = 0;i < 100;i++){
+		model->add_htssb_customer_to_node(target_on_cluster);
+	}
+	double ratio = 0;
+	auto start_time = chrono::system_clock::now();
+	for(int i = 0;i < 100000;i++){
+		ratio = model->compute_expectation_of_htssb_horizontal_sbr_ratio_on_node(target_on_cluster);
+	}
+	auto end_time = chrono::system_clock::now();
+	auto duration = end_time - start_time;
+	auto msec = chrono::duration_cast<chrono::milliseconds>(duration).count();
+	cout << ratio << endl;
+	cout << msec << " msec" << endl;
+}
+
 int main(){
 	iTHMM* model = new iTHMM();
-	test7(model);
+	test8(model);
 	return 0;
 }

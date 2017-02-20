@@ -272,14 +272,15 @@ public:
 		// ルートノードのカウントを減らす
 		stopped_child->decrement_horizontal_stop_count();
 	}
+	// 縦の棒折り過程における、棒を折る比率を計算。親のTSSBから階層的に生成
 	double compute_expectation_of_htssb_vertical_sbr_ratio_on_node(Node* target_on_cluster){
 		// cout << "target" << endl << "	";
 		// target_on_cluster->dump();
 		double sbr_ratio = 0;
 		int depth_v = target_on_cluster->_depth_v;
 		int num_parents = depth_v;
-		// 遷移確率用TSSBのトップレベルノードから対象ノードまでのノードの水平方向の深さを格納
-		// ルートノードから子ノードをたどって到達できるようにするには水平方向の位置が分ればよい
+		// 遷移確率用TSSBのトップレベルノードから対象ノードまでのノードの水平方向のインデックスを格納
+		// ルートノードから子ノードをたどって到達できるようにするには水平方向の位置が分かればよい
 		int* node_horizontal_indices = target_on_cluster->_node_indices;
 		Node* parent_on_cluster = target_on_cluster;
 		node_horizontal_indices[depth_v - 1] = target_on_cluster->_depth_h;
@@ -287,11 +288,22 @@ public:
 			parent_on_cluster = parent_on_cluster->_parent;
 			node_horizontal_indices[depth_v - n - 2] = parent_on_cluster->_depth_h;
 		}
+
 		// cout << "horizontal indices:" << endl;
 		// for(int n = 0;n < num_parents;n++){
 		// 	cout << node_horizontal_indices[n] << " -> ";
 		// }
 		// cout << endl;
+
+		// クラスタリング用TSSBでの基準となるノードを選ぶ
+		Node** pointer_nodes_on_cluster_top_to_bottom = target_on_cluster->_pointer_nodes_v;
+		Node* pointer_on_cluster = target_on_cluster;
+		pointer_nodes_on_cluster_top_to_bottom[depth_v] = pointer_on_cluster;
+		for(int n = 0;n < num_parents;n++){
+			pointer_on_cluster = pointer_on_cluster->_parent;
+			assert(pointer_on_cluster != NULL);
+			pointer_nodes_on_cluster_top_to_bottom[depth_v - n - 1] = pointer_on_cluster;
+		}
 
 		// ノードの深さをdとすると(d+1)^2回計算する必要がある
 		double* stop_ratio_over_parent = target_on_cluster->_stop_ratio_v_over_parent;
@@ -299,12 +311,8 @@ public:
 		for(int n = 0;n < num_parents + 1;n++){
 			// cout << "n = " << n << endl;
 			// クラスタリング用TSSBでの基準となるノードを選ぶ
-			Node* pointer_on_cluster = target_on_cluster;
-			for(int step = 0;step < num_parents - n;step++){
-				pointer_on_cluster = pointer_on_cluster->_parent;
-				assert(pointer_on_cluster != NULL);
-			}
-			// cout << "pointer_on_cluster = " << pointer_on_cluster->_identifier << endl;
+			// nが増えるごとに下に降りていく
+			Node* pointer_on_cluster = pointer_nodes_on_cluster_top_to_bottom[n];
 			// トップレベルのノードから順に停止確率を計算
 			double sum_parent_stop_probability = 0;
 			Node* pointer_on_htssb = pointer_on_cluster->_transition_tssb->_root;	// 遷移確率用TSSBのルートから始める
@@ -350,6 +358,112 @@ public:
 					double stop_probability = rest_stick_length * ratio_v;
 					// cout << "stop_probability = " << stop_probability << endl;
 					rest_stick_length *= 1.0 - ratio_v;
+					// cout << "rest_stick_length = " << rest_stick_length << endl;
+					stop_probability_over_parent[m] = stop_probability;
+				}
+			}
+		}
+		return sbr_ratio;
+	}
+	// 横の棒折り過程における、棒を折る比率を計算。親のTSSBから階層的に生成
+	double compute_expectation_of_htssb_horizontal_sbr_ratio_on_node(Node* target_on_cluster){
+		int depth_v = target_on_cluster->_depth_v;
+		int depth_h = target_on_cluster->_depth_h;
+		if(depth_v == 0){	// ルートノードなら必ず止まる
+			return 1;
+		}
+		double sbr_ratio = 0;
+		int num_parents = depth_v;
+		// 遷移確率用TSSBのトップレベルノードから対象ノードまでのノードの水平方向のインデックスを格納
+		// ルートノードから子ノードをたどって到達できるようにするには水平方向の位置が分かればよい
+		int* node_horizontal_indices = target_on_cluster->_node_indices;
+		Node* parent_on_cluster = target_on_cluster;
+		node_horizontal_indices[depth_v - 1] = target_on_cluster->_depth_h;
+		for(int n = 0;n < num_parents - 1;n++){
+			parent_on_cluster = parent_on_cluster->_parent;
+			node_horizontal_indices[depth_v - n - 2] = parent_on_cluster->_depth_h;
+		}
+		// クラスタリング用TSSBのルートノード
+		Node* root_on_cluster = parent_on_cluster->_parent;
+
+		// クラスタリング用TSSBで辿れる全ての親ノードが持つ遷移確率用TSSB上での対象ノードを持っている親ノードへのポインタ
+		Node** parents_on_htssb_contain_target = target_on_cluster->_pointer_nodes_v;
+		Node* pointer_on_cluster = target_on_cluster;
+		Node* parent_contains_target_on_htssb = pointer_on_cluster->_transition_tssb_myself->_parent;
+		assert(parent_contains_target_on_htssb);
+		parents_on_htssb_contain_target[depth_v] = parent_contains_target_on_htssb;
+		// cout << depth_v << " <- " << endl << "	";
+		// parent_contains_target_on_htssb->dump();
+		for(int n = 0;n < num_parents;n++){
+			pointer_on_cluster = pointer_on_cluster->_parent;
+			Node* pointer_on_htssb = pointer_on_cluster->_transition_tssb->_root;
+			// cout << "searching ..." << endl;
+			// クラスタリング用TSSBのそれぞれのノードが持つ遷移確率用TSSBのルートノードからたどっていき目的のノードの親ノードを見つける
+			for(int m = 0;m < num_parents - 1;m++){
+				pointer_on_htssb = pointer_on_htssb->_children[node_horizontal_indices[m]];
+				// cout << "	";
+				// pointer_on_htssb->dump();
+			}
+			assert(pointer_on_htssb != NULL);
+			parents_on_htssb_contain_target[depth_v - n - 1] = pointer_on_htssb;
+			// cout << depth_v - n - 1 << " <- " << endl << "	";
+			// pointer_on_htssb->dump();
+		}
+
+		double* stop_ratio_over_parent = target_on_cluster->_stop_ratio_h_over_parent;
+		double* stop_probability_over_parent = target_on_cluster->_stop_probability_h_over_parent;
+		pointer_on_cluster = root_on_cluster;
+		for(int n = 0;n < num_parents + 1;n++){
+			// クラスタリング用TSSBでの基準となるノードを選ぶ
+			// nが増えるごとに下に降りていく
+			// cout << "pointer" << endl << "	";
+			// pointer_on_cluster->dump();
+			// トップレベルのノードから順に停止確率を計算
+			double sum_parent_stop_probability = 0;
+			parent_contains_target_on_htssb = parents_on_htssb_contain_target[n];
+			// cout << "parent contains" << endl << "	";
+			// parent_contains_target_on_htssb->dump();
+			assert(parent_contains_target_on_htssb);
+			for(int m = 0;m < depth_h + 1;m++){
+				Node* child_on_htssb = parent_contains_target_on_htssb->_children[m];
+				// cout << "m = " << m << endl << "	";
+				// child_on_htssb->dump();
+				if(pointer_on_cluster->_depth_v == 0){	// 親ノードの場合
+					int pass_count = child_on_htssb->get_horizontal_pass_count();
+					int stop_count = child_on_htssb->get_horizontal_stop_count();
+					double ratio_h = (1.0 + stop_count) / (1.0 + _gamma + stop_count + pass_count);
+					// cout << "ratio_h = " << ratio_h << endl;
+					stop_ratio_over_parent[m] = ratio_h;
+				}else{
+					int pass_count = child_on_htssb->get_horizontal_pass_count();
+					int stop_count = child_on_htssb->get_horizontal_stop_count();
+					// cout << "pass_count = " << pass_count << ", stop_count = " << stop_count << endl;
+					double parent_stop_probability = stop_probability_over_parent[m];
+					// cout << "parent_stop_probability = " << parent_stop_probability << endl;
+					double ratio_h = (_gamma * parent_stop_probability + stop_count) / (_gamma * (1.0 - sum_parent_stop_probability) + stop_count + pass_count);
+					// cout << "ratio_h = " << ratio_h << endl;
+					stop_ratio_over_parent[m] = ratio_h;
+					sum_parent_stop_probability += parent_stop_probability;
+					// cout << "sum_parent_stop_probability = " << sum_parent_stop_probability << endl;
+					sbr_ratio = ratio_h;
+				}
+
+			}
+			// 親から子へ降りていく
+			// 水平方向の位置が分ればアクセス可能
+			if(n < num_parents){
+				// cout << "next index: " << node_horizontal_indices[n] << endl;
+				assert(node_horizontal_indices[n] < pointer_on_cluster->_children.size());
+				pointer_on_cluster = pointer_on_cluster->_children[node_horizontal_indices[n]];
+				assert(pointer_on_cluster != NULL);
+			}
+			if(n < num_parents){
+				double rest_stick_length = 1;
+				for(int m = 0;m < depth_h + 1;m++){
+					double ratio_h = stop_ratio_over_parent[m];
+					double stop_probability = rest_stick_length * ratio_h;
+					// cout << "stop_probability = " << stop_probability << endl;
+					rest_stick_length *= 1.0 - ratio_h;
 					// cout << "rest_stick_length = " << rest_stick_length << endl;
 					stop_probability_over_parent[m] = stop_probability;
 				}
