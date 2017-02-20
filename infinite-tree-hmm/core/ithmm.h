@@ -33,13 +33,14 @@ public:
 				node_on_cluster->_transition_tssb = _clustering_tssb->copy(node_on_cluster->_identifier);
 				node_on_cluster->_transition_tssb_myself = node_on_cluster->_transition_tssb->find_node_with_id(node_on_cluster->_identifier);
 				assert(node_on_cluster->_transition_tssb_myself != NULL);
+			}else{
+				// 遷移確率用TSSBでの同じ位置に子ノードを挿入
+				Node* parent_on_htssb = node_on_cluster->_transition_tssb->find_node_with_id(parent_on_cluster->_identifier);
+				assert(parent_on_htssb != NULL);
+				Node* child_on_htssb = new Node(parent_on_htssb, child_on_cluster->_identifier);
+				child_on_htssb->_htssb_owner_id = node_on_cluster->_identifier;
+				parent_on_htssb->add_child(child_on_htssb);
 			}
-			// 遷移確率用TSSBでの同じ位置に子ノードを挿入
-			Node* parent_on_htssb = node_on_cluster->_transition_tssb->find_node_with_id(parent_on_cluster->_identifier);
-			assert(parent_on_htssb != NULL);
-			Node* child_on_htssb = new Node(parent_on_htssb, child_on_cluster->_identifier);
-			child_on_htssb->_htssb_owner_id = node_on_cluster->_identifier;
-			parent_on_htssb->add_child(child_on_htssb);
 		}
 		return child_on_cluster;
 	}
@@ -154,6 +155,44 @@ public:
 			return last_node;
 		}
 		return NULL;
+	}
+	void add_htssb_customer_to_node(Node* node_on_cluster){
+		assert(node_on_cluster->_htssb_owner_id == 0);
+		double alpha = _alpha * pow(_alpha, node_on_cluster->_depth_v);
+		_add_customer_to_vertical_crp(alpha, node_on_cluster, node_on_cluster->_identifier);
+		_add_customer_to_horizontal_crp(_gamma, node_on_cluster, node_on_cluster->_identifier);
+	}
+	void add_clustering_customer_to_node(Node* node_on_cluster){
+		assert(node_on_cluster->_htssb_owner_id == 0);
+		double alpha = _alpha * pow(_alpha, node_on_cluster->_depth_v);
+		bool new_table_generated = false;
+		node_on_cluster->add_customer_to_vertical_crp(alpha, new_table_generated);
+	}
+	void _add_customer_to_vertical_crp(double alpha, Node* iterator_on_cluster, int target_id){
+		TSSB* transition_tssb = iterator_on_cluster->_transition_tssb;
+		assert(transition_tssb != NULL);
+		Node* target_on_htssb = transition_tssb->find_node_with_id(target_id);
+		assert(target_on_htssb != NULL);
+		bool new_table_generated = false;
+		target_on_htssb->add_customer_to_vertical_crp(alpha, new_table_generated);
+		if(new_table_generated && iterator_on_cluster->_parent != NULL){
+			_add_customer_to_vertical_crp(alpha, iterator_on_cluster->_parent, target_id);
+		}
+	}
+	void _add_customer_to_horizontal_crp(double gamma, Node* iterator_on_cluster, int target_id){
+		TSSB* transition_tssb = iterator_on_cluster->_transition_tssb;
+		assert(transition_tssb != NULL);
+		Node* target_on_htssb = transition_tssb->find_node_with_id(target_id);
+		assert(target_on_htssb != NULL);
+		bool new_table_generated = false;
+		target_on_htssb->add_customer_to_horizontal_crp(gamma, new_table_generated);
+		if(new_table_generated && iterator_on_cluster->_parent != NULL){
+			_add_customer_to_horizontal_crp(gamma, iterator_on_cluster->_parent, target_id);
+		}
+	}
+	void remove_customer_from_node(Node* node_on_cluster, bool remove_proxy_customer = false){
+		node_on_cluster->remove_customer_from_vertical_crp(remove_proxy_customer);
+		node_on_cluster->remove_customer_from_horizontal_crp(remove_proxy_customer);
 	}
 };
 

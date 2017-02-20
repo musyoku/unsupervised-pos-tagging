@@ -350,25 +350,14 @@ public:
 	double compute_stop_probability(){
 		return 0.6;
 	}
-	// クラスタリングTSSBに客を追加
-	void add_customer_to_vertical_crp(double concentration, bool add_proxy_customer = false){
-		add_customer_to_vertical_crp(concentration, this, add_proxy_customer);
-	}
 	// 遷移確率TSSBに客を追加
-	void add_customer_to_vertical_crp(double concentration, Node* node, bool add_proxy_customer = false){
+	void add_customer_to_vertical_crp(double concentration, bool &new_table_generated){
 		Table* table = get_vertical_table();
+		Node* parent = _parent;
 		assert(table != NULL);
-		bool new_table_generated = false;
 		table->add_customer(concentration, new_table_generated);
-		if(add_proxy_customer && new_table_generated){	// 新しいテーブルが作られたら親のTSSBのこのノードに代理客を追加
-			assert(node != NULL);
-			if(node->_parent != NULL){
-				add_customer_to_vertical_crp(concentration, node->_parent, true);		// 親のTSSBにおけるこのノードに客を追加するので自分のメソッドを呼ぶ
-			}
-		}
 		// 停止回数・通過回数を更新
 		increment_vertical_stop_count();
-		Node* parent = _parent;
 		while(parent){
 			parent->increment_vertical_pass_count();
 			parent = parent->_parent;
@@ -388,20 +377,10 @@ public:
 		_pass_count_v -= 1;
 		assert(_pass_count_v >= 0);
 	}
-	void add_customer_to_horizontal_crp(double concentration, bool add_proxy_customer = false){
-		add_customer_to_horizontal_crp(concentration, this, add_proxy_customer);
-	}
-	void add_customer_to_horizontal_crp(double concentration, Node* node, bool add_proxy_customer){
+	void add_customer_to_horizontal_crp(double concentration, bool &new_table_generated){
 		Table* table = get_horizontal_table();
 		assert(table != NULL);
-		bool new_table_generated = false;
 		table->add_customer(concentration, new_table_generated);
-		if(add_proxy_customer && new_table_generated){	// 新しいテーブルが作られたら親のTSSBのこのノードに代理客を追加
-			assert(node != NULL);
-			if(node->_parent != NULL){
-				add_customer_to_horizontal_crp(concentration, node->_parent, true);	// 親のTSSBにおけるこのノードに客を追加するので自分のメソッドを呼ぶ
-			}
-		}
 		// 停止回数・通過回数を更新
 		Node* stopped_child = this;
 		Node* parent = _parent;
@@ -531,15 +510,18 @@ public:
 	double _alpha;
 	double _gamma;
 	double _lambda;
+	int _owner_id;
 	TSSB(double alpha, double gamma, double lambda){
 		_root = new Node(NULL);
 		_root->_stick_length = 1;
+		_owner_id = 0;
 		_alpha = alpha;
 		_gamma = gamma;
 		_lambda = lambda;
 	}
 	TSSB(Node* root, double alpha, double gamma, double lambda){
 		_root = root;
+		_owner_id = 0;
 		_alpha = alpha;
 		_gamma = gamma;
 		_lambda = lambda;
@@ -549,6 +531,7 @@ public:
 		root->_htssb_owner_id = owner_id;
 		copy_children(_root, root, owner_id);
 		TSSB* target = new TSSB(root, _alpha, _gamma, _lambda);
+		target->_owner_id = owner_id;
 		return target;
 	}
 	void copy_children(Node* source, Node* target, int owner_id){
@@ -558,15 +541,6 @@ public:
 			target->add_child(child);
 			copy_children(source_child, child, owner_id);
 		}
-	}
-	void add_customer_to_node(Node* node){
-		double alpha = _alpha * pow(_alpha, node->_depth_v);
-		node->add_customer_to_vertical_crp(alpha);
-		node->add_customer_to_horizontal_crp(_gamma);
-	}
-	void remove_customer_from_node(Node* node){
-		node->remove_customer_from_vertical_crp();
-		node->remove_customer_from_horizontal_crp();
 	}
 	void update_stick_length(){
 		double ratio_v = _root->compute_expectation_of_clustering_vertical_sbr_ratio(_gamma);
