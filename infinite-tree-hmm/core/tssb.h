@@ -134,6 +134,7 @@ public:
 	double* _stop_probability_v_over_parent;
 	double* _stop_ratio_v_over_parent;
 	Node** _pointer_nodes_v;
+	int* _node_indices;
 	double* _stop_probability_h_over_parent;
 	double* _stop_ratio_h_over_parent;
 	Node(Node* parent){
@@ -165,6 +166,7 @@ public:
 		_pointer_nodes_v = new Node*[_depth_v + 1];
 		_stop_probability_h_over_parent = new double[_depth_h + 1];
 		_stop_ratio_h_over_parent = new double[_depth_h + 1];
+		_node_indices = new int[_depth_v + 1];
 		_table_v = new Table();
 		_table_h = new Table();
 	}
@@ -174,6 +176,7 @@ public:
 		delete[] _stop_probability_v_over_parent;
 		delete[] _stop_ratio_v_over_parent;
 		delete[] _pointer_nodes_v;
+		delete[] _node_indices;
 	}
 	Node* generate_child(){
 		Node* child = new Node(this);
@@ -488,7 +491,7 @@ public:
 		int stop_count_v = get_vertical_stop_count();
 		int pass_count_h = get_horizontal_pass_count();
 		int stop_count_h = get_horizontal_stop_count();
-		cout << (boost::format("%d [vp:%d,vs:%d,hp:%d,hs:%d][len:%f,self:%f,ch:%f,p:%f][ow:%d]") % _identifier % pass_count_v % stop_count_v % pass_count_h % stop_count_h % _stick_length % (_stick_length - _children_stick_length) % _children_stick_length % _probability % _htssb_owner_id).str() << endl;
+		cout << (boost::format("%d [vp:%d,vs:%d,hp:%d,hs:%d][len:%f,self:%f,ch:%f,p:%f][ow:%d,dv:%d,dh:%d]") % _identifier % pass_count_v % stop_count_v % pass_count_h % stop_count_h % _stick_length % (_stick_length - _children_stick_length) % _children_stick_length % _probability % _htssb_owner_id % _depth_v % _depth_h).str() << endl;
 	}
 };
 int Node::_auto_increment = 1;
@@ -627,7 +630,7 @@ public:
 		int stop_count_v = node->get_vertical_stop_count();
 		int pass_count_h = node->get_horizontal_pass_count();
 		int stop_count_h = node->get_horizontal_stop_count();
-		cout << (boost::format("%d [vp:%d,vs:%d,hp:%d,hs:%d][len:%f,self:%f,ch:%f,p:%f][ow:%d]") % node->_identifier % pass_count_v % stop_count_v % pass_count_h % stop_count_h % node->_stick_length % (node->_stick_length - node->_children_stick_length) % node->_children_stick_length % node->_probability % node->_htssb_owner_id).str() << endl;
+		cout << (boost::format("%d [vp:%d,vs:%d,hp:%d,hs:%d][len:%f,self:%f,ch:%f,p:%f][ow:%d,dv:%d,dh:%d]") % node->_identifier % pass_count_v % stop_count_v % pass_count_h % stop_count_h % node->_stick_length % (node->_stick_length - node->_children_stick_length) % node->_children_stick_length % node->_probability % node->_htssb_owner_id % node->_depth_v % node->_depth_h).str() << endl;
 		for(int i = 0;i < node->_children.size();i++){
 			Node* child = node->_children[i];
 			_dump(child);

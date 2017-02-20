@@ -53,9 +53,6 @@ void test2(iTHMM* model){
 		parent->_transition_tssb->dump();
 		parent = parent->_parent;
 	}
-
-	double ratio = target_on_cluster->_transition_tssb->compute_expectation_of_htssb_vertical_sbr_ratio(target_on_cluster->_transition_tssb_myself);
-	cout << ratio << endl;
 }
 
 void test4(iTHMM* model){
@@ -149,8 +146,23 @@ void test6(iTHMM* model){
 	}
 }
 
+void test7(iTHMM* model){
+	add_customer(model, 30);
+	c_printf("[*]%s\n", "cluster");
+	model->_clustering_tssb->dump();
+	Node* target_on_cluster = model->_clustering_tssb->find_node_with_id(19);
+	assert(target_on_cluster != NULL);
+	c_printf("[*]%s\n", "target");
+	target_on_cluster->dump();
+	for(int i = 0;i < 100;i++){
+		model->add_htssb_customer_to_node(target_on_cluster);
+	}
+	double ratio = model->compute_expectation_of_htssb_vertical_sbr_ratio_on_node(target_on_cluster);
+	cout << ratio << endl;
+}
+
 int main(){
 	iTHMM* model = new iTHMM();
-	test6(model);
+	test7(model);
 	return 0;
 }
