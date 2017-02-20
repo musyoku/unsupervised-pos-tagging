@@ -57,8 +57,34 @@ void test2(iTHMM* model){
 	cout << ratio << endl;
 }
 
+void test4(iTHMM* model){
+	add_customer(model, 20);
+	Node* target_on_cluster = model->_clustering_tssb->find_node_with_id(14);
+	assert(target_on_cluster != NULL);
+	c_printf("[*]%s\n", "cluster");
+	model->_clustering_tssb->dump();
+	Node* parent = target_on_cluster;
+	while(parent){
+		c_printf("[*]%d\n", parent->_identifier);
+		parent->_transition_tssb->dump();
+		parent = parent->_parent;
+	}
+	model->remove_clustering_customer_from_node(target_on_cluster);
+	target_on_cluster = model->_clustering_tssb->find_node_with_id(14);
+	c_printf("[*]%s\n", "cluster");
+	model->_clustering_tssb->dump();
+	if(target_on_cluster != NULL){
+		parent = target_on_cluster;
+		while(parent){
+			c_printf("[*]%d\n", parent->_identifier);
+			parent->_transition_tssb->dump();
+			parent = parent->_parent;
+		}
+	}
+}
+
 int main(){
 	iTHMM* model = new iTHMM();
-	test2(model);
+	test4(model);
 	return 0;
 }

@@ -469,15 +469,26 @@ public:
 		}
 		return false;
 	}
-	void delete_child_node(int node_id){
+	Node* delete_child_node(int node_id){
 		for(int i = 0;i < _children.size();i++){
 			Node* target = _children[i];
 			if(target->_identifier == node_id){
+				assert(target->get_vertical_pass_count() == 0);
+				assert(target->get_vertical_stop_count() == 0);
+				assert(target->get_horizontal_pass_count() == 0);
+				assert(target->get_horizontal_stop_count() == 0);
 				_children.erase(_children.begin() + i);
-				break;
+				return target;
 			}
-			target->delete_node_if_needed();
 		}
+		return NULL;
+	}
+	void dump(){
+		int pass_count_v = get_vertical_pass_count();
+		int stop_count_v = get_vertical_stop_count();
+		int pass_count_h = get_horizontal_pass_count();
+		int stop_count_h = get_horizontal_stop_count();
+		cout << (boost::format("%d [vp:%d,vs:%d,hp:%d,hs:%d][len:%f,self:%f,ch:%f,p:%f][ow:%d]") % _identifier % pass_count_v % stop_count_v % pass_count_h % stop_count_h % _stick_length % (_stick_length - _children_stick_length) % _children_stick_length % _probability % _htssb_owner_id).str() << endl;
 	}
 };
 int Node::_auto_increment = 1;

@@ -167,28 +167,28 @@ public:
 		double alpha = _alpha * pow(_alpha, node_on_cluster->_depth_v);
 		bool new_table_generated = false;
 		node_on_cluster->add_customer_to_vertical_crp(alpha, new_table_generated);
-		node_on_cluster->add_customer_to_horizontal_crp(alpha, new_table_generated);
+		// node_on_cluster->add_customer_to_horizontal_crp(alpha, new_table_generated);
 	}
-	void _add_htssb_customer_to_vertical_crp(double alpha, Node* iterator_on_cluster, int target_id){
-		TSSB* transition_tssb = iterator_on_cluster->_transition_tssb;
+	void _add_htssb_customer_to_vertical_crp(double alpha, Node* target_on_cluster, int target_id){
+		TSSB* transition_tssb = target_on_cluster->_transition_tssb;
 		assert(transition_tssb != NULL);
 		Node* target_on_htssb = transition_tssb->find_node_with_id(target_id);
 		assert(target_on_htssb != NULL);
 		bool new_table_generated = false;
 		target_on_htssb->add_customer_to_vertical_crp(alpha, new_table_generated);
-		if(new_table_generated && iterator_on_cluster->_parent != NULL){
-			_add_htssb_customer_to_vertical_crp(alpha, iterator_on_cluster->_parent, target_id);
+		if(new_table_generated && target_on_cluster->_parent != NULL){
+			_add_htssb_customer_to_vertical_crp(alpha, target_on_cluster->_parent, target_id);
 		}
 	}
-	void _add_htssb_customer_to_horizontal_crp(double gamma, Node* iterator_on_cluster, int target_id){
-		TSSB* transition_tssb = iterator_on_cluster->_transition_tssb;
+	void _add_htssb_customer_to_horizontal_crp(double gamma, Node* target_on_cluster, int target_id){
+		TSSB* transition_tssb = target_on_cluster->_transition_tssb;
 		assert(transition_tssb != NULL);
 		Node* target_on_htssb = transition_tssb->find_node_with_id(target_id);
 		assert(target_on_htssb != NULL);
 		bool new_table_generated = false;
 		target_on_htssb->add_customer_to_horizontal_crp(gamma, new_table_generated);
-		if(new_table_generated && iterator_on_cluster->_parent != NULL){
-			_add_htssb_customer_to_horizontal_crp(gamma, iterator_on_cluster->_parent, target_id);
+		if(new_table_generated && target_on_cluster->_parent != NULL){
+			_add_htssb_customer_to_horizontal_crp(gamma, target_on_cluster->_parent, target_id);
 		}
 	}
 	void remove_htssb_customer_from_node(Node* node_on_cluster){
@@ -197,53 +197,52 @@ public:
 		_remove_customer_from_vertical_crp(node_on_cluster, node_on_cluster->_identifier);
 		_remove_customer_from_horizontal_crp(node_on_cluster, node_on_cluster->_identifier);
 	}
-	void _remove_customer_from_vertical_crp(Node* iterator_on_cluster, int target_id){
-		TSSB* transition_tssb = iterator_on_cluster->_transition_tssb;
+	void _remove_customer_from_vertical_crp(Node* target_on_cluster, int target_id){
+		TSSB* transition_tssb = target_on_cluster->_transition_tssb;
 		assert(transition_tssb != NULL);
 		Node* target_on_htssb = transition_tssb->find_node_with_id(target_id);
 		assert(target_on_htssb != NULL);
 		bool empty_table_deleted = false;
 		target_on_htssb->remove_customer_from_vertical_crp(empty_table_deleted);
-		if(empty_table_deleted && iterator_on_cluster->_parent != NULL){
-			_remove_customer_from_vertical_crp(iterator_on_cluster->_parent, target_id);
+		if(empty_table_deleted && target_on_cluster->_parent != NULL){
+			_remove_customer_from_vertical_crp(target_on_cluster->_parent, target_id);
 		}
 	}
-	void _remove_customer_from_horizontal_crp(Node* iterator_on_cluster, int target_id){
-		TSSB* transition_tssb = iterator_on_cluster->_transition_tssb;
+	void _remove_customer_from_horizontal_crp(Node* target_on_cluster, int target_id){
+		TSSB* transition_tssb = target_on_cluster->_transition_tssb;
 		assert(transition_tssb != NULL);
 		Node* target_on_htssb = transition_tssb->find_node_with_id(target_id);
 		assert(target_on_htssb != NULL);
 		bool empty_table_deleted = false;
 		target_on_htssb->remove_customer_from_horizontal_crp(empty_table_deleted);
-		if(empty_table_deleted && iterator_on_cluster->_parent != NULL){
-			_remove_customer_from_horizontal_crp(iterator_on_cluster->_parent, target_id);
+		if(empty_table_deleted && target_on_cluster->_parent != NULL){
+			_remove_customer_from_horizontal_crp(target_on_cluster->_parent, target_id);
 		}
 	}
+	// クラスタリング用TSSBから客が消える場合、木構造が変化する可能性があるので専用メソッドを用意
 	void remove_clustering_customer_from_node(Node* node_on_cluster){
 		assert(node_on_cluster->_htssb_owner_id == 0);
-		bool empty_table_deleted = false;
-		// remove_clustering_customer_from_vertical_crp_on_node(node_on_cluster, empty_table_deleted);
+		_remove_clustering_customer_from_vertical_crp_on_node(node_on_cluster);
 	}
 	// 客を除去
-	// void remove_clustering_customer_from_vertical_crp_on_node(Node* node){
-	// 	// cout << "remove_customer_from_vertical_crp: " << tssb_identifier << ", " << node->_identifier << endl;
-	// 	Table* table = get_vertical_table();
-	// 	assert(table != NULL);
-	// 	table->remove_customer(empty_table_deleted);
-	// 	// 停止回数・通過回数を更新
-	// 	decrement_vertical_stop_count();
-	// 	if(delete_node_if_empty){
-	// 		delete_node_if_needed();
-	// 	}
-	// 	Node* parent = _parent;
-	// 	while(parent){
-	// 		parent->decrement_vertical_pass_count();
-	// 		if(delete_node_if_empty){
-	// 			parent->delete_node_if_needed();
-	// 		}
-	// 		parent = parent->_parent;
-	// 	}
-	// }
+	void _remove_clustering_customer_from_vertical_crp_on_node(Node* target_on_cluster){
+		target_on_cluster->dump();
+		// cout << "remove_customer_from_vertical_crp: " << tssb_identifier << ", " << node->_identifier << endl;
+		Table* table = target_on_cluster->get_vertical_table();
+		assert(table != NULL);
+		bool empty_table_deleted = false;
+		table->remove_customer(empty_table_deleted);
+		target_on_cluster->decrement_vertical_stop_count();
+		_decrement_clustering_vertical_pass_counts_on_node(target_on_cluster->_parent);
+	}
+	void _decrement_clustering_vertical_pass_counts_on_node(Node* parent_on_cluster){
+		if(parent_on_cluster == NULL){
+			return;
+		}
+		parent_on_cluster->decrement_vertical_pass_count();
+		delete_invalid_children(parent_on_cluster);
+		_decrement_clustering_vertical_pass_counts_on_node(parent_on_cluster->_parent);
+	}
 	// void remove_clustering_customer_from_horizontal_crp_on_node(Node* node){
 	// 	// cout << "remove_customer_from_horizontal_crp: " << _identifier << "," << node->_identifier << endl;
 	// 	Table* table = get_horizontal_table();
@@ -264,13 +263,13 @@ public:
 	// 				found = true;
 	// 				child->decrement_horizontal_stop_count();
 	// 				if(delete_node_if_empty){
-	// 					child->delete_node_if_needed();
+	// 					child->delete_node_on_clustering_tssb_if_needed();
 	// 				}
 	// 				continue;
 	// 			}
 	// 			if(found){
 	// 				child->decrement_horizontal_pass_count();
-	// 				child->delete_node_if_needed();
+	// 				child->delete_node_on_clustering_tssb_if_needed();
 	// 			}
 	// 		}
 	// 		stopped_child = parent;
@@ -278,9 +277,68 @@ public:
 	// 	}
 	// 	stopped_child->decrement_horizontal_stop_count();
 	// 	if(delete_node_if_empty){
-	// 		stopped_child->delete_node_if_needed();
+	// 		stopped_child->delete_node_on_clustering_tssb_if_needed();
 	// 	}
 	// }
+	void delete_invalid_children(Node* parent){
+		vector<Node*> &children = parent->_children;
+		for(int i = children.size() - 1;i >= 0;i--){
+			Node* child = children[i];
+			bool success = delete_node_on_clustering_tssb_if_needed(child);
+			if(success == false){	// 失敗したらそれ以上は消さない
+				break;
+			}
+		}
+	}
+	bool delete_node_on_clustering_tssb_if_needed(Node* node_on_cluster){
+		if(node_on_cluster->_depth_v == 0){
+			return false;
+		}
+		cout << "deleting ... ";
+		node_on_cluster->dump();
+		assert(node_on_cluster->_parent != NULL);
+		int delete_id = node_on_cluster->_identifier;
+		int parent_id = node_on_cluster->_parent->_identifier;
+		int pass_count_v = node_on_cluster->get_vertical_pass_count();
+		int stop_count_v = node_on_cluster->get_vertical_stop_count();
+		int pass_count_h = node_on_cluster->get_horizontal_pass_count();
+		int stop_count_h = node_on_cluster->get_horizontal_stop_count();
+		if(pass_count_v != 0){
+			return false;
+		}
+		if(stop_count_v != 0){
+			return false;
+		}
+		if(pass_count_h != 0){
+			return false;
+		}
+		if(stop_count_h != 0){
+			return false;
+		}
+		Node* delete_node = node_on_cluster->_parent->delete_child_node(delete_id);
+		if(delete_node != NULL){
+			TSSB* delete_tssb = delete_node->_transition_tssb;
+			delete delete_node;
+			delete delete_tssb;
+		}
+		// クラスタリング用TSSBの全ノードを収集
+		vector<Node*> nodes;
+		_clustering_tssb->enumerate_nodes_from_left_to_right(nodes);
+		for(auto node_on_cluster: nodes){
+			assert(node_on_cluster->_transition_tssb != NULL);
+			// 遷移確率用TSSBでの同じ位置の子ノードを削除
+			Node* parent_on_htssb = node_on_cluster->_transition_tssb->find_node_with_id(parent_id);
+			assert(parent_on_htssb != NULL);
+			assert(parent_on_htssb->_htssb_owner_id != 0);
+			Node* delete_node = parent_on_htssb->delete_child_node(delete_id);
+			if(delete_node != NULL){
+				TSSB* delete_tssb = delete_node->_transition_tssb;
+				delete delete_node;
+				delete delete_tssb;
+			}
+		}
+		return true;
+	}
 };
 
 #endif
