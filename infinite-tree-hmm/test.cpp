@@ -147,10 +147,10 @@ void test6(iTHMM* model){
 }
 
 void test7(iTHMM* model){
-	add_customer(model, 30);
+	add_customer(model, 20);
 	c_printf("[*]%s\n", "cluster");
 	model->_clustering_tssb->dump();
-	Node* target_on_cluster = model->_clustering_tssb->find_node_with_id(19);
+	Node* target_on_cluster = model->_clustering_tssb->find_node_with_id(14);
 	assert(target_on_cluster != NULL);
 	c_printf("[*]%s\n", "target");
 	target_on_cluster->dump();
@@ -159,7 +159,7 @@ void test7(iTHMM* model){
 	}
 	double ratio = 0;
 	auto start_time = chrono::system_clock::now();
-	for(int i = 0;i < 10000;i++){
+	for(int i = 0;i < 100000;i++){
 		ratio = model->compute_expectation_of_htssb_vertical_sbr_ratio_on_node(target_on_cluster);
 	}
 	auto end_time = chrono::system_clock::now();
