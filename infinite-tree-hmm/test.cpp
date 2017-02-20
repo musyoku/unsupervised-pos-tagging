@@ -222,8 +222,28 @@ void test9(iTHMM* model){
 	cout << num_nodes << " == " << num_nodes_true << endl;
 	assert(num_nodes == num_nodes_true);
 }
+
+void test10(iTHMM* model){
+	add_customer(model, 10);
+	double uniform = 0.91;
+	model->_clustering_tssb->update_stick_length();
+	model->_clustering_tssb->dump();
+
+	int prev_id = -1;
+	for(int i = 0;i < 200;i++){
+		uniform = i / 200.0;
+		Node* node = model->retrospective_sampling(uniform);
+		if(node->_identifier != prev_id){
+			cout << uniform << ": " << node->_identifier << endl;
+			prev_id = node->_identifier;
+		}
+	}
+	c_printf("[*]%s\n", "cluster");
+	model->_clustering_tssb->dump();
+}
+
 int main(){
 	iTHMM* model = new iTHMM();
-	test9(model);
+	test10(model);
 	return 0;
 }

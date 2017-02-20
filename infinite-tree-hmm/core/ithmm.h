@@ -120,28 +120,15 @@ public:
 				if(child->has_child()){
 					return _retrospective_sampling(uniform, sum_probability, child);
 				}
-				// 生成する
-				// cout << "will be " << child->_identifier << "'s child." << endl;
-				//
-				//
-				//
-				//
-				//
-				//
-				//
-				//
-				//
-				//
-				//
-				//
-				//
-				//
-				//
-				//
-				//
-				//
-				//
-				return child;
+				Node* _child = generate_child_node(child);
+				double ratio_h = _child->compute_expectation_of_clustering_horizontal_sbr_ratio(_gamma);
+				_child->_stick_length = child->_children_stick_length * ratio_h;
+				double ratio_v = _child->compute_expectation_of_clustering_vertical_sbr_ratio(_gamma);
+				_child->_probability = _child->_stick_length * ratio_v;
+				double alpha = _alpha * pow(_lambda, _child->_depth_v);
+				_child->_children_stick_length = _child->_stick_length * (1.0 - ratio_v);
+				assert(child->has_child());
+				return _retrospective_sampling(uniform, sum_probability, child);
 			}
 			sum_stick_length_over_children += child->_stick_length;
 			stick_length *= 1.0 - ratio_h;
