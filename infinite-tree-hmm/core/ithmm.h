@@ -159,16 +159,17 @@ public:
 	void add_htssb_customer_to_node(Node* node_on_cluster){
 		assert(node_on_cluster->_htssb_owner_id == 0);
 		double alpha = _alpha * pow(_alpha, node_on_cluster->_depth_v);
-		_add_customer_to_vertical_crp(alpha, node_on_cluster, node_on_cluster->_identifier);
-		_add_customer_to_horizontal_crp(_gamma, node_on_cluster, node_on_cluster->_identifier);
+		_add_htssb_customer_to_vertical_crp(alpha, node_on_cluster, node_on_cluster->_identifier);
+		_add_htssb_customer_to_horizontal_crp(_gamma, node_on_cluster, node_on_cluster->_identifier);
 	}
 	void add_clustering_customer_to_node(Node* node_on_cluster){
 		assert(node_on_cluster->_htssb_owner_id == 0);
 		double alpha = _alpha * pow(_alpha, node_on_cluster->_depth_v);
 		bool new_table_generated = false;
 		node_on_cluster->add_customer_to_vertical_crp(alpha, new_table_generated);
+		node_on_cluster->add_customer_to_horizontal_crp(alpha, new_table_generated);
 	}
-	void _add_customer_to_vertical_crp(double alpha, Node* iterator_on_cluster, int target_id){
+	void _add_htssb_customer_to_vertical_crp(double alpha, Node* iterator_on_cluster, int target_id){
 		TSSB* transition_tssb = iterator_on_cluster->_transition_tssb;
 		assert(transition_tssb != NULL);
 		Node* target_on_htssb = transition_tssb->find_node_with_id(target_id);
@@ -176,10 +177,10 @@ public:
 		bool new_table_generated = false;
 		target_on_htssb->add_customer_to_vertical_crp(alpha, new_table_generated);
 		if(new_table_generated && iterator_on_cluster->_parent != NULL){
-			_add_customer_to_vertical_crp(alpha, iterator_on_cluster->_parent, target_id);
+			_add_htssb_customer_to_vertical_crp(alpha, iterator_on_cluster->_parent, target_id);
 		}
 	}
-	void _add_customer_to_horizontal_crp(double gamma, Node* iterator_on_cluster, int target_id){
+	void _add_htssb_customer_to_horizontal_crp(double gamma, Node* iterator_on_cluster, int target_id){
 		TSSB* transition_tssb = iterator_on_cluster->_transition_tssb;
 		assert(transition_tssb != NULL);
 		Node* target_on_htssb = transition_tssb->find_node_with_id(target_id);
@@ -187,13 +188,99 @@ public:
 		bool new_table_generated = false;
 		target_on_htssb->add_customer_to_horizontal_crp(gamma, new_table_generated);
 		if(new_table_generated && iterator_on_cluster->_parent != NULL){
-			_add_customer_to_horizontal_crp(gamma, iterator_on_cluster->_parent, target_id);
+			_add_htssb_customer_to_horizontal_crp(gamma, iterator_on_cluster->_parent, target_id);
 		}
 	}
-	void remove_customer_from_node(Node* node_on_cluster, bool remove_proxy_customer = false){
-		node_on_cluster->remove_customer_from_vertical_crp(remove_proxy_customer);
-		node_on_cluster->remove_customer_from_horizontal_crp(remove_proxy_customer);
+	void remove_htssb_customer_from_node(Node* node_on_cluster){
+		assert(node_on_cluster->_htssb_owner_id == 0);
+		bool empty_table_deleted = false;
+		_remove_customer_from_vertical_crp(node_on_cluster, node_on_cluster->_identifier);
+		_remove_customer_from_horizontal_crp(node_on_cluster, node_on_cluster->_identifier);
 	}
+	void _remove_customer_from_vertical_crp(Node* iterator_on_cluster, int target_id){
+		TSSB* transition_tssb = iterator_on_cluster->_transition_tssb;
+		assert(transition_tssb != NULL);
+		Node* target_on_htssb = transition_tssb->find_node_with_id(target_id);
+		assert(target_on_htssb != NULL);
+		bool empty_table_deleted = false;
+		target_on_htssb->remove_customer_from_vertical_crp(empty_table_deleted);
+		if(empty_table_deleted && iterator_on_cluster->_parent != NULL){
+			_remove_customer_from_vertical_crp(iterator_on_cluster->_parent, target_id);
+		}
+	}
+	void _remove_customer_from_horizontal_crp(Node* iterator_on_cluster, int target_id){
+		TSSB* transition_tssb = iterator_on_cluster->_transition_tssb;
+		assert(transition_tssb != NULL);
+		Node* target_on_htssb = transition_tssb->find_node_with_id(target_id);
+		assert(target_on_htssb != NULL);
+		bool empty_table_deleted = false;
+		target_on_htssb->remove_customer_from_horizontal_crp(empty_table_deleted);
+		if(empty_table_deleted && iterator_on_cluster->_parent != NULL){
+			_remove_customer_from_horizontal_crp(iterator_on_cluster->_parent, target_id);
+		}
+	}
+	void remove_clustering_customer_from_node(Node* node_on_cluster){
+		assert(node_on_cluster->_htssb_owner_id == 0);
+		bool empty_table_deleted = false;
+		// remove_clustering_customer_from_vertical_crp_on_node(node_on_cluster, empty_table_deleted);
+	}
+	// 客を除去
+	// void remove_clustering_customer_from_vertical_crp_on_node(Node* node){
+	// 	// cout << "remove_customer_from_vertical_crp: " << tssb_identifier << ", " << node->_identifier << endl;
+	// 	Table* table = get_vertical_table();
+	// 	assert(table != NULL);
+	// 	table->remove_customer(empty_table_deleted);
+	// 	// 停止回数・通過回数を更新
+	// 	decrement_vertical_stop_count();
+	// 	if(delete_node_if_empty){
+	// 		delete_node_if_needed();
+	// 	}
+	// 	Node* parent = _parent;
+	// 	while(parent){
+	// 		parent->decrement_vertical_pass_count();
+	// 		if(delete_node_if_empty){
+	// 			parent->delete_node_if_needed();
+	// 		}
+	// 		parent = parent->_parent;
+	// 	}
+	// }
+	// void remove_clustering_customer_from_horizontal_crp_on_node(Node* node){
+	// 	// cout << "remove_customer_from_horizontal_crp: " << _identifier << "," << node->_identifier << endl;
+	// 	Table* table = get_horizontal_table();
+	// 	assert(table != NULL);
+	// 	table->remove_customer(empty_table_deleted);
+	// 	// 停止回数・通過回数を更新
+	// 	Node* stopped_child = this;
+	// 	Node* parent = _parent;
+	// 	assert(parent);
+	// 	while(parent){
+	// 		bool found = false;
+	// 		for(int i = parent->_children.size() - 1;i >= 0;i--){	// 逆向きに辿らないと通過ノードが先に消えてしまう
+	// 			Node* child = parent->_children[i];
+	// 			// cout << "foreach: " << child->_identifier << endl;
+	// 			// cout << "foreach: " << child->_identifier << endl;
+
+	// 			if(child == stopped_child){
+	// 				found = true;
+	// 				child->decrement_horizontal_stop_count();
+	// 				if(delete_node_if_empty){
+	// 					child->delete_node_if_needed();
+	// 				}
+	// 				continue;
+	// 			}
+	// 			if(found){
+	// 				child->decrement_horizontal_pass_count();
+	// 				child->delete_node_if_needed();
+	// 			}
+	// 		}
+	// 		stopped_child = parent;
+	// 		parent = parent->_parent;
+	// 	}
+	// 	stopped_child->decrement_horizontal_stop_count();
+	// 	if(delete_node_if_empty){
+	// 		stopped_child->delete_node_if_needed();
+	// 	}
+	// }
 };
 
 #endif

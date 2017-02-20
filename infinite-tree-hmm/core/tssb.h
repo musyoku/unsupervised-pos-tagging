@@ -413,49 +413,28 @@ public:
 		assert(_pass_count_h >= 0);
 	}
 	// 客を除去
-	void remove_customer_from_vertical_crp(bool remove_proxy_customer = false){
-		remove_customer_from_htssb_vertical_crp(this, remove_proxy_customer);
-	}
-	void remove_customer_from_htssb_vertical_crp(Node* node, bool remove_proxy_customer = false){
-		// cout << "remove_customer_from_htssb_vertical_crp: " << tssb_identifier << ", " << node->_identifier << endl;
+	void remove_customer_from_vertical_crp(bool &empty_table_deleted){
+		// cout << "remove_customer_from_vertical_crp: " << tssb_identifier << ", " << node->_identifier << endl;
 		Table* table = get_vertical_table();
 		assert(table != NULL);
-		bool empty_table_deleted = false;
 		table->remove_customer(empty_table_deleted);
-		if(remove_proxy_customer && empty_table_deleted){	// 新しいテーブルが作られたら親のTSSBのこのノードに代理客を追加
-			assert(node != NULL);
-			if(node->_parent != NULL){
-				remove_customer_from_htssb_vertical_crp(node->_parent, true);	// 親のTSSBにおけるこのノードに客を追加するので自分のメソッドを呼ぶ
-			}
-		}
 		// 停止回数・通過回数を更新
 		decrement_vertical_stop_count();
-		delete_node_if_needed();
 		Node* parent = _parent;
 		while(parent){
 			parent->decrement_vertical_pass_count();
-			parent->delete_node_if_needed();
 			parent = parent->_parent;
 		}
 	}
-	void remove_customer_from_horizontal_crp(bool remove_proxy_customer = false){
-		remove_customer_from_horizontal_crp(this, remove_proxy_customer);
-	}
-	void remove_customer_from_horizontal_crp(Node* node, bool remove_proxy_customer = false){
+	void remove_customer_from_horizontal_crp(bool &empty_table_deleted){
 		// cout << "remove_customer_from_horizontal_crp: " << _identifier << "," << node->_identifier << endl;
 		Table* table = get_horizontal_table();
 		assert(table != NULL);
-		bool empty_table_deleted = false;
 		table->remove_customer(empty_table_deleted);
-		if(remove_proxy_customer && empty_table_deleted){	// 新しいテーブルが作られたら親のTSSBのこのノードに代理客を追加
-			assert(node != NULL);
-			if(node->_parent != NULL){
-				remove_customer_from_horizontal_crp(node->_parent, true);	// 親のTSSBにおけるこのノードに客を追加するので自分のメソッドを呼ぶ
-			}
-		}
 		// 停止回数・通過回数を更新
-		Node* stopped_child = node;
-		Node* parent = node->_parent;
+		Node* stopped_child = this;
+		Node* parent = _parent;
+		assert(parent);
 		while(parent){
 			bool found = false;
 			for(int i = parent->_children.size() - 1;i >= 0;i--){	// 逆向きに辿らないと通過ノードが先に消えてしまう
@@ -466,21 +445,18 @@ public:
 				if(child == stopped_child){
 					found = true;
 					child->decrement_horizontal_stop_count();
-					child->delete_node_if_needed();
 					continue;
 				}
 				if(found){
 					child->decrement_horizontal_pass_count();
-					child->delete_node_if_needed();
 				}
 			}
 			stopped_child = parent;
 			parent = parent->_parent;
 		}
 		stopped_child->decrement_horizontal_stop_count();
-		stopped_child->delete_node_if_needed();
 	}
-	void delete_node_if_needed(){
+	bool delete_node_if_needed(){
 		int pass_count_v = get_vertical_pass_count();
 		int stop_count_v = get_vertical_stop_count();
 		int pass_count_h = get_horizontal_pass_count();
@@ -489,7 +465,9 @@ public:
 			// cout << pass_count_v << "," << stop_count_v << "," << pass_count_h << "," << stop_count_h << endl;
 			// cout << "requesting parent " << _parent->_identifier << ", me = " << _identifier << endl;
 			_parent->delete_child_node(_identifier);
+			return true;
 		}
+		return false;
 	}
 	void delete_child_node(int node_id){
 		for(int i = 0;i < _children.size();i++){

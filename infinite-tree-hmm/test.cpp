@@ -40,6 +40,19 @@ void test2(iTHMM* model){
 		parent = parent->_parent;
 	}
 
+	for(int n = 0;n < 100;n++){
+		model->remove_htssb_customer_from_node(target_on_cluster);
+	}
+
+	c_printf("[*]%s\n", "cluster");
+	model->_clustering_tssb->dump();
+	parent = target_on_cluster;
+	while(parent){
+		c_printf("[*]%d\n", parent->_identifier);
+		parent->_transition_tssb->dump();
+		parent = parent->_parent;
+	}
+
 	double ratio = target_on_cluster->_transition_tssb->compute_expectation_of_htssb_vertical_sbr_ratio(target_on_cluster->_transition_tssb_myself);
 	cout << ratio << endl;
 }
