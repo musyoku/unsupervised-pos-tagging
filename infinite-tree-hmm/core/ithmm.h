@@ -167,7 +167,7 @@ public:
 		double alpha = _alpha * pow(_alpha, node_on_cluster->_depth_v);
 		bool new_table_generated = false;
 		node_on_cluster->add_customer_to_vertical_crp(alpha, new_table_generated);
-		// node_on_cluster->add_customer_to_horizontal_crp(alpha, new_table_generated);
+		node_on_cluster->add_customer_to_horizontal_crp(alpha, new_table_generated);
 	}
 	void _add_htssb_customer_to_vertical_crp(double alpha, Node* target_on_cluster, int target_id){
 		TSSB* transition_tssb = target_on_cluster->_transition_tssb;
@@ -223,10 +223,10 @@ public:
 	void remove_clustering_customer_from_node(Node* node_on_cluster){
 		assert(node_on_cluster->_htssb_owner_id == 0);
 		_remove_clustering_customer_from_vertical_crp_on_node(node_on_cluster);
+		_remove_clustering_customer_from_horizontal_crp_on_node(node_on_cluster);
 	}
 	// 客を除去
 	void _remove_clustering_customer_from_vertical_crp_on_node(Node* target_on_cluster){
-		target_on_cluster->dump();
 		// cout << "remove_customer_from_vertical_crp: " << tssb_identifier << ", " << node->_identifier << endl;
 		Table* table = target_on_cluster->get_vertical_table();
 		assert(table != NULL);
@@ -242,6 +242,35 @@ public:
 		parent_on_cluster->decrement_vertical_pass_count();
 		delete_invalid_children(parent_on_cluster);
 		_decrement_clustering_vertical_pass_counts_on_node(parent_on_cluster->_parent);
+	}
+	void _remove_clustering_customer_from_horizontal_crp_on_node(Node* target_on_cluster){
+		// cout << "remove_customer_from_horizontal_crp: " << tssb_identifier << ", " << node->_identifier << endl;
+		Table* table = target_on_cluster->get_horizontal_table();
+		assert(table != NULL);
+		bool empty_table_deleted = false;
+		table->remove_customer(empty_table_deleted);
+		// 通過回数・停止回数を減らす
+		Node* stopped_child = target_on_cluster;
+		Node* parent = target_on_cluster->_parent;
+		while(parent){
+			bool found = false;
+			for(int i = parent->_children.size() - 1;i >= 0;i--){	// 逆向きに辿らないと通過ノードが先に消えてしまう
+				Node* child = parent->_children[i];
+				if(child == stopped_child){
+					found = true;
+					child->decrement_horizontal_stop_count();
+					continue;
+				}
+				if(found){
+					child->decrement_horizontal_pass_count();
+				}
+			}
+			delete_invalid_children(parent);
+			stopped_child = parent;
+			parent = parent->_parent;
+		}
+		// ルートノードのカウントを減らす
+		stopped_child->decrement_horizontal_stop_count();
 	}
 	// void remove_clustering_customer_from_horizontal_crp_on_node(Node* node){
 	// 	// cout << "remove_customer_from_horizontal_crp: " << _identifier << "," << node->_identifier << endl;
@@ -294,8 +323,6 @@ public:
 		if(node_on_cluster->_depth_v == 0){
 			return false;
 		}
-		cout << "deleting ... ";
-		node_on_cluster->dump();
 		assert(node_on_cluster->_parent != NULL);
 		int delete_id = node_on_cluster->_identifier;
 		int parent_id = node_on_cluster->_parent->_identifier;

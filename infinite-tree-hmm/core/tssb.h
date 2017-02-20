@@ -434,7 +434,6 @@ public:
 		// 停止回数・通過回数を更新
 		Node* stopped_child = this;
 		Node* parent = _parent;
-		assert(parent);
 		while(parent){
 			bool found = false;
 			for(int i = parent->_children.size() - 1;i >= 0;i--){	// 逆向きに辿らないと通過ノードが先に消えてしまう
@@ -454,6 +453,7 @@ public:
 			stopped_child = parent;
 			parent = parent->_parent;
 		}
+		// ルートノードのカウントを減らす
 		stopped_child->decrement_horizontal_stop_count();
 	}
 	bool delete_node_if_needed(){

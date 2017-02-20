@@ -1,5 +1,6 @@
 #include  <iostream>
 #include  <chrono>
+#include <algorithm>
 #include "core/ithmm.h"
 #include "core/cprintf.h"
 using namespace std;
@@ -70,21 +71,86 @@ void test4(iTHMM* model){
 		parent = parent->_parent;
 	}
 	model->remove_clustering_customer_from_node(target_on_cluster);
-	target_on_cluster = model->_clustering_tssb->find_node_with_id(14);
 	c_printf("[*]%s\n", "cluster");
 	model->_clustering_tssb->dump();
-	if(target_on_cluster != NULL){
-		parent = target_on_cluster;
-		while(parent){
-			c_printf("[*]%d\n", parent->_identifier);
-			parent->_transition_tssb->dump();
-			parent = parent->_parent;
+	for(const auto child: model->_clustering_tssb->_root->_children){
+		c_printf("[*]%d\n", child->_identifier);
+		child->_transition_tssb->dump();
+	}
+}
+
+void test5(iTHMM* model){
+	vector<Node*> nodes;
+	for(int n = 0;n < 10000;n++){
+		Node* node = model->sample_node();
+		model->add_clustering_customer_to_node(node);
+		nodes.push_back(node);
+	}
+	for(auto node: nodes){
+		model->remove_clustering_customer_from_node(node);
+	}
+	c_printf("[*]%s\n", "cluster");
+	model->_clustering_tssb->dump();
+}
+
+void test6(iTHMM* model){
+	vector<Node*> nodes;
+	for(int n = 0;n < 1000;n++){
+		Node* node = model->sample_node();
+		model->add_clustering_customer_to_node(node);
+		nodes.push_back(node);
+	}
+	int rand_index = Sampler::uniform_int(0, nodes.size());
+	Node* back = nodes[rand_index];
+	nodes.erase(nodes.begin() + rand_index);
+	nodes.pop_back();
+	std::random_shuffle(nodes.begin(), nodes.end());
+	for(auto node: nodes){
+		for(int i = 0;i < 1000;i++){
+			model->add_htssb_customer_to_node(node);
 		}
+	}
+	std::random_shuffle(nodes.begin(), nodes.end());
+	for(auto node: nodes){
+		for(int i = 0;i < 1000;i++){
+			model->add_htssb_customer_to_node(node);
+		}
+	}
+	c_printf("[*]%s\n", "cluster");
+	model->_clustering_tssb->dump();
+
+	std::random_shuffle(nodes.begin(), nodes.end());
+	for(auto node: nodes){
+		for(int i = 0;i < 1000;i++){
+			model->remove_htssb_customer_from_node(node);
+		}
+	}
+	std::random_shuffle(nodes.begin(), nodes.end());
+	for(auto node: nodes){
+		for(int i = 0;i < 1000;i++){
+			model->remove_htssb_customer_from_node(node);
+		}
+	}
+
+	std::random_shuffle(nodes.begin(), nodes.end());
+	for(auto node: nodes){
+		model->remove_clustering_customer_from_node(node);
+	}
+	c_printf("[*]%s\n", "back");
+	back->dump();
+	c_printf("[*]%s\n", "cluster");
+	model->_clustering_tssb->dump();
+
+	Node* parent = back;
+	while(parent){
+		c_printf("[*]%d\n", parent->_identifier);
+		parent->_transition_tssb->dump();
+		parent = parent->_parent;
 	}
 }
 
 int main(){
 	iTHMM* model = new iTHMM();
-	test4(model);
+	test6(model);
 	return 0;
 }
