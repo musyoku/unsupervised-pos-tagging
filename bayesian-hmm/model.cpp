@@ -263,7 +263,7 @@ public:
 				ranking.insert(std::make_pair(elem.first, elem.second));
 			}
 			for(auto elem: ranking){
-				wstring word = _dictionary[elem.first];
+				wstring &word = _dictionary[elem.first];
 				wcout << word << L"/" << elem.second << L", ";
 				n++;
 				if(n > number_to_show_for_each_tag){

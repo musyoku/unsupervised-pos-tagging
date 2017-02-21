@@ -1,61 +1,211 @@
 #include  <iostream>
-#include "core/htssb.h"
+#include  <chrono>
+#include <algorithm>
+#include "core/ithmm.h"
+#include "core/cprintf.h"
 using namespace std;
 
-void add_customer(HTSSB* model){
-	for(int n = 0;n < 5000;n++){
+void add_customer(iTHMM* model, int count){
+	for(int n = 0;n < count;n++){
 		Node* node = model->sample_node();
-		model->add_customer_to_clustering_node(node);
+		model->add_customer_to(node);
 	}
 }
 
-void test1(HTSSB* model){
-	Node* target = NULL;
+void test1(iTHMM* model){
+	add_customer(model, 100);
+	c_printf("[*]%s\n", "cluster");
+	model->_structure_tssb->dump();
+
 	vector<Node*> nodes;
-	for(int n = 0;n < 20;n++){
+	model->_structure_tssb->enumerate_nodes_from_left_to_right(nodes);
+	for(const auto node: nodes){
+		c_printf("[*]%d\n", node->_identifier);
+		node->_transition_tssb->dump();
+	}
+}
+
+void test2(iTHMM* model){
+	add_customer(model, 20);
+	Node* target_on_cluster = model->_structure_tssb->find_node_with_id(11);
+	assert(target_on_cluster != NULL);
+	for(int n = 0;n < 100;n++){
+		model->add_customer_to(target_on_cluster);
+	}
+	c_printf("[*]%s\n", "cluster");
+	model->_structure_tssb->dump();
+	Node* parent = target_on_cluster;
+	while(parent){
+		c_printf("[*]%d\n", parent->_identifier);
+		parent->_transition_tssb->dump();
+		parent = parent->_parent;
+	}
+
+	for(int n = 0;n < 100;n++){
+		model->remove_htssb_customer_from_node(target_on_cluster);
+	}
+
+	c_printf("[*]%s\n", "cluster");
+	model->_structure_tssb->dump();
+	parent = target_on_cluster;
+	while(parent){
+		c_printf("[*]%d\n", parent->_identifier);
+		parent->_transition_tssb->dump();
+		parent = parent->_parent;
+	}
+}
+
+void test4(iTHMM* model){
+	add_customer(model, 20);
+	Node* target_on_cluster = model->_structure_tssb->find_node_with_id(14);
+	assert(target_on_cluster != NULL);
+	c_printf("[*]%s\n", "cluster");
+	model->_structure_tssb->dump();
+	Node* parent = target_on_cluster;
+	while(parent){
+		c_printf("[*]%d\n", parent->_identifier);
+		parent->_transition_tssb->dump();
+		parent = parent->_parent;
+	}
+	model->remove_clustering_customer_from_node(target_on_cluster);
+	c_printf("[*]%s\n", "cluster");
+	model->_structure_tssb->dump();
+	for(const auto child: model->_structure_tssb->_root->_children){
+		c_printf("[*]%d\n", child->_identifier);
+		child->_transition_tssb->dump();
+	}
+}
+
+void test5(iTHMM* model){
+	vector<Node*> nodes;
+	for(int n = 0;n < 10000;n++){
 		Node* node = model->sample_node();
-		model->add_customer_to_clustering_node(node);
+		model->add_customer_to(node);
 		nodes.push_back(node);
-		if(node->_identifier == 14){
-			target = node;
+	}
+	for(auto node: nodes){
+		model->remove_clustering_customer_from_node(node);
+	}
+	c_printf("[*]%s\n", "cluster");
+	model->_structure_tssb->dump();
+}
+
+void test6(iTHMM* model){
+	vector<Node*> nodes;
+	for(int n = 0;n < 1000;n++){
+		Node* node = model->sample_node();
+		model->add_customer_to(node);
+		nodes.push_back(node);
+	}
+	int rand_index = Sampler::uniform_int(0, nodes.size());
+	Node* back = nodes[rand_index];
+	nodes.erase(nodes.begin() + rand_index);
+	nodes.pop_back();
+	std::random_shuffle(nodes.begin(), nodes.end());
+	for(auto node: nodes){
+		for(int i = 0;i < 1000;i++){
+			model->add_customer_to(node);
 		}
 	}
-	assert(target != NULL);
-	model->add_customer_to_htssb_node(target);
-	model->add_customer_to_htssb_node(target);
-	model->add_customer_to_htssb_node(target);
-	model->add_customer_to_htssb_node(target);
-	model->add_customer_to_htssb_node(target);
-	for(const auto &elem: target->_stop_count_v){
-		int identifier = elem.first;
-		c_printf("[*]%d\n", identifier);
-		model->dump_tssb(identifier);
+	std::random_shuffle(nodes.begin(), nodes.end());
+	for(auto node: nodes){
+		for(int i = 0;i < 1000;i++){
+			model->add_customer_to(node);
+		}
+	}
+	c_printf("[*]%s\n", "cluster");
+	model->_structure_tssb->dump();
+
+	std::random_shuffle(nodes.begin(), nodes.end());
+	for(auto node: nodes){
+		for(int i = 0;i < 1000;i++){
+			model->remove_htssb_customer_from_node(node);
+		}
+	}
+	std::random_shuffle(nodes.begin(), nodes.end());
+	for(auto node: nodes){
+		for(int i = 0;i < 1000;i++){
+			model->remove_htssb_customer_from_node(node);
+		}
 	}
 
-	cout << "depth: " << model->get_max_depth() << endl;
-	model->dump_tssb(CLUSTERING_TSSB_ID);
-	// for(int n = 0;n < nodes.size();n++){
-	// 	Node* node = nodes[n];
-	// 	model->remove_customer_from_clustering_node(node);
-	// 	// cout << "removing " << node->_identifier << " ..." << endl;
-	// 	// model->dump_tssb(CLUSTERING_TSSB_ID);
-	// }
-	// cout << "depth: " << model->get_max_depth() << endl;
-	// model->dump_tssb(CLUSTERING_TSSB_ID);
+	std::random_shuffle(nodes.begin(), nodes.end());
+	for(auto node: nodes){
+		model->remove_clustering_customer_from_node(node);
+	}
+	c_printf("[*]%s\n", "back");
+	back->dump();
+	c_printf("[*]%s\n", "cluster");
+	model->_structure_tssb->dump();
+
+	Node* parent = back;
+	while(parent){
+		c_printf("[*]%d\n", parent->_identifier);
+		parent->_transition_tssb->dump();
+		parent = parent->_parent;
+	}
 }
-void test2(HTSSB* model){
+
+void test7(iTHMM* model){
+	add_customer(model, 20);
+	c_printf("[*]%s\n", "cluster");
+	model->_structure_tssb->dump();
+	Node* target_on_cluster = model->_structure_tssb->find_node_with_id(14);
+	assert(target_on_cluster != NULL);
+	c_printf("[*]%s\n", "target");
+	target_on_cluster->dump();
+	for(int i = 0;i < 100;i++){
+		model->add_customer_to(target_on_cluster);
+	}
+	double ratio = 0;
+	auto start_time = chrono::system_clock::now();
+	for(int i = 0;i < 100000;i++){
+		ratio = model->compute_expectation_of_htssb_vertical_sbr_ratio_on_node(target_on_cluster);
+	}
+	auto end_time = chrono::system_clock::now();
+	auto duration = end_time - start_time;
+	auto msec = chrono::duration_cast<chrono::milliseconds>(duration).count();
+	cout << ratio << endl;
+	cout << msec << " msec" << endl;
+}
+
+void test8(iTHMM* model){
+	add_customer(model, 20);
+	c_printf("[*]%s\n", "cluster");
+	model->_structure_tssb->dump();
+	Node* target_on_cluster = model->_structure_tssb->find_node_with_id(14);
+	assert(target_on_cluster != NULL);
+	c_printf("[*]%s\n", "target");
+	target_on_cluster->dump();
+	for(int i = 0;i < 100;i++){
+		model->add_customer_to(target_on_cluster);
+	}
+	double ratio = 0;
+	auto start_time = chrono::system_clock::now();
+	for(int i = 0;i < 100000;i++){
+		ratio = model->compute_expectation_of_htssb_horizontal_sbr_ratio_on_node(target_on_cluster);
+	}
+	auto end_time = chrono::system_clock::now();
+	auto duration = end_time - start_time;
+	auto msec = chrono::duration_cast<chrono::milliseconds>(duration).count();
+	cout << ratio << endl;
+	cout << msec << " msec" << endl;
+}
+
+void test9(iTHMM* model){
+	add_customer(model, 3000);
 	double uniform = 0;
-	model->update_stick_length();
-	model->dump_tssb(CLUSTERING_TSSB_ID);
+	model->_structure_tssb->update_stick_length();
+	model->_structure_tssb->dump();
 	vector<Node*> nodes_true;
 	vector<Node*> nodes;
-	model->enumerate_nodes_from_left_to_right(nodes_true);
-	int num_nodes_true = model->get_num_nodes();
+	model->_structure_tssb->enumerate_nodes_from_left_to_right(nodes_true);
+	int num_nodes_true = model->_structure_tssb->get_num_nodes();
 	int num_nodes = 0;
 	int prev_id = -1;
-	for(int i = 0;i < 10000000;i++){
-		uniform = i / 10000000.0;
-		Node* node = model->retrospective_sampling(uniform);
+	for(int i = 0;i < 100000000;i++){
+		uniform = i / 100000000.0;
+		Node* node = model->retrospective_sampling_on_tssb(uniform, model->_structure_tssb);
 		if(node->_identifier != prev_id){
 			cout << uniform << ": " << node->_identifier << endl;
 			prev_id = node->_identifier;
@@ -72,9 +222,39 @@ void test2(HTSSB* model){
 	cout << num_nodes << " == " << num_nodes_true << endl;
 	assert(num_nodes == num_nodes_true);
 }
+
+void test10(iTHMM* model){
+	add_customer(model, 10);
+	double uniform = 0.91;
+	c_printf("[*]%s\n", "cluster");
+	model->_structure_tssb->dump();
+	Node* target = model->_structure_tssb->find_node_with_id(12);
+	Node* parent = target;
+	while(parent){
+		c_printf("[*]%d\n", parent->_identifier);
+		parent->_transition_tssb->dump();
+		parent = parent->_parent;
+	}
+	target->_transition_tssb->update_stick_length();
+	Node* node = model->retrospective_sampling_on_tssb(uniform, target->_transition_tssb);
+	c_printf("[*]%s\n", "sampled");
+	node->dump();
+	c_printf("[*]%s\n", "cluster");
+	model->_structure_tssb->dump();
+	parent = target;
+	while(parent){
+		c_printf("[*]%d\n", parent->_identifier);
+		parent->_transition_tssb->dump();
+		parent = parent->_parent;
+	}
+}
+
+void test11(iTHMM* model){
+	add_customer(model, 10);
+}
+
 int main(){
-	HTSSB* model = new HTSSB();
-	add_customer(model);
-	test2(model);
+	iTHMM* model = new iTHMM();
+	test11(model);
 	return 0;
 }

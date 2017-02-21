@@ -1,6 +1,7 @@
 #ifndef _util_
 #define _util_
 #include <boost/python.hpp>
+#include <unordered_map>
 #include <vector>
 #include <iostream>
 using namespace std;

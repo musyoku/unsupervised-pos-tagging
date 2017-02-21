@@ -244,20 +244,23 @@ public:
 		c_printf("[*]%s: %lf\n", "log_Pdata", log_p);
 	}
 	void show_typical_words_for_each_tag(int number_to_show_for_each_tag){
+		auto pair = std::make_pair(0, 0);
 		for(int tag = 0;tag < _hmm->_tag_unigram_count.size();tag++){
 			if(_hmm->_tag_unigram_count[tag] == 0){
 				continue;
 			}
+			multiset<std::pair<int, int>, value_comparator> ranking;
 			unordered_map<int, Table*> &tables = _hmm->_tag_word_table[tag];
 			int n = 0;
 			c_printf("[*]%s\n", (boost::format("tag %d:") % tag).str().c_str());
 			wcout << L"\t";
-			multiset<pair<int, int>, value_comparator> ranking;
 			for(const auto &elem: tables){
-				ranking.insert(std::make_pair(elem.first, elem.second->_num_customers));
+				pair.first = elem.first;
+				pair.second = elem.second->_num_customers;
+				ranking.insert(pair);
 			}
 			for(const auto &elem: ranking){
-				wstring word = _dictionary[elem.first];
+				wstring &word = _dictionary[elem.first];
 				wcout << word << L"/" << elem.second << L", ";
 				n++;
 				if(n > number_to_show_for_each_tag){
