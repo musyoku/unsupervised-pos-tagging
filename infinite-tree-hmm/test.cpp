@@ -8,7 +8,7 @@ using namespace std;
 void add_customer(iTHMM* model, int count){
 	for(int n = 0;n < count;n++){
 		Node* node = model->sample_node();
-		model->add_clustering_customer_to_node(node);
+		model->add_customer_to(node);
 	}
 }
 
@@ -30,7 +30,7 @@ void test2(iTHMM* model){
 	Node* target_on_cluster = model->_structure_tssb->find_node_with_id(11);
 	assert(target_on_cluster != NULL);
 	for(int n = 0;n < 100;n++){
-		model->add_htssb_customer_to_node(target_on_cluster);
+		model->add_customer_to(target_on_cluster);
 	}
 	c_printf("[*]%s\n", "cluster");
 	model->_structure_tssb->dump();
@@ -80,7 +80,7 @@ void test5(iTHMM* model){
 	vector<Node*> nodes;
 	for(int n = 0;n < 10000;n++){
 		Node* node = model->sample_node();
-		model->add_clustering_customer_to_node(node);
+		model->add_customer_to(node);
 		nodes.push_back(node);
 	}
 	for(auto node: nodes){
@@ -94,7 +94,7 @@ void test6(iTHMM* model){
 	vector<Node*> nodes;
 	for(int n = 0;n < 1000;n++){
 		Node* node = model->sample_node();
-		model->add_clustering_customer_to_node(node);
+		model->add_customer_to(node);
 		nodes.push_back(node);
 	}
 	int rand_index = Sampler::uniform_int(0, nodes.size());
@@ -104,13 +104,13 @@ void test6(iTHMM* model){
 	std::random_shuffle(nodes.begin(), nodes.end());
 	for(auto node: nodes){
 		for(int i = 0;i < 1000;i++){
-			model->add_htssb_customer_to_node(node);
+			model->add_customer_to(node);
 		}
 	}
 	std::random_shuffle(nodes.begin(), nodes.end());
 	for(auto node: nodes){
 		for(int i = 0;i < 1000;i++){
-			model->add_htssb_customer_to_node(node);
+			model->add_customer_to(node);
 		}
 	}
 	c_printf("[*]%s\n", "cluster");
@@ -155,7 +155,7 @@ void test7(iTHMM* model){
 	c_printf("[*]%s\n", "target");
 	target_on_cluster->dump();
 	for(int i = 0;i < 100;i++){
-		model->add_htssb_customer_to_node(target_on_cluster);
+		model->add_customer_to(target_on_cluster);
 	}
 	double ratio = 0;
 	auto start_time = chrono::system_clock::now();
@@ -178,7 +178,7 @@ void test8(iTHMM* model){
 	c_printf("[*]%s\n", "target");
 	target_on_cluster->dump();
 	for(int i = 0;i < 100;i++){
-		model->add_htssb_customer_to_node(target_on_cluster);
+		model->add_customer_to(target_on_cluster);
 	}
 	double ratio = 0;
 	auto start_time = chrono::system_clock::now();
@@ -249,8 +249,12 @@ void test10(iTHMM* model){
 	}
 }
 
+void test11(iTHMM* model){
+	add_customer(model, 10);
+}
+
 int main(){
 	iTHMM* model = new iTHMM();
-	test10(model);
+	test11(model);
 	return 0;
 }

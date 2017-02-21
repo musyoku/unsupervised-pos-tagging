@@ -2,7 +2,9 @@
 #define _ithmm_
 #include <boost/format.hpp>
 #include <cmath>
-#include "tssb.h"
+#include "tssb.hpp"
+#include "node.hpp"
+#include "sampler.h"
 
 class iTHMM{
 public:
@@ -21,47 +23,47 @@ public:
 		root_on_structure->_transition_tssb = new TSSB(root_on_htssb, _alpha, _gamma, _lambda);
 	}
 	// クラスタリング用TSSBで子ノードを生成した際に全てのHTSSBの同じ位置に子ノードを生成する
-	Node* generate_and_add_new_child_to_parent(Node* parent){
+	Node* generate_and_add_new_child_to(Node* parent){
 		assert(parent != NULL);
 		// まず木構造上で子ノードを作る
-		Node* generated_child = NULL;
-		if(parent->_htssb_owner_id == 0){
-			generated_child = parent->generate_child();
-		}else{
+		Node* generated_child_on_structure = NULL;
+		if(parent->_htssb_owner_id == 0){	// parentが木構造上のノードの場合
+			generated_child_on_structure = parent->generate_child();
+		}else{	// parentが別のノードの遷移確率用TSSB上のノードだった場合
 			Node* parent_on_cluster = _structure_tssb->find_node_with_id(parent->_identifier);
-			generated_child = parent_on_cluster->generate_child();
+			generated_child_on_structure = parent_on_cluster->generate_child();
 		}
-		assert(generated_child != NULL);
-		int child_id = generated_child->_identifier;
+		assert(generated_child_on_structure != NULL);
+		// 遷移確率用TSSBをセット
+		generated_child_on_structure->set_horizontal_indices();
+		generated_child_on_structure->_transition_tssb = _structure_tssb->generate_transition_tssb_belonging_to(generated_child_on_structure->_identifier);
+		generated_child_on_structure->_transition_tssb_myself = generated_child_on_structure->find_same_node_on_transition_tssb();
+
+		int child_id = generated_child_on_structure->_identifier;
 		int tssb_id_parent_belongs = parent->_htssb_owner_id;
-		Node* return_child = generated_child;	// 実際に返すノード
+		Node* return_child = generated_child_on_structure;	// 実際に返すノード
 		// クラスタリング用TSSBの全ノードを収集
 		vector<Node*> nodes;
 		_structure_tssb->enumerate_nodes_from_left_to_right(nodes);
 		for(auto node_on_structure: nodes){
-			if(node_on_structure->_transition_tssb == NULL){
-				node_on_structure->_transition_tssb = _structure_tssb->copy(node_on_structure->_identifier);
-				node_on_structure->_transition_tssb_myself = node_on_structure->_transition_tssb->find_node_with_id(node_on_structure->_identifier);
-				assert(node_on_structure->_transition_tssb_myself != NULL);
-			}else{
-				// 遷移確率用TSSBでの同じ位置に子ノードを挿入
-				Node* parent_on_htssb = node_on_structure->_transition_tssb->find_node_with_id(parent->_identifier);
-				assert(parent_on_htssb != NULL);
-				Node* child_on_htssb = new Node(parent_on_htssb, child_id);
-				child_on_htssb->_htssb_owner_id = node_on_structure->_identifier;
-				if(child_on_htssb->_htssb_owner_id == tssb_id_parent_belongs){	// 親と同じTSSB上の子ノードを返す
-					return_child = child_on_htssb;
-				}
-				parent_on_htssb->add_child(child_on_htssb);
+			assert(node_on_structure->_transition_tssb != NULL);
+			// 遷移確率用TSSBでの同じ位置に子ノードを挿入
+			Node* parent_on_htssb = node_on_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(parent);
+			assert(parent_on_htssb != NULL);
+			Node* child_on_htssb = new Node(parent_on_htssb, child_id);
+			child_on_htssb->_htssb_owner_id = node_on_structure->_identifier;
+			if(child_on_htssb->_htssb_owner_id == tssb_id_parent_belongs){	// 親と同じTSSB上の子ノードを返す
+				return_child = child_on_htssb;
 			}
+			parent_on_htssb->add_child(child_on_htssb);
 		}
 		return return_child;
 	}
 	Node* sample_node(){
-		return _stop_node(_structure_tssb->_root);
+		return _sample_node(_structure_tssb->_root);
 	}
 	// 止まるノードを決定する
-	Node* _stop_node(Node* node){
+	Node* _sample_node(Node* node){
 		assert(node != NULL);
 		double alpha = _alpha * pow(_lambda, node->_depth_v);
 		double head = node->compute_expectation_of_clustering_vertical_sbr_ratio(alpha);
@@ -77,16 +79,16 @@ public:
 			double head = child->compute_expectation_of_clustering_horizontal_sbr_ratio(_gamma);
 			double bernoulli = Sampler::uniform(0, 1);
 			if(bernoulli <= head){		// 表が出たら次に止まるかどうかを決める
-				return _stop_node(child);
+				return _sample_node(child);
 			}
 		}
 		// ない場合生成しながらコインを投げる
 		while(true){
-			Node* child = generate_and_add_new_child_to_parent(node);
+			Node* child = generate_and_add_new_child_to(node);
 			double head = child->compute_expectation_of_clustering_horizontal_sbr_ratio(_gamma);
 			double bernoulli = Sampler::uniform(0, 1);
 			if(bernoulli <= head){		// 表が出たら次に止まるかどうかを決める
-				return _stop_node(child);
+				return _sample_node(child);
 			}
 		}
 	}
@@ -107,35 +109,37 @@ public:
 		// [<--親ノードの確率--><---子ノードに割り当てる長さ --->]
 		//					  [<---子1の棒---><---子2の棒--->]
 		assert(node->_children_stick_length > 0);
-		double stick_length = node->_children_stick_length;	// 子ノードに割り当てる棒の長さの総和
+		double rest_stick_length = node->_children_stick_length;	// 子ノードに割り当てる棒の長さの総和
 		double sum_stick_length_over_children = 0;			// 子ノードを走査する時の走査済みの棒の長さ
 		Node* last_node = NULL;
 		for(int i = 0;i < node->_children.size();i++){
 			Node* child = node->_children[i];
-			double ratio_h = child->compute_expectation_of_clustering_horizontal_sbr_ratio(_gamma);
 			double alpha = _alpha * pow(_lambda, child->_depth_v);
+			double ratio_h = child->compute_expectation_of_clustering_horizontal_sbr_ratio(_gamma);
 			double ratio_v = child->compute_expectation_of_clustering_vertical_sbr_ratio(alpha);
-			if(uniform <= sum_probability + sum_stick_length_over_children + stick_length * ratio_h){
-				// stick_length * ratio_hだけだとこのノードの棒の長さなのでratio_vも掛けてこのノードで止まる確率にする必要がある
-				sum_probability += sum_stick_length_over_children + stick_length * ratio_h * ratio_v;
+			if(uniform <= sum_probability + sum_stick_length_over_children + rest_stick_length * ratio_h){
+				// rest_stick_length * ratio_hだけだとこのノードの棒の長さ（つまりこのノード+子ノードに割り当てる棒）なので
+				// ratio_vも掛けてこのノードで止まる確率にする必要がある
+				sum_probability += sum_stick_length_over_children + rest_stick_length * ratio_h * ratio_v;
 				if(uniform <= sum_probability){
 					return child;
 				}
 				if(child->has_child()){
 					return _retrospective_sampling(uniform, sum_probability, child);
 				}
-				Node* _child = generate_and_add_new_child_to_parent(child);
+				// 子ノード領域に当たった場合、uniformを超えるまで棒を折り続ける
+				Node* _child = generate_and_add_new_child_to(child);
 				double ratio_h = _child->compute_expectation_of_clustering_horizontal_sbr_ratio(_gamma);
 				_child->_stick_length = child->_children_stick_length * ratio_h;
-				double ratio_v = _child->compute_expectation_of_clustering_vertical_sbr_ratio(_gamma);
-				_child->_probability = _child->_stick_length * ratio_v;
 				double alpha = _alpha * pow(_lambda, _child->_depth_v);
+				double ratio_v = _child->compute_expectation_of_clustering_vertical_sbr_ratio(alpha);
+				_child->_probability = _child->_stick_length * ratio_v;
 				_child->_children_stick_length = _child->_stick_length * (1.0 - ratio_v);
 				assert(child->has_child());
 				return _retrospective_sampling(uniform, sum_probability, child);
 			}
 			sum_stick_length_over_children += child->_stick_length;
-			stick_length *= 1.0 - ratio_h;
+			rest_stick_length *= 1.0 - ratio_h;
 			last_node = child;
 		}
 		// 見つからなかったら一番右端のノードを返す
@@ -147,39 +151,26 @@ public:
 		}
 		return NULL;
 	}
-	void add_htssb_customer_to_node(Node* node_on_structure){
-		assert(node_on_structure->_htssb_owner_id == 0);
-		double alpha = _alpha * pow(_alpha, node_on_structure->_depth_v);
-		_add_htssb_customer_to_vertical_crp(alpha, node_on_structure, node_on_structure->_identifier);
-		_add_htssb_customer_to_horizontal_crp(_gamma, node_on_structure, node_on_structure->_identifier);
+	void add_customer_to(Node* target){
+		assert(target->_htssb_owner_id != 0);
+		double alpha = _alpha * pow(_alpha, target->_depth_v);
+		_add_customer_to_vertical_crp(alpha, target);
+		_add_customer_to_horizontal_crp(_gamma, target);
 	}
-	void add_clustering_customer_to_node(Node* node_on_structure){
-		assert(node_on_structure->_htssb_owner_id == 0);
-		double alpha = _alpha * pow(_alpha, node_on_structure->_depth_v);
+	void _add_customer_to_vertical_crp(double alpha, Node* target){
+		assert(target != NULL);
 		bool new_table_generated = false;
-		node_on_structure->add_customer_to_vertical_crp(alpha, new_table_generated);
-		node_on_structure->add_customer_to_horizontal_crp(alpha, new_table_generated);
-	}
-	void _add_htssb_customer_to_vertical_crp(double alpha, Node* target_on_cluster, int target_id){
-		TSSB* transition_tssb = target_on_cluster->_transition_tssb;
-		assert(transition_tssb != NULL);
-		Node* target_on_htssb = transition_tssb->find_node_with_id(target_id);
-		assert(target_on_htssb != NULL);
-		bool new_table_generated = false;
-		target_on_htssb->add_customer_to_vertical_crp(alpha, new_table_generated);
-		if(new_table_generated && target_on_cluster->_parent != NULL){
-			_add_htssb_customer_to_vertical_crp(alpha, target_on_cluster->_parent, target_id);
+		target->add_customer_to_vertical_crp(alpha, new_table_generated);
+		if(new_table_generated && target->_parent != NULL){
+			_add_customer_to_vertical_crp(alpha, target->_parent);
 		}
 	}
-	void _add_htssb_customer_to_horizontal_crp(double gamma, Node* target_on_cluster, int target_id){
-		TSSB* transition_tssb = target_on_cluster->_transition_tssb;
-		assert(transition_tssb != NULL);
-		Node* target_on_htssb = transition_tssb->find_node_with_id(target_id);
-		assert(target_on_htssb != NULL);
+	void _add_customer_to_horizontal_crp(double gamma, Node* target){
+		assert(target != NULL);
 		bool new_table_generated = false;
-		target_on_htssb->add_customer_to_horizontal_crp(gamma, new_table_generated);
-		if(new_table_generated && target_on_cluster->_parent != NULL){
-			_add_htssb_customer_to_horizontal_crp(gamma, target_on_cluster->_parent, target_id);
+		target->add_customer_to_horizontal_crp(gamma, new_table_generated);
+		if(new_table_generated && target->_parent != NULL){
+			_add_customer_to_horizontal_crp(gamma, target->_parent);
 		}
 	}
 	void remove_htssb_customer_from_node(Node* node_on_structure){
@@ -272,13 +263,13 @@ public:
 		int num_parents = depth_v;
 		// 遷移確率用TSSBのトップレベルノードから対象ノードまでのノードの水平方向のインデックスを格納
 		// ルートノードから子ノードをたどって到達できるようにするには水平方向の位置が分かればよい
-		int* node_horizontal_indices = target_on_cluster->_node_indices;
-		Node* parent_on_cluster = target_on_cluster;
-		node_horizontal_indices[depth_v - 1] = target_on_cluster->_depth_h;
-		for(int n = 0;n < num_parents - 1;n++){
-			parent_on_cluster = parent_on_cluster->_parent;
-			node_horizontal_indices[depth_v - n - 2] = parent_on_cluster->_depth_h;
-		}
+		int* node_horizontal_indices = target_on_cluster->_horizontal_indices_from_root;
+		// Node* parent_on_cluster = target_on_cluster;
+		// node_horizontal_indices[depth_v - 1] = target_on_cluster->_depth_h;
+		// for(int n = 0;n < num_parents - 1;n++){
+		// 	parent_on_cluster = parent_on_cluster->_parent;
+		// 	node_horizontal_indices[depth_v - n - 2] = parent_on_cluster->_depth_h;
+		// }
 
 		// cout << "horizontal indices:" << endl;
 		// for(int n = 0;n < num_parents;n++){
@@ -367,7 +358,7 @@ public:
 		int num_parents = depth_v;
 		// 遷移確率用TSSBのトップレベルノードから対象ノードまでのノードの水平方向のインデックスを格納
 		// ルートノードから子ノードをたどって到達できるようにするには水平方向の位置が分かればよい
-		int* node_horizontal_indices = target_on_cluster->_node_indices;
+		int* node_horizontal_indices = target_on_cluster->_horizontal_indices_from_root;
 		Node* parent_on_cluster = target_on_cluster;
 		node_horizontal_indices[depth_v - 1] = target_on_cluster->_depth_h;
 		for(int n = 0;n < num_parents - 1;n++){
