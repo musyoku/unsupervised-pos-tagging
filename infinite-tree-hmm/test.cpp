@@ -15,10 +15,10 @@ void add_customer(iTHMM* model, int count){
 void test1(iTHMM* model){
 	add_customer(model, 100);
 	c_printf("[*]%s\n", "cluster");
-	model->_clustering_tssb->dump();
+	model->_structure_tssb->dump();
 
 	vector<Node*> nodes;
-	model->_clustering_tssb->enumerate_nodes_from_left_to_right(nodes);
+	model->_structure_tssb->enumerate_nodes_from_left_to_right(nodes);
 	for(const auto node: nodes){
 		c_printf("[*]%d\n", node->_identifier);
 		node->_transition_tssb->dump();
@@ -27,13 +27,13 @@ void test1(iTHMM* model){
 
 void test2(iTHMM* model){
 	add_customer(model, 20);
-	Node* target_on_cluster = model->_clustering_tssb->find_node_with_id(11);
+	Node* target_on_cluster = model->_structure_tssb->find_node_with_id(11);
 	assert(target_on_cluster != NULL);
 	for(int n = 0;n < 100;n++){
 		model->add_htssb_customer_to_node(target_on_cluster);
 	}
 	c_printf("[*]%s\n", "cluster");
-	model->_clustering_tssb->dump();
+	model->_structure_tssb->dump();
 	Node* parent = target_on_cluster;
 	while(parent){
 		c_printf("[*]%d\n", parent->_identifier);
@@ -46,7 +46,7 @@ void test2(iTHMM* model){
 	}
 
 	c_printf("[*]%s\n", "cluster");
-	model->_clustering_tssb->dump();
+	model->_structure_tssb->dump();
 	parent = target_on_cluster;
 	while(parent){
 		c_printf("[*]%d\n", parent->_identifier);
@@ -57,10 +57,10 @@ void test2(iTHMM* model){
 
 void test4(iTHMM* model){
 	add_customer(model, 20);
-	Node* target_on_cluster = model->_clustering_tssb->find_node_with_id(14);
+	Node* target_on_cluster = model->_structure_tssb->find_node_with_id(14);
 	assert(target_on_cluster != NULL);
 	c_printf("[*]%s\n", "cluster");
-	model->_clustering_tssb->dump();
+	model->_structure_tssb->dump();
 	Node* parent = target_on_cluster;
 	while(parent){
 		c_printf("[*]%d\n", parent->_identifier);
@@ -69,8 +69,8 @@ void test4(iTHMM* model){
 	}
 	model->remove_clustering_customer_from_node(target_on_cluster);
 	c_printf("[*]%s\n", "cluster");
-	model->_clustering_tssb->dump();
-	for(const auto child: model->_clustering_tssb->_root->_children){
+	model->_structure_tssb->dump();
+	for(const auto child: model->_structure_tssb->_root->_children){
 		c_printf("[*]%d\n", child->_identifier);
 		child->_transition_tssb->dump();
 	}
@@ -87,7 +87,7 @@ void test5(iTHMM* model){
 		model->remove_clustering_customer_from_node(node);
 	}
 	c_printf("[*]%s\n", "cluster");
-	model->_clustering_tssb->dump();
+	model->_structure_tssb->dump();
 }
 
 void test6(iTHMM* model){
@@ -114,7 +114,7 @@ void test6(iTHMM* model){
 		}
 	}
 	c_printf("[*]%s\n", "cluster");
-	model->_clustering_tssb->dump();
+	model->_structure_tssb->dump();
 
 	std::random_shuffle(nodes.begin(), nodes.end());
 	for(auto node: nodes){
@@ -136,7 +136,7 @@ void test6(iTHMM* model){
 	c_printf("[*]%s\n", "back");
 	back->dump();
 	c_printf("[*]%s\n", "cluster");
-	model->_clustering_tssb->dump();
+	model->_structure_tssb->dump();
 
 	Node* parent = back;
 	while(parent){
@@ -149,8 +149,8 @@ void test6(iTHMM* model){
 void test7(iTHMM* model){
 	add_customer(model, 20);
 	c_printf("[*]%s\n", "cluster");
-	model->_clustering_tssb->dump();
-	Node* target_on_cluster = model->_clustering_tssb->find_node_with_id(14);
+	model->_structure_tssb->dump();
+	Node* target_on_cluster = model->_structure_tssb->find_node_with_id(14);
 	assert(target_on_cluster != NULL);
 	c_printf("[*]%s\n", "target");
 	target_on_cluster->dump();
@@ -172,8 +172,8 @@ void test7(iTHMM* model){
 void test8(iTHMM* model){
 	add_customer(model, 20);
 	c_printf("[*]%s\n", "cluster");
-	model->_clustering_tssb->dump();
-	Node* target_on_cluster = model->_clustering_tssb->find_node_with_id(14);
+	model->_structure_tssb->dump();
+	Node* target_on_cluster = model->_structure_tssb->find_node_with_id(14);
 	assert(target_on_cluster != NULL);
 	c_printf("[*]%s\n", "target");
 	target_on_cluster->dump();
@@ -195,17 +195,17 @@ void test8(iTHMM* model){
 void test9(iTHMM* model){
 	add_customer(model, 3000);
 	double uniform = 0;
-	model->_clustering_tssb->update_stick_length();
-	model->_clustering_tssb->dump();
+	model->_structure_tssb->update_stick_length();
+	model->_structure_tssb->dump();
 	vector<Node*> nodes_true;
 	vector<Node*> nodes;
-	model->_clustering_tssb->enumerate_nodes_from_left_to_right(nodes_true);
-	int num_nodes_true = model->_clustering_tssb->get_num_nodes();
+	model->_structure_tssb->enumerate_nodes_from_left_to_right(nodes_true);
+	int num_nodes_true = model->_structure_tssb->get_num_nodes();
 	int num_nodes = 0;
 	int prev_id = -1;
 	for(int i = 0;i < 100000000;i++){
 		uniform = i / 100000000.0;
-		Node* node = model->retrospective_sampling(uniform);
+		Node* node = model->retrospective_sampling_on_tssb(uniform, model->_structure_tssb);
 		if(node->_identifier != prev_id){
 			cout << uniform << ": " << node->_identifier << endl;
 			prev_id = node->_identifier;
@@ -226,20 +226,27 @@ void test9(iTHMM* model){
 void test10(iTHMM* model){
 	add_customer(model, 10);
 	double uniform = 0.91;
-	model->_clustering_tssb->update_stick_length();
-	model->_clustering_tssb->dump();
-
-	int prev_id = -1;
-	for(int i = 0;i < 200;i++){
-		uniform = i / 200.0;
-		Node* node = model->retrospective_sampling(uniform);
-		if(node->_identifier != prev_id){
-			cout << uniform << ": " << node->_identifier << endl;
-			prev_id = node->_identifier;
-		}
-	}
 	c_printf("[*]%s\n", "cluster");
-	model->_clustering_tssb->dump();
+	model->_structure_tssb->dump();
+	Node* target = model->_structure_tssb->find_node_with_id(12);
+	Node* parent = target;
+	while(parent){
+		c_printf("[*]%d\n", parent->_identifier);
+		parent->_transition_tssb->dump();
+		parent = parent->_parent;
+	}
+	target->_transition_tssb->update_stick_length();
+	Node* node = model->retrospective_sampling_on_tssb(uniform, target->_transition_tssb);
+	c_printf("[*]%s\n", "sampled");
+	node->dump();
+	c_printf("[*]%s\n", "cluster");
+	model->_structure_tssb->dump();
+	parent = target;
+	while(parent){
+		c_printf("[*]%d\n", parent->_identifier);
+		parent->_transition_tssb->dump();
+		parent = parent->_parent;
+	}
 }
 
 int main(){
