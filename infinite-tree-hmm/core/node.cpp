@@ -1,8 +1,11 @@
+#include <boost/format.hpp>
+#include <cassert>
 #include "cprintf.h"
 #include "sampler.h"
 #include "util.h"
-#include "node.hpp"
+#include "hpylm.hpp"
 #include "tssb.hpp"
+#include "node.hpp"
 
 Node::Node(Node* parent){
 	_identifier = _auto_increment;
@@ -38,6 +41,14 @@ void Node::init(){
 	_horizontal_indices_from_root = new int[_depth_v];
 	_table_v = new Table();
 	_table_h = new Table();
+	_hpylm = NULL;
+	if(_htssb_owner_id == 0){	// HPYLMは木構造上のノードにだけあればよい
+		_hpylm = new HPYLM();
+		_hpylm->_state_node = this;
+		if(_parent != NULL){
+			_hpylm->_parent = _parent->_hpylm;
+		}
+	}
 	set_horizontal_indices();
 	set_pointers_from_root_to_myself();
 }

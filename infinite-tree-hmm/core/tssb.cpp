@@ -1,3 +1,4 @@
+#include <boost/format.hpp>
 #include "tssb.hpp"
 #include "node.hpp"
 

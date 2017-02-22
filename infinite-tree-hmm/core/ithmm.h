@@ -2,10 +2,12 @@
 #define _ithmm_
 #include <boost/format.hpp>
 #include <cmath>
+#include <vector>
 #include "tssb.hpp"
 #include "node.hpp"
 #include "sampler.h"
 #include "cprintf.h"
+#include "hyperparameters.h"
 
 class iTHMM{
 public:
@@ -13,10 +15,14 @@ public:
 	double _alpha;
 	double _gamma;
 	double _lambda;
+	int _max_depth;
+	vector<double> _hpylm_d_m;		// HPYLMのハイパーパラメータ（ディスカウント係数）
+	vector<double> _hpylm_theta_m;	// HPYLMのハイパーパラメータ（集中度）
 	iTHMM(){
-		_alpha = 10;
-		_gamma = 10;
-		_lambda = 0.5;
+		_alpha = iTHMM_ALPHA;
+		_gamma = iTHMM_GAMMA;
+		_lambda = iTHMM_LAMBDA;
+		_max_depth = 0;
 		_structure_tssb = new TSSB(_alpha, _gamma, _lambda);
 		Node* root_on_structure = _structure_tssb->_root;
 		Node* root_on_htssb = new Node(NULL, root_on_structure->_identifier);
@@ -25,6 +31,8 @@ public:
 		root_on_htssb->_structure_tssb_myself = root_on_structure;
 		root_on_structure->_transition_tssb = new TSSB(root_on_htssb, _alpha, _gamma, _lambda);
 		root_on_structure->_transition_tssb_myself = root_on_htssb;
+		_hpylm_d_m.push_back(HPYLM_D);
+		_hpylm_theta_m.push_back(HPYLM_THETA);
 	}
 	// 木構造で子ノードを生成した際に全てのHTSSBの同じ位置に子ノードを生成する
 	Node* generate_and_add_new_child_to(Node* parent){
@@ -70,6 +78,15 @@ public:
 			iterator_on_structure = parent_on_structure;
 			parent_on_structure = iterator_on_structure->_parent;
 			generated_child_on_htssb = generated_child_on_parent_htssb;
+		}
+		if(return_child->_depth_v > _max_depth){
+			_max_depth = return_child->_depth_v;		
+			while(_max_depth >= _hpylm_d_m.size()){
+				_hpylm_d_m.push_back(HPYLM_D);
+			}			
+			while(_max_depth >= _hpylm_theta_m.size()){
+				_hpylm_theta_m.push_back(HPYLM_THETA);
+			}	
 		}
 		return return_child;
 	}
