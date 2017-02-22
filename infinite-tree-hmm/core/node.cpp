@@ -52,6 +52,9 @@ Node* Node::generate_child(){
 	add_child(child);
 	return child;
 }
+void Node::copy_transition_tssb_from_structure(TSSB* structure){
+	_transition_tssb = structure->generate_transition_tssb_belonging_to(_identifier);
+}
 void Node::set_horizontal_indices(){
 	Node* iterator = this;
 	for(int i = 0;i < _depth_v;i++){

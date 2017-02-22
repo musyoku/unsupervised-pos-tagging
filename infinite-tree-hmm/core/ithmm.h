@@ -20,6 +20,7 @@ public:
 		Node* root_on_structure = _structure_tssb->_root;
 		Node* root_on_htssb = new Node(NULL, root_on_structure->_identifier);
 		root_on_htssb->_htssb_owner_id = root_on_structure->_identifier;
+		root_on_htssb->_structure_tssb_myself = root_on_structure;
 		root_on_structure->_transition_tssb = new TSSB(root_on_htssb, _alpha, _gamma, _lambda);
 		root_on_structure->_transition_tssb_myself = root_on_htssb;
 	}
@@ -36,34 +37,40 @@ public:
 		}
 		assert(generated_child_on_structure != NULL);
 		// 遷移確率用TSSBをセット
-		generated_child_on_structure->_transition_tssb = _structure_tssb->generate_transition_tssb_belonging_to(generated_child_on_structure->_identifier);
-		Node* myself = generated_child_on_structure->find_same_node_on_transition_tssb();
-		assert(myself != NULL);
-		generated_child_on_structure->_transition_tssb_myself = myself;
+		generated_child_on_structure->copy_transition_tssb_from_structure(_structure_tssb);
+		Node* myself_on_htssb = generated_child_on_structure->find_same_node_on_transition_tssb();
+		assert(myself_on_htssb != NULL);
+		generated_child_on_structure->_transition_tssb_myself = myself_on_htssb;
 
 		Node* return_child = generated_child_on_structure;	// 実際に返すノード
 		// 木構造上の全ノードのHTSSBにノードを追加
-		_generate_and_add_new_child_to_htssb(_structure_tssb->_root, parent, generated_child_on_structure, return_child);
+		_generate_and_add_new_child_to_all_htssb(_structure_tssb->_root, parent, generated_child_on_structure, return_child);
 		// ポインタを張る
+		//// 木構造上とHTSSB上のそれぞれお同じノード間のポインタ
+		Node* generated_child_on_htssb = generated_child_on_structure->_transition_tssb_myself;
+		assert(generated_child_on_htssb != NULL);
+		generated_child_on_htssb->_structure_tssb_myself = generated_child_on_htssb;
+		//// 木構造上の親ノードのHTSSBの自分と同じ位置のノードへのポインタ
 		Node* iterator_on_structure = generated_child_on_structure;
 		Node* parent_on_structure = iterator_on_structure->_parent;
-		while(iterator_on_structure != NULL){
-			Node* iterator_on_htssb = iterator_on_structure->_transition_tssb_myself;
-			assert(iterator_on_htssb != NULL);
-			iterator_on_htssb->_structure_tssb_myself = iterator_on_structure;
-			if(parent_on_structure != NULL){
-				assert(parent_on_structure->_transition_tssb != NULL);
-				iterator_on_htssb->_parent_transition_tssb_myself = parent_on_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(iterator_on_structure);
-				assert(iterator_on_htssb->_parent_transition_tssb_myself != NULL);
-			}
+		Node* generated_child_on_parent_htssb = generated_child_on_htssb;
+		while(parent_on_structure != NULL){
+			assert(iterator_on_structure->_transition_tssb_myself != NULL);
+			// 木構造上での親ノードが持つHTSSBにある対応するノードを取る
+			generated_child_on_parent_htssb = parent_on_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(generated_child_on_structure);
+			assert(generated_child_on_parent_htssb != NULL);
+			// ポインタを張る
+			generated_child_on_htssb->_parent_transition_tssb_myself = generated_child_on_parent_htssb;
+			generated_child_on_htssb->_structure_tssb_myself = generated_child_on_structure;
+			assert(generated_child_on_htssb->_structure_tssb_myself->_identifier == generated_child_on_structure->_identifier);
+			// 木構造上で次の親ノードへ
 			iterator_on_structure = parent_on_structure;
-			if(iterator_on_structure != NULL){
-				parent_on_structure = iterator_on_structure->_parent;
-			}
+			parent_on_structure = iterator_on_structure->_parent;
+			generated_child_on_htssb = generated_child_on_parent_htssb;
 		}
 		return return_child;
 	}
-	void _generate_and_add_new_child_to_htssb(Node* iterator_on_structure, Node* parent, Node* child_on_structure, Node* &return_child){
+	void _generate_and_add_new_child_to_all_htssb(Node* iterator_on_structure, Node* parent, Node* child_on_structure, Node* &return_child){
 		assert(iterator_on_structure->_transition_tssb != NULL);
 		int owner_id_on_structure_parent_belongs = parent->_htssb_owner_id;
 		int child_id_to_generate = child_on_structure->_identifier;
@@ -77,7 +84,7 @@ public:
 		}
 		parent_on_htssb->add_child(child_on_htssb);
 		for(const auto &child: iterator_on_structure->_children){
-			_generate_and_add_new_child_to_htssb(child, parent, child_on_structure, return_child);
+			_generate_and_add_new_child_to_all_htssb(child, parent, child_on_structure, return_child);
 		}
 	}
 	Node* sample_node_on_structure_tssb(){
@@ -172,27 +179,32 @@ public:
 		}
 		return NULL;
 	}
-	void add_customer_to(Node* target){
-		assert(target != NULL);
-		assert(target->_htssb_owner_id != 0);
-		double alpha = _alpha * pow(_alpha, target->_depth_v);
-		_add_customer_to_vertical_crp(alpha, target);
-		_add_customer_to_horizontal_crp(_gamma, target);
+	void add_customer_to(Node* target_on_htssb){
+		assert(target_on_htssb != NULL);
+		assert(target_on_htssb->_htssb_owner_id != 0);
+		double alpha = _alpha * pow(_alpha, target_on_htssb->_depth_v);
+		_add_customer_to_vertical_crp(alpha, target_on_htssb);
+		_add_customer_to_horizontal_crp(_gamma, target_on_htssb);
 	}
-	void _add_customer_to_vertical_crp(double alpha, Node* target){
-		assert(target != NULL);
+	void _add_customer_to_vertical_crp(double alpha, Node* target_on_htssb){
+		assert(target_on_htssb != NULL);
 		bool new_table_generated = false;
-		target->add_customer_to_vertical_crp(alpha, new_table_generated);
-		if(new_table_generated && target->_parent != NULL){
-			_add_customer_to_vertical_crp(alpha, target->_parent);
+		target_on_htssb->add_customer_to_vertical_crp(alpha, new_table_generated);
+		if(new_table_generated && target_on_htssb->_parent != NULL){
+			target_on_htssb->dump();
+			target_on_htssb->_parent->dump();
+			target_on_htssb->_parent_transition_tssb_myself->dump();
+			assert(target_on_htssb->_parent_transition_tssb_myself != NULL);
+			_add_customer_to_vertical_crp(alpha, target_on_htssb->_parent_transition_tssb_myself);
 		}
 	}
-	void _add_customer_to_horizontal_crp(double gamma, Node* target){
-		assert(target != NULL);
+	void _add_customer_to_horizontal_crp(double gamma, Node* target_on_htssb){
+		assert(target_on_htssb != NULL);
 		bool new_table_generated = false;
-		target->add_customer_to_horizontal_crp(gamma, new_table_generated);
-		if(new_table_generated && target->_parent != NULL){
-			_add_customer_to_horizontal_crp(gamma, target->_parent);
+		target_on_htssb->add_customer_to_horizontal_crp(gamma, new_table_generated);
+		if(new_table_generated && target_on_htssb->_parent != NULL){
+			assert(target_on_htssb->_parent_transition_tssb_myself != NULL);
+			_add_customer_to_horizontal_crp(gamma, target_on_htssb->_parent_transition_tssb_myself);
 		}
 	}
 	void remove_htssb_customer_from_node(Node* node_on_structure){
