@@ -155,7 +155,7 @@ void test7(iTHMM* model){
 	c_printf("[*]%s\n", "target");
 	target_on_structure->dump();
 	target_on_structure->_transition_tssb_myself->dump();
-	for(int i = 0;i < 100;i++){
+	for(int i = 0;i < 10;i++){
 		model->add_customer_to(target_on_structure->_transition_tssb_myself);
 	}
 	c_printf("[*]%s\n", "transition");
@@ -169,7 +169,7 @@ void test7(iTHMM* model){
 	double ratio = 0;
 	auto start_time = chrono::system_clock::now();
 	for(int i = 0;i < 100000;i++){
-		ratio = model->compute_expectation_of_htssb_vertical_sbr_ratio_on_node(target_on_structure->_transition_tssb_myself);
+		ratio = model->compute_expectation_of_vertical_sbr_ratio_on_node(target_on_structure->_transition_tssb_myself);
 	}
 	auto end_time = chrono::system_clock::now();
 	auto duration = end_time - start_time;
@@ -308,6 +308,6 @@ void test12(iTHMM* model){
 
 int main(){
 	iTHMM* model = new iTHMM();
-	test11(model);
+	test7(model);
 	return 0;
 }
