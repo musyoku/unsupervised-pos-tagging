@@ -1,5 +1,7 @@
 #include "table.hpp"
 #include "sampler.h"
+#include <iostream>
+using namespace std;
 
 Table::Table(){
 	_num_customers = 0;
@@ -12,7 +14,7 @@ Table::Table(int token_id){
 bool Table::is_empty(){
 	return _arrangement.size() == 0;
 }
-void Table::add_customer(double concentration_parameter, bool &new_table_generated){
+void Table::add_customer(double concentration_parameter, double g0, int num_total_customers, bool &new_table_generated){
 	_num_customers += 1;
 	if(_arrangement.size() == 0){
 		_arrangement.push_back(1);
@@ -20,12 +22,14 @@ void Table::add_customer(double concentration_parameter, bool &new_table_generat
 		return;
 	}
 	new_table_generated = false;
-	double sum = std::accumulate(_arrangement.begin(), _arrangement.end(), 0) + concentration_parameter;
-	double normalizer = 1 / sum;
+	double sum = std::accumulate(_arrangement.begin(), _arrangement.end(), 0);
+	double scale = num_total_customers / sum;
+	sum = num_total_customers + concentration_parameter * g0;
+	double normalizer = 1.0 / sum;
 	double bernoulli = Sampler::uniform(0, 1);
 	sum = 0;
 	for(int i = 0;i < _arrangement.size();i++){
-		sum += _arrangement[i] * normalizer;
+		sum += _arrangement[i] * scale * normalizer;
 		if(bernoulli <= sum){
 			_arrangement[i] += 1;
 			return;
