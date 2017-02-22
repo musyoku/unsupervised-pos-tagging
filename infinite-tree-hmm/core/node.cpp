@@ -38,6 +38,7 @@ void Node::init(){
 	_table_v = new Table();
 	_table_h = new Table();
 	set_horizontal_indices();
+	set_pointers_from_root_to_myself();
 }
 Node::~Node(){
 	delete _table_v;
@@ -60,6 +61,15 @@ void Node::set_horizontal_indices(){
 	for(int i = 0;i < _depth_v;i++){
 		_horizontal_indices_from_root[_depth_v - i - 1] = iterator->_depth_h;
 		iterator = iterator->_parent;
+	}
+}
+void Node::set_pointers_from_root_to_myself(){
+	Node* iterator = this;
+	_pointer_nodes_v[_depth_v] = iterator;
+	for(int n = 0;n < _depth_v;n++){
+		iterator = iterator->_parent;
+		assert(iterator != NULL);
+		_pointer_nodes_v[_depth_v - n - 1] = iterator;
 	}
 }
 void Node::add_child(Node* node){

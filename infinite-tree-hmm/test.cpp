@@ -150,7 +150,7 @@ void test7(iTHMM* model){
 	add_customer(model, 20);
 	c_printf("[*]%s\n", "structure");
 	model->_structure_tssb->dump();
-	Node* target_on_structure = model->_structure_tssb->find_node_with_id(14);
+	Node* target_on_structure = model->_structure_tssb->find_node_with_id(21);
 	assert(target_on_structure != NULL);
 	c_printf("[*]%s\n", "target");
 	target_on_structure->dump();
@@ -182,17 +182,26 @@ void test8(iTHMM* model){
 	add_customer(model, 20);
 	c_printf("[*]%s\n", "structure");
 	model->_structure_tssb->dump();
-	Node* target_on_structure = model->_structure_tssb->find_node_with_id(14);
+	Node* target_on_structure = model->_structure_tssb->find_node_with_id(21);
 	assert(target_on_structure != NULL);
 	c_printf("[*]%s\n", "target");
 	target_on_structure->dump();
-	for(int i = 0;i < 100;i++){
-		model->add_customer_to(target_on_structure);
+	target_on_structure->_transition_tssb_myself->dump();
+	for(int i = 0;i < 10;i++){
+		model->add_customer_to(target_on_structure->_transition_tssb_myself);
+	}
+	c_printf("[*]%s\n", "transition");
+	target_on_structure->_transition_tssb->dump();
+	Node* parent_on_structure = target_on_structure->_parent;
+	while(parent_on_structure){
+		c_printf("[*]%d\n", parent_on_structure->_identifier);
+		parent_on_structure->_transition_tssb->dump();
+		parent_on_structure = parent_on_structure->_parent;
 	}
 	double ratio = 0;
 	auto start_time = chrono::system_clock::now();
-	for(int i = 0;i < 100000;i++){
-		ratio = model->compute_expectation_of_htssb_horizontal_sbr_ratio_on_node(target_on_structure);
+	for(int i = 0;i < 1;i++){
+		ratio = model->compute_expectation_of_horizontal_sbr_ratio_on_node(target_on_structure->_transition_tssb_myself);
 	}
 	auto end_time = chrono::system_clock::now();
 	auto duration = end_time - start_time;
@@ -200,6 +209,7 @@ void test8(iTHMM* model){
 	cout << ratio << endl;
 	cout << msec << " msec" << endl;
 }
+
 
 void test9(iTHMM* model){
 	add_customer(model, 3000);
@@ -308,6 +318,6 @@ void test12(iTHMM* model){
 
 int main(){
 	iTHMM* model = new iTHMM();
-	test7(model);
+	test8(model);
 	return 0;
 }

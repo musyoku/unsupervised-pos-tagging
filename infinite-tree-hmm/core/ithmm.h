@@ -61,6 +61,7 @@ public:
 			assert(generated_child_on_parent_htssb != NULL);
 			// ポインタを張る
 			generated_child_on_htssb->_parent_transition_tssb_myself = generated_child_on_parent_htssb;
+			generated_child_on_parent_htssb->_child_transition_tssb_myself = generated_child_on_htssb;
 			generated_child_on_htssb->_structure_tssb_myself = generated_child_on_structure;
 			assert(generated_child_on_htssb->_structure_tssb_myself->_identifier == generated_child_on_structure->_identifier);
 			// 木構造上で次の親ノードへ
@@ -293,21 +294,24 @@ public:
 		double sbr_ratio = 0;
 		int depth_v = target_on_htssb->_depth_v;
 		int num_parents = depth_v;
-		// HTSSBのトップレベルノードから対象ノードまでのノードの水平方向のインデックス
-		// ルートノードから子ノードをたどって到達するためには水平方向の位置が分かればよい
-		int* node_horizontal_indices = target_on_htssb->_horizontal_indices_from_root;
+
+		// ルートまで遡る
+		Node* target_on_parent_htssb = target_on_htssb;
+		while(target_on_parent_htssb->_parent_transition_tssb_myself != NULL){
+			target_on_parent_htssb = target_on_parent_htssb->_parent_transition_tssb_myself;
+		}
 
 		// 木構造上での基準となるノードを選ぶ
 		Node* target_on_structure = target_on_htssb->_structure_tssb_myself;
 		assert(target_on_structure != NULL);
-		Node** iterators_on_structure_top_to_bottom = target_on_structure->_pointer_nodes_v;
-		Node* iterator_on_structure = target_on_structure;
-		iterators_on_structure_top_to_bottom[depth_v] = iterator_on_structure;
-		for(int n = 0;n < num_parents;n++){
-			iterator_on_structure = iterator_on_structure->_parent;
-			assert(iterator_on_structure != NULL);
-			iterators_on_structure_top_to_bottom[depth_v - n - 1] = iterator_on_structure;
-		}
+		Node** iterators_on_structure_from_root_to_myself = target_on_structure->_pointer_nodes_v;
+		// Node* iterator_on_structure = target_on_structure;
+		// iterators_on_structure_from_root_to_myself[depth_v] = iterator_on_structure;
+		// for(int n = 0;n < num_parents;n++){
+		// 	iterator_on_structure = iterator_on_structure->_parent;
+		// 	assert(iterator_on_structure != NULL);
+		// 	iterators_on_structure_from_root_to_myself[depth_v - n - 1] = iterator_on_structure;
+		// }
 		// 階層TSSBなので親TSSBのSBPを全て睿珊しないと次ノードのSBPを計算できない
 		// ノードの深さをdとすると(d+1)^2回計算する必要がある
 		// ルートノードの深さは0
@@ -317,28 +321,30 @@ public:
 			// cout << "n = " << n << endl;
 			// 木構造上での基準となるノードを選ぶ
 			// nが増えるごとに木構造を下に降りていく
-			Node* iterator_on_structure = iterators_on_structure_top_to_bottom[n];
+			Node* iterator_on_structure = iterators_on_structure_from_root_to_myself[n];
 			assert(iterator_on_structure != NULL);
 			assert(iterator_on_structure->_transition_tssb_myself != NULL);
 			// iterator_on_structure->_transition_tssb_myself->dump();
 			// トップレベルのノードから順に停止確率を計算
 			double sum_parent_stop_probability = 0;
-			Node* iterator_on_htssb = iterator_on_structure->_transition_tssb->_root;	// 遷移確率用TSSBのルートから始める
+			// Node* iterator_on_htssb = iterator_on_structure->_transition_tssb->_root;	// 遷移確率用TSSBのルートから始める
+			Node* iterator_on_htssb = target_on_parent_htssb->_pointer_nodes_v[0];
 			assert(iterator_on_htssb != NULL);
 			for(int m = 0;m < num_parents + 1;m++){
+				assert(iterator_on_htssb != NULL);
 				// cout << "m = " << m << endl;
 				// iterator_on_htssb->dump();
 				// cout << "iterator_on_htssb = " << iterator_on_htssb->_identifier << endl;
 				if(iterator_on_structure->_depth_v == 0){	// クラスタリング用TSSBの親ノードの場合
-					int pass_count = iterator_on_htssb->get_vertical_pass_count();
-					int stop_count = iterator_on_htssb->get_vertical_stop_count();
+					int pass_count = iterator_on_htssb->_pass_count_v;
+					int stop_count = iterator_on_htssb->_stop_count_v;
 					// cout << "pass_count = " << pass_count << ", stop_count = " << stop_count << endl;
-					double ratio_v = (1.0 + stop_count) / (1.0 + _alpha + stop_count + pass_count);
+					double ratio_v = (1.0 + stop_count) / (1.0 + _alpha + stop_count + iterator_on_htssb->_pass_count_v);
 					// cout << "ratio_v = " << ratio_v << endl;
 					stop_ratio_over_parent[m] = ratio_v;
 				}else{	// 親の遷移確率用HTSSBから生成
-					int pass_count = iterator_on_htssb->get_vertical_pass_count();
-					int stop_count = iterator_on_htssb->get_vertical_stop_count();
+					int pass_count = iterator_on_htssb->_pass_count_v;
+					int stop_count = iterator_on_htssb->_stop_count_v;
 					// cout << "pass_count = " << pass_count << ", stop_count = " << stop_count << endl;
 					double parent_stop_probability = stop_probability_over_parent[m];
 					// cout << "parent_stop_probability = " << parent_stop_probability << endl;
@@ -352,12 +358,8 @@ public:
 					sbr_ratio = ratio_v;
 				}
 				// 親から子へ降りていく
-				// 水平方向の位置が分ればアクセス可能
 				if(m < num_parents){
-					// cout << "next index: " << node_horizontal_indices[m] << endl;
-					assert(node_horizontal_indices[m] < iterator_on_htssb->_children.size());
-					iterator_on_htssb = iterator_on_htssb->_children[node_horizontal_indices[m]];
-					assert(iterator_on_htssb != NULL);
+					iterator_on_htssb = target_on_parent_htssb->_pointer_nodes_v[m + 1];
 				}
 			}
 			// 計算した棒を折る比率から確率を計算
@@ -372,87 +374,64 @@ public:
 					// cout << "rest_stick_length = " << rest_stick_length << endl;
 					stop_probability_over_parent[m] = stop_probability;
 				}
+				target_on_parent_htssb = target_on_parent_htssb->_child_transition_tssb_myself;
+				assert(target_on_parent_htssb);
+				// cout << "target switched!" << endl;
+				// target_on_parent_htssb->dump();
 			}
 		}
 		return sbr_ratio;
 	}
 	// 横の棒折り過程における、棒を折る比率を計算。親のTSSBから階層的に生成
-	double compute_expectation_of_htssb_horizontal_sbr_ratio_on_node(Node* target_on_structure){
-		int depth_v = target_on_structure->_depth_v;
-		int depth_h = target_on_structure->_depth_h;
+	double compute_expectation_of_horizontal_sbr_ratio_on_node(Node* target_on_htssb){
+		assert(target_on_htssb != NULL);
+		int depth_v = target_on_htssb->_depth_v;
+		int depth_h = target_on_htssb->_depth_h;
 		if(depth_v == 0){	// ルートノードなら必ず止まる
 			return 1;
 		}
 		double sbr_ratio = 0;
 		int num_parents = depth_v;
-		// 遷移確率用TSSBのトップレベルノードから対象ノードまでのノードの水平方向のインデックスを格納
-		// ルートノードから子ノードをたどって到達できるようにするには水平方向の位置が分かればよい
-		int* node_horizontal_indices = target_on_structure->_horizontal_indices_from_root;
-		Node* parent_on_cluster = target_on_structure;
-		node_horizontal_indices[depth_v - 1] = target_on_structure->_depth_h;
-		for(int n = 0;n < num_parents - 1;n++){
-			parent_on_cluster = parent_on_cluster->_parent;
-			node_horizontal_indices[depth_v - n - 2] = parent_on_cluster->_depth_h;
-		}
-		// クラスタリング用TSSBのルートノード
-		Node* root_on_structure = parent_on_cluster->_parent;
 
-		// クラスタリング用TSSBで辿れる全ての親ノードが持つ遷移確率用TSSB上での対象ノードを持っている親ノードへのポインタ
-		Node** parents_on_htssb_contain_target = target_on_structure->_pointer_nodes_v;
-		Node* iterator_on_structure = target_on_structure;
-		Node* parent_contains_target_on_htssb = iterator_on_structure->_transition_tssb_myself->_parent;
-		assert(parent_contains_target_on_htssb);
-		parents_on_htssb_contain_target[depth_v] = parent_contains_target_on_htssb;
-		// cout << depth_v << " <- " << endl << "	";
-		// parent_contains_target_on_htssb->dump();
-		for(int n = 0;n < num_parents;n++){
-			iterator_on_structure = iterator_on_structure->_parent;
-			Node* pointer_on_htssb = iterator_on_structure->_transition_tssb->_root;
-			// cout << "searching ..." << endl;
-			// クラスタリング用TSSBのそれぞれのノードが持つ遷移確率用TSSBのルートノードからたどっていき目的のノードの親ノードを見つける
-			for(int m = 0;m < num_parents - 1;m++){
-				pointer_on_htssb = pointer_on_htssb->_children[node_horizontal_indices[m]];
-				// cout << "	";
-				// pointer_on_htssb->dump();
-			}
-			assert(pointer_on_htssb != NULL);
-			parents_on_htssb_contain_target[depth_v - n - 1] = pointer_on_htssb;
-			// cout << depth_v - n - 1 << " <- " << endl << "	";
-			// pointer_on_htssb->dump();
+		// ルートまで遡る
+		Node* iterator_on_htssb = target_on_htssb;
+		while(iterator_on_htssb->_parent_transition_tssb_myself != NULL){
+			iterator_on_htssb = iterator_on_htssb->_parent_transition_tssb_myself;
 		}
 
+		Node* target_on_structure = target_on_htssb->_structure_tssb_myself;
 		double* stop_ratio_over_parent = target_on_structure->_stop_ratio_h_over_parent;
 		double* stop_probability_over_parent = target_on_structure->_stop_probability_h_over_parent;
-		iterator_on_structure = root_on_structure;
 		for(int n = 0;n < num_parents + 1;n++){
-			// クラスタリング用TSSBでの基準となるノードを選ぶ
-			// nが増えるごとに下に降りていく
-			// cout << "pointer" << endl << "	";
-			// iterator_on_structure->dump();
+			cout << "n = " << n << endl;
 			// トップレベルのノードから順に停止確率を計算
 			double sum_parent_stop_probability = 0;
-			parent_contains_target_on_htssb = parents_on_htssb_contain_target[n];
+			Node* parent_contains_target_on_htssb = iterator_on_htssb->_parent;
+			assert(parent_contains_target_on_htssb);
+			parent_contains_target_on_htssb->dump();
 			// cout << "parent contains" << endl << "	";
 			// parent_contains_target_on_htssb->dump();
-			assert(parent_contains_target_on_htssb);
-			for(int m = 0;m < depth_h + 1;m++){
+			for(int m = 0;m < depth_h + 1;m++){		// 自分自身も含めるので+1
 				Node* child_on_htssb = parent_contains_target_on_htssb->_children[m];
-				// cout << "m = " << m << endl << "	";
+				assert(child_on_htssb);
+				cout << "m = " << m << endl << "	";
 				// child_on_htssb->dump();
-				if(iterator_on_structure->_depth_v == 0){	// 親ノードの場合
-					int pass_count = child_on_htssb->get_horizontal_pass_count();
-					int stop_count = child_on_htssb->get_horizontal_stop_count();
+				if(iterator_on_htssb->_htssb_owner_id == 1){	// 親ノードの場合
+					int pass_count = child_on_htssb->_pass_count_h;
+					int stop_count = child_on_htssb->_stop_count_h;
+					cout << "pass_count = " << pass_count << ", stop_count = " << stop_count << endl;
 					double ratio_h = (1.0 + stop_count) / (1.0 + _gamma + stop_count + pass_count);
-					// cout << "ratio_h = " << ratio_h << endl;
+					cout << "ratio_h = " << ratio_h << endl;
 					stop_ratio_over_parent[m] = ratio_h;
 				}else{
-					int pass_count = child_on_htssb->get_horizontal_pass_count();
-					int stop_count = child_on_htssb->get_horizontal_stop_count();
-					// cout << "pass_count = " << pass_count << ", stop_count = " << stop_count << endl;
+					int pass_count = child_on_htssb->_pass_count_h;
+					int stop_count = child_on_htssb->_stop_count_h;
+					cout << "pass_count = " << pass_count << ", stop_count = " << stop_count << endl;
 					double parent_stop_probability = stop_probability_over_parent[m];
-					// cout << "parent_stop_probability = " << parent_stop_probability << endl;
+					cout << "parent_stop_probability = " << parent_stop_probability << endl;
+					cout << "sum_parent_stop_probability = " << sum_parent_stop_probability << endl;
 					double ratio_h = (_gamma * parent_stop_probability + stop_count) / (_gamma * (1.0 - sum_parent_stop_probability) + stop_count + pass_count);
-					// cout << "ratio_h = " << ratio_h << endl;
+					cout << "ratio_h = " << ratio_h << endl;
 					stop_ratio_over_parent[m] = ratio_h;
 					sum_parent_stop_probability += parent_stop_probability;
 					// cout << "sum_parent_stop_probability = " << sum_parent_stop_probability << endl;
@@ -460,24 +439,18 @@ public:
 				}
 
 			}
-			// 親から子へ降りていく
-			// 水平方向の位置が分ればアクセス可能
-			if(n < num_parents){
-				// cout << "next index: " << node_horizontal_indices[n] << endl;
-				assert(node_horizontal_indices[n] < iterator_on_structure->_children.size());
-				iterator_on_structure = iterator_on_structure->_children[node_horizontal_indices[n]];
-				assert(iterator_on_structure != NULL);
-			}
 			if(n < num_parents){
 				double rest_stick_length = 1;
 				for(int m = 0;m < depth_h + 1;m++){
 					double ratio_h = stop_ratio_over_parent[m];
 					double stop_probability = rest_stick_length * ratio_h;
-					// cout << "stop_probability = " << stop_probability << endl;
+					cout << "stop_probability = " << stop_probability << endl;
 					rest_stick_length *= 1.0 - ratio_h;
-					// cout << "rest_stick_length = " << rest_stick_length << endl;
+					cout << "rest_stick_length = " << rest_stick_length << endl;
 					stop_probability_over_parent[m] = stop_probability;
 				}
+				// 親から子へ降りていく
+				iterator_on_htssb = iterator_on_htssb->_child_transition_tssb_myself;
 			}
 		}
 		return sbr_ratio;
