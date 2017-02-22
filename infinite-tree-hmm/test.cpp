@@ -200,7 +200,7 @@ void test8(iTHMM* model){
 	}
 	double ratio = 0;
 	auto start_time = chrono::system_clock::now();
-	for(int i = 0;i < 1;i++){
+	for(int i = 0;i < 100000;i++){
 		ratio = model->compute_expectation_of_horizontal_sbr_ratio_on_node(target_on_structure->_transition_tssb_myself);
 	}
 	auto end_time = chrono::system_clock::now();
@@ -212,19 +212,20 @@ void test8(iTHMM* model){
 
 
 void test9(iTHMM* model){
-	add_customer(model, 3000);
+	add_customer(model, 10);
 	double uniform = 0;
-	model->_structure_tssb->update_stick_length();
-	model->_structure_tssb->dump();
+	TSSB* tssb = model->_structure_tssb->_root->_transition_tssb;
+	tssb->update_stick_length();
+	tssb->dump();
 	vector<Node*> nodes_true;
 	vector<Node*> nodes;
-	model->_structure_tssb->enumerate_nodes_from_left_to_right(nodes_true);
-	int num_nodes_true = model->_structure_tssb->get_num_nodes();
+	int num_nodes_true = tssb->get_num_nodes();
 	int num_nodes = 0;
 	int prev_id = -1;
-	for(int i = 0;i < 100000000;i++){
-		uniform = i / 100000000.0;
-		Node* node = model->retrospective_sampling_on_tssb(uniform, model->_structure_tssb);
+	for(int i = 0;i < 100000;i++){
+		uniform = i / 100000.0;
+		Node* node = model->retrospective_sampling_on_tssb(uniform, tssb);
+		assert(node != NULL);
 		if(node->_identifier != prev_id){
 			cout << uniform << ": " << node->_identifier << endl;
 			prev_id = node->_identifier;
@@ -232,6 +233,7 @@ void test9(iTHMM* model){
 			nodes.push_back(node);
 		}
 	}
+	tssb->enumerate_nodes_from_left_to_right(nodes_true);
 	int limit = (nodes_true.size() > nodes.size()) ? nodes_true.size() : nodes.size();
 	for(int i = 0;i < limit;i++){
 		int identifier = (i < nodes.size()) ? nodes[i]->_identifier : -1;
@@ -316,8 +318,14 @@ void test12(iTHMM* model){
 	}
 }
 
+void test13(iTHMM* model){
+	add_customer(model, 20);
+	c_printf("[*]%s\n", "structure");
+	model->_structure_tssb->dump();
+}
+
 int main(){
 	iTHMM* model = new iTHMM();
-	test8(model);
+	test7(model);
 	return 0;
 }

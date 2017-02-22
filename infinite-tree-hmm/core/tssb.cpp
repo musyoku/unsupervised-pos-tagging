@@ -23,22 +23,24 @@ void TSSB::update_stick_length(){
 	_root->_children_stick_length = 1.0 - ratio_v;
 	_root->_probability = ratio_v;
 	_update_stick_length(sum_probability, _root);
-	cout << "sum_probability: " << sum_probability << endl;
 }
-TSSB* TSSB::generate_transition_tssb_belonging_to(int owner_node_id_on_structure){
+TSSB* TSSB::generate_transition_tssb_belonging_to(Node* owner){
 	Node* root = new Node(NULL, _root->_identifier);
-	root->_htssb_owner_id = owner_node_id_on_structure;
-	copy_children(_root, root, owner_node_id_on_structure);
+	root->_htssb_owner_id = owner->_identifier;
+	root->_htssb_owner = owner;
+	copy_children(_root, root, owner);
 	TSSB* target = new TSSB(root, _alpha, _gamma, _lambda);
-	target->_owner_id = owner_node_id_on_structure;
+	target->_owner_id = owner->_identifier;
 	return target;
 }
-void TSSB::copy_children(Node* source, Node* target, int owner_node_id_on_structure){
+void TSSB::copy_children(Node* source, Node* target, Node* owner){
 	for(const auto source_child: source->_children){
 		Node* child = new Node(target, source_child->_identifier);
-		child->_htssb_owner_id = owner_node_id_on_structure;
+		child->_htssb_owner_id = owner->_identifier;
+		child->_htssb_owner = owner;
+		// child->_htssb_owner_id = owner;
 		target->add_child(child);
-		copy_children(source_child, child, owner_node_id_on_structure);
+		copy_children(source_child, child, owner);
 	}
 }
 void TSSB::_update_stick_length(double &sum_probability, Node* node){

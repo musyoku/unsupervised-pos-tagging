@@ -5,6 +5,7 @@
 #include "tssb.hpp"
 #include "node.hpp"
 #include "sampler.h"
+#include "cprintf.h"
 
 class iTHMM{
 public:
@@ -13,13 +14,14 @@ public:
 	double _gamma;
 	double _lambda;
 	iTHMM(){
-		_alpha = 1;
+		_alpha = 10;
 		_gamma = 1;
-		_lambda = 1;
+		_lambda = 0.5;
 		_structure_tssb = new TSSB(_alpha, _gamma, _lambda);
 		Node* root_on_structure = _structure_tssb->_root;
 		Node* root_on_htssb = new Node(NULL, root_on_structure->_identifier);
 		root_on_htssb->_htssb_owner_id = root_on_structure->_identifier;
+		root_on_htssb->_htssb_owner = root_on_structure;
 		root_on_htssb->_structure_tssb_myself = root_on_structure;
 		root_on_structure->_transition_tssb = new TSSB(root_on_htssb, _alpha, _gamma, _lambda);
 		root_on_structure->_transition_tssb_myself = root_on_htssb;
@@ -32,7 +34,7 @@ public:
 		if(parent->_htssb_owner_id == 0){	// parentが木構造上のノードの場合
 			generated_child_on_structure = parent->generate_child();
 		}else{	// parentが別のノードの遷移確率用TSSB上のノードだった場合
-			Node* parent_on_cluster = _structure_tssb->find_node_with_id(parent->_identifier);
+			Node* parent_on_cluster = _structure_tssb->find_node_by_tracing_horizontal_indices(parent);
 			generated_child_on_structure = parent_on_cluster->generate_child();
 		}
 		assert(generated_child_on_structure != NULL);
@@ -71,21 +73,26 @@ public:
 		}
 		return return_child;
 	}
-	void _generate_and_add_new_child_to_all_htssb(Node* iterator_on_structure, Node* parent, Node* child_on_structure, Node* &return_child){
-		assert(iterator_on_structure->_transition_tssb != NULL);
-		int owner_id_on_structure_parent_belongs = parent->_htssb_owner_id;
-		int child_id_to_generate = child_on_structure->_identifier;
-		// 遷移確率用TSSBの同じ位置に子ノードを挿入
-		Node* parent_on_htssb = iterator_on_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(parent);
-		assert(parent_on_htssb != NULL);
-		Node* child_on_htssb = new Node(parent_on_htssb, child_id_to_generate);
-		child_on_htssb->_htssb_owner_id = iterator_on_structure->_identifier;
-		if(child_on_htssb->_htssb_owner_id == owner_id_on_structure_parent_belongs){	// 親と同じTSSB上の子ノードを返す
-			return_child = child_on_htssb;
+	void _generate_and_add_new_child_to_all_htssb(Node* iterator_on_structure, Node* parent, Node* generated_child_on_structure, Node* &return_child){
+		// iteratorとgenerated_childが同一の場合はすでに追加されているのでスキップ
+		if(iterator_on_structure->_identifier != generated_child_on_structure->_identifier){
+			assert(iterator_on_structure->_transition_tssb != NULL);
+			int owner_id_on_structure_parent_belongs = parent->_htssb_owner_id;
+			int child_id_to_generate = generated_child_on_structure->_identifier;
+			// 遷移確率用TSSBの同じ位置に子ノードを挿入
+			Node* parent_on_htssb = iterator_on_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(parent);
+			assert(parent_on_htssb != NULL);
+			assert(parent_on_htssb->_identifier == generated_child_on_structure->_parent->_identifier);
+			Node* child_on_htssb = new Node(parent_on_htssb, child_id_to_generate);
+			// child_on_htssb->_htssb_owner_id = iterator_on_structure->_identifier;
+			// child_on_htssb->_htssb_owner = iterator_on_structure;
+			if(child_on_htssb->_htssb_owner_id == owner_id_on_structure_parent_belongs){	// 親と同じTSSB上の子ノードを返す
+				return_child = child_on_htssb;
+			}
+			parent_on_htssb->add_child(child_on_htssb);
 		}
-		parent_on_htssb->add_child(child_on_htssb);
 		for(const auto &child: iterator_on_structure->_children){
-			_generate_and_add_new_child_to_all_htssb(child, parent, child_on_structure, return_child);
+			_generate_and_add_new_child_to_all_htssb(child, parent, generated_child_on_structure, return_child);
 		}
 	}
 	Node* sample_node_on_structure_tssb(){
@@ -189,8 +196,10 @@ public:
 	}
 	void _add_customer_to_vertical_crp(double alpha, Node* target_on_htssb){
 		assert(target_on_htssb != NULL);
+		assert(target_on_htssb->_htssb_owner_id != 0);
 		bool new_table_generated = false;
-		target_on_htssb->add_customer_to_vertical_crp(alpha, new_table_generated);
+		double ratio_v = compute_expectation_of_vertical_sbr_ratio_on_node(target_on_htssb);
+		target_on_htssb->add_customer_to_vertical_crp(alpha, ratio_v, new_table_generated);
 		Node* target_on_parent_htssb = target_on_htssb->_parent_transition_tssb_myself;
 		if(new_table_generated && target_on_parent_htssb != NULL){
 			_add_customer_to_vertical_crp(alpha, target_on_parent_htssb);
@@ -199,7 +208,8 @@ public:
 	void _add_customer_to_horizontal_crp(double gamma, Node* target_on_htssb){
 		assert(target_on_htssb != NULL);
 		bool new_table_generated = false;
-		target_on_htssb->add_customer_to_horizontal_crp(gamma, new_table_generated);
+		double ratio_h = compute_expectation_of_horizontal_sbr_ratio_on_node(target_on_htssb);
+		target_on_htssb->add_customer_to_horizontal_crp(gamma, ratio_h, new_table_generated);
 		Node* target_on_parent_htssb = target_on_htssb->_parent_transition_tssb_myself;
 		if(new_table_generated && target_on_parent_htssb != NULL){
 			_add_customer_to_horizontal_crp(gamma, target_on_parent_htssb);
@@ -289,10 +299,14 @@ public:
 	// 縦の棒折り過程における、棒を折る比率を計算。親のTSSBから階層的に生成
 	double compute_expectation_of_vertical_sbr_ratio_on_node(Node* target_on_htssb){
 		assert(target_on_htssb->_htssb_owner_id != 0);	// 木構造上のノードだった場合は計算できない
+		Node* owner_on_structure = target_on_htssb->_htssb_owner;
+		target_on_htssb->dump();
+		assert(owner_on_structure != NULL);
+		owner_on_structure->dump();
 		// cout << "target" << endl << "	";
 		// target_on_htssb->dump();
 		double sbr_ratio = 0;
-		int depth_v = target_on_htssb->_depth_v;
+		int depth_v = owner_on_structure->_depth_v;
 		int num_parents = depth_v;
 
 		// ルートまで遡る
@@ -302,10 +316,9 @@ public:
 		}
 
 		// 木構造上での基準となるノードを選ぶ
-		Node* target_on_structure = target_on_htssb->_structure_tssb_myself;
-		assert(target_on_structure != NULL);
-		Node** iterators_on_structure_from_root_to_myself = target_on_structure->_pointer_nodes_v;
-		// Node* iterator_on_structure = target_on_structure;
+		assert(owner_on_structure != NULL);
+		Node** iterators_on_structure_from_root_to_myself = owner_on_structure->_pointer_nodes_v;
+		// Node* iterator_on_structure = owner_on_structure;
 		// iterators_on_structure_from_root_to_myself[depth_v] = iterator_on_structure;
 		// for(int n = 0;n < num_parents;n++){
 		// 	iterator_on_structure = iterator_on_structure->_parent;
@@ -315,8 +328,8 @@ public:
 		// 階層TSSBなので親TSSBのSBPを全て睿珊しないと次ノードのSBPを計算できない
 		// ノードの深さをdとすると(d+1)^2回計算する必要がある
 		// ルートノードの深さは0
-		double* stop_ratio_over_parent = target_on_structure->_stop_ratio_v_over_parent;
-		double* stop_probability_over_parent = target_on_structure->_stop_probability_v_over_parent;
+		double* stop_ratio_over_parent = owner_on_structure->_stop_ratio_v_over_parent;
+		double* stop_probability_over_parent = owner_on_structure->_stop_probability_v_over_parent;
 		for(int n = 0;n < num_parents + 1;n++){
 			// cout << "n = " << n << endl;
 			// 木構造上での基準となるノードを選ぶ
@@ -385,6 +398,10 @@ public:
 	// 横の棒折り過程における、棒を折る比率を計算。親のTSSBから階層的に生成
 	double compute_expectation_of_horizontal_sbr_ratio_on_node(Node* target_on_htssb){
 		assert(target_on_htssb != NULL);
+		Node* owner_on_structure = target_on_htssb->_htssb_owner;
+		target_on_htssb->dump();
+		assert(owner_on_structure != NULL);
+		owner_on_structure->dump();
 		int depth_v = target_on_htssb->_depth_v;
 		int depth_h = target_on_htssb->_depth_h;
 		if(depth_v == 0){	// ルートノードなら必ず止まる
@@ -403,35 +420,35 @@ public:
 		double* stop_ratio_over_parent = target_on_structure->_stop_ratio_h_over_parent;
 		double* stop_probability_over_parent = target_on_structure->_stop_probability_h_over_parent;
 		for(int n = 0;n < num_parents + 1;n++){
-			cout << "n = " << n << endl;
+			// cout << "n = " << n << endl;
 			// トップレベルのノードから順に停止確率を計算
 			double sum_parent_stop_probability = 0;
 			Node* parent_contains_target_on_htssb = iterator_on_htssb->_parent;
 			assert(parent_contains_target_on_htssb);
-			parent_contains_target_on_htssb->dump();
+			// parent_contains_target_on_htssb->dump();
 			// cout << "parent contains" << endl << "	";
 			// parent_contains_target_on_htssb->dump();
 			for(int m = 0;m < depth_h + 1;m++){		// 自分自身も含めるので+1
 				Node* child_on_htssb = parent_contains_target_on_htssb->_children[m];
 				assert(child_on_htssb);
-				cout << "m = " << m << endl << "	";
+				// cout << "m = " << m << endl << "	";
 				// child_on_htssb->dump();
 				if(iterator_on_htssb->_htssb_owner_id == 1){	// 親ノードの場合
 					int pass_count = child_on_htssb->_pass_count_h;
 					int stop_count = child_on_htssb->_stop_count_h;
-					cout << "pass_count = " << pass_count << ", stop_count = " << stop_count << endl;
+					// cout << "pass_count = " << pass_count << ", stop_count = " << stop_count << endl;
 					double ratio_h = (1.0 + stop_count) / (1.0 + _gamma + stop_count + pass_count);
-					cout << "ratio_h = " << ratio_h << endl;
+					// cout << "ratio_h = " << ratio_h << endl;
 					stop_ratio_over_parent[m] = ratio_h;
 				}else{
 					int pass_count = child_on_htssb->_pass_count_h;
 					int stop_count = child_on_htssb->_stop_count_h;
-					cout << "pass_count = " << pass_count << ", stop_count = " << stop_count << endl;
+					// cout << "pass_count = " << pass_count << ", stop_count = " << stop_count << endl;
 					double parent_stop_probability = stop_probability_over_parent[m];
-					cout << "parent_stop_probability = " << parent_stop_probability << endl;
-					cout << "sum_parent_stop_probability = " << sum_parent_stop_probability << endl;
+					// cout << "parent_stop_probability = " << parent_stop_probability << endl;
+					// cout << "sum_parent_stop_probability = " << sum_parent_stop_probability << endl;
 					double ratio_h = (_gamma * parent_stop_probability + stop_count) / (_gamma * (1.0 - sum_parent_stop_probability) + stop_count + pass_count);
-					cout << "ratio_h = " << ratio_h << endl;
+					// cout << "ratio_h = " << ratio_h << endl;
 					stop_ratio_over_parent[m] = ratio_h;
 					sum_parent_stop_probability += parent_stop_probability;
 					// cout << "sum_parent_stop_probability = " << sum_parent_stop_probability << endl;
@@ -444,9 +461,9 @@ public:
 				for(int m = 0;m < depth_h + 1;m++){
 					double ratio_h = stop_ratio_over_parent[m];
 					double stop_probability = rest_stick_length * ratio_h;
-					cout << "stop_probability = " << stop_probability << endl;
+					// cout << "stop_probability = " << stop_probability << endl;
 					rest_stick_length *= 1.0 - ratio_h;
-					cout << "rest_stick_length = " << rest_stick_length << endl;
+					// cout << "rest_stick_length = " << rest_stick_length << endl;
 					stop_probability_over_parent[m] = stop_probability;
 				}
 				// 親から子へ降りていく

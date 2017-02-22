@@ -18,7 +18,7 @@ Node::Node(Node* parent, int identifier){
 void Node::init(){
 	_depth_v = (_parent != NULL) ? _parent->_depth_v + 1 : 0;
 	_depth_h = (_parent != NULL) ? _parent->_children.size() : 0;
-	_htssb_owner_id = 0;
+	_htssb_owner_id = (_parent != NULL) ? _parent->_htssb_owner_id : 0;
 	_stick_length = -1;
 	_children_stick_length = -1;
 	_pass_count_v = 0;
@@ -29,6 +29,7 @@ void Node::init(){
 	_transition_tssb = NULL;
 	_transition_tssb_myself = NULL;
 	_parent_transition_tssb_myself = NULL;
+	_htssb_owner = (_parent != NULL) ? _parent->_htssb_owner : 0;
 	_stop_probability_v_over_parent = new double[_depth_v + 1];
 	_stop_ratio_v_over_parent = new double[_depth_v + 1];
 	_pointer_nodes_v = new Node*[_depth_v + 1];
@@ -54,7 +55,7 @@ Node* Node::generate_child(){
 	return child;
 }
 void Node::copy_transition_tssb_from_structure(TSSB* structure){
-	_transition_tssb = structure->generate_transition_tssb_belonging_to(_identifier);
+	_transition_tssb = structure->generate_transition_tssb_belonging_to(this);
 }
 void Node::set_horizontal_indices(){
 	Node* iterator = this;
@@ -113,11 +114,12 @@ double Node::compute_expectation_of_clustering_horizontal_sbr_ratio(double gamma
 	return (1.0 + stop_count) / (1.0 + gamma + stop_count + pass_count);
 }
 // 遷移確率TSSBに客を追加
-void Node::add_customer_to_vertical_crp(double concentration, bool &new_table_generated){
+void Node::add_customer_to_vertical_crp(double concentration, double g0, bool &new_table_generated){
 	Table* table = get_vertical_table();
 	Node* parent = _parent;
 	assert(table != NULL);
-	table->add_customer(concentration, new_table_generated);
+	int total_count = _pass_count_v + _stop_count_v;
+	table->add_customer(concentration, g0, total_count, new_table_generated);
 	// 停止回数・通過回数を更新
 	increment_vertical_stop_count();
 	while(parent){
@@ -139,10 +141,11 @@ void Node::decrement_vertical_pass_count(){
 	_pass_count_v -= 1;
 	assert(_pass_count_v >= 0);
 }
-void Node::add_customer_to_horizontal_crp(double concentration, bool &new_table_generated){
+void Node::add_customer_to_horizontal_crp(double concentration, double g0, bool &new_table_generated){
 	Table* table = get_horizontal_table();
 	assert(table != NULL);
-	table->add_customer(concentration, new_table_generated);
+	int total_count = _pass_count_h + _stop_count_h;
+	table->add_customer(concentration, g0, total_count, new_table_generated);
 	// 停止回数・通過回数を更新
 	Node* stopped_child = this;
 	Node* parent = _parent;
