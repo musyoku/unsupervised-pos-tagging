@@ -7,7 +7,7 @@ using namespace std;
 
 void add_customer(iTHMM* model, int count){
 	for(int n = 0;n < count;n++){
-		Node* node = model->sample_node_on_structure_tssb();
+		Node* node = model->sample_node_on_tssb(model->_structure_tssb->_root->_transition_tssb);
 		model->add_customer_to(node->_transition_tssb_myself);
 	}
 }
@@ -79,7 +79,7 @@ void test4(iTHMM* model){
 void test5(iTHMM* model){
 	vector<Node*> nodes;
 	for(int n = 0;n < 10000;n++){
-		Node* node = model->sample_node_on_structure_tssb();
+		Node* node = model->sample_node_on_tssb(model->_structure_tssb->_root->_transition_tssb);
 		model->add_customer_to(node);
 		nodes.push_back(node);
 	}
@@ -93,7 +93,7 @@ void test5(iTHMM* model){
 void test6(iTHMM* model){
 	vector<Node*> nodes;
 	for(int n = 0;n < 1000;n++){
-		Node* node = model->sample_node_on_structure_tssb();
+		Node* node = model->sample_node_on_tssb(model->_structure_tssb->_root->_transition_tssb);
 		model->add_customer_to(node);
 		nodes.push_back(node);
 	}
@@ -215,7 +215,7 @@ void test9(iTHMM* model){
 	add_customer(model, 10);
 	double uniform = 0;
 	TSSB* tssb = model->_structure_tssb->_root->_transition_tssb;
-	tssb->update_stick_length();
+	model->update_stick_length_of_tssb(tssb);
 	tssb->dump();
 	vector<Node*> nodes_true;
 	vector<Node*> nodes;
@@ -256,7 +256,7 @@ void test10(iTHMM* model){
 		parent->_transition_tssb->dump();
 		parent = parent->_parent;
 	}
-	target->_transition_tssb->update_stick_length();
+	model->update_stick_length_of_tssb(target->_transition_tssb);
 	Node* node = model->retrospective_sampling_on_tssb(uniform, target->_transition_tssb);
 	c_printf("[*]%s\n", "sampled");
 	node->dump();
@@ -272,7 +272,7 @@ void test10(iTHMM* model){
 
 void test11(iTHMM* model){
 	for(int n = 0;n < 10;n++){
-		Node* node = model->sample_node_on_structure_tssb();
+		Node* node = model->sample_node_on_tssb(model->_structure_tssb->_root->_transition_tssb);
 	}
 	c_printf("[*]%s\n", "structure");
 	model->_structure_tssb->dump();
@@ -294,7 +294,7 @@ void test11(iTHMM* model){
 
 void test12(iTHMM* model){
 	for(int n = 0;n < 10;n++){
-		Node* node = model->sample_node_on_structure_tssb();
+		Node* node = model->sample_node_on_tssb(model->_structure_tssb->_root->_transition_tssb);
 	}
 	c_printf("[*]%s\n", "structure");
 	model->_structure_tssb->dump();
@@ -368,6 +368,6 @@ void test14(iTHMM* model){
 
 int main(){
 	iTHMM* model = new iTHMM();
-	test14(model);
+	test10(model);
 	return 0;
 }

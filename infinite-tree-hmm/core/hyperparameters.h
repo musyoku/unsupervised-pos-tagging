@@ -5,6 +5,9 @@
 #define iTHMM_GAMMA 1.0
 #define iTHMM_LAMBDA 1.0
 
+#define iTHMM_TAU_0 1.0
+#define iTHMM_TAU_1 100.0
+
 #define HPYLM_D 1.0
 #define HPYLM_THETA 1.0
 

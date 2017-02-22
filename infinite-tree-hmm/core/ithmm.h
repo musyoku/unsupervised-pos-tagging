@@ -28,6 +28,7 @@ public:
 		_gamma = iTHMM_GAMMA;
 		_lambda = iTHMM_LAMBDA;
 		_max_depth = 0;
+
 		_structure_tssb = new TSSB(_alpha, _gamma, _lambda);
 		Node* root_on_structure = _structure_tssb->_root;
 		Node* root_on_htssb = new Node(NULL, root_on_structure->_identifier);
@@ -35,7 +36,9 @@ public:
 		root_on_htssb->_htssb_owner = root_on_structure;
 		root_on_htssb->_structure_tssb_myself = root_on_structure;
 		root_on_structure->_transition_tssb = new TSSB(root_on_htssb, _alpha, _gamma, _lambda);
+		root_on_structure->_transition_tssb->_owner_id = root_on_structure->_identifier;
 		root_on_structure->_transition_tssb_myself = root_on_htssb;
+
 		_hpylm_d_m.push_back(HPYLM_D);
 		_hpylm_theta_m.push_back(HPYLM_THETA);
 		_hpylm_a_m.push_back(HPYLM_A);
@@ -121,14 +124,15 @@ public:
 			_generate_and_add_new_child_to_all_htssb(child, parent, generated_child_on_structure, return_child);
 		}
 	}
-	Node* sample_node_on_structure_tssb(){
-		return _sample_node_on_tssb_by_iterating_node(_structure_tssb->_root);
+	Node* sample_node_on_tssb(TSSB* tssb){
+		assert(tssb->_owner_id != 0);
+		return _sample_node_on_tssb_by_iterating_node(tssb->_root);
 	}
 	// 止まるノードを決定する
 	Node* _sample_node_on_tssb_by_iterating_node(Node* iterator){
 		assert(iterator != NULL);
-		double alpha = _alpha * pow(_lambda, iterator->_depth_v);
-		double head = iterator->compute_expectation_of_clustering_vertical_sbr_ratio(alpha);
+		assert(iterator->_htssb_owner_id != 0);
+		double head = compute_expectation_of_vertical_sbr_ratio_on_node(iterator);
 		iterator->_children_stick_length = 1 - iterator->_stick_length * head;
 		double bernoulli = Sampler::uniform(0, 1);
 		if(bernoulli <= head){			// 表が出たらこのノードに降りる
@@ -138,7 +142,7 @@ public:
 		for(int i = 0;i < iterator->_children.size();i++){
 			Node* child = iterator->_children[i];
 			assert(child != NULL);
-			double head = child->compute_expectation_of_clustering_horizontal_sbr_ratio(_gamma);
+			double head = compute_expectation_of_horizontal_sbr_ratio_on_node(child);
 			double bernoulli = Sampler::uniform(0, 1);
 			if(bernoulli <= head){		// 表が出たら次に止まるかどうかを決める
 				return _sample_node_on_tssb_by_iterating_node(child);
@@ -147,7 +151,7 @@ public:
 		// ない場合生成しながらコインを投げる
 		while(true){
 			Node* child = generate_and_add_new_child_to(iterator);
-			double head = child->compute_expectation_of_clustering_horizontal_sbr_ratio(_gamma);
+			double head = compute_expectation_of_horizontal_sbr_ratio_on_node(child);
 			double bernoulli = Sampler::uniform(0, 1);
 			if(bernoulli <= head){		// 表が出たら次に止まるかどうかを決める
 				return _sample_node_on_tssb_by_iterating_node(child);
@@ -155,11 +159,13 @@ public:
 		}
 	}
 	// [0, 1)の一様分布からノードをサンプリング
-	Node* retrospective_sampling_on_tssb(double uniform, TSSB* tssb){
+	Node* retrospective_sampling_on_tssb(double uniform, TSSB* tssb, double total_stick_length = 1.0){
+		assert(tssb->_owner_id != 0);
 		Node* root = tssb->_root;
-		double ratio = root->compute_expectation_of_clustering_vertical_sbr_ratio(_alpha);
+		double ratio = compute_expectation_of_vertical_sbr_ratio_on_node(root);
 		double sum_probability = ratio;
-		root->_children_stick_length = 1.0 - ratio;
+		root->_stick_length = total_stick_length;
+		root->_children_stick_length = total_stick_length * (1.0 - ratio);
 		return _retrospective_sampling(uniform, sum_probability, root);
 	}
 	Node* _retrospective_sampling(double uniform, double &sum_probability, Node* node){
@@ -177,8 +183,8 @@ public:
 		for(int i = 0;i < node->_children.size();i++){
 			Node* child = node->_children[i];
 			double alpha = _alpha * pow(_lambda, child->_depth_v);
-			double ratio_h = child->compute_expectation_of_clustering_horizontal_sbr_ratio(_gamma);
-			double ratio_v = child->compute_expectation_of_clustering_vertical_sbr_ratio(alpha);
+			double ratio_h = compute_expectation_of_horizontal_sbr_ratio_on_node(child);
+			double ratio_v = compute_expectation_of_vertical_sbr_ratio_on_node(child);
 			if(uniform <= sum_probability + sum_stick_length_over_children + rest_stick_length * ratio_h){
 				// rest_stick_length * ratio_hだけだとこのノードの棒の長さ（つまりこのノード+子ノードに割り当てる棒）なので
 				// ratio_vも掛けてこのノードで止まる確率にする必要がある
@@ -191,10 +197,10 @@ public:
 				}
 				// 子ノード領域に当たった場合、uniformを超えるまで棒を折り続ける
 				Node* _child = generate_and_add_new_child_to(child);
-				double ratio_h = _child->compute_expectation_of_clustering_horizontal_sbr_ratio(_gamma);
+				double ratio_h = compute_expectation_of_horizontal_sbr_ratio_on_node(_child);
 				_child->_stick_length = child->_children_stick_length * ratio_h;
 				double alpha = _alpha * pow(_lambda, _child->_depth_v);
-				double ratio_v = _child->compute_expectation_of_clustering_vertical_sbr_ratio(alpha);
+				double ratio_v = compute_expectation_of_vertical_sbr_ratio_on_node(_child);
 				_child->_probability = _child->_stick_length * ratio_v;
 				_child->_children_stick_length = _child->_stick_length * (1.0 - ratio_v);
 				assert(child->has_child());
@@ -339,7 +345,7 @@ public:
 
 		// 木構造上での基準となるノードを選ぶ
 		assert(owner_on_structure != NULL);
-		Node** iterators_on_structure_from_root_to_myself = owner_on_structure->_pointer_nodes_v;
+		Node** iterators_on_structure_from_root_to_myself = owner_on_structure->_nodes_from_root_to_myself;
 		// Node* iterator_on_structure = owner_on_structure;
 		// iterators_on_structure_from_root_to_myself[depth_v] = iterator_on_structure;
 		// for(int n = 0;n < num_parents;n++){
@@ -363,7 +369,7 @@ public:
 			// トップレベルのノードから順に停止確率を計算
 			double sum_parent_stop_probability = 0;
 			// Node* iterator_on_htssb = iterator_on_structure->_transition_tssb->_root;	// 遷移確率用TSSBのルートから始める
-			Node* iterator_on_htssb = target_on_parent_htssb->_pointer_nodes_v[0];
+			Node* iterator_on_htssb = target_on_parent_htssb->_nodes_from_root_to_myself[0];
 			assert(iterator_on_htssb != NULL);
 			for(int m = 0;m < num_parents + 1;m++){
 				assert(iterator_on_htssb != NULL);
@@ -394,7 +400,7 @@ public:
 				}
 				// 親から子へ降りていく
 				if(m < num_parents){
-					iterator_on_htssb = target_on_parent_htssb->_pointer_nodes_v[m + 1];
+					iterator_on_htssb = target_on_parent_htssb->_nodes_from_root_to_myself[m + 1];
 				}
 			}
 			// 計算した棒を折る比率から確率を計算
@@ -492,6 +498,34 @@ public:
 			}
 		}
 		return sbr_ratio;
+	}
+	void update_stick_length_of_tssb(TSSB* tssb){
+		assert(tssb->_owner_id != 0);
+		Node* root = tssb->_root;
+		double ratio_v = compute_expectation_of_vertical_sbr_ratio_on_node(root);
+		double sum_probability = ratio_v;
+		root->_stick_length = 1;
+		root->_children_stick_length = 1.0 - ratio_v;
+		root->_probability = ratio_v;
+		_update_stick_length(sum_probability, root);
+	}
+	void _update_stick_length(double &sum_probability, Node* node){
+		assert(node->_children_stick_length > 0);
+		double rest_stick_length = node->_children_stick_length;
+		for(int i = 0;i < node->_children.size();i++){
+			Node* child = node->_children[i];
+			double ratio_h = compute_expectation_of_horizontal_sbr_ratio_on_node(child);
+			child->_stick_length = rest_stick_length * ratio_h;
+			double ratio_v = compute_expectation_of_vertical_sbr_ratio_on_node(child);
+			child->_probability = child->_stick_length * ratio_v;
+			sum_probability += child->_probability;
+			rest_stick_length *= 1.0 - ratio_h;
+			double alpha = _alpha * pow(_lambda, child->_depth_v);
+			child->_children_stick_length = child->_stick_length * (1.0 - ratio_v);
+			if(child->has_child()){
+				_update_stick_length(sum_probability, child);
+			}
+		}
 	}
 	void delete_invalid_children(Node* parent){
 		vector<Node*> &children = parent->_children;

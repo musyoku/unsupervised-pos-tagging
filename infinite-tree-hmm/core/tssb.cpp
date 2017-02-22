@@ -17,14 +17,6 @@ TSSB::TSSB(Node* root, double alpha, double gamma, double lambda){
 	_gamma = gamma;
 	_lambda = lambda;
 }
-void TSSB::update_stick_length(){
-	double ratio_v = _root->compute_expectation_of_clustering_vertical_sbr_ratio(_gamma);
-	double sum_probability = ratio_v;
-	_root->_stick_length = 1;
-	_root->_children_stick_length = 1.0 - ratio_v;
-	_root->_probability = ratio_v;
-	_update_stick_length(sum_probability, _root);
-}
 TSSB* TSSB::generate_transition_tssb_belonging_to(Node* owner){
 	Node* root = new Node(NULL, _root->_identifier);
 	root->_htssb_owner_id = owner->_identifier;
@@ -42,24 +34,6 @@ void TSSB::copy_children(Node* source, Node* target, Node* owner){
 		// child->_htssb_owner_id = owner;
 		target->add_child(child);
 		copy_children(source_child, child, owner);
-	}
-}
-void TSSB::_update_stick_length(double &sum_probability, Node* node){
-	assert(node->_children_stick_length > 0);
-	double rest_stick_length = node->_children_stick_length;
-	for(int i = 0;i < node->_children.size();i++){
-		Node* child = node->_children[i];
-		double ratio_h = child->compute_expectation_of_clustering_horizontal_sbr_ratio(_gamma);
-		child->_stick_length = rest_stick_length * ratio_h;
-		double ratio_v = child->compute_expectation_of_clustering_vertical_sbr_ratio(_gamma);
-		child->_probability = child->_stick_length * ratio_v;
-		sum_probability += child->_probability;
-		rest_stick_length *= 1.0 - ratio_h;
-		double alpha = _alpha * pow(_lambda, child->_depth_v);
-		child->_children_stick_length = child->_stick_length * (1.0 - ratio_v);
-		if(child->has_child()){
-			_update_stick_length(sum_probability, child);
-		}
 	}
 }
 void TSSB::enumerate_nodes_from_left_to_right(vector<Node*> &nodes){

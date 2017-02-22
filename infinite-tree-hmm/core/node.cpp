@@ -35,7 +35,7 @@ void Node::init(){
 	_htssb_owner = (_parent != NULL) ? _parent->_htssb_owner : 0;
 	_stop_probability_v_over_parent = new double[_depth_v + 1];
 	_stop_ratio_v_over_parent = new double[_depth_v + 1];
-	_pointer_nodes_v = new Node*[_depth_v + 1];
+	_nodes_from_root_to_myself = new Node*[_depth_v + 1];
 	_stop_probability_h_over_parent = new double[_depth_h + 1];
 	_stop_ratio_h_over_parent = new double[_depth_h + 1];
 	_horizontal_indices_from_root = new int[_depth_v];
@@ -57,7 +57,7 @@ Node::~Node(){
 	delete _table_h;
 	delete[] _stop_probability_v_over_parent;
 	delete[] _stop_ratio_v_over_parent;
-	delete[] _pointer_nodes_v;
+	delete[] _nodes_from_root_to_myself;
 	delete[] _horizontal_indices_from_root;
 }
 Node* Node::generate_child(){
@@ -77,11 +77,11 @@ void Node::set_horizontal_indices(){
 }
 void Node::set_pointers_from_root_to_myself(){
 	Node* iterator = this;
-	_pointer_nodes_v[_depth_v] = iterator;
+	_nodes_from_root_to_myself[_depth_v] = iterator;
 	for(int n = 0;n < _depth_v;n++){
 		iterator = iterator->_parent;
 		assert(iterator != NULL);
-		_pointer_nodes_v[_depth_v - n - 1] = iterator;
+		_nodes_from_root_to_myself[_depth_v - n - 1] = iterator;
 	}
 }
 void Node::add_child(Node* node){
@@ -111,18 +111,6 @@ Table* Node::get_horizontal_table(){
 }
 bool Node::has_child(){
 	return _children.size() != 0;
-}
-// 縦の棒折り過程における、棒を折る比率の期待値を計算。論文中のコインの表が出る確率に相当
-double Node::compute_expectation_of_clustering_vertical_sbr_ratio(double alpha){
-	int pass_count = get_vertical_pass_count();
-	int stop_count = get_vertical_stop_count();
-	return (1.0 + stop_count) / (1.0 + alpha + stop_count + pass_count);
-}
-// 横の棒折り過程における、棒を折る比率を計算。論文中のコインの表が出る確率に相当
-double Node::compute_expectation_of_clustering_horizontal_sbr_ratio(double gamma){
-	int pass_count = get_horizontal_pass_count();
-	int stop_count = get_horizontal_stop_count();
-	return (1.0 + stop_count) / (1.0 + gamma + stop_count + pass_count);
 }
 // 遷移確率TSSBに客を追加
 void Node::add_customer_to_vertical_crp(double concentration, double g0, bool &new_table_generated){
