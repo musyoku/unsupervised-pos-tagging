@@ -5,6 +5,7 @@
 #include <vector>
 #include "tssb.hpp"
 #include "node.hpp"
+#include "hpylm.hpp"
 #include "sampler.h"
 #include "cprintf.h"
 #include "hyperparameters.h"
@@ -18,6 +19,10 @@ public:
 	int _max_depth;
 	vector<double> _hpylm_d_m;		// HPYLMのハイパーパラメータ（ディスカウント係数）
 	vector<double> _hpylm_theta_m;	// HPYLMのハイパーパラメータ（集中度）
+	vector<double> _hpylm_a_m;		// ベータ分布のパラメータ	dの推定用
+	vector<double> _hpylm_b_m;		// ベータ分布のパラメータ	dの推定用
+	vector<double> _hpylm_alpha_m;	// ガンマ分布のパラメータ	θの推定用
+	vector<double> _hpylm_beta_m;	// ガンマ分布のパラメータ	θの推定用
 	iTHMM(){
 		_alpha = iTHMM_ALPHA;
 		_gamma = iTHMM_GAMMA;
@@ -33,6 +38,10 @@ public:
 		root_on_structure->_transition_tssb_myself = root_on_htssb;
 		_hpylm_d_m.push_back(HPYLM_D);
 		_hpylm_theta_m.push_back(HPYLM_THETA);
+		_hpylm_a_m.push_back(HPYLM_A);
+		_hpylm_b_m.push_back(HPYLM_B);
+		_hpylm_alpha_m.push_back(HPYLM_ALPHA);
+		_hpylm_beta_m.push_back(HPYLM_BETA);
 	}
 	// 木構造で子ノードを生成した際に全てのHTSSBの同じ位置に子ノードを生成する
 	Node* generate_and_add_new_child_to(Node* parent){
@@ -548,6 +557,60 @@ public:
 		}
 		for(const auto &child: iterator_on_structure->_children){
 			_delete_node_on_all_htssb(delete_id, child, target_parent_on_structure);
+		}
+	}
+	// "A Bayesian Interpretation of Interpolated Kneser-Ney" Appendix C参照
+	// http://www.gatsby.ucl.ac.uk/~ywteh/research/compling/hpylm.pdf
+	void sum_auxiliary_variables_recursively_for_hpylm(Node* parent, vector<double> &sum_log_x_u_m, vector<double> &sum_y_ui_m, vector<double> &sum_1_y_ui_m, vector<double> &sum_1_z_uwkj_m){
+		for(const auto &child: parent->_children){
+			int depth = child->_depth_v;
+			assert(depth < _hpylm_d_m.size());
+			assert(depth < _hpylm_theta_m.size());
+
+			double d = _hpylm_d_m[depth];
+			double theta = _hpylm_theta_m[depth];
+			sum_log_x_u_m[depth] += child->_hpylm->auxiliary_log_x_u(theta);	// log(x_u)
+			sum_y_ui_m[depth] += child->_hpylm->auxiliary_y_ui(d, theta);		// y_ui
+			sum_1_y_ui_m[depth] += child->_hpylm->auxiliary_1_y_ui(d, theta);	// 1 - y_ui
+			sum_1_z_uwkj_m[depth] += child->_hpylm->auxiliary_1_z_uwkj(d);		// 1 - z_uwkj
+
+			sum_auxiliary_variables_recursively_for_hpylm(child, sum_log_x_u_m, sum_y_ui_m, sum_1_y_ui_m, sum_1_z_uwkj_m);
+		}
+	}
+	// dとθの推定
+	void sample_hpylm_hyperparameters(){
+		assert(_max_depth < _hpylm_d_m.size());
+		assert(_max_depth < _hpylm_theta_m.size());
+
+		// 親ノードの深さが0であることに注意
+		vector<double> sum_log_x_u_m(_max_depth + 1, 0.0);
+		vector<double> sum_y_ui_m(_max_depth + 1, 0.0);
+		vector<double> sum_1_y_ui_m(_max_depth + 1, 0.0);
+		vector<double> sum_1_z_uwkj_m(_max_depth + 1, 0.0);
+
+		// _root
+		HPYLM* root = _structure_tssb->_root->_hpylm;
+		sum_log_x_u_m[0] = root->auxiliary_log_x_u(_hpylm_theta_m[0]);			// log(x_u)
+		sum_y_ui_m[0] = root->auxiliary_y_ui(_hpylm_d_m[0], _hpylm_theta_m[0]);			// y_ui
+		sum_1_y_ui_m[0] = root->auxiliary_1_y_ui(_hpylm_d_m[0], _hpylm_theta_m[0]);		// 1 - y_ui
+		sum_1_z_uwkj_m[0] = root->auxiliary_1_z_uwkj(_hpylm_d_m[0]);				// 1 - z_uwkj
+
+		// それ以外
+		sum_auxiliary_variables_recursively_for_hpylm(_structure_tssb->_root, sum_log_x_u_m, sum_y_ui_m, sum_1_y_ui_m, sum_1_z_uwkj_m);
+
+		for(int u = 0;u <= _max_depth;u++){
+			_hpylm_d_m[u] = Sampler::beta(_hpylm_a_m[u] + sum_1_y_ui_m[u], _hpylm_b_m[u] + sum_1_z_uwkj_m[u]);
+			_hpylm_theta_m[u] = Sampler::gamma(_hpylm_alpha_m[u] + sum_y_ui_m[u], _hpylm_beta_m[u] - sum_log_x_u_m[u]);
+		}
+		// 不要な深さのハイパーパラメータを削除
+		int num_remove = _hpylm_d_m.size() - _max_depth - 1;
+		for(int n = 0;n < num_remove;n++){
+			_hpylm_d_m.pop_back();
+			_hpylm_theta_m.pop_back();
+			_hpylm_a_m.pop_back();
+			_hpylm_b_m.pop_back();
+			_hpylm_alpha_m.pop_back();
+			_hpylm_beta_m.pop_back();
 		}
 	}
 };
