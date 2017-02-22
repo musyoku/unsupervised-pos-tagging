@@ -15,7 +15,7 @@ public:
 	double _lambda;
 	iTHMM(){
 		_alpha = 10;
-		_gamma = 1;
+		_gamma = 10;
 		_lambda = 0.5;
 		_structure_tssb = new TSSB(_alpha, _gamma, _lambda);
 		Node* root_on_structure = _structure_tssb->_root;
@@ -194,53 +194,51 @@ public:
 		_add_customer_to_vertical_crp(alpha, target_on_htssb);
 		_add_customer_to_horizontal_crp(_gamma, target_on_htssb);
 	}
-	void _add_customer_to_vertical_crp(double alpha, Node* target_on_htssb){
+	void _add_customer_to_vertical_crp(double alpha, Node* iterator){
+		assert(iterator != NULL);
+		assert(iterator->_htssb_owner_id != 0);
+		bool new_table_generated = false;
+		double ratio_v = compute_expectation_of_vertical_sbr_ratio_on_node(iterator);
+		iterator->add_customer_to_vertical_crp(alpha, ratio_v, new_table_generated);
+		Node* iterator_on_parent_htssb = iterator->_parent_transition_tssb_myself;
+		if(new_table_generated && iterator_on_parent_htssb != NULL){
+			_add_customer_to_vertical_crp(alpha, iterator_on_parent_htssb);
+		}
+	}
+	void _add_customer_to_horizontal_crp(double gamma, Node* iterator){
+		assert(iterator != NULL);
+		assert(iterator->_htssb_owner_id != 0);
+		bool new_table_generated = false;
+		double ratio_h = compute_expectation_of_horizontal_sbr_ratio_on_node(iterator);
+		iterator->add_customer_to_horizontal_crp(gamma, ratio_h, new_table_generated);
+		Node* iterator_on_parent_htssb = iterator->_parent_transition_tssb_myself;
+		if(new_table_generated && iterator_on_parent_htssb != NULL){
+			_add_customer_to_horizontal_crp(gamma, iterator_on_parent_htssb);
+		}
+	}
+	void remove_customer_from(Node* target_on_htssb){
 		assert(target_on_htssb != NULL);
 		assert(target_on_htssb->_htssb_owner_id != 0);
-		bool new_table_generated = false;
-		double ratio_v = compute_expectation_of_vertical_sbr_ratio_on_node(target_on_htssb);
-		target_on_htssb->add_customer_to_vertical_crp(alpha, ratio_v, new_table_generated);
-		Node* target_on_parent_htssb = target_on_htssb->_parent_transition_tssb_myself;
-		if(new_table_generated && target_on_parent_htssb != NULL){
-			_add_customer_to_vertical_crp(alpha, target_on_parent_htssb);
+		_remove_customer_from_vertical_crp(target_on_htssb);
+		_remove_customer_from_horizontal_crp(target_on_htssb);
+	}
+	void _remove_customer_from_vertical_crp(Node* iterator){
+		assert(iterator != NULL);
+		assert(iterator->_htssb_owner_id != 0);
+		bool empty_table_deleted = false;
+		iterator->remove_customer_from_vertical_crp(empty_table_deleted);
+		Node* iterator_on_parent_htssb = iterator->_parent_transition_tssb_myself;
+		if(empty_table_deleted && iterator_on_parent_htssb != NULL){
+			_remove_customer_from_vertical_crp(iterator_on_parent_htssb);
 		}
 	}
-	void _add_customer_to_horizontal_crp(double gamma, Node* target_on_htssb){
-		assert(target_on_htssb != NULL);
-		bool new_table_generated = false;
-		double ratio_h = compute_expectation_of_horizontal_sbr_ratio_on_node(target_on_htssb);
-		target_on_htssb->add_customer_to_horizontal_crp(gamma, ratio_h, new_table_generated);
-		Node* target_on_parent_htssb = target_on_htssb->_parent_transition_tssb_myself;
-		if(new_table_generated && target_on_parent_htssb != NULL){
-			_add_customer_to_horizontal_crp(gamma, target_on_parent_htssb);
-		}
-	}
-	void remove_htssb_customer_from_node(Node* node_on_structure){
-		assert(node_on_structure->_htssb_owner_id == 0);
+	void _remove_customer_from_horizontal_crp(Node* iterator){
+		assert(iterator != NULL);
 		bool empty_table_deleted = false;
-		_remove_customer_from_vertical_crp(node_on_structure, node_on_structure->_identifier);
-		_remove_customer_from_horizontal_crp(node_on_structure, node_on_structure->_identifier);
-	}
-	void _remove_customer_from_vertical_crp(Node* target_on_structure, int target_id){
-		TSSB* transition_tssb = target_on_structure->_transition_tssb;
-		assert(transition_tssb != NULL);
-		Node* target_on_htssb = transition_tssb->find_node_with_id(target_id);
-		assert(target_on_htssb != NULL);
-		bool empty_table_deleted = false;
-		target_on_htssb->remove_customer_from_vertical_crp(empty_table_deleted);
-		if(empty_table_deleted && target_on_structure->_parent != NULL){
-			_remove_customer_from_vertical_crp(target_on_structure->_parent, target_id);
-		}
-	}
-	void _remove_customer_from_horizontal_crp(Node* target_on_structure, int target_id){
-		TSSB* transition_tssb = target_on_structure->_transition_tssb;
-		assert(transition_tssb != NULL);
-		Node* target_on_htssb = transition_tssb->find_node_with_id(target_id);
-		assert(target_on_htssb != NULL);
-		bool empty_table_deleted = false;
-		target_on_htssb->remove_customer_from_horizontal_crp(empty_table_deleted);
-		if(empty_table_deleted && target_on_structure->_parent != NULL){
-			_remove_customer_from_horizontal_crp(target_on_structure->_parent, target_id);
+		iterator->remove_customer_from_horizontal_crp(empty_table_deleted);
+		Node* iterator_on_parent_htssb = iterator->_parent_transition_tssb_myself;
+		if(empty_table_deleted && iterator_on_parent_htssb != NULL){
+			_remove_customer_from_horizontal_crp(iterator_on_parent_htssb);
 		}
 	}
 	// クラスタリング用TSSBから客が消える場合、木構造が変化する可能性があるので専用メソッドを用意

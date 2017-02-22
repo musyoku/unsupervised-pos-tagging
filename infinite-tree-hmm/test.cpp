@@ -42,7 +42,7 @@ void test2(iTHMM* model){
 	}
 
 	for(int n = 0;n < 100;n++){
-		model->remove_htssb_customer_from_node(target_on_structure);
+		model->remove_customer_from(target_on_structure);
 	}
 
 	c_printf("[*]%s\n", "structure");
@@ -119,13 +119,13 @@ void test6(iTHMM* model){
 	std::random_shuffle(nodes.begin(), nodes.end());
 	for(auto node: nodes){
 		for(int i = 0;i < 1000;i++){
-			model->remove_htssb_customer_from_node(node);
+			model->remove_customer_from(node);
 		}
 	}
 	std::random_shuffle(nodes.begin(), nodes.end());
 	for(auto node: nodes){
 		for(int i = 0;i < 1000;i++){
-			model->remove_htssb_customer_from_node(node);
+			model->remove_customer_from(node);
 		}
 	}
 
@@ -341,8 +341,33 @@ void test13(iTHMM* model){
 	cout << ((total - generated) / (double)total) << " : " << (generated / (double)total) << endl;
 }
 
+void test14(iTHMM* model){
+	add_customer(model, 10);
+	c_printf("[*]%s\n", "structure");
+	model->_structure_tssb->dump();
+	Node* target = model->_structure_tssb->find_node_with_id(7);
+	for(int i = 0;i < 10000;i++){
+		model->add_customer_to(target->_transition_tssb_myself);
+	}
+	Node* parent = target;
+	while(parent){
+		c_printf("[*]%d\n", parent->_identifier);
+		parent->_transition_tssb->dump();
+		parent = parent->_parent;
+	}
+	for(int i = 0;i < 10000;i++){
+		model->remove_customer_from(target->_transition_tssb_myself);
+	}
+	parent = target;
+	while(parent){
+		c_printf("[*]%d\n", parent->_identifier);
+		parent->_transition_tssb->dump();
+		parent = parent->_parent;
+	}
+}
+
 int main(){
 	iTHMM* model = new iTHMM();
-	test13(model);
+	test14(model);
 	return 0;
 }
