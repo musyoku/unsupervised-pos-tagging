@@ -219,18 +219,26 @@ bool Node::delete_node_if_needed(){
 	return false;
 }
 Node* Node::delete_child_node(int node_id){
+	Node* return_node = NULL;
 	for(int i = 0;i < _children.size();i++){
-		Node* target = _children[i];
+		Node* &target = _children[i];
 		if(target->_identifier == node_id){
 			assert(target->get_vertical_pass_count() == 0);
 			assert(target->get_vertical_stop_count() == 0);
 			assert(target->get_horizontal_pass_count() == 0);
 			assert(target->get_horizontal_stop_count() == 0);
-			_children.erase(_children.begin() + i);
-			return target;
+			return_node = target;
+			continue;
+		}
+		if(return_node != NULL){
+			target->_depth_h -= 1;
+			target->_horizontal_indices_from_root[target->_depth_v - 1] -= 1;
 		}
 	}
-	return NULL;
+	if(return_node != NULL){
+		_children.erase(_children.begin() + return_node->_depth_h);
+	}
+	return return_node;
 }
 void Node::dump(){
 	int pass_count_v = get_vertical_pass_count();

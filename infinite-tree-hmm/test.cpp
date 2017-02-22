@@ -271,8 +271,34 @@ void test11(iTHMM* model){
 	}
 }
 
+void test12(iTHMM* model){
+	for(int n = 0;n < 10;n++){
+		Node* node = model->sample_node_on_structure_tssb();
+	}
+	c_printf("[*]%s\n", "cluster");
+	model->_structure_tssb->dump();
+	Node* target = model->_structure_tssb->find_node_with_id(12);
+	model->delete_node_if_needed(target);
+	c_printf("[*]%s\n", "cluster");
+	model->_structure_tssb->dump();
+	Node* parent = model->_structure_tssb->find_node_with_id(14);
+	while(parent){
+		c_printf("[*]%d\n", parent->_identifier);
+		parent->_transition_tssb->dump();
+		Node* myself = parent->_transition_tssb_myself;
+		myself->dump();
+		if(myself->_identifier != 1){
+			assert(myself->_parent_transition_tssb_myself != NULL);
+			myself->_parent_transition_tssb_myself->dump();
+		}
+		assert(myself->_structure_tssb_myself != NULL);
+		myself->_structure_tssb_myself->dump();
+		parent = parent->_parent;
+	}
+}
+
 int main(){
 	iTHMM* model = new iTHMM();
-	test11(model);
+	test12(model);
 	return 0;
 }

@@ -76,7 +76,7 @@ public:
 			return_child = child_on_htssb;
 		}
 		parent_on_htssb->add_child(child_on_htssb);
-		for(const auto child: iterator_on_structure->_children){
+		for(const auto &child: iterator_on_structure->_children){
 			_generate_and_add_new_child_to_htssb(child, parent, child_on_structure, return_child);
 		}
 	}
@@ -479,23 +479,29 @@ public:
 		vector<Node*> &children = parent->_children;
 		for(int i = children.size() - 1;i >= 0;i--){
 			Node* child = children[i];
-			bool success = delete_node_on_clustering_tssb_if_needed(child);
+			bool success = delete_node_if_needed(child);
 			if(success == false){	// 失敗したらそれ以上は消さない
 				break;
 			}
 		}
 	}
-	bool delete_node_on_clustering_tssb_if_needed(Node* node_on_structure){
-		if(node_on_structure->_depth_v == 0){
+	bool delete_node_if_needed(Node* target){
+		Node* target_on_structure = NULL;
+		if(target->_htssb_owner_id == 0){	// targetが木構造上のノードの場合
+			target_on_structure = target;
+		}else{								// targetがHTSSB上のノードの場合
+			target_on_structure = target->_structure_tssb_myself;
+		}
+		assert(target_on_structure != NULL);
+		if(target_on_structure->_depth_v == 0){
 			return false;
 		}
-		assert(node_on_structure->_parent != NULL);
-		int delete_id = node_on_structure->_identifier;
-		int parent_id = node_on_structure->_parent->_identifier;
-		int pass_count_v = node_on_structure->get_vertical_pass_count();
-		int stop_count_v = node_on_structure->get_vertical_stop_count();
-		int pass_count_h = node_on_structure->get_horizontal_pass_count();
-		int stop_count_h = node_on_structure->get_horizontal_stop_count();
+		assert(target_on_structure->_parent != NULL);
+		int delete_id = target_on_structure->_identifier;
+		int pass_count_v = target_on_structure->get_vertical_pass_count();
+		int stop_count_v = target_on_structure->get_vertical_stop_count();
+		int pass_count_h = target_on_structure->get_horizontal_pass_count();
+		int stop_count_h = target_on_structure->get_horizontal_stop_count();
 		if(pass_count_v != 0){
 			return false;
 		}
@@ -508,29 +514,32 @@ public:
 		if(stop_count_h != 0){
 			return false;
 		}
-		Node* delete_node = node_on_structure->_parent->delete_child_node(delete_id);
+		Node* parent_on_structure = target_on_structure->_parent;
+		Node* delete_node = target_on_structure->_parent->delete_child_node(delete_id);
 		if(delete_node != NULL){
 			TSSB* delete_tssb = delete_node->_transition_tssb;
 			delete delete_node;
 			delete delete_tssb;
 		}
-		// クラスタリング用TSSBの全ノードを収集
-		vector<Node*> nodes;
-		_structure_tssb->enumerate_nodes_from_left_to_right(nodes);
-		for(auto node_on_structure: nodes){
-			assert(node_on_structure->_transition_tssb != NULL);
-			// 遷移確率用TSSBでの同じ位置の子ノードを削除
-			Node* parent_on_htssb = node_on_structure->_transition_tssb->find_node_with_id(parent_id);
-			assert(parent_on_htssb != NULL);
-			assert(parent_on_htssb->_htssb_owner_id != 0);
-			Node* delete_node = parent_on_htssb->delete_child_node(delete_id);
-			if(delete_node != NULL){
-				TSSB* delete_tssb = delete_node->_transition_tssb;
-				delete delete_node;
-				delete delete_tssb;
-			}
-		}
+		_delete_node_on_all_htssb(delete_id, _structure_tssb->_root, parent_on_structure);
 		return true;
+	}
+	void _delete_node_on_all_htssb(int delete_id, Node* iterator_on_structure, Node* target_parent_on_structure){
+		assert(target_parent_on_structure != NULL);
+		assert(iterator_on_structure->_transition_tssb != NULL);
+		// 遷移確率用TSSBでの同じ位置の子ノードを削除
+		Node* parent_on_htssb = iterator_on_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(target_parent_on_structure);
+		assert(parent_on_htssb != NULL);
+		assert(parent_on_htssb->_htssb_owner_id != 0);
+		Node* delete_node = parent_on_htssb->delete_child_node(delete_id);
+		if(delete_node != NULL){
+			TSSB* delete_tssb = delete_node->_transition_tssb;
+			delete delete_node;
+			delete delete_tssb;
+		}
+		for(const auto &child: iterator_on_structure->_children){
+			_delete_node_on_all_htssb(delete_id, child, target_parent_on_structure);
+		}
 	}
 };
 

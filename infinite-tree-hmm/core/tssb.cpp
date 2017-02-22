@@ -69,6 +69,7 @@ void TSSB::_enumerate_nodes_from_left_to_right(Node* node, vector<Node*> &nodes)
 	}
 }
 Node* TSSB::find_node_by_tracing_horizontal_indices(Node* base){
+	assert(base != NULL);
 	int* indices = base->_horizontal_indices_from_root;
 	int depth_v = base->_depth_v;
 	Node* iterator = _root;
