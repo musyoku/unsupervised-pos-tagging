@@ -190,7 +190,7 @@ public:
 	void add_customer_to(Node* target_on_htssb){
 		assert(target_on_htssb != NULL);
 		assert(target_on_htssb->_htssb_owner_id != 0);
-		double alpha = _alpha * pow(_alpha, target_on_htssb->_depth_v);
+		double alpha = _alpha * pow(_lambda, target_on_htssb->_depth_v);
 		_add_customer_to_vertical_crp(alpha, target_on_htssb);
 		_add_customer_to_horizontal_crp(_gamma, target_on_htssb);
 	}
@@ -300,9 +300,7 @@ public:
 	double compute_expectation_of_vertical_sbr_ratio_on_node(Node* target_on_htssb){
 		assert(target_on_htssb->_htssb_owner_id != 0);	// 木構造上のノードだった場合は計算できない
 		Node* owner_on_structure = target_on_htssb->_htssb_owner;
-		target_on_htssb->dump();
 		assert(owner_on_structure != NULL);
-		owner_on_structure->dump();
 		// cout << "target" << endl << "	";
 		// target_on_htssb->dump();
 		double sbr_ratio = 0;
@@ -399,10 +397,8 @@ public:
 	double compute_expectation_of_horizontal_sbr_ratio_on_node(Node* target_on_htssb){
 		assert(target_on_htssb != NULL);
 		Node* owner_on_structure = target_on_htssb->_htssb_owner;
-		target_on_htssb->dump();
 		assert(owner_on_structure != NULL);
-		owner_on_structure->dump();
-		int depth_v = target_on_htssb->_depth_v;
+		int depth_v = owner_on_structure->_depth_v;
 		int depth_h = target_on_htssb->_depth_h;
 		if(depth_v == 0){	// ルートノードなら必ず止まる
 			return 1;
@@ -416,9 +412,10 @@ public:
 			iterator_on_htssb = iterator_on_htssb->_parent_transition_tssb_myself;
 		}
 
-		Node* target_on_structure = target_on_htssb->_structure_tssb_myself;
-		double* stop_ratio_over_parent = target_on_structure->_stop_ratio_h_over_parent;
-		double* stop_probability_over_parent = target_on_structure->_stop_probability_h_over_parent;
+		Node* _ = target_on_htssb->_structure_tssb_myself;
+		assert(_ != NULL);
+		double* stop_ratio_over_parent = _->_stop_ratio_h_over_parent;
+		double* stop_probability_over_parent = _->_stop_probability_h_over_parent;
 		for(int n = 0;n < num_parents + 1;n++){
 			// cout << "n = " << n << endl;
 			// トップレベルのノードから順に停止確率を計算

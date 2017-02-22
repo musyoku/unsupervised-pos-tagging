@@ -319,13 +319,30 @@ void test12(iTHMM* model){
 }
 
 void test13(iTHMM* model){
-	add_customer(model, 20);
+	add_customer(model, 1);
 	c_printf("[*]%s\n", "structure");
 	model->_structure_tssb->dump();
+	Node* target = model->_structure_tssb->find_node_with_id(7);
+	Table* table = target->_table_v;
+	int n = 1;
+	double alpha = 10;
+	double g0 = 0.5;
+	cout << (n / (n + alpha)) / ((n + alpha * g0) / (n + alpha)) << " : " << (alpha * g0 / (n + alpha)) / ((n + alpha * g0) / (n + alpha)) << endl;
+	int generated = 0;
+	int total = 0;
+	for(int i = 0;i < 100000;i++){
+		bool new_table_generated = false;
+		table->add_customer(alpha, g0, n, new_table_generated);
+		total++;
+		if(new_table_generated){
+			generated++;
+		}
+	}
+	cout << ((total - generated) / (double)total) << " : " << (generated / (double)total) << endl;
 }
 
 int main(){
 	iTHMM* model = new iTHMM();
-	test7(model);
+	test13(model);
 	return 0;
 }

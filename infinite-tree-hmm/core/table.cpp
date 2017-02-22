@@ -1,5 +1,7 @@
 #include "table.hpp"
 #include "sampler.h"
+#include <iostream>
+using namespace std;
 
 Table::Table(){
 	_num_customers = 0;
