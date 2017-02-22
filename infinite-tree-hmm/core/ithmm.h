@@ -21,8 +21,9 @@ public:
 		Node* root_on_htssb = new Node(NULL, root_on_structure->_identifier);
 		root_on_htssb->_htssb_owner_id = root_on_structure->_identifier;
 		root_on_structure->_transition_tssb = new TSSB(root_on_htssb, _alpha, _gamma, _lambda);
+		root_on_structure->_transition_tssb_myself = root_on_htssb;
 	}
-	// クラスタリング用TSSBで子ノードを生成した際に全てのHTSSBの同じ位置に子ノードを生成する
+	// 木構造で子ノードを生成した際に全てのHTSSBの同じ位置に子ノードを生成する
 	Node* generate_and_add_new_child_to(Node* parent){
 		assert(parent != NULL);
 		// まず木構造上で子ノードを作る
@@ -35,60 +36,80 @@ public:
 		}
 		assert(generated_child_on_structure != NULL);
 		// 遷移確率用TSSBをセット
-		generated_child_on_structure->set_horizontal_indices();
 		generated_child_on_structure->_transition_tssb = _structure_tssb->generate_transition_tssb_belonging_to(generated_child_on_structure->_identifier);
-		generated_child_on_structure->_transition_tssb_myself = generated_child_on_structure->find_same_node_on_transition_tssb();
+		Node* myself = generated_child_on_structure->find_same_node_on_transition_tssb();
+		assert(myself != NULL);
+		generated_child_on_structure->_transition_tssb_myself = myself;
 
-		int child_id = generated_child_on_structure->_identifier;
-		int tssb_id_parent_belongs = parent->_htssb_owner_id;
 		Node* return_child = generated_child_on_structure;	// 実際に返すノード
-		// クラスタリング用TSSBの全ノードを収集
-		vector<Node*> nodes;
-		_structure_tssb->enumerate_nodes_from_left_to_right(nodes);
-		for(auto node_on_structure: nodes){
-			assert(node_on_structure->_transition_tssb != NULL);
-			// 遷移確率用TSSBでの同じ位置に子ノードを挿入
-			Node* parent_on_htssb = node_on_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(parent);
-			assert(parent_on_htssb != NULL);
-			Node* child_on_htssb = new Node(parent_on_htssb, child_id);
-			child_on_htssb->_htssb_owner_id = node_on_structure->_identifier;
-			if(child_on_htssb->_htssb_owner_id == tssb_id_parent_belongs){	// 親と同じTSSB上の子ノードを返す
-				return_child = child_on_htssb;
+		// 木構造上の全ノードのHTSSBにノードを追加
+		_generate_and_add_new_child_to_htssb(_structure_tssb->_root, parent, generated_child_on_structure, return_child);
+		// ポインタを張る
+		Node* iterator_on_structure = generated_child_on_structure;
+		Node* parent_on_structure = iterator_on_structure->_parent;
+		while(iterator_on_structure != NULL){
+			Node* iterator_on_htssb = iterator_on_structure->_transition_tssb_myself;
+			assert(iterator_on_htssb != NULL);
+			iterator_on_htssb->_structure_tssb_myself = iterator_on_structure;
+			if(parent_on_structure != NULL){
+				assert(parent_on_structure->_transition_tssb != NULL);
+				iterator_on_htssb->_parent_transition_tssb_myself = parent_on_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(iterator_on_structure);
+				assert(iterator_on_htssb->_parent_transition_tssb_myself != NULL);
 			}
-			parent_on_htssb->add_child(child_on_htssb);
+			iterator_on_structure = parent_on_structure;
+			if(iterator_on_structure != NULL){
+				parent_on_structure = iterator_on_structure->_parent;
+			}
 		}
 		return return_child;
 	}
-	Node* sample_node(){
-		return _sample_node(_structure_tssb->_root);
+	void _generate_and_add_new_child_to_htssb(Node* iterator_on_structure, Node* parent, Node* child_on_structure, Node* &return_child){
+		assert(iterator_on_structure->_transition_tssb != NULL);
+		int owner_id_on_structure_parent_belongs = parent->_htssb_owner_id;
+		int child_id_to_generate = child_on_structure->_identifier;
+		// 遷移確率用TSSBの同じ位置に子ノードを挿入
+		Node* parent_on_htssb = iterator_on_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(parent);
+		assert(parent_on_htssb != NULL);
+		Node* child_on_htssb = new Node(parent_on_htssb, child_id_to_generate);
+		child_on_htssb->_htssb_owner_id = iterator_on_structure->_identifier;
+		if(child_on_htssb->_htssb_owner_id == owner_id_on_structure_parent_belongs){	// 親と同じTSSB上の子ノードを返す
+			return_child = child_on_htssb;
+		}
+		parent_on_htssb->add_child(child_on_htssb);
+		for(const auto child: iterator_on_structure->_children){
+			_generate_and_add_new_child_to_htssb(child, parent, child_on_structure, return_child);
+		}
+	}
+	Node* sample_node_on_structure_tssb(){
+		return _sample_node_on_tssb_by_iterating_node(_structure_tssb->_root);
 	}
 	// 止まるノードを決定する
-	Node* _sample_node(Node* node){
-		assert(node != NULL);
-		double alpha = _alpha * pow(_lambda, node->_depth_v);
-		double head = node->compute_expectation_of_clustering_vertical_sbr_ratio(alpha);
-		node->_children_stick_length = 1 - node->_stick_length * head;
+	Node* _sample_node_on_tssb_by_iterating_node(Node* iterator){
+		assert(iterator != NULL);
+		double alpha = _alpha * pow(_lambda, iterator->_depth_v);
+		double head = iterator->compute_expectation_of_clustering_vertical_sbr_ratio(alpha);
+		iterator->_children_stick_length = 1 - iterator->_stick_length * head;
 		double bernoulli = Sampler::uniform(0, 1);
 		if(bernoulli <= head){			// 表が出たらこのノードに降りる
-			return node;
+			return iterator;
 		}
 		// 子ノードがある場合
-		for(int i = 0;i < node->_children.size();i++){
-			Node* child = node->_children[i];
+		for(int i = 0;i < iterator->_children.size();i++){
+			Node* child = iterator->_children[i];
 			assert(child != NULL);
 			double head = child->compute_expectation_of_clustering_horizontal_sbr_ratio(_gamma);
 			double bernoulli = Sampler::uniform(0, 1);
 			if(bernoulli <= head){		// 表が出たら次に止まるかどうかを決める
-				return _sample_node(child);
+				return _sample_node_on_tssb_by_iterating_node(child);
 			}
 		}
 		// ない場合生成しながらコインを投げる
 		while(true){
-			Node* child = generate_and_add_new_child_to(node);
+			Node* child = generate_and_add_new_child_to(iterator);
 			double head = child->compute_expectation_of_clustering_horizontal_sbr_ratio(_gamma);
 			double bernoulli = Sampler::uniform(0, 1);
 			if(bernoulli <= head){		// 表が出たら次に止まるかどうかを決める
-				return _sample_node(child);
+				return _sample_node_on_tssb_by_iterating_node(child);
 			}
 		}
 	}
@@ -152,6 +173,7 @@ public:
 		return NULL;
 	}
 	void add_customer_to(Node* target){
+		assert(target != NULL);
 		assert(target->_htssb_owner_id != 0);
 		double alpha = _alpha * pow(_alpha, target->_depth_v);
 		_add_customer_to_vertical_crp(alpha, target);

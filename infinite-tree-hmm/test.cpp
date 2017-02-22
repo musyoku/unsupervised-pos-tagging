@@ -7,7 +7,7 @@ using namespace std;
 
 void add_customer(iTHMM* model, int count){
 	for(int n = 0;n < count;n++){
-		Node* node = model->sample_node();
+		Node* node = model->sample_node_on_structure_tssb();
 		model->add_customer_to(node);
 	}
 }
@@ -79,7 +79,7 @@ void test4(iTHMM* model){
 void test5(iTHMM* model){
 	vector<Node*> nodes;
 	for(int n = 0;n < 10000;n++){
-		Node* node = model->sample_node();
+		Node* node = model->sample_node_on_structure_tssb();
 		model->add_customer_to(node);
 		nodes.push_back(node);
 	}
@@ -93,7 +93,7 @@ void test5(iTHMM* model){
 void test6(iTHMM* model){
 	vector<Node*> nodes;
 	for(int n = 0;n < 1000;n++){
-		Node* node = model->sample_node();
+		Node* node = model->sample_node_on_structure_tssb();
 		model->add_customer_to(node);
 		nodes.push_back(node);
 	}
@@ -250,7 +250,25 @@ void test10(iTHMM* model){
 }
 
 void test11(iTHMM* model){
-	add_customer(model, 10);
+	for(int n = 0;n < 10;n++){
+		Node* node = model->sample_node_on_structure_tssb();
+	}
+	c_printf("[*]%s\n", "cluster");
+	model->_structure_tssb->dump();
+	Node* parent = model->_structure_tssb->find_node_with_id(12);
+	while(parent){
+		c_printf("[*]%d\n", parent->_identifier);
+		parent->_transition_tssb->dump();
+		Node* myself = parent->_transition_tssb_myself;
+		myself->dump();
+		if(myself->_identifier != 1){
+			assert(myself->_parent_transition_tssb_myself != NULL);
+			myself->_parent_transition_tssb_myself->dump();
+		}
+		assert(myself->_structure_tssb_myself != NULL);
+		myself->_structure_tssb_myself->dump();
+		parent = parent->_parent;
+	}
 }
 
 int main(){

@@ -37,6 +37,7 @@ void Node::init(){
 	_horizontal_indices_from_root = new int[_depth_v];
 	_table_v = new Table();
 	_table_h = new Table();
+	set_horizontal_indices();
 }
 Node::~Node(){
 	delete _table_v;
@@ -53,7 +54,6 @@ Node* Node::generate_child(){
 }
 void Node::set_horizontal_indices(){
 	Node* iterator = this;
-	iterator->dump();
 	for(int i = 0;i < _depth_v;i++){
 		_horizontal_indices_from_root[_depth_v - i - 1] = iterator->_depth_h;
 		iterator = iterator->_parent;
@@ -239,7 +239,7 @@ void Node::dump(){
 	int stop_count_h = get_horizontal_stop_count();
 	string indices_str = "";
 	for(int i = 0;i < _depth_v;i++){
-		indices_str += _horizontal_indices_from_root[i];
+		indices_str += std::to_string(_horizontal_indices_from_root[i]);
 		indices_str += ",";
 	}
 	cout << (boost::format("%d [vp:%d,vs:%d,hp:%d,hs:%d][len:%f,self:%f,ch:%f,p:%f][ow:%d,dv:%d,dh:%d][%s]") % _identifier % pass_count_v % stop_count_v % pass_count_h % stop_count_h % _stick_length % (_stick_length - _children_stick_length) % _children_stick_length % _probability % _htssb_owner_id % _depth_v % _depth_h % indices_str.c_str()).str() << endl;

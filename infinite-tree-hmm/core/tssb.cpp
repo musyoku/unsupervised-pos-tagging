@@ -136,7 +136,7 @@ void TSSB::_dump(Node* node){
 	int stop_count_h = node->get_horizontal_stop_count();
 	string indices_str = "";
 	for(int i = 0;i < node->_depth_v;i++){
-		indices_str += node->_horizontal_indices_from_root[i];
+		indices_str += std::to_string(node->_horizontal_indices_from_root[i]);
 		indices_str += ",";
 	}
 	cout << (boost::format("%d [vp:%d,vs:%d,hp:%d,hs:%d][len:%f,self:%f,ch:%f,p:%f][ow:%d,dv:%d,dh:%d][%s]") % node->_identifier % pass_count_v % stop_count_v % pass_count_h % stop_count_h % node->_stick_length % (node->_stick_length - node->_children_stick_length) % node->_children_stick_length % node->_probability % node->_htssb_owner_id % node->_depth_v % node->_depth_h % indices_str.c_str()).str() << endl;
