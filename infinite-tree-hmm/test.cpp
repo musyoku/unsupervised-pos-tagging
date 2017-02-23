@@ -42,7 +42,7 @@ void test2(iTHMM* model){
 	}
 
 	for(int n = 0;n < 100;n++){
-		model->remove_customer_from(target_on_structure);
+		model->remove_customer_from_htssb(target_on_structure);
 	}
 
 	c_printf("[*]%s\n", "structure");
@@ -55,52 +55,13 @@ void test2(iTHMM* model){
 	}
 }
 
-void test4(iTHMM* model){
-	add_customer(model, 20);
-	Node* target_on_structure = model->_structure_tssb->find_node_with_id(14);
-	assert(target_on_structure != NULL);
-	c_printf("[*]%s\n", "structure");
-	model->_structure_tssb->dump();
-	Node* parent = target_on_structure;
-	while(parent){
-		c_printf("[*]%d\n", parent->_identifier);
-		parent->_transition_tssb->dump();
-		parent = parent->_parent;
-	}
-	model->remove_clustering_customer_from_node(target_on_structure);
-	c_printf("[*]%s\n", "structure");
-	model->_structure_tssb->dump();
-	for(const auto child: model->_structure_tssb->_root->_children){
-		c_printf("[*]%d\n", child->_identifier);
-		child->_transition_tssb->dump();
-	}
-}
-
-void test5(iTHMM* model){
-	vector<Node*> nodes;
-	for(int n = 0;n < 10000;n++){
-		Node* node = model->sample_node_on_htssb(model->_structure_tssb->_root->_transition_tssb);
-		model->add_customer_to_htssb(node);
-		nodes.push_back(node);
-	}
-	for(auto node: nodes){
-		model->remove_clustering_customer_from_node(node);
-	}
-	c_printf("[*]%s\n", "structure");
-	model->_structure_tssb->dump();
-}
-
 void test6(iTHMM* model){
 	vector<Node*> nodes;
 	for(int n = 0;n < 1000;n++){
 		Node* node = model->sample_node_on_htssb(model->_structure_tssb->_root->_transition_tssb);
-		model->add_customer_to_htssb(node);
 		nodes.push_back(node);
 	}
 	int rand_index = Sampler::uniform_int(0, nodes.size());
-	Node* back = nodes[rand_index];
-	nodes.erase(nodes.begin() + rand_index);
-	nodes.pop_back();
 	std::random_shuffle(nodes.begin(), nodes.end());
 	for(auto node: nodes){
 		for(int i = 0;i < 1000;i++){
@@ -119,31 +80,19 @@ void test6(iTHMM* model){
 	std::random_shuffle(nodes.begin(), nodes.end());
 	for(auto node: nodes){
 		for(int i = 0;i < 1000;i++){
-			model->remove_customer_from(node);
+			model->remove_customer_from_htssb(node);
 		}
 	}
 	std::random_shuffle(nodes.begin(), nodes.end());
 	for(auto node: nodes){
 		for(int i = 0;i < 1000;i++){
-			model->remove_customer_from(node);
+			model->remove_customer_from_htssb(node);
 		}
 	}
-
-	std::random_shuffle(nodes.begin(), nodes.end());
-	for(auto node: nodes){
-		model->remove_clustering_customer_from_node(node);
-	}
-	c_printf("[*]%s\n", "back");
-	back->dump();
 	c_printf("[*]%s\n", "structure");
 	model->_structure_tssb->dump();
-
-	Node* parent = back;
-	while(parent){
-		c_printf("[*]%d\n", parent->_identifier);
-		parent->_transition_tssb->dump();
-		parent = parent->_parent;
-	}
+	c_printf("[*]%s\n", "transition");
+	model->_structure_tssb->_root->_transition_tssb->dump();
 }
 
 void test7(iTHMM* model){
@@ -358,7 +307,7 @@ void test14(iTHMM* model){
 		parent = parent->_parent;
 	}
 	for(int i = 0;i < 10000;i++){
-		model->remove_customer_from(target->_transition_tssb_myself);
+		model->remove_customer_from_htssb(target->_transition_tssb_myself);
 	}
 	parent = target;
 	while(parent){
@@ -505,10 +454,18 @@ void test20(iTHMM* model){
 
 	c_printf("[*]%s\n", "bos");
 	copy->_bos_tssb->dump();
+
+	for(int n = 0;n < 10000;n++){
+		Node* node = copy->sample_node_on_tssb(copy->_bos_tssb);
+		copy->add_customer_to_tssb(node);
+	}
+
+	c_printf("[*]%s\n", "bos");
+	copy->_bos_tssb->dump();
 }
 
 int main(){
 	iTHMM* model = new iTHMM();
-	test20(model);
+	test6(model);
 	return 0;
 }

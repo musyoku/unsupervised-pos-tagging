@@ -28,10 +28,10 @@ TSSB::TSSB(Node* root, double alpha, double gamma, double lambda){
 	_lambda = lambda;
 }
 TSSB* TSSB::generate_transition_tssb_belonging_to(Node* owner_on_structure){
-	assert(owner_on_structure->_htssb_owner_id == 0);
+	assert(owner_on_structure->_owner_id_on_structure == 0);
 	Node* root = new Node(NULL, _root->_identifier);
-	root->_htssb_owner_id = owner_on_structure->_identifier;
-	root->_htssb_owner = owner_on_structure;
+	root->_owner_id_on_structure = owner_on_structure->_identifier;
+	root->_owner_on_structure = owner_on_structure;
 	root->_parent_transition_tssb_myself = NULL;
 	if(owner_on_structure->_parent != NULL){
 		root->_parent_transition_tssb_myself = owner_on_structure->_parent->_transition_tssb->_root;
@@ -46,9 +46,9 @@ TSSB* TSSB::generate_transition_tssb_belonging_to(Node* owner_on_structure){
 void TSSB::copy_children(Node* source, Node* target, Node* owner){
 	for(const auto source_child: source->_children){
 		Node* child = new Node(target, source_child->_identifier);
-		child->_htssb_owner_id = owner->_identifier;
-		child->_htssb_owner = owner;
-		// child->_htssb_owner_id = owner;
+		child->_owner_id_on_structure = owner->_identifier;
+		child->_owner_on_structure = owner;
+		// child->_owner_id_on_structure = owner;
 		target->add_child(child);
 		copy_children(source_child, child, owner);
 	}
@@ -134,7 +134,7 @@ void TSSB::_dump(Node* node){
 		indices_str += std::to_string(node->_horizontal_indices_from_root[i]);
 		indices_str += ",";
 	}
-	cout << (boost::format("%d [vp:%d,vs:%d,hp:%d,hs:%d][len:%f,self:%f,ch:%f,p:%f][ow:%d,dv:%d,dh:%d][%s]") % node->_identifier % pass_count_v % stop_count_v % pass_count_h % stop_count_h % node->_stick_length % (node->_stick_length - node->_children_stick_length) % node->_children_stick_length % node->_probability % node->_htssb_owner_id % node->_depth_v % node->_depth_h % indices_str.c_str()).str() << endl;
+	cout << (boost::format("%d [vp:%d,vs:%d,hp:%d,hs:%d][len:%f,self:%f,ch:%f,p:%f][ow:%d,dv:%d,dh:%d][%s]") % node->_identifier % pass_count_v % stop_count_v % pass_count_h % stop_count_h % node->_stick_length % (node->_stick_length - node->_children_stick_length) % node->_children_stick_length % node->_probability % node->_owner_id_on_structure % node->_depth_v % node->_depth_h % indices_str.c_str()).str() << endl;
 	for(int i = 0;i < node->_children.size();i++){
 		Node* child = node->_children[i];
 		_dump(child);

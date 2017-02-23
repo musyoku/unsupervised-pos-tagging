@@ -27,7 +27,7 @@ Node::Node(Node* parent, int identifier){
 void Node::init(){
 	_depth_v = (_parent != NULL) ? _parent->_depth_v + 1 : 0;
 	_depth_h = (_parent != NULL) ? _parent->_children.size() : 0;
-	_htssb_owner_id = (_parent != NULL) ? _parent->_htssb_owner_id : 0;
+	_owner_id_on_structure = (_parent != NULL) ? _parent->_owner_id_on_structure : 0;
 	_stick_length = -1;
 	_children_stick_length = -1;
 	_pass_count_v = 0;
@@ -42,11 +42,11 @@ void Node::init(){
 	_parent_transition_tssb_myself = NULL;
 	_structure_tssb_myself = NULL;
 	_bos_tssb_myself = NULL;
-	_htssb_owner = (_parent != NULL) ? _parent->_htssb_owner : 0;
+	_owner_on_structure = (_parent != NULL) ? _parent->_owner_on_structure : 0;
 	_table_v = new Table();
 	_table_h = new Table();
 	_hpylm = NULL;
-	if(_htssb_owner_id == 0){	// HPYLMは木構造上のノードにだけあればよい
+	if(_owner_id_on_structure == 0){	// HPYLMは木構造上のノードにだけあればよい
 		_hpylm = new HPYLM(this);
 	}
 	init_arrays();
@@ -284,7 +284,7 @@ void Node::dump(){
 		indices_str += std::to_string(_horizontal_indices_from_root[i]);
 		indices_str += ",";
 	}
-	cout << (boost::format("%d [vp:%d,vs:%d,hp:%d,hs:%d][len:%f,self:%f,ch:%f,p:%f][ow:%d,dv:%d,dh:%d][%s]") % _identifier % _pass_count_v % _stop_count_v % _pass_count_h % _stop_count_h % _stick_length % (_stick_length - _children_stick_length) % _children_stick_length % _probability % _htssb_owner_id % _depth_v % _depth_h % indices_str.c_str()).str() << endl;
+	cout << (boost::format("%d [vp:%d,vs:%d,hp:%d,hs:%d][len:%f,self:%f,ch:%f,p:%f][ow:%d,dv:%d,dh:%d][%s]") % _identifier % _pass_count_v % _stop_count_v % _pass_count_h % _stop_count_h % _stick_length % (_stick_length - _children_stick_length) % _children_stick_length % _probability % _owner_id_on_structure % _depth_v % _depth_h % indices_str.c_str()).str() << endl;
 }
 
 int Node::_auto_increment = 1;
