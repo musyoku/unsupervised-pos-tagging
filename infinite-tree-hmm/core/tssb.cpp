@@ -2,10 +2,19 @@
 #include "tssb.hpp"
 #include "node.hpp"
 
+TSSB::TSSB(){
+	_root = NULL;
+	_owner_id = 0;
+	_owner = NULL;
+	_alpha = 0;
+	_gamma = 0;
+	_lambda = 0;
+}
 TSSB::TSSB(double alpha, double gamma, double lambda){
 	_root = new Node(NULL);
 	_root->_stick_length = 1;
 	_owner_id = 0;
+	_owner = NULL;
 	_alpha = alpha;
 	_gamma = gamma;
 	_lambda = lambda;
@@ -13,6 +22,7 @@ TSSB::TSSB(double alpha, double gamma, double lambda){
 TSSB::TSSB(Node* root, double alpha, double gamma, double lambda){
 	_root = root;
 	_owner_id = 0;
+	_owner = NULL;
 	_alpha = alpha;
 	_gamma = gamma;
 	_lambda = lambda;
@@ -30,6 +40,7 @@ TSSB* TSSB::generate_transition_tssb_belonging_to(Node* owner_on_structure){
 	copy_children(_root, root, owner_on_structure);
 	TSSB* target = new TSSB(root, _alpha, _gamma, _lambda);
 	target->_owner_id = owner_on_structure->_identifier;
+	target->_owner = owner_on_structure;
 	return target;
 }
 void TSSB::copy_children(Node* source, Node* target, Node* owner){

@@ -6,6 +6,13 @@
 #include "node.hpp"
 #include "hpylm.hpp"
 
+HPYLM::HPYLM(){
+	_num_tables = 0;
+	_num_customers = 0;
+	_state_node = NULL;
+	_depth = -1;
+	_parent = NULL;
+}
 HPYLM::HPYLM(Node* node){
 	assert(node != NULL);
 	_num_tables = 0;

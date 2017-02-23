@@ -7,6 +7,11 @@
 #include "tssb.hpp"
 #include "node.hpp"
 
+Node::Node(){
+	_identifier = _auto_increment;
+	_auto_increment++;
+	_parent = NULL;
+}
 Node::Node(Node* parent){
 	_identifier = _auto_increment;
 	_auto_increment++;
@@ -29,24 +34,46 @@ void Node::init(){
 	_pass_count_h = 0;
 	_stop_count_h = 0;
 	_probability = -1;
+	_num_transitions_to_eos = 0;
+	_num_transitions_to_other = 0;
 	_transition_tssb = NULL;
 	_transition_tssb_myself = NULL;
 	_parent_transition_tssb_myself = NULL;
+	_structure_tssb_myself = NULL;
 	_htssb_owner = (_parent != NULL) ? _parent->_htssb_owner : 0;
-	_stop_probability_v_over_parent = new double[_depth_v + 1];
-	_stop_ratio_v_over_parent = new double[_depth_v + 1];
-	_nodes_from_root_to_myself = new Node*[_depth_v + 1];
-	_stop_probability_h_over_parent = new double[_depth_h + 1];
-	_stop_ratio_h_over_parent = new double[_depth_h + 1];
-	_horizontal_indices_from_root = new int[_depth_v];
 	_table_v = new Table();
 	_table_h = new Table();
 	_hpylm = NULL;
 	if(_htssb_owner_id == 0){	// HPYLMは木構造上のノードにだけあればよい
 		_hpylm = new HPYLM(this);
 	}
-	set_horizontal_indices();
-	set_pointers_from_root_to_myself();
+	init_arrays();
+	init_horizontal_indices();
+	init_pointers_from_root_to_myself();
+}
+void Node::init_arrays(){
+	_stop_probability_v_over_parent = new double[_depth_v + 1];
+	_stop_ratio_v_over_parent = new double[_depth_v + 1];
+	_nodes_from_root_to_myself = new Node*[_depth_v + 1];
+	_stop_probability_h_over_parent = new double[_depth_h + 1];
+	_stop_ratio_h_over_parent = new double[_depth_h + 1];
+	_horizontal_indices_from_root = new int[_depth_v];
+}
+void Node::init_horizontal_indices(){
+	Node* iterator = this;
+	for(int i = 0;i < _depth_v;i++){
+		_horizontal_indices_from_root[_depth_v - i - 1] = iterator->_depth_h;
+		iterator = iterator->_parent;
+	}
+}
+void Node::init_pointers_from_root_to_myself(){
+	Node* iterator = this;
+	_nodes_from_root_to_myself[_depth_v] = iterator;
+	for(int n = 0;n < _depth_v;n++){
+		iterator = iterator->_parent;
+		assert(iterator != NULL);
+		_nodes_from_root_to_myself[_depth_v - n - 1] = iterator;
+	}
 }
 Node::~Node(){
 	delete _table_v;
@@ -60,25 +87,6 @@ Node* Node::generate_child(){
 	Node* child = new Node(this);
 	add_child(child);
 	return child;
-}
-void Node::copy_transition_tssb_from_structure(TSSB* structure){
-	_transition_tssb = structure->generate_transition_tssb_belonging_to(this);
-}
-void Node::set_horizontal_indices(){
-	Node* iterator = this;
-	for(int i = 0;i < _depth_v;i++){
-		_horizontal_indices_from_root[_depth_v - i - 1] = iterator->_depth_h;
-		iterator = iterator->_parent;
-	}
-}
-void Node::set_pointers_from_root_to_myself(){
-	Node* iterator = this;
-	_nodes_from_root_to_myself[_depth_v] = iterator;
-	for(int n = 0;n < _depth_v;n++){
-		iterator = iterator->_parent;
-		assert(iterator != NULL);
-		_nodes_from_root_to_myself[_depth_v - n - 1] = iterator;
-	}
 }
 void Node::add_child(Node* node){
 	assert(node != NULL);
@@ -104,6 +112,9 @@ Table* Node::get_vertical_table(){
 }
 Table* Node::get_horizontal_table(){
 	return _table_h;
+}
+double Node::compute_transition_probability_to_eos(double tau0, double tau1){
+	return (tau0 + _num_transitions_to_eos) / (tau0 + tau1 + _num_transitions_to_eos + _num_transitions_to_other);	
 }
 bool Node::has_child(){
 	return _children.size() != 0;
@@ -171,6 +182,20 @@ void Node::increment_horizontal_pass_count(){
 void Node::decrement_horizontal_pass_count(){
 	_pass_count_h -= 1;
 	assert(_pass_count_h >= 0);
+}
+void Node::increment_transition_count_to_eos(){
+	_num_transitions_to_eos += 1;
+}
+void Node::decrement_transition_count_to_eos(){
+	_num_transitions_to_eos -= 1;
+	assert(_num_transitions_to_eos >= 0);
+}
+void Node::increment_transition_count_to_other(){
+	_num_transitions_to_other += 1;
+}
+void Node::decrement_transition_count_to_other(){
+	_num_transitions_to_other -= 1;
+	assert(_num_transitions_to_other >= 0);
 }
 // 客を除去
 void Node::remove_customer_from_vertical_crp(bool &empty_table_deleted){

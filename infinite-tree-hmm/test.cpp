@@ -401,7 +401,7 @@ void test15(iTHMM* model){
 void test16(iTHMM* model){
 	add_customer(model, 1000);
 	c_printf("[*]%s\n", "structure");
-	model->set_word_g0(1.0 / 10000.0);
+	model->set_word_g0(1.0 / 100.0);
 	model->_structure_tssb->dump();
 	Node* target = model->_structure_tssb->find_node_with_id(60);
 	for(int i = 0;i < 100000;i++){
@@ -419,8 +419,27 @@ void test16(iTHMM* model){
 	}
 }
 
+void test17(iTHMM* model){
+	string dir = "out";
+	test16(model);
+	model->save(dir);
+	iTHMM* copy = new iTHMM();
+	copy->load(dir);
+	c_printf("[*]%s\n", "structure");
+	copy->_structure_tssb->dump();
+	Node* parent = copy->_structure_tssb->find_node_with_id(60);
+	while(parent){
+		c_printf("[*]%d\n", parent->_identifier);
+		double pw = copy->compute_word_probability_given_node(5, parent);
+		cout << pw << endl;
+		assert(parent->_hpylm != NULL);
+		parent->_hpylm->dump();
+		parent = parent->_parent;
+	}
+}
+
 int main(){
 	iTHMM* model = new iTHMM();
-	test16(model);
+	test17(model);
 	return 0;
 }

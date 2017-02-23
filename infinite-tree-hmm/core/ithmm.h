@@ -1,16 +1,47 @@
 #ifndef _ithmm_
 #define _ithmm_
+#include <boost/serialization/serialization.hpp>
+#include <boost/serialization/base_object.hpp>
+#include <boost/archive/binary_iarchive.hpp>
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/serialization/vector.hpp>
 #include <boost/format.hpp>
 #include <cmath>
 #include <vector>
+#include <fstream>
 #include "tssb.hpp"
 #include "node.hpp"
 #include "hpylm.hpp"
 #include "sampler.h"
 #include "cprintf.h"
+#include "util.h"
 #include "hyperparameters.h"
 
+typedef struct Word {
+	id id;
+	Node* state;
+} Word;
+
 class iTHMM{
+private:
+	friend class boost::serialization::access;
+	template <class Archive>
+	void serialize(Archive& archive, unsigned int version)
+	{
+		static_cast<void>(version);
+		archive & _structure_tssb;
+		archive & _alpha;
+		archive & _gamma;
+		archive & _lambda;
+		archive & _word_g0;
+		archive & _max_depth;
+		archive & _hpylm_d_m;
+		archive & _hpylm_theta_m;
+		archive & _hpylm_a_m;
+		archive & _hpylm_b_m;
+		archive & _hpylm_alpha_m;
+		archive & _hpylm_beta_m;
+	}
 public:
 	TSSB* _structure_tssb;	// 木構造を表すためだけのTSSB。HTSSBは全てこのノードを基準に成形する
 	double _alpha;
@@ -48,6 +79,11 @@ public:
 		_hpylm_alpha_m.push_back(HPYLM_ALPHA);
 		_hpylm_beta_m.push_back(HPYLM_BETA);
 	}
+	void initialize(vector<vector<Word*>> &dataset){
+		for(int data_index = 0;data_index < dataset.size();data_index++){
+			vector<Word*> &line = dataset[data_index];
+		}
+	}
 	void set_word_g0(double g0){
 		_word_g0 = g0;
 	}
@@ -63,8 +99,8 @@ public:
 			generated_child_on_structure = parent_on_cluster->generate_child();
 		}
 		assert(generated_child_on_structure != NULL);
-		// 遷移確率用TSSBをセット
-		generated_child_on_structure->copy_transition_tssb_from_structure(_structure_tssb);
+		// HTSSBをセット
+		generated_child_on_structure->_transition_tssb = generate_transition_tssb_belonging_to(generated_child_on_structure);
 		Node* myself_on_htssb = generated_child_on_structure->find_same_node_on_transition_tssb();
 		assert(myself_on_htssb != NULL);
 		generated_child_on_structure->_transition_tssb_myself = myself_on_htssb;
@@ -128,6 +164,23 @@ public:
 		for(const auto &child: iterator_on_structure->_children){
 			_generate_and_add_new_child_to_all_htssb(child, parent, generated_child_on_structure, return_child);
 		}
+	}
+	TSSB* generate_transition_tssb_belonging_to(Node* owner_on_structure){
+		assert(owner_on_structure->_htssb_owner_id == 0);
+		Node* root_on_structure = _structure_tssb->_root;
+		Node* root_on_htssb = new Node(NULL, root_on_structure->_identifier);
+		root_on_htssb->_htssb_owner_id = owner_on_structure->_identifier;
+		root_on_htssb->_htssb_owner = owner_on_structure;
+		root_on_htssb->_parent_transition_tssb_myself = NULL;
+		if(owner_on_structure->_parent != NULL){
+			root_on_htssb->_parent_transition_tssb_myself = owner_on_structure->_parent->_transition_tssb->_root;
+		}
+		root_on_htssb->_structure_tssb_myself = root_on_structure;
+		_structure_tssb->copy_children(root_on_structure, root_on_htssb, owner_on_structure);
+		TSSB* target = new TSSB(root_on_htssb, _alpha, _gamma, _lambda);
+		target->_owner_id = owner_on_structure->_identifier;
+		target->_owner = owner_on_structure;
+		return target;
 	}
 	Node* sample_node_on_tssb(TSSB* tssb){
 		assert(tssb->_owner_id != 0);
@@ -508,7 +561,7 @@ public:
 		return node_on_structure->_hpylm->Pw(token_id, _word_g0, _hpylm_d_m, _hpylm_theta_m);
 	}
 	void update_stick_length_of_tssb(TSSB* tssb){
-		assert(tssb->_owner_id != 0);
+		assert(tssb->_owner_id != 0);	// 木構造の場合は計算しない
 		Node* root = tssb->_root;
 		double ratio_v = compute_expectation_of_vertical_sbr_ratio_on_node(root);
 		double sum_probability = ratio_v;
@@ -654,6 +707,47 @@ public:
 			_hpylm_alpha_m.pop_back();
 			_hpylm_beta_m.pop_back();
 		}
+	}
+	bool save(string dir = "out"){
+		bool success = false;
+		ofstream ofs(dir + "/ithmm.model");
+		if(ofs.good()){
+			boost::archive::binary_oarchive oarchive(ofs);
+			oarchive << static_cast<const iTHMM&>(*this);
+			success = true;
+		}
+		ofs.close();
+		return success;
+	}
+	bool load(string dir = "out"){
+		bool success = false;
+		ifstream ifs(dir + "/ithmm.model");
+		if(ifs.good()){
+			boost::archive::binary_iarchive iarchive(ifs);
+			iarchive >> *this;
+			assert(_structure_tssb != NULL);
+			assert(_structure_tssb->_root != NULL);
+			vector<Node*> nodes;
+			_structure_tssb->enumerate_nodes_from_left_to_right(nodes);
+			for(auto &node: nodes){
+				node->init_arrays();
+				node->init_horizontal_indices();
+				node->init_pointers_from_root_to_myself();
+				vector<Node*> nodes_on_htssb;
+				node->_transition_tssb->enumerate_nodes_from_left_to_right(nodes_on_htssb);
+				for(auto &node_on_htssb: nodes_on_htssb){
+					node_on_htssb->init_arrays();
+					node_on_htssb->init_horizontal_indices();
+					node_on_htssb->init_pointers_from_root_to_myself();
+				}
+				vector<Node*>().swap(nodes_on_htssb);	// 解放
+			}
+			vector<Node*>().swap(nodes);				// 解放
+			success = true;
+		}
+		ifs.close();
+
+		return success;
 	}
 };
 
