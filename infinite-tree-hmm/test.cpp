@@ -7,7 +7,7 @@ using namespace std;
 
 void add_customer(iTHMM* model, int count){
 	for(int n = 0;n < count;n++){
-		Node* node = model->sample_node_on_tssb(model->_structure_tssb->_root->_transition_tssb);
+		Node* node = model->sample_node_on_htssb(model->_structure_tssb->_root->_transition_tssb);
 		model->add_customer_to_htssb(node);
 	}
 }
@@ -79,7 +79,7 @@ void test4(iTHMM* model){
 void test5(iTHMM* model){
 	vector<Node*> nodes;
 	for(int n = 0;n < 10000;n++){
-		Node* node = model->sample_node_on_tssb(model->_structure_tssb->_root->_transition_tssb);
+		Node* node = model->sample_node_on_htssb(model->_structure_tssb->_root->_transition_tssb);
 		model->add_customer_to_htssb(node);
 		nodes.push_back(node);
 	}
@@ -93,7 +93,7 @@ void test5(iTHMM* model){
 void test6(iTHMM* model){
 	vector<Node*> nodes;
 	for(int n = 0;n < 1000;n++){
-		Node* node = model->sample_node_on_tssb(model->_structure_tssb->_root->_transition_tssb);
+		Node* node = model->sample_node_on_htssb(model->_structure_tssb->_root->_transition_tssb);
 		model->add_customer_to_htssb(node);
 		nodes.push_back(node);
 	}
@@ -169,7 +169,7 @@ void test7(iTHMM* model){
 	double ratio = 0;
 	auto start_time = chrono::system_clock::now();
 	for(int i = 0;i < 100000;i++){
-		ratio = model->compute_expectation_of_vertical_sbr_ratio_on_node(target_on_structure->_transition_tssb_myself);
+		ratio = model->compute_expectation_of_vertical_sbr_ratio(target_on_structure->_transition_tssb_myself, true);
 	}
 	auto end_time = chrono::system_clock::now();
 	auto duration = end_time - start_time;
@@ -201,7 +201,7 @@ void test8(iTHMM* model){
 	double ratio = 0;
 	auto start_time = chrono::system_clock::now();
 	for(int i = 0;i < 100000;i++){
-		ratio = model->compute_expectation_of_horizontal_sbr_ratio_on_node(target_on_structure->_transition_tssb_myself);
+		ratio = model->compute_expectation_of_horizontal_sbr_ratio(target_on_structure->_transition_tssb_myself, true);
 	}
 	auto end_time = chrono::system_clock::now();
 	auto duration = end_time - start_time;
@@ -224,7 +224,7 @@ void test9(iTHMM* model){
 	int prev_id = -1;
 	for(int i = 0;i < 100000;i++){
 		uniform = i / 100000.0;
-		Node* node = model->retrospective_sampling_on_tssb(uniform, tssb);
+		Node* node = model->retrospective_sampling_on_htssb(uniform, tssb);
 		assert(node != NULL);
 		if(node->_identifier != prev_id){
 			cout << uniform << ": " << node->_identifier << endl;
@@ -250,7 +250,7 @@ void test10(iTHMM* model){
 	c_printf("[*]%s\n", "structure");
 	model->_structure_tssb->dump();
 	Node* target = model->_structure_tssb->find_node_with_id(7);
-	model->compute_expectation_of_horizontal_sbr_ratio_on_node(target->_transition_tssb_myself);
+	model->compute_expectation_of_horizontal_sbr_ratio(target->_transition_tssb_myself, true);
 	assert(target != NULL);
 	Node* parent = target;
 	while(parent){
@@ -259,7 +259,7 @@ void test10(iTHMM* model){
 		parent = parent->_parent;
 	}
 	model->update_stick_length_of_tssb(target->_transition_tssb);
-	Node* node = model->retrospective_sampling_on_tssb(uniform, target->_transition_tssb);
+	Node* node = model->retrospective_sampling_on_htssb(uniform, target->_transition_tssb);
 	c_printf("[*]%s\n", "sampled");
 	node->dump();
 	c_printf("[*]%s\n", "structure");
@@ -274,7 +274,7 @@ void test10(iTHMM* model){
 
 void test11(iTHMM* model){
 	for(int n = 0;n < 10;n++){
-		Node* node = model->sample_node_on_tssb(model->_structure_tssb->_root->_transition_tssb);
+		Node* node = model->sample_node_on_htssb(model->_structure_tssb->_root->_transition_tssb);
 	}
 	c_printf("[*]%s\n", "structure");
 	model->_structure_tssb->dump();
@@ -296,7 +296,7 @@ void test11(iTHMM* model){
 
 void test12(iTHMM* model){
 	for(int n = 0;n < 10;n++){
-		Node* node = model->sample_node_on_tssb(model->_structure_tssb->_root->_transition_tssb);
+		Node* node = model->sample_node_on_htssb(model->_structure_tssb->_root->_transition_tssb);
 	}
 	c_printf("[*]%s\n", "structure");
 	model->_structure_tssb->dump();
@@ -390,8 +390,8 @@ void test15(iTHMM* model){
 		node->_transition_tssb->dump();
 		for(const auto node_on_htssb: nodes_on_htssb){
 			node_on_htssb->dump();
-			double ratio_v = model->compute_expectation_of_vertical_sbr_ratio_on_node(node_on_htssb);
-			double ratio_h = model->compute_expectation_of_horizontal_sbr_ratio_on_node(node_on_htssb);
+			double ratio_v = model->compute_expectation_of_vertical_sbr_ratio(node_on_htssb, true);
+			double ratio_h = model->compute_expectation_of_horizontal_sbr_ratio(node_on_htssb, true);
 			cout << ratio_v << ", " << ratio_h << endl;
 		}
 	}
@@ -455,8 +455,8 @@ void test18(iTHMM* model){
 		node->_transition_tssb->dump();
 		for(const auto node_on_htssb: nodes_on_htssb){
 			node_on_htssb->dump();
-			double ratio_v = copy->compute_expectation_of_vertical_sbr_ratio_on_node(node_on_htssb);
-			double ratio_h = copy->compute_expectation_of_horizontal_sbr_ratio_on_node(node_on_htssb);
+			double ratio_v = copy->compute_expectation_of_vertical_sbr_ratio(node_on_htssb, true);
+			double ratio_h = copy->compute_expectation_of_horizontal_sbr_ratio(node_on_htssb, true);
 			cout << ratio_v << ", " << ratio_h << endl;
 		}
 	}
@@ -475,6 +475,7 @@ void _test19(iTHMM* model, TSSB* tssb){
 		cout << probability << endl;
 	}
 }
+
 void test19(iTHMM* model){
 	string dir = "out";
 	test15(model);
@@ -491,8 +492,23 @@ void test19(iTHMM* model){
 	}
 }
 
+void test20(iTHMM* model){
+	string dir = "out";
+
+	add_customer(model, 10000);
+	c_printf("[*]%s\n", "bos");
+	model->_bos_tssb->dump();
+
+	model->save(dir);
+	iTHMM* copy = new iTHMM();
+	copy->load(dir);
+
+	c_printf("[*]%s\n", "bos");
+	copy->_bos_tssb->dump();
+}
+
 int main(){
 	iTHMM* model = new iTHMM();
-	test19(model);
+	test20(model);
 	return 0;
 }

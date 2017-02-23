@@ -11,6 +11,7 @@ Node::Node(){
 	_identifier = _auto_increment;
 	_auto_increment++;
 	_parent = NULL;
+	init();
 }
 Node::Node(Node* parent){
 	_identifier = _auto_increment;
@@ -40,6 +41,7 @@ void Node::init(){
 	_transition_tssb_myself = NULL;
 	_parent_transition_tssb_myself = NULL;
 	_structure_tssb_myself = NULL;
+	_bos_tssb_myself = NULL;
 	_htssb_owner = (_parent != NULL) ? _parent->_htssb_owner : 0;
 	_table_v = new Table();
 	_table_h = new Table();
