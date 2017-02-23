@@ -7,6 +7,12 @@
 #include "tssb.hpp"
 #include "node.hpp"
 
+Node::Node(){
+	_identifier = _auto_increment;
+	_auto_increment++;
+	_parent = NULL;
+	init();
+}
 Node::Node(Node* parent){
 	_identifier = _auto_increment;
 	_auto_increment++;
@@ -21,7 +27,7 @@ Node::Node(Node* parent, int identifier){
 void Node::init(){
 	_depth_v = (_parent != NULL) ? _parent->_depth_v + 1 : 0;
 	_depth_h = (_parent != NULL) ? _parent->_children.size() : 0;
-	_htssb_owner_id = (_parent != NULL) ? _parent->_htssb_owner_id : 0;
+	_owner_id_on_structure = (_parent != NULL) ? _parent->_owner_id_on_structure : 0;
 	_stick_length = -1;
 	_children_stick_length = -1;
 	_pass_count_v = 0;
@@ -29,60 +35,60 @@ void Node::init(){
 	_pass_count_h = 0;
 	_stop_count_h = 0;
 	_probability = -1;
+	_num_transitions_to_eos = 0;
+	_num_transitions_to_other = 0;
 	_transition_tssb = NULL;
 	_transition_tssb_myself = NULL;
 	_parent_transition_tssb_myself = NULL;
-	_htssb_owner = (_parent != NULL) ? _parent->_htssb_owner : 0;
-	_stop_probability_v_over_parent = new double[_depth_v + 1];
-	_stop_ratio_v_over_parent = new double[_depth_v + 1];
-	_pointer_nodes_v = new Node*[_depth_v + 1];
-	_stop_probability_h_over_parent = new double[_depth_h + 1];
-	_stop_ratio_h_over_parent = new double[_depth_h + 1];
-	_horizontal_indices_from_root = new int[_depth_v];
+	_structure_tssb_myself = NULL;
+	_bos_tssb_myself = NULL;
+	_owner_on_structure = (_parent != NULL) ? _parent->_owner_on_structure : 0;
 	_table_v = new Table();
 	_table_h = new Table();
 	_hpylm = NULL;
-	if(_htssb_owner_id == 0){	// HPYLMは木構造上のノードにだけあればよい
-		_hpylm = new HPYLM();
-		_hpylm->_state_node = this;
-		if(_parent != NULL){
-			_hpylm->_parent = _parent->_hpylm;
-		}
+	if(_owner_id_on_structure == 0){	// HPYLMは木構造上のノードにだけあればよい
+		_hpylm = new HPYLM(this);
 	}
-	set_horizontal_indices();
-	set_pointers_from_root_to_myself();
+	init_arrays();
+	init_horizontal_indices();
+	init_pointers_from_root_to_myself();
 }
-Node::~Node(){
-	delete _table_v;
-	delete _table_h;
-	delete[] _stop_probability_v_over_parent;
-	delete[] _stop_ratio_v_over_parent;
-	delete[] _pointer_nodes_v;
-	delete[] _horizontal_indices_from_root;
+void Node::init_arrays(){
+	_stop_probability_v_over_parent = new double[_depth_v + 1];
+	_stop_ratio_v_over_parent = new double[_depth_v + 1];
+	_nodes_from_root_to_myself = new Node*[_depth_v + 1];
+	_stop_probability_h_over_parent = new double[_depth_h + 1];
+	_stop_ratio_h_over_parent = new double[_depth_h + 1];
+	_horizontal_indices_from_root = new int[_depth_v];
 }
-Node* Node::generate_child(){
-	Node* child = new Node(this);
-	add_child(child);
-	return child;
-}
-void Node::copy_transition_tssb_from_structure(TSSB* structure){
-	_transition_tssb = structure->generate_transition_tssb_belonging_to(this);
-}
-void Node::set_horizontal_indices(){
+void Node::init_horizontal_indices(){
 	Node* iterator = this;
 	for(int i = 0;i < _depth_v;i++){
 		_horizontal_indices_from_root[_depth_v - i - 1] = iterator->_depth_h;
 		iterator = iterator->_parent;
 	}
 }
-void Node::set_pointers_from_root_to_myself(){
+void Node::init_pointers_from_root_to_myself(){
 	Node* iterator = this;
-	_pointer_nodes_v[_depth_v] = iterator;
+	_nodes_from_root_to_myself[_depth_v] = iterator;
 	for(int n = 0;n < _depth_v;n++){
 		iterator = iterator->_parent;
 		assert(iterator != NULL);
-		_pointer_nodes_v[_depth_v - n - 1] = iterator;
+		_nodes_from_root_to_myself[_depth_v - n - 1] = iterator;
 	}
+}
+Node::~Node(){
+	delete _table_v;
+	delete _table_h;
+	delete[] _stop_probability_v_over_parent;
+	delete[] _stop_ratio_v_over_parent;
+	delete[] _nodes_from_root_to_myself;
+	delete[] _horizontal_indices_from_root;
+}
+Node* Node::generate_child(){
+	Node* child = new Node(this);
+	add_child(child);
+	return child;
 }
 void Node::add_child(Node* node){
 	assert(node != NULL);
@@ -109,20 +115,11 @@ Table* Node::get_vertical_table(){
 Table* Node::get_horizontal_table(){
 	return _table_h;
 }
+double Node::compute_transition_probability_to_eos(double tau0, double tau1){
+	return (tau0 + _num_transitions_to_eos) / (tau0 + tau1 + _num_transitions_to_eos + _num_transitions_to_other);	
+}
 bool Node::has_child(){
 	return _children.size() != 0;
-}
-// 縦の棒折り過程における、棒を折る比率の期待値を計算。論文中のコインの表が出る確率に相当
-double Node::compute_expectation_of_clustering_vertical_sbr_ratio(double alpha){
-	int pass_count = get_vertical_pass_count();
-	int stop_count = get_vertical_stop_count();
-	return (1.0 + stop_count) / (1.0 + alpha + stop_count + pass_count);
-}
-// 横の棒折り過程における、棒を折る比率を計算。論文中のコインの表が出る確率に相当
-double Node::compute_expectation_of_clustering_horizontal_sbr_ratio(double gamma){
-	int pass_count = get_horizontal_pass_count();
-	int stop_count = get_horizontal_stop_count();
-	return (1.0 + stop_count) / (1.0 + gamma + stop_count + pass_count);
 }
 // 遷移確率TSSBに客を追加
 void Node::add_customer_to_vertical_crp(double concentration, double g0, bool &new_table_generated){
@@ -187,6 +184,20 @@ void Node::increment_horizontal_pass_count(){
 void Node::decrement_horizontal_pass_count(){
 	_pass_count_h -= 1;
 	assert(_pass_count_h >= 0);
+}
+void Node::increment_transition_count_to_eos(){
+	_num_transitions_to_eos += 1;
+}
+void Node::decrement_transition_count_to_eos(){
+	_num_transitions_to_eos -= 1;
+	assert(_num_transitions_to_eos >= 0);
+}
+void Node::increment_transition_count_to_other(){
+	_num_transitions_to_other += 1;
+}
+void Node::decrement_transition_count_to_other(){
+	_num_transitions_to_other -= 1;
+	assert(_num_transitions_to_other >= 0);
 }
 // 客を除去
 void Node::remove_customer_from_vertical_crp(bool &empty_table_deleted){
@@ -268,16 +279,12 @@ Node* Node::delete_child_node(int node_id){
 	return return_node;
 }
 void Node::dump(){
-	int pass_count_v = get_vertical_pass_count();
-	int stop_count_v = get_vertical_stop_count();
-	int pass_count_h = get_horizontal_pass_count();
-	int stop_count_h = get_horizontal_stop_count();
 	string indices_str = "";
 	for(int i = 0;i < _depth_v;i++){
 		indices_str += std::to_string(_horizontal_indices_from_root[i]);
 		indices_str += ",";
 	}
-	cout << (boost::format("%d [vp:%d,vs:%d,hp:%d,hs:%d][len:%f,self:%f,ch:%f,p:%f][ow:%d,dv:%d,dh:%d][%s]") % _identifier % pass_count_v % stop_count_v % pass_count_h % stop_count_h % _stick_length % (_stick_length - _children_stick_length) % _children_stick_length % _probability % _htssb_owner_id % _depth_v % _depth_h % indices_str.c_str()).str() << endl;
+	cout << (boost::format("%d [vp:%d,vs:%d,hp:%d,hs:%d][len:%f,self:%f,ch:%f,p:%f][ow:%d,dv:%d,dh:%d][%s]") % _identifier % _pass_count_v % _stop_count_v % _pass_count_h % _stop_count_h % _stick_length % (_stick_length - _children_stick_length) % _children_stick_length % _probability % _owner_id_on_structure % _depth_v % _depth_h % indices_str.c_str()).str() << endl;
 }
 
 int Node::_auto_increment = 1;
