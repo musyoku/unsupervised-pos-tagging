@@ -43,11 +43,7 @@ void Node::init(){
 	_table_h = new Table();
 	_hpylm = NULL;
 	if(_htssb_owner_id == 0){	// HPYLMは木構造上のノードにだけあればよい
-		_hpylm = new HPYLM();
-		_hpylm->_state_node = this;
-		if(_parent != NULL){
-			_hpylm->_parent = _parent->_hpylm;
-		}
+		_hpylm = new HPYLM(this);
 	}
 	set_horizontal_indices();
 	set_pointers_from_root_to_myself();
@@ -256,16 +252,12 @@ Node* Node::delete_child_node(int node_id){
 	return return_node;
 }
 void Node::dump(){
-	int pass_count_v = get_vertical_pass_count();
-	int stop_count_v = get_vertical_stop_count();
-	int pass_count_h = get_horizontal_pass_count();
-	int stop_count_h = get_horizontal_stop_count();
 	string indices_str = "";
 	for(int i = 0;i < _depth_v;i++){
 		indices_str += std::to_string(_horizontal_indices_from_root[i]);
 		indices_str += ",";
 	}
-	cout << (boost::format("%d [vp:%d,vs:%d,hp:%d,hs:%d][len:%f,self:%f,ch:%f,p:%f][ow:%d,dv:%d,dh:%d][%s]") % _identifier % pass_count_v % stop_count_v % pass_count_h % stop_count_h % _stick_length % (_stick_length - _children_stick_length) % _children_stick_length % _probability % _htssb_owner_id % _depth_v % _depth_h % indices_str.c_str()).str() << endl;
+	cout << (boost::format("%d [vp:%d,vs:%d,hp:%d,hs:%d][len:%f,self:%f,ch:%f,p:%f][ow:%d,dv:%d,dh:%d][%s]") % _identifier % _pass_count_v % _stop_count_v % _pass_count_h % _stop_count_h % _stick_length % (_stick_length - _children_stick_length) % _children_stick_length % _probability % _htssb_owner_id % _depth_v % _depth_h % indices_str.c_str()).str() << endl;
 }
 
 int Node::_auto_increment = 1;

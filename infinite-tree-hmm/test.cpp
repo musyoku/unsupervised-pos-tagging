@@ -398,8 +398,21 @@ void test15(iTHMM* model){
 	}
 }
 
+void test16(iTHMM* model){
+	add_customer(model, 1000);
+	c_printf("[*]%s\n", "structure");
+	model->_structure_tssb->dump();
+	Node* target = model->_structure_tssb->find_node_with_id(60);
+	model->add_customer_to_hpylm(target, 100);
+	Node* parent = target;
+	while(parent){
+		c_printf("[*]%d\n", parent->_identifier);
+		parent = parent->_parent;
+	}
+}
+
 int main(){
 	iTHMM* model = new iTHMM();
-	test15(model);
+	test16(model);
 	return 0;
 }

@@ -223,6 +223,15 @@ public:
 		}
 		return NULL;
 	}
+	void add_customer_to_hpylm(Node* target_on_structure, id token_id){
+		assert(target_on_structure != NULL);
+		assert(target_on_structure->_htssb_owner_id == 0);	// 木構造上のノードのみ
+		assert(target_on_structure->_depth_v == target_on_structure->_hpylm->_depth);
+		assert(_hpylm_d_m.size() > target_on_structure->_depth_v);
+		assert(_hpylm_theta_m.size() > target_on_structure->_depth_v);
+		double g0 = 1.0 / 10000.0;
+		target_on_structure->_hpylm->add_customer(token_id, g0, _hpylm_d_m, _hpylm_theta_m);
+	}
 	void add_customer_to(Node* target_on_htssb){
 		assert(target_on_htssb != NULL);
 		assert(target_on_htssb->_htssb_owner_id != 0);
