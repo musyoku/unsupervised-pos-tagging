@@ -8,7 +8,7 @@ using namespace std;
 void add_customer(iTHMM* model, int count){
 	for(int n = 0;n < count;n++){
 		Node* node = model->sample_node_on_tssb(model->_structure_tssb->_root->_transition_tssb);
-		model->add_customer_to(node->_transition_tssb_myself);
+		model->add_customer_to(node);
 	}
 }
 
@@ -245,11 +245,12 @@ void test9(iTHMM* model){
 }
 
 void test10(iTHMM* model){
-	add_customer(model, 10);
+	add_customer(model, 100);
 	double uniform = 0.91;
 	c_printf("[*]%s\n", "structure");
 	model->_structure_tssb->dump();
 	Node* target = model->_structure_tssb->find_node_with_id(12);
+	assert(target != NULL);
 	Node* parent = target;
 	while(parent){
 		c_printf("[*]%d\n", parent->_identifier);

@@ -3,7 +3,7 @@
 
 #define iTHMM_ALPHA 1.0
 #define iTHMM_GAMMA 1.0
-#define iTHMM_LAMBDA 1.0
+#define iTHMM_LAMBDA 0.1
 
 #define iTHMM_TAU_0 1.0
 #define iTHMM_TAU_1 100.0

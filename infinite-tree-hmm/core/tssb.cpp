@@ -17,13 +17,19 @@ TSSB::TSSB(Node* root, double alpha, double gamma, double lambda){
 	_gamma = gamma;
 	_lambda = lambda;
 }
-TSSB* TSSB::generate_transition_tssb_belonging_to(Node* owner){
+TSSB* TSSB::generate_transition_tssb_belonging_to(Node* owner_on_structure){
+	assert(owner_on_structure->_htssb_owner_id == 0);
 	Node* root = new Node(NULL, _root->_identifier);
-	root->_htssb_owner_id = owner->_identifier;
-	root->_htssb_owner = owner;
-	copy_children(_root, root, owner);
+	root->_htssb_owner_id = owner_on_structure->_identifier;
+	root->_htssb_owner = owner_on_structure;
+	root->_parent_transition_tssb_myself = NULL;
+	if(owner_on_structure->_parent != NULL){
+		root->_parent_transition_tssb_myself = owner_on_structure->_parent->_transition_tssb->_root;
+	}
+	root->_structure_tssb_myself = _root;
+	copy_children(_root, root, owner_on_structure);
 	TSSB* target = new TSSB(root, _alpha, _gamma, _lambda);
-	target->_owner_id = owner->_identifier;
+	target->_owner_id = owner_on_structure->_identifier;
 	return target;
 }
 void TSSB::copy_children(Node* source, Node* target, Node* owner){
