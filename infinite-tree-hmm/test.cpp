@@ -370,7 +370,6 @@ void test14(iTHMM* model){
 
 void test15(iTHMM* model){
 	add_customer(model, 10000);
-	double uniform = 0.91;
 	c_printf("[*]%s\n", "structure");
 	model->_structure_tssb->dump();
 	vector<Node*> nodes;
@@ -438,8 +437,62 @@ void test17(iTHMM* model){
 	}
 }
 
+void test18(iTHMM* model){
+	string dir = "out";
+	test15(model);
+	model->save(dir);
+	iTHMM* copy = new iTHMM();
+	copy->load(dir);
+
+	c_printf("[*]%s\n", "structure");
+	copy->_structure_tssb->dump();
+	vector<Node*> nodes;
+	copy->_structure_tssb->enumerate_nodes_from_left_to_right(nodes);
+	for(const auto node: nodes){
+		vector<Node*> nodes_on_htssb;
+		node->_transition_tssb->enumerate_nodes_from_left_to_right(nodes_on_htssb);
+		c_printf("[*]%d\n", node->_identifier);
+		node->_transition_tssb->dump();
+		for(const auto node_on_htssb: nodes_on_htssb){
+			node_on_htssb->dump();
+			double ratio_v = copy->compute_expectation_of_vertical_sbr_ratio_on_node(node_on_htssb);
+			double ratio_h = copy->compute_expectation_of_horizontal_sbr_ratio_on_node(node_on_htssb);
+			cout << ratio_v << ", " << ratio_h << endl;
+		}
+	}
+}
+void _test19(iTHMM* model, TSSB* tssb){
+	model->update_stick_length_of_tssb(tssb);
+	c_printf("[*]%d\n", tssb->_owner_id);
+	tssb->dump();
+	vector<Node*> nodes;
+	tssb->enumerate_nodes_from_left_to_right(nodes);
+	double prev_probability = 0;
+	for(const auto node: nodes){
+		double probability = node->_sum_probability;
+		assert(probability > prev_probability);
+		prev_probability = probability;
+		cout << probability << endl;
+	}
+}
+void test19(iTHMM* model){
+	string dir = "out";
+	test15(model);
+	model->save(dir);
+	iTHMM* copy = new iTHMM();
+	copy->load(dir);
+	c_printf("[*]%s\n", "structure");
+	copy->_structure_tssb->dump();
+	vector<Node*> nodes;
+	copy->_structure_tssb->enumerate_nodes_from_left_to_right(nodes);
+	for(const auto node: nodes){
+		vector<Node*> nodes_on_htssb;
+		_test19(model, node->_transition_tssb);
+	}
+}
+
 int main(){
 	iTHMM* model = new iTHMM();
-	test17(model);
+	test19(model);
 	return 0;
 }

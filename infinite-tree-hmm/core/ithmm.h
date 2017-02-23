@@ -222,10 +222,10 @@ public:
 	Node* retrospective_sampling_on_tssb(double uniform, TSSB* tssb, double total_stick_length = 1.0){
 		assert(tssb->_owner_id != 0);
 		Node* root = tssb->_root;
-		double ratio = compute_expectation_of_vertical_sbr_ratio_on_node(root);
-		double sum_probability = ratio;
+		double ratio_v = compute_expectation_of_vertical_sbr_ratio_on_node(root);
+		double sum_probability = ratio_v;
 		root->_stick_length = total_stick_length;
-		root->_children_stick_length = total_stick_length * (1.0 - ratio);
+		root->_children_stick_length = total_stick_length * (1.0 - ratio_v);
 		Node* node =  _retrospective_sampling(uniform, sum_probability, root);
 		assert(node != NULL);
 		return node;
@@ -263,7 +263,6 @@ public:
 				_child->_stick_length = child->_children_stick_length * ratio_h;
 				double alpha = _alpha * pow(_lambda, _child->_depth_v);
 				double ratio_v = compute_expectation_of_vertical_sbr_ratio_on_node(_child);
-				_child->_probability = _child->_stick_length * ratio_v;
 				_child->_children_stick_length = _child->_stick_length * (1.0 - ratio_v);
 				assert(child->has_child());
 				return _retrospective_sampling(uniform, sum_probability, child);
@@ -560,31 +559,33 @@ public:
 		assert(_word_g0 != -1);
 		return node_on_structure->_hpylm->Pw(token_id, _word_g0, _hpylm_d_m, _hpylm_theta_m);
 	}
-	void update_stick_length_of_tssb(TSSB* tssb){
+	void update_stick_length_of_tssb(TSSB* tssb, double total_stick_length = 1.0){
 		assert(tssb->_owner_id != 0);	// 木構造の場合は計算しない
 		Node* root = tssb->_root;
 		double ratio_v = compute_expectation_of_vertical_sbr_ratio_on_node(root);
 		double sum_probability = ratio_v;
 		root->_stick_length = 1;
-		root->_children_stick_length = 1.0 - ratio_v;
-		root->_probability = ratio_v;
-		_update_stick_length(sum_probability, root);
+		root->_children_stick_length = total_stick_length * (1.0 - ratio_v);
+		root->_probability = ratio_v * total_stick_length;
+		root->_sum_probability = root->_probability;
+		_update_stick_length_of_parent_node(sum_probability, root);
 	}
-	void _update_stick_length(double &sum_probability, Node* node){
-		assert(node->_children_stick_length > 0);
-		double rest_stick_length = node->_children_stick_length;
-		for(int i = 0;i < node->_children.size();i++){
-			Node* child = node->_children[i];
+	void _update_stick_length_of_parent_node(double &sum_probability, Node* parent){
+		assert(parent->_children_stick_length > 0);
+		double rest_stick_length = parent->_children_stick_length;	// 親ノードが持っている子ノードに割り当てる棒の長さ
+		for(int i = 0;i < parent->_children.size();i++){
+			Node* child = parent->_children[i];
 			double ratio_h = compute_expectation_of_horizontal_sbr_ratio_on_node(child);
-			child->_stick_length = rest_stick_length * ratio_h;
+			child->_stick_length = rest_stick_length * ratio_h;		// このノードかこのノードの子ノードに止まる確率
 			double ratio_v = compute_expectation_of_vertical_sbr_ratio_on_node(child);
-			child->_probability = child->_stick_length * ratio_v;
+			child->_probability = child->_stick_length * ratio_v;	// このノードに止まる確率
 			sum_probability += child->_probability;
+			child->_sum_probability = sum_probability;				// このノードより左側の全ての棒の長さの総和
 			rest_stick_length *= 1.0 - ratio_h;
 			double alpha = _alpha * pow(_lambda, child->_depth_v);
-			child->_children_stick_length = child->_stick_length * (1.0 - ratio_v);
+			child->_children_stick_length = child->_stick_length * (1.0 - ratio_v);	// 子ノードに割り当てる長さはこのノードに降りない確率
 			if(child->has_child()){
-				_update_stick_length(sum_probability, child);
+				_update_stick_length_of_parent_node(sum_probability, child);
 			}
 		}
 	}
@@ -730,12 +731,14 @@ public:
 			vector<Node*> nodes;
 			_structure_tssb->enumerate_nodes_from_left_to_right(nodes);
 			for(auto &node: nodes){
+				// 配列を確保
 				node->init_arrays();
 				node->init_horizontal_indices();
 				node->init_pointers_from_root_to_myself();
 				vector<Node*> nodes_on_htssb;
 				node->_transition_tssb->enumerate_nodes_from_left_to_right(nodes_on_htssb);
 				for(auto &node_on_htssb: nodes_on_htssb){
+					// 配列を確保
 					node_on_htssb->init_arrays();
 					node_on_htssb->init_horizontal_indices();
 					node_on_htssb->init_pointers_from_root_to_myself();
