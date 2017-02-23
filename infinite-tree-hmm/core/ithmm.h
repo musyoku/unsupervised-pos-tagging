@@ -16,6 +16,7 @@ public:
 	double _alpha;
 	double _gamma;
 	double _lambda;
+	double _word_g0;
 	int _max_depth;
 	vector<double> _hpylm_d_m;		// HPYLMのハイパーパラメータ（ディスカウント係数）
 	vector<double> _hpylm_theta_m;	// HPYLMのハイパーパラメータ（集中度）
@@ -28,6 +29,7 @@ public:
 		_gamma = iTHMM_GAMMA;
 		_lambda = iTHMM_LAMBDA;
 		_max_depth = 0;
+		_word_g0 = -1;
 
 		_structure_tssb = new TSSB(_alpha, _gamma, _lambda);
 		Node* root_on_structure = _structure_tssb->_root;
@@ -45,6 +47,9 @@ public:
 		_hpylm_b_m.push_back(HPYLM_B);
 		_hpylm_alpha_m.push_back(HPYLM_ALPHA);
 		_hpylm_beta_m.push_back(HPYLM_BETA);
+	}
+	void set_word_g0(double g0){
+		_word_g0 = g0;
 	}
 	// 木構造で子ノードを生成した際に全てのHTSSBの同じ位置に子ノードを生成する
 	Node* generate_and_add_new_child_to(Node* parent){
@@ -229,10 +234,10 @@ public:
 		assert(target_on_structure->_depth_v == target_on_structure->_hpylm->_depth);
 		assert(_hpylm_d_m.size() > target_on_structure->_depth_v);
 		assert(_hpylm_theta_m.size() > target_on_structure->_depth_v);
-		double g0 = 1.0 / 10000.0;
-		target_on_structure->_hpylm->add_customer(token_id, g0, _hpylm_d_m, _hpylm_theta_m);
+		assert(_word_g0 != -1);
+		target_on_structure->_hpylm->add_customer(token_id, _word_g0, _hpylm_d_m, _hpylm_theta_m);
 	}
-	void add_customer_to(Node* target_on_htssb){
+	void add_customer_to_htssb(Node* target_on_htssb){
 		assert(target_on_htssb != NULL);
 		assert(target_on_htssb->_htssb_owner_id != 0);
 		double alpha = _alpha * pow(_lambda, target_on_htssb->_depth_v);
@@ -492,6 +497,15 @@ public:
 		}
 		assert(sbr_ratio > 0);
 		return sbr_ratio;
+	}
+	double compute_word_probability_given_node(int token_id, Node* node_on_structure){
+		assert(node_on_structure != NULL);
+		assert(node_on_structure->_hpylm != NULL);
+		assert(node_on_structure->_htssb_owner_id == 0);
+		assert(_hpylm_d_m.size() > node_on_structure->_depth_v);
+		assert(_hpylm_theta_m.size() > node_on_structure->_depth_v);
+		assert(_word_g0 != -1);
+		return node_on_structure->_hpylm->Pw(token_id, _word_g0, _hpylm_d_m, _hpylm_theta_m);
 	}
 	void update_stick_length_of_tssb(TSSB* tssb){
 		assert(tssb->_owner_id != 0);

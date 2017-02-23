@@ -7,6 +7,7 @@
 #include "hpylm.hpp"
 
 HPYLM::HPYLM(Node* node){
+	assert(node != NULL);
 	_num_tables = 0;
 	_num_customers = 0;
 	_state_node = node;
@@ -19,21 +20,24 @@ HPYLM::HPYLM(Node* node){
 }
 // 客をテーブルに追加
 bool HPYLM::add_customer_to_table(id token_id, int table_k, double parent_Pw, vector<double> &d_m, vector<double> &theta_m){
-	if(_arrangement.find(token_id) == _arrangement.end()){
+	auto itr = _arrangement.find(token_id);
+	if(itr == _arrangement.end()){
 		return add_customer_to_new_table(token_id, parent_Pw, d_m, theta_m);
 	}
-	vector<int> &num_customers_at_table = _arrangement[token_id];
+	vector<int> &num_customers_at_table = itr->second;
 	assert(table_k < num_customers_at_table.size());
 	num_customers_at_table[table_k]++;
 	_num_customers++;
 	return true;
 }
 bool HPYLM::add_customer_to_new_table(id token_id, double parent_Pw, vector<double> &d_m, vector<double> &theta_m){
-	if(_arrangement.find(token_id) == _arrangement.end()){
+	auto itr = _arrangement.find(token_id);
+	if(itr == _arrangement.end()){
 		vector<int> tables = {1};
 		_arrangement[token_id] = tables;
 	}else{
-		_arrangement[token_id].push_back(1);
+		vector<int> &tables = itr->second;
+		tables.push_back(1);
 	}
 	_num_tables++;
 	_num_customers++;
@@ -98,18 +102,17 @@ bool HPYLM::add_customer(id token_id, double g0, vector<double> &d_m, vector<dou
 		return true;
 	}
 	vector<int> &num_customers_at_table = itr->second;
-	double sum_props = 0.0;
+	double sum = 0.0;
 	for(int k = 0;k < num_customers_at_table.size();k++){
-		sum_props += std::max(0.0, num_customers_at_table[k] - d_u);
+		sum += std::max(0.0, num_customers_at_table[k] - d_u);
 	}
 	double t_u = _num_tables;
-	sum_props += (theta_u + d_u * t_u) * parent_Pw;
-	double normalizer = 1.0 / sum_props;
+	sum += (theta_u + d_u * t_u) * parent_Pw;
+	double normalizer = 1.0 / sum;
 	double r = Sampler::uniform(0, 1);
-	double sum_normalized_probs = 0.0;
 	for(int k = 0;k < num_customers_at_table.size();k++){
-		sum_normalized_probs += std::max(0.0, num_customers_at_table[k] - d_u) * normalizer;
-		if(r <= sum_normalized_probs){
+		sum += std::max(0.0, num_customers_at_table[k] - d_u) * normalizer;
+		if(r <= sum){
 			add_customer_to_table(token_id, k, parent_Pw, d_m, theta_m);
 			return true;
 		}
@@ -226,10 +229,11 @@ double HPYLM::auxiliary_1_z_uwkj(double d_u){
 	return sum_z_uwkj;
 }
 void HPYLM::dump(){
+	assert(_state_node != NULL);
 	string indices_str = "";
 	for(int i = 0;i < _state_node->_depth_v;i++){
 		indices_str += std::to_string(_state_node->_horizontal_indices_from_root[i]);
 		indices_str += ",";
 	}
-	cout << (boost::format("HPYLM: %d [tables:%d,customers:%d]") % _state_node->_identifier % _num_tables % _num_customers % indices_str.c_str()).str() << endl;
+	cout << (boost::format("HPYLM: %d [tables:%d,customers:%d][%s]") % _state_node->_identifier % _num_tables % _num_customers % indices_str.c_str()).str() << endl;
 }
