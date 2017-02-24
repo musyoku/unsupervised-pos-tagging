@@ -596,8 +596,48 @@ void test26(iTHMM* model){
 	}
 }
 
+void test27(iTHMM* model){
+	model->set_word_g0(1.0 / 100.0);
+
+	for(int n = 0;n < 100;n++){
+		Node* node = model->sample_node_on_tssb(model->_structure_tssb);
+	}
+
+	vector<Node*> nodes;
+	model->_structure_tssb->enumerate_nodes_from_left_to_right(nodes);
+	for(const auto node: nodes){
+		vector<Node*> nodes_on_htssb;
+		node->_transition_tssb->enumerate_nodes_from_left_to_right(nodes_on_htssb);
+		for(const auto node_on_htssb: nodes_on_htssb){
+			int limit = Sampler::uniform_int(0, 1000);
+			for(int i = 0;i < limit;i++){
+				model->add_customer_to_htssb_node(node_on_htssb);
+			}
+		}
+	}
+	nodes.clear();
+
+	model->_structure_tssb->enumerate_nodes_from_left_to_right(nodes);
+	for(const auto node: nodes){
+		int limit = Sampler::uniform_int(0, 100);
+		for(int i = 0;i < limit;i++){
+			int token_id = Sampler::uniform_int(0, 100);
+			model->add_customer_to_hpylm(node, token_id);
+		}
+	}
+
+	c_printf("[*]%s\n", "structure");
+	model->_structure_tssb->dump();
+
+	Node* prev_state = model->_structure_tssb->find_node_with_id(10);
+	Node* state = model->_structure_tssb->find_node_with_id(4);
+	Node* next_state = model->_structure_tssb->find_node_with_id(21);
+	Node* new_state = model->draw_state(prev_state, state, next_state, 10);
+	new_state->dump();
+}
+
 int main(){
 	iTHMM* model = new iTHMM();
-	test26(model);
+	test27(model);
 	return 0;
 }

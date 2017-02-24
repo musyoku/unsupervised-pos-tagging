@@ -378,6 +378,12 @@ public:
 		}
 		return NULL;
 	}
+	void perform_gibbs_sampling(vector<Word*> &line){
+		assert(line.size() == 0);
+		for(int i = 0;i < line.size();i++){
+
+		}
+	}
 	// 新しい状態のギブスサンプリング
 	// なるべく論文の記号を使う
 	Node* draw_state(Node* prev_state_on_structure, Node* state_on_structure, Node* next_state_on_structure, id word_id){
@@ -427,6 +433,14 @@ public:
 			double likelihoood = new_Pw_given_s * new_Pt_given_ns;
 			if(likelihoood > slice){
 				return new_state_on_structure;
+			}
+			new_state_on_structure->dump();
+			state_on_structure->dump();
+			// 辞書順で前にあるかどうか
+			if(is_node_to_the_left_of_node(new_state_on_structure, state_on_structure)){
+				st = u;
+			}else{
+				ed = u;
 			}
 		}
 	}
