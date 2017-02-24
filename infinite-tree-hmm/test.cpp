@@ -547,8 +547,57 @@ void test23(){
 	model->_bos_tssb->dump();
 }
 
+void test24(iTHMM* model){
+	test15(model);
+	Node* target = model->_structure_tssb->find_node_with_id(7);
+	model->update_stick_length_of_tssb(target->_transition_tssb);
+	Node* node = model->retrospective_sampling_on_htssb(0.9, target->_transition_tssb);
+	c_printf("[*]%s\n", "sampled");
+	node->dump();
+	target->_transition_tssb->dump();
+}
+
+void test25(iTHMM* model){
+	test15(model);
+	Node* target = model->_structure_tssb->find_node_with_id(55);
+	TSSB* tssb = target->_transition_tssb;
+	target = tssb->find_node_by_tracing_horizontal_indices(target);
+	double p = model->compute_node_probability_on_tssb(tssb, target, 1);
+	cout << p << endl;
+	model->update_stick_length_of_tssb(tssb);
+	tssb->dump();
+}
+
+void test26(iTHMM* model){
+	test15(model);
+	vector<Node*> nodes;
+	model->update_stick_length_of_tssb(model->_structure_tssb->_root->_transition_tssb);
+	model->_structure_tssb->_root->_transition_tssb->enumerate_nodes_from_left_to_right(nodes);
+	cout << nodes.size() << endl;
+	for(int i = 0;i < nodes.size();i++){
+		for(int j = 0;j < nodes.size();j++){
+			if(i == j){
+				continue;
+			}
+			Node* left = nodes[i];
+			Node* right = nodes[j];
+			if(left->_identifier == right->_identifier){
+				continue;
+			}
+			if(left->_depth_v == 0){
+				continue;
+			}
+			if(right->_depth_v == 0){
+				continue;
+			}
+			bool flag = model->is_node_to_the_left_of_node(left, right);
+			assert((flag && (left->_sum_probability < right->_sum_probability)) || (flag == false && (left->_sum_probability > right->_sum_probability)));
+		}
+	}
+}
+
 int main(){
 	iTHMM* model = new iTHMM();
-	test21();
+	test26(model);
 	return 0;
 }
