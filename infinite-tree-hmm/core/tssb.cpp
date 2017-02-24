@@ -27,32 +27,6 @@ TSSB::TSSB(Node* root, double alpha, double gamma, double lambda){
 	_gamma = gamma;
 	_lambda = lambda;
 }
-TSSB* TSSB::generate_transition_tssb_belonging_to(Node* owner_on_structure){
-	assert(owner_on_structure->_owner_id_on_structure == 0);
-	Node* root = new Node(NULL, _root->_identifier);
-	root->_owner_id_on_structure = owner_on_structure->_identifier;
-	root->_owner_on_structure = owner_on_structure;
-	root->_parent_transition_tssb_myself = NULL;
-	if(owner_on_structure->_parent != NULL){
-		root->_parent_transition_tssb_myself = owner_on_structure->_parent->_transition_tssb->_root;
-	}
-	root->_structure_tssb_myself = _root;
-	copy_children(_root, root, owner_on_structure);
-	TSSB* target = new TSSB(root, _alpha, _gamma, _lambda);
-	target->_owner_id = owner_on_structure->_identifier;
-	target->_owner = owner_on_structure;
-	return target;
-}
-void TSSB::copy_children(Node* source, Node* target, Node* owner){
-	for(const auto source_child: source->_children){
-		Node* child = new Node(target, source_child->_identifier);
-		child->_owner_id_on_structure = owner->_identifier;
-		child->_owner_on_structure = owner;
-		// child->_owner_id_on_structure = owner;
-		target->add_child(child);
-		copy_children(source_child, child, owner);
-	}
-}
 void TSSB::enumerate_nodes_from_left_to_right(vector<Node*> &nodes){
 	_enumerate_nodes_from_left_to_right(_root, nodes);
 }

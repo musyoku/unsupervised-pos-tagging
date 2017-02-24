@@ -47,12 +47,12 @@ void Node::init(){
 	_table_v = new Table();
 	_table_h = new Table();
 	_hpylm = NULL;
-	if(_owner_id_on_structure == 0){	// HPYLMは木構造上のノードにだけあればよい
-		_hpylm = new HPYLM(this);
-	}
 	init_arrays();
 	init_horizontal_indices();
 	init_pointers_from_root_to_myself();
+}
+void Node::init_hpylm(){
+	_hpylm = new HPYLM(this);
 }
 void Node::init_arrays(){
 	_stop_probability_v_over_parent = new double[_depth_v + 1];
