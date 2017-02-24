@@ -69,6 +69,7 @@ public:
 		_word_g0 = -1;
 
 		_structure_tssb = new TSSB(_alpha, _gamma, _lambda);
+		_structure_tssb->_owner_id = TSSB_STRUCTURE;
 		Node* root_on_structure = _structure_tssb->_root;
 		Node* root_on_htssb = new Node(NULL, root_on_structure->_identifier);
 		root_on_htssb->_owner_id_on_structure = root_on_structure->_identifier;
@@ -80,7 +81,9 @@ public:
 
 		Node* root_on_bos = new Node(NULL, root_on_structure->_identifier);
 		root_on_bos->_owner_id_on_structure = TSSB_BOS;		// そもそも木構造上に所有者がいないが気にしない
+		root_on_bos->_structure_tssb_myself = root_on_structure;
 		_bos_tssb = new TSSB(root_on_bos, _alpha, _gamma, _lambda);
+		_bos_tssb->_owner_id = TSSB_BOS;
 
 		_hpylm_d_m.push_back(HPYLM_D);
 		_hpylm_theta_m.push_back(HPYLM_THETA);
@@ -112,6 +115,12 @@ public:
 	bool is_node_on_htssb(Node* node){
 		return is_node_on_bos_tssb(node) == false && is_node_on_structure_tssb(node) == false;
 	}
+	bool is_tssb_bos(TSSB* tssb){
+		return tssb->_owner_id == TSSB_BOS;
+	}
+	bool is_tssb_structure(TSSB* tssb){
+		return tssb->_owner_id == TSSB_STRUCTURE;
+	}
 	// 木構造で子ノードを生成した際に全てのHTSSBの同じ位置に子ノードを生成する
 	Node* generate_and_add_new_child_to(Node* parent){
 		assert(parent != NULL);
@@ -136,10 +145,9 @@ public:
 		// 木構造上の全ノードのHTSSBにノードを追加
 		_generate_and_add_new_child_to_all_htssb(_structure_tssb->_root, parent, generated_child_on_structure, return_child);
 		// ポインタを張る
-		//// 木構造上とHTSSB上のそれぞれお同じノード間のポインタ
 		Node* generated_child_on_htssb = generated_child_on_structure->_transition_tssb_myself;
 		assert(generated_child_on_htssb != NULL);
-		generated_child_on_htssb->_structure_tssb_myself = generated_child_on_structure;
+		// generated_child_on_htssb->_structure_tssb_myself = generated_child_on_structure;
 		//// 木構造上の親ノードのHTSSBの自分と同じ位置のノードへのポインタ
 		Node* iterator_on_structure = generated_child_on_structure;
 		Node* parent_on_structure = iterator_on_structure->_parent;
@@ -182,6 +190,7 @@ public:
 			assert(parent_on_htssb != NULL);
 			assert(parent_on_htssb->_identifier == generated_child_on_structure->_parent->_identifier);
 			Node* child_on_htssb = new Node(parent_on_htssb, child_id_to_generate);
+			child_on_htssb->_structure_tssb_myself = generated_child_on_structure;
 			// child_on_htssb->_owner_id_on_structure = iterator_on_structure->_identifier;
 			// child_on_htssb->_owner_on_structure = iterator_on_structure;
 			if(child_on_htssb->_owner_id_on_structure == owner_id_on_structure_parent_belongs){	// 親と同じTSSB上の子ノードを返す
@@ -199,7 +208,9 @@ public:
 		assert(parent != NULL);
 		Node* child = new Node(parent, generated_child_on_structure->_identifier);
 		parent->add_child(child);
-		generated_child_on_structure->_bos_tssb_myself = child;		// ポインタを張る
+		// ポインタを張る
+		generated_child_on_structure->_bos_tssb_myself = child;
+		child->_structure_tssb_myself = generated_child_on_structure;
 	}
 	TSSB* generate_transition_tssb_belonging_to(Node* owner_on_structure){
 		assert(is_node_on_structure_tssb(owner_on_structure));
@@ -219,13 +230,14 @@ public:
 		return target;
 	}
 	Node* sample_node_on_tssb(TSSB* tssb){
-		assert(tssb->_owner_id == 0);
+		assert(tssb->_owner_id == TSSB_STRUCTURE);
 		Node* node = _sample_node_on_tssb_by_iterating_node(tssb->_root, false);
 		return node;
 	}
 	// HTSSB上でノードをサンプリング
 	Node* sample_node_on_htssb(TSSB* tssb){
-		assert(tssb->_owner_id != 0);
+		assert(tssb->_owner_id != TSSB_STRUCTURE);
+		assert(tssb->_owner_id != TSSB_BOS);
 		Node* node = _sample_node_on_tssb_by_iterating_node(tssb->_root, true);
 		assert(node->_owner_id_on_structure == tssb->_owner_id);
 		return node;
@@ -331,7 +343,7 @@ public:
 		assert(_word_g0 != -1);
 		target_on_structure->_hpylm->add_customer(token_id, _word_g0, _hpylm_d_m, _hpylm_theta_m);
 	}
-	void add_customer_to_tssb(Node* target_on_tssb){
+	void add_customer_to_tssb_node(Node* target_on_tssb){
 		assert(target_on_tssb != NULL);
 		assert(is_node_on_htssb(target_on_tssb) == false);
 		double alpha = _alpha * pow(_lambda, target_on_tssb->_depth_v);
@@ -340,8 +352,21 @@ public:
 		target_on_tssb->add_customer_to_vertical_crp(alpha, ratio_v, new_table_generated);
 		double ratio_h = compute_expectation_of_horizontal_tssb_sbr_ratio(target_on_tssb);
 		target_on_tssb->add_customer_to_horizontal_crp(_gamma, ratio_h, new_table_generated);
+		// 総客数のインクリメント
+		if(is_node_on_structure_tssb(target_on_tssb)){
+			_structure_tssb->increment_num_customers();
+		}else if(is_node_on_bos_tssb(target_on_tssb)){
+			_bos_tssb->increment_num_customers();
+		}
+		// 参照カウントのインクリメント
+		//// <bos>からの接続のカウント
+		if(is_node_on_bos_tssb(target_on_tssb)){
+			Node* target_on_structure = target_on_tssb->_structure_tssb_myself;
+			assert(target_on_structure != NULL);
+			target_on_structure->increment_ref_count();
+		}
 	}
-	void add_customer_to_htssb(Node* target_on_htssb){
+	void add_customer_to_htssb_node(Node* target_on_htssb){
 		assert(target_on_htssb != NULL);
 		assert(is_node_on_htssb(target_on_htssb));
 		double alpha = _alpha * pow(_lambda, target_on_htssb->_depth_v);
@@ -354,6 +379,18 @@ public:
 		bool new_table_generated = false;
 		double ratio_v = compute_expectation_of_vertical_htssb_sbr_ratio(iterator);
 		iterator->add_customer_to_vertical_crp(alpha, ratio_v, new_table_generated);
+		// 総客数のインクリメント
+		Node* owner_on_structure = iterator->_owner_on_structure;
+		assert(owner_on_structure != NULL);
+		TSSB* htssb = owner_on_structure->_transition_tssb;
+		assert(htssb != NULL);
+		assert(htssb->_owner_id == iterator->_owner_id_on_structure);
+		htssb->increment_num_customers();
+		// 参照カウントのインクリメント
+		Node* iterator_on_structure = iterator->_structure_tssb_myself;
+		assert(iterator_on_structure != NULL);
+		iterator_on_structure->increment_ref_count();
+		// 親TSSBに代理客を追加
 		Node* iterator_on_parent_htssb = iterator->_parent_transition_tssb_myself;
 		if(new_table_generated && iterator_on_parent_htssb != NULL){
 			_add_customer_to_htssb_vertical_crp(alpha, iterator_on_parent_htssb);
@@ -365,6 +402,18 @@ public:
 		bool new_table_generated = false;
 		double ratio_h = compute_expectation_of_horizontal_htssb_sbr_ratio(iterator);
 		iterator->add_customer_to_horizontal_crp(gamma, ratio_h, new_table_generated);
+		// 総客数のインクリメント
+		Node* owner_on_structure = iterator->_owner_on_structure;
+		assert(owner_on_structure != NULL);
+		TSSB* htssb = owner_on_structure->_transition_tssb;
+		assert(htssb != NULL);
+		assert(htssb->_owner_id == iterator->_owner_id_on_structure);
+		htssb->increment_num_customers();
+		// 参照カウントのインクリメント
+		Node* iterator_on_structure = iterator->_structure_tssb_myself;
+		assert(iterator_on_structure != NULL);
+		iterator_on_structure->increment_ref_count();
+		// 親TSSBに代理客を追加
 		Node* iterator_on_parent_htssb = iterator->_parent_transition_tssb_myself;
 		if(new_table_generated && iterator_on_parent_htssb != NULL){
 			_add_customer_to_htssb_horizontal_crp(gamma, iterator_on_parent_htssb);
@@ -636,7 +685,7 @@ public:
 		Node* target_on_structure = NULL;
 		if(target->_owner_id_on_structure == 0){	// targetが木構造上のノードの場合
 			target_on_structure = target;
-		}else{								// targetがHTSSB上のノードの場合
+		}else{		// targetがHTSSB上のノードの場合
 			target_on_structure = target->_structure_tssb_myself;
 		}
 		assert(target_on_structure != NULL);
@@ -645,10 +694,11 @@ public:
 		}
 		assert(target_on_structure->_parent != NULL);
 		int delete_id = target_on_structure->_identifier;
-		int pass_count_v = target_on_structure->get_vertical_pass_count();
-		int stop_count_v = target_on_structure->get_vertical_stop_count();
-		int pass_count_h = target_on_structure->get_horizontal_pass_count();
-		int stop_count_h = target_on_structure->get_horizontal_stop_count();
+		int pass_count_v = target_on_structure->_pass_count_v;
+		int stop_count_v = target_on_structure->_stop_count_v;
+		int pass_count_h = target_on_structure->_pass_count_h;
+		int stop_count_h = target_on_structure->_stop_count_h;
+		int ref_count = target_on_structure->_ref_count;
 		if(pass_count_v != 0){
 			return false;
 		}
@@ -659,6 +709,9 @@ public:
 			return false;
 		}
 		if(stop_count_h != 0){
+			return false;
+		}
+		if(ref_count != 0){
 			return false;
 		}
 		Node* parent_on_structure = target_on_structure->_parent;

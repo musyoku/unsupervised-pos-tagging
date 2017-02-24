@@ -116,6 +116,13 @@ int TSSB::_get_max_depth(Node* node){
 	}
 	return max_depth;
 }
+void TSSB::increment_num_customers(){
+	_num_customers += 1;
+}
+void TSSB::decrement_num_customers(){
+	_num_customers -= 1;
+	assert(_num_customers >= 0);
+}
 void TSSB::dump(){
 	_dump(_root);
 }
