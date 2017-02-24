@@ -16,4 +16,6 @@
 #define HPYLM_ALPHA 1.0
 #define HPYLM_BETA  1.0
 
+#define EPS 1e-12			// 本来これは0が望ましい
+
 #endif

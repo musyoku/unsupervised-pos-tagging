@@ -101,7 +101,7 @@ bool HPYLM::add_customer(id token_id, double g0, vector<double> &d_m, vector<dou
 	double theta_u = theta_m[_depth];
 	double parent_Pw = g0;
 	if(_parent){
-		parent_Pw = _parent->Pw(token_id, g0, d_m, theta_m);
+		parent_Pw = _parent->compute_Pw(token_id, g0, d_m, theta_m);
 	}
 	auto itr = _arrangement.find(token_id);
 	if(itr == _arrangement.end()){
@@ -146,7 +146,7 @@ bool HPYLM::remove_customer(id token_id){
 	remove_customer_from_table(token_id, num_customers_at_table.size() - 1);
 	return true;
 }
-double HPYLM::Pw(id token_id, double g0, vector<double> &d_m, vector<double> &theta_m){
+double HPYLM::compute_Pw(id token_id, double g0, vector<double> &d_m, vector<double> &theta_m){
 	double d_u = d_m[_depth];
 	double theta_u = theta_m[_depth];
 	double t_u = _num_tables;
@@ -155,13 +155,13 @@ double HPYLM::Pw(id token_id, double g0, vector<double> &d_m, vector<double> &th
 	if(itr == _arrangement.end()){
 		double coeff = (theta_u + d_u * t_u) / (theta_u + c_u);
 		if(_parent != NULL){
-			return _parent->Pw(token_id, g0, d_m, theta_m) * coeff;
+			return _parent->compute_Pw(token_id, g0, d_m, theta_m) * coeff;
 		}
 		return g0 * coeff;
 	}
 	double parent_Pw = g0;
 	if(_parent != NULL){
-		parent_Pw = _parent->Pw(token_id, g0, d_m, theta_m);
+		parent_Pw = _parent->compute_Pw(token_id, g0, d_m, theta_m);
 	}
 	vector<int> &num_customers_at_table = itr->second;
 	double c_uw = std::accumulate(num_customers_at_table.begin(), num_customers_at_table.end(), 0);

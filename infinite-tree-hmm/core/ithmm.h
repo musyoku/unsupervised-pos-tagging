@@ -20,7 +20,6 @@
 // 以下は0以下の値にしてほしい
 #define TSSB_STRUCTURE 0
 #define TSSB_BOS -1
-#define EPS 1e-12
 
 typedef struct Word {
 	id id;
@@ -39,6 +38,8 @@ private:
 		archive & _alpha;
 		archive & _gamma;
 		archive & _lambda;
+		archive & _tau0;
+		archive & _tau1;
 		archive & _word_g0;
 		archive & _max_depth;
 		archive & _hpylm_d_m;
@@ -54,6 +55,8 @@ public:
 	double _alpha;
 	double _gamma;
 	double _lambda;
+	double _tau0;
+	double _tau1;
 	double _word_g0;
 	int _max_depth;
 	vector<double> _hpylm_d_m;		// HPYLMのハイパーパラメータ（ディスカウント係数）
@@ -66,6 +69,8 @@ public:
 		_alpha = iTHMM_ALPHA;
 		_gamma = iTHMM_GAMMA;
 		_lambda = iTHMM_LAMBDA;
+		_tau0 = iTHMM_TAU_0;
+		_tau1 = iTHMM_TAU_1;
 		_max_depth = 0;
 		_word_g0 = -1;
 
@@ -122,6 +127,9 @@ public:
 	}
 	bool is_tssb_structure(TSSB* tssb){
 		return tssb->_owner_id == TSSB_STRUCTURE;
+	}
+	bool is_tssb_htssb(TSSB* tssb){
+		return is_tssb_bos(tssb) == false && is_tssb_structure(tssb) == false;
 	}
 	// 木構造で子ノードを生成した際に全てのHTSSBの同じ位置に子ノードを生成する
 	Node* generate_and_add_new_child_to(Node* parent){
@@ -187,7 +195,7 @@ public:
 		// iteratorとgenerated_childが同一の場合はすでに追加されているのでスキップ
 		if(iterator_on_structure->_identifier != generated_child_on_structure->_identifier){
 			assert(iterator_on_structure->_transition_tssb != NULL);
-			int owner_id_on_structure_parent_belongs = parent->_owner_id_on_structure;
+			int owner_id_of_htssb_parent_belongs = parent->_owner_id_on_structure;
 			int child_id_to_generate = generated_child_on_structure->_identifier;
 			// 遷移確率用TSSBの同じ位置に子ノードを挿入
 			Node* parent_on_htssb = iterator_on_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(parent);
@@ -195,9 +203,7 @@ public:
 			assert(parent_on_htssb->_identifier == generated_child_on_structure->_parent->_identifier);
 			Node* child_on_htssb = new Node(parent_on_htssb, child_id_to_generate);
 			child_on_htssb->_structure_tssb_myself = generated_child_on_structure;
-			// child_on_htssb->_owner_id_on_structure = iterator_on_structure->_identifier;
-			// child_on_htssb->_owner_on_structure = iterator_on_structure;
-			if(child_on_htssb->_owner_id_on_structure == owner_id_on_structure_parent_belongs){	// 親と同じTSSB上の子ノードを返す
+			if(child_on_htssb->_owner_id_on_structure == owner_id_of_htssb_parent_belongs){	// 親と同じTSSB上の子ノードを返す
 				return_child = child_on_htssb;
 			}
 			parent_on_htssb->add_child(child_on_htssb);
@@ -247,20 +253,22 @@ public:
 			copy_children_on_structure_to_transition_tssb(source_child_on_structure, child, owner_on_structure);
 		}
 	}
+	// コインを投げる操作を繰り返して到達したノードを返す
 	Node* sample_node_on_tssb(TSSB* tssb){
-		assert(tssb->_owner_id == TSSB_STRUCTURE);
+		assert(is_tssb_structure(tssb));
 		Node* node = _sample_node_on_tssb_by_iterating_node(tssb->_root, false);
 		return node;
 	}
 	// HTSSB上でノードをサンプリング
 	Node* sample_node_on_htssb(TSSB* tssb){
-		assert(tssb->_owner_id != TSSB_STRUCTURE);
-		assert(tssb->_owner_id != TSSB_BOS);
+		assert(is_tssb_htssb(tssb));
 		Node* node = _sample_node_on_tssb_by_iterating_node(tssb->_root, true);
 		assert(node->_owner_id_on_structure == tssb->_owner_id);
 		return node;
 	}
 	// 止まるノードを決定する
+	// htssb_modeがtrueの場合、停止確率は親のHTSSBから生成する
+	// htssb_modeがfalseの場合は普通のTSSBによるクラスタリング
 	Node* _sample_node_on_tssb_by_iterating_node(Node* iterator, bool htssb_mode){
 		assert(iterator != NULL);
 		double head = compute_expectation_of_vertical_sbr_ratio(iterator, htssb_mode);
@@ -290,9 +298,9 @@ public:
 		}
 	}
 	// [0, 1)の一様分布からノードをサンプリング
-	// HTSSBの場合
+	// HTSSBの場合（木構造に対してはそもそも行わない）
 	Node* retrospective_sampling_on_htssb(double uniform, TSSB* tssb, double total_stick_length = 1.0){
-		assert(tssb->_owner_id != 0);
+		assert(is_tssb_htssb(tssb));
 		Node* root = tssb->_root;
 		double ratio_v = compute_expectation_of_vertical_htssb_sbr_ratio(root);
 		double sum_probability = ratio_v;
@@ -351,6 +359,31 @@ public:
 			return last_node;
 		}
 		return NULL;
+	}
+	// 新しい状態のギブスサンプリング
+	// なるべく論文の記号を使う
+	Node* draw_state(Node* prev_state, Node* state, Node* next_state, id word_id){
+		assert(is_node_on_structure_tssb(state));
+		assert(is_node_on_structure_tssb(prev_state));
+		assert(is_node_on_htssb(next_state));
+		// 出力確率
+		double Pw_given_s = compute_Pw_given_s(word_id, state);
+		assert(0 < Pw_given_s && Pw_given_s <= 1);
+		// 遷移確率
+		double Pt_given_s = next_state->_probability;
+		assert(0 < Pt_given_s && Pw_given_s <= 1);
+		// スライス
+		double slice = Pw_given_s * Pt_given_s;
+		double st = 0;
+		double ed = 1;
+		// s_{t-1}から<eos>へ接続する確率
+		double Peos_given_s = prev_state->compute_transition_probability_to_eos(_tau0, _tau1);
+		// <eos>以外に接続する確率を棒全体の長さとし、TSSBで分配
+		double stick_length = 1.0 - Peos_given_s;
+		while(true){
+			double u = Sampler::uniform(st, ed);
+			Node* new_state = retrospective_sampling_on_htssb(u, prev_state->_transition_tssb, stick_length);
+		}
 	}
 	void add_customer_to_hpylm(Node* target_on_structure, id token_id){
 		assert(target_on_structure != NULL);
@@ -692,14 +725,14 @@ public:
 		assert(sbr_ratio > 0);
 		return sbr_ratio;
 	}
-	double compute_word_probability_given_node(int token_id, Node* node_on_structure){
+	double compute_Pw_given_s(id token_id, Node* node_on_structure){
 		assert(node_on_structure != NULL);
 		assert(node_on_structure->_hpylm != NULL);
 		assert(node_on_structure->_owner_id_on_structure == 0);
 		assert(_hpylm_d_m.size() > node_on_structure->_depth_v);
 		assert(_hpylm_theta_m.size() > node_on_structure->_depth_v);
 		assert(_word_g0 != -1);
-		return node_on_structure->_hpylm->Pw(token_id, _word_g0, _hpylm_d_m, _hpylm_theta_m);
+		return node_on_structure->_hpylm->compute_Pw(token_id, _word_g0, _hpylm_d_m, _hpylm_theta_m);
 	}
 	void update_stick_length_of_tssb(TSSB* tssb, double total_stick_length = 1.0){
 		assert(tssb->_owner_id != 0);	// 木構造の場合は計算しない
@@ -731,17 +764,19 @@ public:
 			}
 		}
 	}
-	void delete_invalid_children(Node* parent){
+	void delete_invalid_children_of_node_on_structure(Node* parent){
+		assert(is_node_on_structure_tssb(parent));
 		vector<Node*> &children = parent->_children;
 		for(int i = children.size() - 1;i >= 0;i--){
 			Node* child = children[i];
-			bool success = delete_node_if_needed(child);
+			bool success = delete_node_on_structure_if_needed(child);
 			if(success == false){	// 失敗したらそれ以上は消さない
 				break;
 			}
 		}
 	}
-	bool delete_node_if_needed(Node* target){
+	bool delete_node_on_structure_if_needed(Node* target){
+		assert(is_node_on_structure_tssb(target));
 		Node* target_on_structure = NULL;
 		if(target->_owner_id_on_structure == 0){	// targetが木構造上のノードの場合
 			target_on_structure = target;

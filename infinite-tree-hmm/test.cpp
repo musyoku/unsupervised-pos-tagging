@@ -251,7 +251,7 @@ void test12(iTHMM* model){
 	c_printf("[*]%s\n", "structure");
 	model->_structure_tssb->dump();
 	Node* target = model->_structure_tssb->find_node_with_id(12);
-	model->delete_node_if_needed(target);
+	model->delete_node_on_structure_if_needed(target);
 	c_printf("[*]%s\n", "structure");
 	model->_structure_tssb->dump();
 	Node* parent = model->_structure_tssb->find_node_with_id(14);
@@ -361,7 +361,7 @@ void test16(iTHMM* model){
 	Node* parent = target;
 	while(parent){
 		c_printf("[*]%d\n", parent->_identifier);
-		double pw = model->compute_word_probability_given_node(5, parent);
+		double pw = model->compute_Pw_given_s(5, parent);
 		cout << pw << endl;
 		assert(parent->_hpylm != NULL);
 		parent->_hpylm->dump();
@@ -380,7 +380,7 @@ void test17(iTHMM* model){
 	Node* parent = copy->_structure_tssb->find_node_with_id(60);
 	while(parent){
 		c_printf("[*]%d\n", parent->_identifier);
-		double pw = copy->compute_word_probability_given_node(5, parent);
+		double pw = copy->compute_Pw_given_s(5, parent);
 		cout << pw << endl;
 		assert(parent->_hpylm != NULL);
 		parent->_hpylm->dump();
@@ -475,6 +475,7 @@ void test21(){
 	model->compile();
 	model->update_hyperparameters();
 	model->_ithmm->_structure_tssb->dump();
+
 }
 
 void test22(){
