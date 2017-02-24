@@ -271,10 +271,11 @@ void test12(iTHMM* model){
 }
 
 void test13(iTHMM* model){
-	add_customer(model, 1);
+	add_customer(model, 1000);
 	c_printf("[*]%s\n", "structure");
 	model->_structure_tssb->dump();
 	Node* target = model->_structure_tssb->find_node_with_id(7);
+	assert(target != NULL);
 	Table* table = target->_table_v;
 	int n = 1;
 	double alpha = 10;
@@ -547,6 +548,6 @@ void test23(){
 
 int main(){
 	iTHMM* model = new iTHMM();
-	test23();
+	test21();
 	return 0;
 }

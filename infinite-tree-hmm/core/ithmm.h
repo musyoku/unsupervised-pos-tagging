@@ -358,7 +358,7 @@ public:
 		assert(target_on_structure->_depth_v == target_on_structure->_hpylm->_depth);
 		assert(_hpylm_d_m.size() > target_on_structure->_depth_v);
 		assert(_hpylm_theta_m.size() > target_on_structure->_depth_v);
-		assert(_word_g0 != -1);
+		assert(_word_g0 > 0);
 		target_on_structure->_hpylm->add_customer(token_id, _word_g0, _hpylm_d_m, _hpylm_theta_m);
 	}
 	void add_customer_to_tssb_node(Node* target_on_tssb){

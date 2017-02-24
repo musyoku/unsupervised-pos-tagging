@@ -117,6 +117,7 @@ bool HPYLM::add_customer(id token_id, double g0, vector<double> &d_m, vector<dou
 	sum += (theta_u + d_u * t_u) * parent_Pw;
 	double normalizer = 1.0 / sum;
 	double r = Sampler::uniform(0, 1);
+	sum = 0;
 	for(int k = 0;k < num_customers_at_table.size();k++){
 		sum += std::max(0.0, num_customers_at_table[k] - d_u) * normalizer;
 		if(r <= sum){
@@ -134,10 +135,10 @@ bool HPYLM::remove_customer(id token_id){
 	double sum = std::accumulate(num_customers_at_table.begin(), num_customers_at_table.end(), 0);		
 	double normalizer = 1.0 / sum;
 	double r = Sampler::uniform(0, 1);
-	double sum_normalized_probs = 0.0;
+	sum = 0;
 	for(int k = 0;k < num_customers_at_table.size();k++){
-		sum_normalized_probs += num_customers_at_table[k] * normalizer;
-		if(r <= sum_normalized_probs){
+		sum += num_customers_at_table[k] * normalizer;
+		if(r <= sum){
 			remove_customer_from_table(token_id, k);
 			return true;
 		}
