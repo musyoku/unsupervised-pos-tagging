@@ -279,12 +279,22 @@ Node* Node::delete_child_node(int node_id){
 	return return_node;
 }
 void Node::dump(){
+	cout << _dump() << endl;
+}
+string Node::_dump(){
 	string indices_str = "";
 	for(int i = 0;i < _depth_v;i++){
 		indices_str += std::to_string(_horizontal_indices_from_root[i]);
 		indices_str += ",";
 	}
-	cout << (boost::format("%d [vp:%d,vs:%d,hp:%d,hs:%d][len:%f,self:%f,ch:%f,p:%f][ow:%d,dv:%d,dh:%d][%s]") % _identifier % _pass_count_v % _stop_count_v % _pass_count_h % _stop_count_h % _stick_length % (_stick_length - _children_stick_length) % _children_stick_length % _probability % _owner_id_on_structure % _depth_v % _depth_h % indices_str.c_str()).str() << endl;
+	string hpylm_str = "";
+	if(_hpylm != NULL){
+		hpylm_str = (boost::format("HPY[#c:%d,#t:%d,depth:%d]") % _hpylm->_num_customers % _hpylm->_num_tables % _hpylm->_depth).str();
+	}
+	return (boost::format("%d [vp:%d,vs:%d,hp:%d,hs:%d][len:%f,self:%f,ch:%f,p:%f][ow:%d,dv:%d,dh:%d][%s]%s") 
+		% _identifier % _pass_count_v % _stop_count_v % _pass_count_h % _stop_count_h % _stick_length 
+		% (_stick_length - _children_stick_length) % _children_stick_length % _probability % _owner_id_on_structure 
+		% _depth_v % _depth_h % indices_str.c_str() % hpylm_str.c_str()).str();
 }
 
 int Node::_auto_increment = 1;

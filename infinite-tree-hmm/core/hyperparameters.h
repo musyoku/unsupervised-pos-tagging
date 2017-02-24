@@ -3,13 +3,13 @@
 
 #define iTHMM_ALPHA 1.0
 #define iTHMM_GAMMA 1.0
-#define iTHMM_LAMBDA 0.5
+#define iTHMM_LAMBDA 0.5	// 0以上1以下
 
 #define iTHMM_TAU_0 1.0
 #define iTHMM_TAU_1 100.0
 
-#define HPYLM_D 1.0
-#define HPYLM_THETA 1.0
+#define HPYLM_D 0.2			// 0以上1未満
+#define HPYLM_THETA 2.0
 
 #define HPYLM_A 	1.0
 #define HPYLM_B 	1.0

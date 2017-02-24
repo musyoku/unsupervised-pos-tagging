@@ -3,6 +3,7 @@
 #include <algorithm>
 #include "core/ithmm.h"
 #include "core/cprintf.h"
+#include "model.cpp"
 using namespace std;
 
 void add_customer(iTHMM* model, int count){
@@ -464,8 +465,19 @@ void test20(iTHMM* model){
 	copy->_bos_tssb->dump();
 }
 
+void test21(){
+	string filename = "../alice.txt";
+	PyInfiniteTreeHMM* model = new PyInfiniteTreeHMM();
+	model->load_textfile(filename);
+
+	model->mark_low_frequency_words_as_unknown(1);
+	model->compile();
+	model->update_hyperparameters();
+	model->_ithmm->_structure_tssb->dump();
+}
+
 int main(){
-	iTHMM* model = new iTHMM();
-	test6(model);
+	// iTHMM* model = new iTHMM();
+	test21();
 	return 0;
 }

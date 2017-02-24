@@ -89,9 +89,15 @@ public:
 		_hpylm_alpha_m.push_back(HPYLM_ALPHA);
 		_hpylm_beta_m.push_back(HPYLM_BETA);
 	}
-	void initialize(vector<vector<Word*>> &dataset){
+	void initialize_data(vector<vector<Word*>> &dataset){
 		for(int data_index = 0;data_index < dataset.size();data_index++){
 			vector<Word*> &line = dataset[data_index];
+			for(auto &word: line){
+				Node* node = sample_node_on_tssb(_structure_tssb);
+				assert(node != NULL);
+				word->state = node;
+				add_customer_to_hpylm(node, word->id);
+			}
 		}
 	}
 	void set_word_g0(double g0){
