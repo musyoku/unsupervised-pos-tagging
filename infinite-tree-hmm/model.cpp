@@ -39,7 +39,7 @@ private:
 	int _min_num_words_in_line;
 public:
 	iTHMM* _ithmm;
-	PyInfiniteTreeHMM(int initial_num_tags){
+	PyInfiniteTreeHMM(){
 		// 日本語周り
 		// ただのテンプレ
 		setlocale(LC_CTYPE, "ja_JP.UTF-8");
@@ -62,7 +62,7 @@ public:
 		_max_num_words_in_line = -1;
 		_min_num_words_in_line = -1;
 	}
-	id add_string(wstring &word){
+	id add_string(wstring word){
 		auto itr = _dictionary_inv.find(word);
 		if(itr == _dictionary_inv.end()){
 			_dictionary[_autoincrement] = word;
@@ -72,7 +72,7 @@ public:
 		}
 		return itr->second;
 	}
-	id string_to_word_id(wstring &word){
+	id string_to_word_id(wstring word){
 		auto itr = _dictionary_inv.find(word);
 		if(itr == _dictionary_inv.end()){
 			return _unk_id;
@@ -147,8 +147,9 @@ public:
 			}
 		}
 	}
-	void initialize(){
-		_ithmm->initialize(_dataset);
+	void compile(){
+		_ithmm->set_word_g0(1.0 / _word_count.size());
+		_ithmm->initialize_data(_dataset);
 	}
 	bool load(string dirname){
 		// 辞書を読み込み
@@ -189,17 +190,21 @@ public:
 			vector<Word*> &line = _dataset[data_index];
 		}
 	}
+	void update_hyperparameters(){
+		_ithmm->sample_hpylm_hyperparameters();
+	}
 };
 
 BOOST_PYTHON_MODULE(model){
-	python::class_<PyInfiniteTreeHMM>("ihmm", python::init<int>())
+	python::class_<PyInfiniteTreeHMM>("ihmm")
 	.def("string_to_word_id", &PyInfiniteTreeHMM::string_to_word_id)
 	.def("add_string", &PyInfiniteTreeHMM::add_string)
 	.def("perform_gibbs_sampling", &PyInfiniteTreeHMM::perform_gibbs_sampling)
-	.def("initialize", &PyInfiniteTreeHMM::initialize)
+	.def("compile", &PyInfiniteTreeHMM::compile)
 	.def("load", &PyInfiniteTreeHMM::load)
 	.def("save", &PyInfiniteTreeHMM::save)
 	.def("add_line", &PyInfiniteTreeHMM::add_line)
 	.def("mark_low_frequency_words_as_unknown", &PyInfiniteTreeHMM::mark_low_frequency_words_as_unknown)
-	.def("load_textfile", &PyInfiniteTreeHMM::load_textfile);
+	.def("load_textfile", &PyInfiniteTreeHMM::load_textfile)
+	.def("update_hyperparameters", &PyInfiniteTreeHMM::update_hyperparameters);
 }

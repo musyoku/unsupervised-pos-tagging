@@ -3,12 +3,13 @@
 #include <algorithm>
 #include "core/ithmm.h"
 #include "core/cprintf.h"
+#include "model.cpp"
 using namespace std;
 
 void add_customer(iTHMM* model, int count){
 	for(int n = 0;n < count;n++){
 		Node* node = model->sample_node_on_htssb(model->_structure_tssb->_root->_transition_tssb);
-		model->add_customer_to_htssb(node);
+		model->add_customer_to_htssb_node(node);
 	}
 }
 
@@ -30,7 +31,7 @@ void test2(iTHMM* model){
 	Node* target_on_structure = model->_structure_tssb->find_node_with_id(11);
 	assert(target_on_structure != NULL);
 	for(int n = 0;n < 100;n++){
-		model->add_customer_to_htssb(target_on_structure);
+		model->add_customer_to_htssb_node(target_on_structure);
 	}
 	c_printf("[*]%s\n", "structure");
 	model->_structure_tssb->dump();
@@ -42,7 +43,7 @@ void test2(iTHMM* model){
 	}
 
 	for(int n = 0;n < 100;n++){
-		model->remove_customer_from_htssb(target_on_structure);
+		model->remove_customer_from_htssb_node(target_on_structure);
 	}
 
 	c_printf("[*]%s\n", "structure");
@@ -65,13 +66,13 @@ void test6(iTHMM* model){
 	std::random_shuffle(nodes.begin(), nodes.end());
 	for(auto node: nodes){
 		for(int i = 0;i < 1000;i++){
-			model->add_customer_to_htssb(node);
+			model->add_customer_to_htssb_node(node);
 		}
 	}
 	std::random_shuffle(nodes.begin(), nodes.end());
 	for(auto node: nodes){
 		for(int i = 0;i < 1000;i++){
-			model->add_customer_to_htssb(node);
+			model->add_customer_to_htssb_node(node);
 		}
 	}
 	c_printf("[*]%s\n", "structure");
@@ -80,13 +81,13 @@ void test6(iTHMM* model){
 	std::random_shuffle(nodes.begin(), nodes.end());
 	for(auto node: nodes){
 		for(int i = 0;i < 1000;i++){
-			model->remove_customer_from_htssb(node);
+			model->remove_customer_from_htssb_node(node);
 		}
 	}
 	std::random_shuffle(nodes.begin(), nodes.end());
 	for(auto node: nodes){
 		for(int i = 0;i < 1000;i++){
-			model->remove_customer_from_htssb(node);
+			model->remove_customer_from_htssb_node(node);
 		}
 	}
 	c_printf("[*]%s\n", "structure");
@@ -105,7 +106,7 @@ void test7(iTHMM* model){
 	target_on_structure->dump();
 	target_on_structure->_transition_tssb_myself->dump();
 	for(int i = 0;i < 10;i++){
-		model->add_customer_to_htssb(target_on_structure->_transition_tssb_myself);
+		model->add_customer_to_htssb_node(target_on_structure->_transition_tssb_myself);
 	}
 	c_printf("[*]%s\n", "transition");
 	target_on_structure->_transition_tssb->dump();
@@ -137,7 +138,7 @@ void test8(iTHMM* model){
 	target_on_structure->dump();
 	target_on_structure->_transition_tssb_myself->dump();
 	for(int i = 0;i < 10;i++){
-		model->add_customer_to_htssb(target_on_structure->_transition_tssb_myself);
+		model->add_customer_to_htssb_node(target_on_structure->_transition_tssb_myself);
 	}
 	c_printf("[*]%s\n", "transition");
 	target_on_structure->_transition_tssb->dump();
@@ -250,7 +251,7 @@ void test12(iTHMM* model){
 	c_printf("[*]%s\n", "structure");
 	model->_structure_tssb->dump();
 	Node* target = model->_structure_tssb->find_node_with_id(12);
-	model->delete_node_if_needed(target);
+	model->delete_node_on_structure_if_needed(target);
 	c_printf("[*]%s\n", "structure");
 	model->_structure_tssb->dump();
 	Node* parent = model->_structure_tssb->find_node_with_id(14);
@@ -270,10 +271,11 @@ void test12(iTHMM* model){
 }
 
 void test13(iTHMM* model){
-	add_customer(model, 1);
+	add_customer(model, 1000);
 	c_printf("[*]%s\n", "structure");
 	model->_structure_tssb->dump();
 	Node* target = model->_structure_tssb->find_node_with_id(7);
+	assert(target != NULL);
 	Table* table = target->_table_v;
 	int n = 1;
 	double alpha = 10;
@@ -298,7 +300,7 @@ void test14(iTHMM* model){
 	model->_structure_tssb->dump();
 	Node* target = model->_structure_tssb->find_node_with_id(7);
 	for(int i = 0;i < 10000;i++){
-		model->add_customer_to_htssb(target->_transition_tssb_myself);
+		model->add_customer_to_htssb_node(target->_transition_tssb_myself);
 	}
 	Node* parent = target;
 	while(parent){
@@ -307,7 +309,7 @@ void test14(iTHMM* model){
 		parent = parent->_parent;
 	}
 	for(int i = 0;i < 10000;i++){
-		model->remove_customer_from_htssb(target->_transition_tssb_myself);
+		model->remove_customer_from_htssb_node(target->_transition_tssb_myself);
 	}
 	parent = target;
 	while(parent){
@@ -328,7 +330,7 @@ void test15(iTHMM* model){
 		node->_transition_tssb->enumerate_nodes_from_left_to_right(nodes_on_htssb);
 		for(const auto node_on_htssb: nodes_on_htssb){
 			for(int i = 0;i < 1000;i++){
-				model->add_customer_to_htssb(node_on_htssb);
+				model->add_customer_to_htssb_node(node_on_htssb);
 			}
 		}
 	}
@@ -359,7 +361,7 @@ void test16(iTHMM* model){
 	Node* parent = target;
 	while(parent){
 		c_printf("[*]%d\n", parent->_identifier);
-		double pw = model->compute_word_probability_given_node(5, parent);
+		double pw = model->compute_Pw_given_s(5, parent);
 		cout << pw << endl;
 		assert(parent->_hpylm != NULL);
 		parent->_hpylm->dump();
@@ -378,7 +380,7 @@ void test17(iTHMM* model){
 	Node* parent = copy->_structure_tssb->find_node_with_id(60);
 	while(parent){
 		c_printf("[*]%d\n", parent->_identifier);
-		double pw = copy->compute_word_probability_given_node(5, parent);
+		double pw = copy->compute_Pw_given_s(5, parent);
 		cout << pw << endl;
 		assert(parent->_hpylm != NULL);
 		parent->_hpylm->dump();
@@ -457,15 +459,185 @@ void test20(iTHMM* model){
 
 	for(int n = 0;n < 10000;n++){
 		Node* node = copy->sample_node_on_tssb(copy->_bos_tssb);
-		copy->add_customer_to_tssb(node);
+		copy->add_customer_to_tssb_node(node);
 	}
 
 	c_printf("[*]%s\n", "bos");
 	copy->_bos_tssb->dump();
 }
 
+void test21(){
+	string filename = "../alice.txt";
+	PyInfiniteTreeHMM* model = new PyInfiniteTreeHMM();
+	model->load_textfile(filename);
+
+	model->mark_low_frequency_words_as_unknown(1);
+	model->compile();
+	model->update_hyperparameters();
+	model->_ithmm->_structure_tssb->dump();
+
+}
+
+void test22(){
+	iTHMM* model = new iTHMM();
+	Node* node = model->sample_node_on_tssb(model->_structure_tssb);
+	model->add_customer_to_htssb_node(node->_transition_tssb_myself);
+
+	c_printf("[*]%s\n", "before");
+	model->_structure_tssb->dump();
+	model->_bos_tssb->dump();
+	vector<Node*> nodes;
+	model->_structure_tssb->enumerate_nodes_from_left_to_right(nodes);
+	for(const auto node: nodes){
+		node->_transition_tssb->dump();
+	}
+
+	model->remove_customer_from_htssb_node(node->_transition_tssb_myself);
+
+	c_printf("[*]%s\n", "after");
+	model->_structure_tssb->dump();
+	model->_bos_tssb->dump();
+	for(const auto node: nodes){
+		node->_transition_tssb->dump();
+	}
+}
+
+void test23(){
+	iTHMM* model = new iTHMM();
+	vector<Node*> nodes = {model->_structure_tssb->_root};
+	for(int n = 0;n < 1000;n++){
+		Node* node = model->sample_node_on_htssb(nodes[0]->_transition_tssb);
+		node->dump();
+		assert(node->_structure_tssb_myself);
+		nodes.push_back(node->_structure_tssb_myself);
+		std::random_shuffle(nodes.begin(), nodes.end());
+	}
+	int rand_index = Sampler::uniform_int(0, nodes.size());
+	std::random_shuffle(nodes.begin(), nodes.end());
+	for(auto node: nodes){
+		for(int i = 0;i < 1000;i++){
+			model->add_customer_to_htssb_node(node->_transition_tssb_myself);
+		}
+	}
+	std::random_shuffle(nodes.begin(), nodes.end());
+	for(auto node: nodes){
+		for(int i = 0;i < 1000;i++){
+			model->add_customer_to_htssb_node(node->_transition_tssb_myself);
+		}
+	}
+	c_printf("[*]%s\n", "before");
+	model->_structure_tssb->dump();
+	model->_bos_tssb->dump();
+
+	std::random_shuffle(nodes.begin(), nodes.end());
+	for(auto node: nodes){
+		for(int i = 0;i < 1000;i++){
+			model->remove_customer_from_htssb_node(node->_transition_tssb_myself);
+		}
+	}
+	std::random_shuffle(nodes.begin(), nodes.end());
+	for(auto node: nodes){
+		for(int i = 0;i < 1000;i++){
+			model->remove_customer_from_htssb_node(node->_transition_tssb_myself);
+		}
+	}
+
+	c_printf("[*]%s\n", "after");
+	model->_structure_tssb->dump();
+	model->_bos_tssb->dump();
+}
+
+void test24(iTHMM* model){
+	test15(model);
+	Node* target = model->_structure_tssb->find_node_with_id(7);
+	model->update_stick_length_of_tssb(target->_transition_tssb);
+	Node* node = model->retrospective_sampling_on_htssb(0.9, target->_transition_tssb);
+	c_printf("[*]%s\n", "sampled");
+	node->dump();
+	target->_transition_tssb->dump();
+}
+
+void test25(iTHMM* model){
+	test15(model);
+	Node* target = model->_structure_tssb->find_node_with_id(55);
+	TSSB* tssb = target->_transition_tssb;
+	target = tssb->find_node_by_tracing_horizontal_indices(target);
+	double p = model->compute_node_probability_on_tssb(tssb, target, 1);
+	cout << p << endl;
+	model->update_stick_length_of_tssb(tssb);
+	tssb->dump();
+}
+
+void test26(iTHMM* model){
+	test15(model);
+	vector<Node*> nodes;
+	model->update_stick_length_of_tssb(model->_structure_tssb->_root->_transition_tssb);
+	model->_structure_tssb->_root->_transition_tssb->enumerate_nodes_from_left_to_right(nodes);
+	cout << nodes.size() << endl;
+	for(int i = 0;i < nodes.size();i++){
+		for(int j = 0;j < nodes.size();j++){
+			if(i == j){
+				continue;
+			}
+			Node* left = nodes[i];
+			Node* right = nodes[j];
+			if(left->_identifier == right->_identifier){
+				continue;
+			}
+			if(left->_depth_v == 0){
+				continue;
+			}
+			if(right->_depth_v == 0){
+				continue;
+			}
+			bool flag = model->is_node_to_the_left_of_node(left, right);
+			assert((flag && (left->_sum_probability < right->_sum_probability)) || (flag == false && (left->_sum_probability > right->_sum_probability)));
+		}
+	}
+}
+
+void test27(iTHMM* model){
+	model->set_word_g0(1.0 / 100.0);
+
+	for(int n = 0;n < 100;n++){
+		Node* node = model->sample_node_on_tssb(model->_structure_tssb);
+	}
+
+	vector<Node*> nodes;
+	model->_structure_tssb->enumerate_nodes_from_left_to_right(nodes);
+	for(const auto node: nodes){
+		vector<Node*> nodes_on_htssb;
+		node->_transition_tssb->enumerate_nodes_from_left_to_right(nodes_on_htssb);
+		for(const auto node_on_htssb: nodes_on_htssb){
+			int limit = Sampler::uniform_int(0, 1000);
+			for(int i = 0;i < limit;i++){
+				model->add_customer_to_htssb_node(node_on_htssb);
+			}
+		}
+	}
+	nodes.clear();
+
+	model->_structure_tssb->enumerate_nodes_from_left_to_right(nodes);
+	for(const auto node: nodes){
+		int limit = Sampler::uniform_int(0, 100);
+		for(int i = 0;i < limit;i++){
+			int token_id = Sampler::uniform_int(0, 100);
+			model->add_customer_to_hpylm(node, token_id);
+		}
+	}
+
+	c_printf("[*]%s\n", "structure");
+	model->_structure_tssb->dump();
+
+	Node* prev_state = model->_structure_tssb->find_node_with_id(10);
+	Node* state = model->_structure_tssb->find_node_with_id(4);
+	Node* next_state = model->_structure_tssb->find_node_with_id(21);
+	Node* new_state = model->draw_state(prev_state, state, next_state, 10);
+	new_state->dump();
+}
+
 int main(){
 	iTHMM* model = new iTHMM();
-	test6(model);
+	test27(model);
 	return 0;
 }
