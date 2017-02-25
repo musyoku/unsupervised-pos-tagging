@@ -677,7 +677,7 @@ void test30(iTHMM* model){
 }
 
 int main(){
-	iTHMM* model = new iTHMM();
-	test30(model);
+	// iTHMM* model = new iTHMM();
+	test29();
 	return 0;
 }

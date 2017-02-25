@@ -201,7 +201,10 @@ public:
 
 		Node* return_child = generated_child_on_structure;	// 実際に返すノード
 		// <bos>TSSB上で子ノードを作成
-		_generate_and_add_new_child_to_bos_tssb(generated_child_on_structure);
+		Node* generated_child_on_bos = _generate_and_add_new_child_to_bos_tssb(generated_child_on_structure);
+		if(is_node_on_bos_tssb(parent)){
+			return_child = generated_child_on_bos;
+		}
 		// 木構造上の全ノードのHTSSBにノードを追加
 		_generate_and_add_new_child_to_all_htssb(_structure_tssb->_root, parent, generated_child_on_structure, return_child);
 		// ポインタを張る
@@ -272,7 +275,7 @@ public:
 			_generate_and_add_new_child_to_all_htssb(child, parent, generated_child_on_structure, return_child);
 		}
 	}
-	void _generate_and_add_new_child_to_bos_tssb(Node* generated_child_on_structure){
+	Node* _generate_and_add_new_child_to_bos_tssb(Node* generated_child_on_structure){
 		// 木構造上での親ノードが<bos>TSSBのどのノードに対応するかを調べる
 		Node* parent = _bos_tssb->find_node_by_tracing_horizontal_indices(generated_child_on_structure->_parent);
 		assert(parent != NULL);
@@ -282,6 +285,7 @@ public:
 		// ポインタを張る
 		generated_child_on_structure->_bos_tssb_myself = child;
 		child->_structure_tssb_myself = generated_child_on_structure;
+		return child;
 	}
 	// 木構造上のノードにHTSSBを追加
 	TSSB* generate_transition_tssb_belonging_to(Node* owner_on_structure){
@@ -427,7 +431,7 @@ public:
 			child->_probability = child->_stick_length * ratio_v;
 			child->_children_stick_length = child->_stick_length * (1.0 - ratio_v);
 			if(uniform <= sum_probability + sum_stick_length_over_children + child->_stick_length){
-				sum_probability += sum_stick_length_over_children + child->_stick_length * ratio_v;
+				sum_probability += sum_stick_length_over_children + child->_probability;
 				if(uniform <= sum_probability){
 					return child;
 				}
@@ -653,13 +657,13 @@ public:
 
 		// スライス
 		double slice = Pw_given_s * Pt_given_s * Sampler::uniform(0, 1);
-		double st = 0;
-		double ed = 1;
 
 		// s_{t-1}から<eos>へ接続する確率
 		double Peos_given_ps = prev_state_on_structure->compute_transition_probability_to_eos(_tau0, _tau1);
 		// <eos>以外に接続する確率を棒全体の長さとし、TSSBで分配
 		double total_stick_length_of_prev_tssb = 1.0 - Peos_given_ps;
+		double st = 0;
+		double ed = total_stick_length_of_prev_tssb;
 
 
 		// cout << "Pw_given_s: " << Pw_given_s << endl;
@@ -672,7 +676,7 @@ public:
 		// cout << "total_stick_length_of_prev_tssb: " << total_stick_length_of_prev_tssb << endl;
 		
 		while(true){
-			double u = Sampler::uniform(st, ed) * total_stick_length_of_prev_tssb;	// 最大値は棒の長さなので補正する
+			double u = Sampler::uniform(st, ed);	// 最大値は棒の長さなので補正する
 			Node* new_state_on_htssb = retrospective_sampling(u, prev_state_on_structure->_transition_tssb, total_stick_length_of_prev_tssb, true);
 			assert(new_state_on_htssb != NULL);
 			Node* new_state_on_structure = new_state_on_htssb->_structure_tssb_myself;
@@ -702,6 +706,11 @@ public:
 			// cout << "new_Pt_given_s: " << new_Pt_given_s << endl;
 			// cout << "likelihoood: " << likelihoood << endl;
 
+			// cout << likelihoood << ", " << slice << endl;
+			// update_stick_length_of_tssb(prev_state_on_structure->_transition_tssb, total_stick_length_of_new_tssb, true);
+			// prev_state_on_structure->_transition_tssb->dump();
+			// state_on_structure->dump();
+			// new_state_on_structure->dump();
 
 			if(likelihoood > slice){
 				return new_state_on_structure;
@@ -733,12 +742,13 @@ public:
 		// スライス
 		double slice = Pw_given_s * Pt_given_s * Sampler::uniform(0, 1);
 		double st = 0;
-		double ed = 1;
+		double ed = 1;	// ここは補正なし
 		while(true){
 			double u = Sampler::uniform(st, ed);
-			Node* new_state_on_htssb = retrospective_sampling(u, _bos_tssb, 1.0, false);
-			assert(new_state_on_htssb != NULL);
-			Node* new_state_on_structure = new_state_on_htssb->_structure_tssb_myself;
+			Node* new_state_on_bos = retrospective_sampling(u, _bos_tssb, 1.0, false);
+			assert(is_node_on_bos_tssb(new_state_on_bos));
+			assert(new_state_on_bos != NULL);
+			Node* new_state_on_structure = new_state_on_bos->_structure_tssb_myself;
 			assert(new_state_on_structure != NULL);
 			assert(new_state_on_structure->_transition_tssb != NULL);
 
@@ -778,14 +788,14 @@ public:
 		assert(0 < Peos_given_s && Peos_given_s <= 1);
 		// スライス
 		double slice = Pw_given_s * Peos_given_s * Sampler::uniform(0, 1);
-		double st = 0;
-		double ed = 1;
 		// s_{t-1}から<eos>へ接続する確率
 		double Peos_given_ps = prev_state_on_structure->compute_transition_probability_to_eos(_tau0, _tau1);
 		// <eos>以外に接続する確率を棒全体の長さとし、TSSBで分配
 		double total_stick_length_of_prev_tssb = 1.0 - Peos_given_ps;
+		double st = 0;
+		double ed = total_stick_length_of_prev_tssb;
 		while(true){
-			double u = Sampler::uniform(st, ed) * total_stick_length_of_prev_tssb;	// 最大値は棒の長さなので補正する
+			double u = Sampler::uniform(st, ed);	// 最大値は棒の長さなので補正する
 			Node* new_state_on_htssb = retrospective_sampling(u, prev_state_on_structure->_transition_tssb, total_stick_length_of_prev_tssb, true);
 			assert(new_state_on_htssb != NULL);
 			Node* new_state_on_structure = new_state_on_htssb->_structure_tssb_myself;
@@ -1194,12 +1204,7 @@ public:
 		assert(_hpylm_d_m.size() > node_on_structure->_depth_v);
 		assert(_hpylm_theta_m.size() > node_on_structure->_depth_v);
 		assert(_word_g0 > 0);
-		double p =  node_on_structure->_hpylm->compute_Pw(token_id, _word_g0, _hpylm_d_m, _hpylm_theta_m);
-		if(isnan(p)){
-			node_on_structure->dump();
-			node_on_structure->_hpylm->dump();
-		}
-		return p;
+		return node_on_structure->_hpylm->compute_Pw(token_id, _word_g0, _hpylm_d_m, _hpylm_theta_m);
 	}
 	void update_stick_length_of_tssb(TSSB* tssb, double total_stick_length, bool htssb_mode){
 		// assert(tssb->_owner_id != 0);	// 木構造の場合は計算しない
