@@ -191,6 +191,7 @@ public:
 			}
 			int data_index = _rand_indices[n];
 			vector<Word*> &line = _dataset[data_index];
+			_ithmm->perform_gibbs_sampling_line(line);
 		}
 	}
 	void update_hyperparameters(){

@@ -612,13 +612,13 @@ void test27(){
 	Node* next_state = model->_ithmm->_structure_tssb->find_node_with_id(31);
 	Node* new_state = model->_ithmm->draw_state(prev_state, state, next_state, 10);
 	new_state->dump();
-	new_state = model->_ithmm->draw_state_from_bos(state, next_state, 10);
+	new_state = model->_ithmm->_draw_state_from_bos(state, next_state, 10);
 	new_state->dump();
-	new_state = model->_ithmm->draw_state_to_eos(prev_state, state, 10);
+	new_state = model->_ithmm->_draw_state_to_eos(prev_state, state, 10);
 	new_state->dump();
 
 	model->remove_all_data();
-	// model->_ithmm->delete_invalid_children_on_structure_tssb(model->_ithmm->_structure_tssb);
+	model->_ithmm->delete_invalid_children_on_structure_tssb(model->_ithmm->_structure_tssb);
 	c_printf("[*]%s\n", "structure");
 	model->_ithmm->_structure_tssb->dump();
 
@@ -651,11 +651,25 @@ void test28(){
 		node->_transition_tssb->dump();
 		assert(count == true_count);
 	}
+}
 
+void test29(){
+	string filename = "../alice.txt";
+	PyInfiniteTreeHMM* model = new PyInfiniteTreeHMM();
+	model->load_textfile(filename);
+
+	model->mark_low_frequency_words_as_unknown(1);
+	model->compile();
+	for(int i = 0;i < 100;i++){
+		model->perform_gibbs_sampling();
+		model->update_hyperparameters();
+		c_printf("[*]%s\n", "structure");
+		model->_ithmm->_structure_tssb->dump();
+	}
 }
 
 int main(){
 	// iTHMM* model = new iTHMM();
-	test27();
+	test29();
 	return 0;
 }

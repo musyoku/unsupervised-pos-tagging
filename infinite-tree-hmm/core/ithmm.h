@@ -127,7 +127,7 @@ public:
 	// デバッグ用
 	// これを呼んで全パラメータが消えなかったらバグっている
 	void remove_all_data(vector<vector<Word*>> &dataset){
-		for(int data_index = 1;data_index < dataset.size();data_index++){
+		for(int data_index = 0;data_index < dataset.size();data_index++){
 			vector<Word*> &line = dataset[data_index];
 			if(line.size() == 0){
 				continue;
@@ -172,8 +172,6 @@ public:
 	bool is_node_to_the_left_of_node(Node* left, Node* right){
 		assert(left->_identifier != right->_identifier);
 		int limit = std::min(left->_depth_v, right->_depth_v);
-		left->dump();
-		right->dump();
 		for(int i = 0;i < limit;i++){
 			if(left->_horizontal_indices_from_root[i] != right->_horizontal_indices_from_root[i]){
 				return left->_horizontal_indices_from_root[i] < right->_horizontal_indices_from_root[i];
@@ -237,6 +235,18 @@ public:
 			}			
 			while(_max_depth >= _hpylm_theta_m.size()){
 				_hpylm_theta_m.push_back(HPYLM_THETA);
+			}		
+			while(_max_depth >= _hpylm_a_m.size()){
+				_hpylm_a_m.push_back(HPYLM_A);
+			}			
+			while(_max_depth >= _hpylm_b_m.size()){
+				_hpylm_b_m.push_back(HPYLM_B);
+			}		
+			while(_max_depth >= _hpylm_alpha_m.size()){
+				_hpylm_alpha_m.push_back(HPYLM_ALPHA);
+			}			
+			while(_max_depth >= _hpylm_beta_m.size()){
+				_hpylm_beta_m.push_back(HPYLM_BETA);
 			}	
 		}
 		return return_child;
@@ -405,6 +415,8 @@ public:
 			rest_stick_length *= 1.0 - ratio_h;
 			last_node = child;
 		}
+		last_node->dump();
+		cout << sum_probability << endl;
 		// 見つからなかったら一番右端のノードを返す
 		if(last_node != NULL){
 			if(last_node->has_child()){
@@ -414,10 +426,20 @@ public:
 		}
 		return NULL;
 	}
-	void perform_gibbs_sampling(vector<Word*> &line){
-		assert(line.size() == 0);
+	void perform_gibbs_sampling_line(vector<Word*> &line){
+		assert(line.size() > 0);
+		Node* prev_state = NULL;
+		Node* next_state = line.size() == 1 ? NULL : line[1]->state;
 		for(int i = 0;i < line.size();i++){
-
+			Word* word = line[i];
+			Node* state = word->state;
+			remove_parameters(prev_state, state, next_state, word->id);
+			state = draw_state(prev_state, state, next_state, word->id);
+			add_parameters(prev_state, state, next_state, word->id);
+			prev_state = state;
+			next_state = i < line.size() - 2 ? line[i + 2]->state : NULL;
+			delete_invalid_children_of_node_on_structure(_structure_tssb->_root);
+			word->state = state;
 		}
 	}
 	void add_parameters(Node* prev_state_on_structure, Node* state_on_structure, Node* next_state_on_structure, id word_id){
@@ -431,6 +453,7 @@ public:
 			Node* state_on_bos = _bos_tssb->find_node_by_tracing_horizontal_indices(state_on_structure);
 			assert(state_on_bos);
 			add_customer_to_tssb_node(state_on_bos);
+			add_customer_to_tssb_node(state_on_structure);			// 参照カウント用
 			Node* next_state_on_htssb = state_on_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(next_state_on_structure);
 			assert(next_state_on_htssb != NULL);
 			add_customer_to_htssb_node(next_state_on_htssb);
@@ -451,6 +474,7 @@ public:
 			add_customer_to_htssb_node(state_on_htssb);
 			add_customer_to_tssb_node(state_on_structure);		// 参照カウント用
 			add_customer_to_hpylm(state_on_structure, word_id);
+			prev_state_on_structure->increment_transition_count_to_other();
 			state_on_structure->increment_transition_count_to_eos();
 			return;
 		}
@@ -461,6 +485,7 @@ public:
 			Node* state_on_bos = _bos_tssb->find_node_by_tracing_horizontal_indices(state_on_structure);
 			assert(state_on_bos);
 			add_customer_to_tssb_node(state_on_bos);
+			add_customer_to_tssb_node(state_on_structure);			// 参照カウント用
 			add_customer_to_hpylm(state_on_structure, word_id);
 			state_on_structure->increment_transition_count_to_eos();
 			return;
@@ -485,8 +510,8 @@ public:
 		add_customer_to_tssb_node(next_state_on_structure);		// 参照カウント用
 
 		add_customer_to_hpylm(state_on_structure, word_id);
-		prev_state_on_structure->increment_transition_count_to_eos();
-		state_on_structure->increment_transition_count_to_eos();
+		prev_state_on_structure->increment_transition_count_to_other();
+		state_on_structure->increment_transition_count_to_other();
 	}
 	void remove_parameters(Node* prev_state_on_structure, Node* state_on_structure, Node* next_state_on_structure, id word_id){
 		// <bos>からの遷移を含む場合
@@ -499,9 +524,11 @@ public:
 			Node* state_on_bos = _bos_tssb->find_node_by_tracing_horizontal_indices(state_on_structure);
 			assert(state_on_bos);
 			remove_customer_from_tssb_node(state_on_bos);
+			remove_customer_from_tssb_node(state_on_structure);			// 参照カウント用
 			Node* next_state_on_htssb = state_on_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(next_state_on_structure);
 			assert(next_state_on_htssb != NULL);
 			remove_customer_from_htssb_node(next_state_on_htssb);
+			remove_customer_from_tssb_node(next_state_on_structure);		// 参照カウント用
 			remove_customer_from_hpylm(state_on_structure, word_id);
 			state_on_structure->decrement_transition_count_to_other();
 			return;
@@ -516,7 +543,9 @@ public:
 			Node* state_on_htssb = prev_state_on_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(state_on_structure);
 			assert(state_on_htssb != NULL);
 			remove_customer_from_htssb_node(state_on_htssb);
+			remove_customer_from_tssb_node(state_on_structure);		// 参照カウント用
 			remove_customer_from_hpylm(state_on_structure, word_id);
+			prev_state_on_structure->decrement_transition_count_to_other();
 			state_on_structure->decrement_transition_count_to_eos();
 			return;
 		}
@@ -527,6 +556,7 @@ public:
 			Node* state_on_bos = _bos_tssb->find_node_by_tracing_horizontal_indices(state_on_structure);
 			assert(state_on_bos);
 			remove_customer_from_tssb_node(state_on_bos);
+			remove_customer_from_tssb_node(state_on_structure);			// 参照カウント用
 			remove_customer_from_hpylm(state_on_structure, word_id);
 			state_on_structure->decrement_transition_count_to_eos();
 			return;
@@ -543,18 +573,29 @@ public:
 		Node* state_on_htssb = prev_state_on_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(state_on_structure);
 		assert(state_on_htssb != NULL);
 		remove_customer_from_htssb_node(state_on_htssb);
+		remove_customer_from_tssb_node(state_on_structure);			// 参照カウント用
 
 		Node* next_state_on_htssb = state_on_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(next_state_on_structure);
 		assert(next_state_on_htssb != NULL);
 		remove_customer_from_htssb_node(next_state_on_htssb);
+		remove_customer_from_tssb_node(next_state_on_structure);		// 参照カウント用
 
 		remove_customer_from_hpylm(state_on_structure, word_id);
-		prev_state_on_structure->decrement_transition_count_to_eos();
-		state_on_structure->decrement_transition_count_to_eos();
+		prev_state_on_structure->decrement_transition_count_to_other();
+		state_on_structure->decrement_transition_count_to_other();
 	}
 	// 新しい状態のギブスサンプリング
 	// なるべく論文の記号を使う
 	Node* draw_state(Node* prev_state_on_structure, Node* state_on_structure, Node* next_state_on_structure, id word_id){
+		if(prev_state_on_structure == NULL){
+			return _draw_state_from_bos(state_on_structure, next_state_on_structure, word_id);
+		}
+		if(next_state_on_structure == NULL){
+			return _draw_state_to_eos(prev_state_on_structure, state_on_structure, word_id);
+		}
+		return _draw_state(prev_state_on_structure, state_on_structure, next_state_on_structure, word_id);
+	}
+	Node* _draw_state(Node* prev_state_on_structure, Node* state_on_structure, Node* next_state_on_structure, id word_id){
 		assert(is_node_on_structure_tssb(state_on_structure));
 		assert(is_node_on_structure_tssb(prev_state_on_structure));
 		assert(is_node_on_structure_tssb(next_state_on_structure));
@@ -635,7 +676,7 @@ public:
 			}
 		}
 	}
-	Node* draw_state_from_bos(Node* state_on_structure, Node* next_state_on_structure, id word_id){
+	Node* _draw_state_from_bos(Node* state_on_structure, Node* next_state_on_structure, id word_id){
 		assert(is_node_on_structure_tssb(state_on_structure));
 		assert(is_node_on_structure_tssb(next_state_on_structure));
 		// 出力確率
@@ -687,7 +728,7 @@ public:
 			}
 		}
 	}
-	Node* draw_state_to_eos(Node* prev_state_on_structure, Node* state_on_structure, id word_id){
+	Node* _draw_state_to_eos(Node* prev_state_on_structure, Node* state_on_structure, id word_id){
 		assert(is_node_on_structure_tssb(prev_state_on_structure));
 		assert(is_node_on_structure_tssb(state_on_structure));
 		// 出力確率
@@ -1114,8 +1155,13 @@ public:
 		assert(is_node_on_structure_tssb(node_on_structure));
 		assert(_hpylm_d_m.size() > node_on_structure->_depth_v);
 		assert(_hpylm_theta_m.size() > node_on_structure->_depth_v);
-		assert(_word_g0 != -1);
-		return node_on_structure->_hpylm->compute_Pw(token_id, _word_g0, _hpylm_d_m, _hpylm_theta_m);
+		assert(_word_g0 > 0);
+		double p =  node_on_structure->_hpylm->compute_Pw(token_id, _word_g0, _hpylm_d_m, _hpylm_theta_m);
+		if(isnan(p)){
+			node_on_structure->dump();
+			node_on_structure->_hpylm->dump();
+		}
+		return p;
 	}
 	void update_stick_length_of_tssb(TSSB* tssb, double total_stick_length = 1.0){
 		assert(tssb->_owner_id != 0);	// 木構造の場合は計算しない
@@ -1252,6 +1298,10 @@ public:
 	void sample_hpylm_hyperparameters(){
 		assert(_max_depth < _hpylm_d_m.size());
 		assert(_max_depth < _hpylm_theta_m.size());
+		assert(_max_depth < _hpylm_a_m.size());
+		assert(_max_depth < _hpylm_b_m.size());
+		assert(_max_depth < _hpylm_alpha_m.size());
+		assert(_max_depth < _hpylm_beta_m.size());
 
 		// 親ノードの深さが0であることに注意
 		vector<double> sum_log_x_u_m(_max_depth + 1, 0.0);
