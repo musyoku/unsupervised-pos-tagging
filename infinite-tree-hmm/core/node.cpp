@@ -267,7 +267,7 @@ bool Node::delete_node_if_needed(){
 Node* Node::delete_child_node(int node_id){
 	Node* return_node = NULL;
 	for(int i = 0;i < _children.size();i++){
-		Node* &target = _children[i];
+		Node* target = _children[i];
 		if(target->_identifier == node_id){
 			assert(target->get_vertical_pass_count() == 0);
 			assert(target->get_vertical_stop_count() == 0);
@@ -297,12 +297,14 @@ string Node::_dump(){
 	}
 	string hpylm_str = "";
 	if(_hpylm != NULL){
-		hpylm_str = (boost::format("HPY[#c:%d,#t:%d,depth:%d]") % _hpylm->_num_customers % _hpylm->_num_tables % _hpylm->_depth).str();
+		hpylm_str = (boost::format("HPY[#c:%d,#t:%d,d:%d]") % _hpylm->_num_customers % _hpylm->_num_tables % _hpylm->_depth).str();
 	}
-	return (boost::format("%d [vp:%d,vs:%d,hp:%d,hs:%d,ref:%d][len:%f,self:%f,ch:%f,p:%f][ow:%d,dv:%d,dh:%d][%s]%s") 
+	return (boost::format("$%d [vp:%d,vs:%d,hp:%d,hs:%d,ref:%d][len:%f,self:%f,ch:%f,p:%f,sp:%f][ow:$%d,dv:%d,dh:%d][%s]%s[eos:%d,other:%d]") 
 		% _identifier % _pass_count_v % _stop_count_v % _pass_count_h % _stop_count_h % _ref_count % _stick_length 
-		% (_stick_length - _children_stick_length) % _children_stick_length % _probability % _owner_id_on_structure 
-		% _depth_v % _depth_h % indices_str.c_str() % hpylm_str.c_str()).str();
+		% (_stick_length - _children_stick_length) % _children_stick_length % _probability % _sum_probability % _owner_id_on_structure 
+		% _depth_v % _depth_h % indices_str.c_str() % hpylm_str.c_str() % _num_transitions_to_eos % _num_transitions_to_other).str();
 }
 
-int Node::_auto_increment = 1;
+// 特殊なTSSBの識別でもこのIDを使うのでノードのIDの開始を少し大きな値にする
+// ithmm.hのTSSB_STRUCTURE_IDとTSSB_BOS_IDよりも大きな値にする
+int Node::_auto_increment = 10;
