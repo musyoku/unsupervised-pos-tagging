@@ -17,9 +17,8 @@
 #include "util.h"
 #include "hyperparameters.h"
 
-// 以下は0以下の値にしてほしい
-#define TSSB_STRUCTURE 0
-#define TSSB_BOS -1
+#define TSSB_STRUCTURE_ID 5
+#define TSSB_BOS_ID 7
 
 typedef struct Word {
 	id id;
@@ -75,7 +74,8 @@ public:
 		_word_g0 = -1;
 
 		_structure_tssb = new TSSB(_alpha, _gamma, _lambda);
-		_structure_tssb->_owner_id = TSSB_STRUCTURE;
+		_structure_tssb->_root->_owner_id_on_structure = TSSB_STRUCTURE_ID;
+		_structure_tssb->_owner_id = TSSB_STRUCTURE_ID;
 		Node* root_on_structure = _structure_tssb->_root;
 		root_on_structure->init_hpylm();
 		Node* root_on_htssb = new Node(NULL, root_on_structure->_identifier);
@@ -87,10 +87,10 @@ public:
 		root_on_structure->_transition_tssb_myself = root_on_htssb;
 
 		Node* root_on_bos = new Node(NULL, root_on_structure->_identifier);
-		root_on_bos->_owner_id_on_structure = TSSB_BOS;		// そもそも木構造上に所有者がいないが気にしない
+		root_on_bos->_owner_id_on_structure = TSSB_BOS_ID;		// そもそも木構造上に所有者がいないが気にしない
 		root_on_bos->_structure_tssb_myself = root_on_structure;
 		_bos_tssb = new TSSB(root_on_bos, _alpha, _gamma, _lambda);
-		_bos_tssb->_owner_id = TSSB_BOS;
+		_bos_tssb->_owner_id = TSSB_BOS_ID;
 
 		_hpylm_d_m.push_back(HPYLM_D);
 		_hpylm_theta_m.push_back(HPYLM_THETA);
@@ -102,31 +102,66 @@ public:
 	void initialize_data(vector<vector<Word*>> &dataset){
 		for(int data_index = 0;data_index < dataset.size();data_index++){
 			vector<Word*> &line = dataset[data_index];
-			for(auto &word: line){
-				Node* node = sample_node_on_tssb(_structure_tssb);
-				assert(node != NULL);
-				word->state = node;
-				add_customer_to_hpylm(node, word->id);
+			if(line.size() == 0){
+				continue;
 			}
+			// <bos>からの遷移
+			{
+				Node* state = line[0]->state;
+				assert(state != NULL);
+				Node* state_on_bos = _bos_tssb->find_node_by_tracing_horizontal_indices(state);
+				assert(state_on_bos != NULL);
+				add_customer_to_tssb_node(state_on_bos);
+			}
+
+			// 通常の状態遷移
+			Node* prev_state = NULL;
+			for(auto &word: line){
+				Node* state = sample_node_on_tssb(_structure_tssb);
+				assert(state != NULL);
+				word->state = state;
+				add_customer_to_hpylm(state, word->id);
+				if(prev_state != NULL){
+					assert(prev_state->_transition_tssb != NULL);
+					Node* state_on_prev_htssb = prev_state->_transition_tssb->find_node_by_tracing_horizontal_indices(state);
+					assert(state_on_prev_htssb != NULL);
+					add_customer_to_htssb_node(state_on_prev_htssb);
+					prev_state->increment_transition_count_to_other();
+				}
+				prev_state = state;
+			}
+
+			// <eos>への遷移
+			{
+				Node* state = line.back()->state;
+				assert(state != NULL);
+				state->increment_transition_count_to_eos();
+			}
+
 		}
 	}
 	void set_word_g0(double g0){
 		_word_g0 = g0;
 	}
 	bool is_node_on_bos_tssb(Node* node){
-		return node->_owner_id_on_structure == TSSB_BOS;
+		assert(node != NULL);
+		return node->_owner_id_on_structure == TSSB_BOS_ID;
 	}
 	bool is_node_on_structure_tssb(Node* node){
-		return node->_owner_id_on_structure == TSSB_STRUCTURE;
+		assert(node != NULL);
+		return node->_owner_id_on_structure == TSSB_STRUCTURE_ID;
 	}
 	bool is_node_on_htssb(Node* node){
+		assert(node != NULL);
 		return is_node_on_bos_tssb(node) == false && is_node_on_structure_tssb(node) == false;
 	}
 	bool is_tssb_bos(TSSB* tssb){
-		return tssb->_owner_id == TSSB_BOS;
+		assert(tssb != NULL);
+		return tssb->_owner_id == TSSB_BOS_ID;
 	}
 	bool is_tssb_structure(TSSB* tssb){
-		return tssb->_owner_id == TSSB_STRUCTURE;
+		assert(tssb != NULL);
+		return tssb->_owner_id == TSSB_STRUCTURE_ID;
 	}
 	bool is_tssb_htssb(TSSB* tssb){
 		return is_tssb_bos(tssb) == false && is_tssb_structure(tssb) == false;
@@ -231,7 +266,7 @@ public:
 		Node* parent = _bos_tssb->find_node_by_tracing_horizontal_indices(generated_child_on_structure->_parent);
 		assert(parent != NULL);
 		Node* child = new Node(parent, generated_child_on_structure->_identifier);
-		child->_owner_id_on_structure = TSSB_BOS;
+		child->_owner_id_on_structure = TSSB_BOS_ID;
 		parent->add_child(child);
 		// ポインタを張る
 		generated_child_on_structure->_bos_tssb_myself = child;
@@ -239,7 +274,7 @@ public:
 	}
 	// 木構造上のノードにHTSSBを追加
 	TSSB* generate_transition_tssb_belonging_to(Node* owner_on_structure){
-		assert(owner_on_structure->_owner_id_on_structure == 0);
+		assert(is_node_on_structure_tssb(owner_on_structure));
 		Node* root_on_structure = _structure_tssb->_root;
 		Node* root_on_htssb = new Node(NULL, root_on_structure->_identifier);
 		root_on_htssb->_owner_id_on_structure = owner_on_structure->_identifier;
@@ -403,14 +438,27 @@ public:
 		assert(next_state_on_htssb != NULL);
 		double Pt_given_s = compute_node_probability_on_tssb(state_on_structure->_transition_tssb, next_state_on_htssb, stick_length);
 		assert(0 < Pt_given_s && Pt_given_s <= 1);
+
 		// スライス
 		double slice = Pw_given_s * Pt_given_s;
 		double st = 0;
 		double ed = 1;
+
 		// s_{t-1}から<eos>へ接続する確率
 		double Peos_given_ps = prev_state_on_structure->compute_transition_probability_to_eos(_tau0, _tau1);
 		// <eos>以外に接続する確率を棒全体の長さとし、TSSBで分配
 		double total_stick_length_of_prev_tssb = 1.0 - Peos_given_ps;
+
+
+		// cout << "Pw_given_s: " << Pw_given_s << endl;
+		// cout << "Peos_given_s: " << Peos_given_s << endl;
+		// cout << "stick_length: " << stick_length << endl;
+		// next_state_on_htssb->dump();
+		// cout << "Pt_given_s: " << Pt_given_s << endl;
+		// cout << "slice: " << slice << endl;
+		// cout << "Peos_given_ps: " << Peos_given_ps << endl;
+		// cout << "total_stick_length_of_prev_tssb: " << total_stick_length_of_prev_tssb << endl;
+		
 		while(true){
 			double u = Sampler::uniform(st, ed);
 			Node* new_state_on_htssb = retrospective_sampling_on_htssb(u, prev_state_on_structure->_transition_tssb, total_stick_length_of_prev_tssb);
@@ -418,6 +466,7 @@ public:
 			Node* new_state_on_structure = new_state_on_htssb->_structure_tssb_myself;
 			assert(new_state_on_structure != NULL);
 			assert(new_state_on_structure->_transition_tssb != NULL);
+
 			// 出力確率
 			double new_Pw_given_s = compute_Pw_given_s(word_id, new_state_on_structure);
 			assert(0 < new_Pw_given_s && new_Pw_given_s <= 1);
@@ -431,11 +480,20 @@ public:
 			double new_Pt_given_ns = compute_node_probability_on_tssb(new_state_on_structure->_transition_tssb, next_state_on_new_state_htssb, total_stick_length_of_new_tssb);
 			assert(0 < new_Pt_given_ns && new_Pt_given_ns <= 1);
 			double likelihoood = new_Pw_given_s * new_Pt_given_ns;
+
+			// cout << "u: " << u << endl;
+			// new_state_on_htssb->dump();
+			// new_state_on_structure->dump();
+			// cout << "new_Pw_given_s: " << new_Pw_given_s << endl;
+			// next_state_on_new_state_htssb->dump();
+			// cout << "total_stick_length_of_new_tssb: " << total_stick_length_of_new_tssb << endl;
+			// cout << "new_Pt_given_ns: " << new_Pt_given_ns << endl;
+			// cout << "likelihoood: " << likelihoood << endl;
+
+
 			if(likelihoood > slice){
 				return new_state_on_structure;
 			}
-			new_state_on_structure->dump();
-			state_on_structure->dump();
 			// 辞書順で前にあるかどうか
 			if(is_node_to_the_left_of_node(new_state_on_structure, state_on_structure)){
 				st = u;
@@ -628,7 +686,7 @@ public:
 			assert(is_node_on_htssb(iterator));
 			return compute_expectation_of_vertical_htssb_sbr_ratio(iterator);
 		}
-		assert(iterator->_owner_id_on_structure == 0 || iterator->_owner_id_on_structure == -1);
+		assert(is_node_on_htssb(iterator) == false);
 		return compute_expectation_of_vertical_tssb_sbr_ratio(iterator);
 	}
 	double compute_expectation_of_horizontal_sbr_ratio(Node* iterator, bool htssb_mode){
@@ -636,7 +694,7 @@ public:
 			assert(is_node_on_htssb(iterator));
 			return compute_expectation_of_horizontal_htssb_sbr_ratio(iterator);
 		}
-		assert(iterator->_owner_id_on_structure == 0 || iterator->_owner_id_on_structure == -1);
+		assert(is_node_on_htssb(iterator) == false);
 		return compute_expectation_of_horizontal_tssb_sbr_ratio(iterator);
 	}
 	double compute_expectation_of_vertical_tssb_sbr_ratio(Node* target_on_tssb){
@@ -812,7 +870,7 @@ public:
 	double compute_Pw_given_s(id token_id, Node* node_on_structure){
 		assert(node_on_structure != NULL);
 		assert(node_on_structure->_hpylm != NULL);
-		assert(node_on_structure->_owner_id_on_structure == 0);
+		assert(is_node_on_structure_tssb(node_on_structure));
 		assert(_hpylm_d_m.size() > node_on_structure->_depth_v);
 		assert(_hpylm_theta_m.size() > node_on_structure->_depth_v);
 		assert(_word_g0 != -1);

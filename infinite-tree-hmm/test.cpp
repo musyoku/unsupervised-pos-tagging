@@ -629,9 +629,9 @@ void test27(iTHMM* model){
 	c_printf("[*]%s\n", "structure");
 	model->_structure_tssb->dump();
 
-	Node* prev_state = model->_structure_tssb->find_node_with_id(10);
-	Node* state = model->_structure_tssb->find_node_with_id(4);
-	Node* next_state = model->_structure_tssb->find_node_with_id(21);
+	Node* prev_state = model->_structure_tssb->find_node_with_id(20);
+	Node* state = model->_structure_tssb->find_node_with_id(14);
+	Node* next_state = model->_structure_tssb->find_node_with_id(31);
 	Node* new_state = model->draw_state(prev_state, state, next_state, 10);
 	new_state->dump();
 }
