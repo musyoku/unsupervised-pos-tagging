@@ -127,7 +127,7 @@ public:
 	// デバッグ用
 	// これを呼んで全パラメータが消えなかったらバグっている
 	void remove_all_data(vector<vector<Word*>> &dataset){
-		for(int data_index = 0;data_index < dataset.size();data_index++){
+		for(int data_index = 1;data_index < dataset.size();data_index++){
 			vector<Word*> &line = dataset[data_index];
 			if(line.size() == 0){
 				continue;
@@ -434,6 +434,7 @@ public:
 			Node* next_state_on_htssb = state_on_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(next_state_on_structure);
 			assert(next_state_on_htssb != NULL);
 			add_customer_to_htssb_node(next_state_on_htssb);
+			add_customer_to_tssb_node(next_state_on_structure);		// 参照カウント用
 			add_customer_to_hpylm(state_on_structure, word_id);
 			state_on_structure->increment_transition_count_to_other();
 			return;
@@ -448,6 +449,7 @@ public:
 			Node* state_on_htssb = prev_state_on_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(state_on_structure);
 			assert(state_on_htssb != NULL);
 			add_customer_to_htssb_node(state_on_htssb);
+			add_customer_to_tssb_node(state_on_structure);		// 参照カウント用
 			add_customer_to_hpylm(state_on_structure, word_id);
 			state_on_structure->increment_transition_count_to_eos();
 			return;
@@ -475,10 +477,12 @@ public:
 		Node* state_on_htssb = prev_state_on_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(state_on_structure);
 		assert(state_on_htssb != NULL);
 		add_customer_to_htssb_node(state_on_htssb);
+		add_customer_to_tssb_node(state_on_structure);			// 参照カウント用
 
 		Node* next_state_on_htssb = state_on_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(next_state_on_structure);
 		assert(next_state_on_htssb != NULL);
 		add_customer_to_htssb_node(next_state_on_htssb);
+		add_customer_to_tssb_node(next_state_on_structure);		// 参照カウント用
 
 		add_customer_to_hpylm(state_on_structure, word_id);
 		prev_state_on_structure->increment_transition_count_to_eos();
@@ -569,7 +573,7 @@ public:
 		assert(0 < Pt_given_s && Pt_given_s <= 1);
 
 		// スライス
-		double slice = Pw_given_s * Pt_given_s;
+		double slice = Pw_given_s * Pt_given_s * Sampler::uniform(0, 1);
 		double st = 0;
 		double ed = 1;
 
@@ -648,7 +652,7 @@ public:
 		double Pt_given_s = compute_node_probability_on_tssb(state_on_structure->_transition_tssb, next_state_on_htssb, stick_length);
 		assert(0 < Pt_given_s && Pt_given_s <= 1);
 		// スライス
-		double slice = Pw_given_s * Pt_given_s;
+		double slice = Pw_given_s * Pt_given_s * Sampler::uniform(0, 1);
 		double st = 0;
 		double ed = 1;
 		while(true){
@@ -694,7 +698,7 @@ public:
 		double Peos_given_s = state_on_structure->compute_transition_probability_to_eos(_tau0, _tau1);
 		assert(0 < Peos_given_s && Peos_given_s <= 1);
 		// スライス
-		double slice = Pw_given_s * Peos_given_s;
+		double slice = Pw_given_s * Peos_given_s * Sampler::uniform(0, 1);
 		double st = 0;
 		double ed = 1;
 		// s_{t-1}から<eos>へ接続する確率
@@ -743,10 +747,10 @@ public:
 		assert(is_node_on_htssb(target_on_tssb) == false);
 		double alpha = _alpha * pow(_lambda, target_on_tssb->_depth_v);
 		bool new_table_generated = false;
-		double ratio_v = compute_expectation_of_vertical_tssb_sbr_ratio(target_on_tssb);
-		target_on_tssb->add_customer_to_vertical_crp(alpha, ratio_v, new_table_generated);
-		double ratio_h = compute_expectation_of_horizontal_tssb_sbr_ratio(target_on_tssb);
-		target_on_tssb->add_customer_to_horizontal_crp(_gamma, ratio_h, new_table_generated);
+		// double ratio_v = compute_expectation_of_vertical_tssb_sbr_ratio(target_on_tssb);		// 特に計算しても意味はない
+		target_on_tssb->add_customer_to_vertical_crp(alpha, 0, new_table_generated);
+		// double ratio_h = compute_expectation_of_horizontal_tssb_sbr_ratio(target_on_tssb);		// 特に計算しても意味はない
+		target_on_tssb->add_customer_to_horizontal_crp(_gamma, 0, new_table_generated);
 		// 総客数のインクリメント
 		if(is_node_on_structure_tssb(target_on_tssb)){
 			_structure_tssb->increment_num_customers();
@@ -1152,21 +1156,16 @@ public:
 		vector<Node*> &children = parent->_children;
 		for(int i = children.size() - 1;i >= 0;i--){
 			Node* child = children[i];
+			delete_invalid_children_of_node_on_structure(child);
 			bool success = delete_node_on_structure_if_needed(child);
 			if(success == false){	// 失敗したらそれ以上は消さない
-				break;
+				// break;
 			}
 		}
 	}
-	bool delete_node_on_structure_if_needed(Node* target){
-		assert(is_node_on_structure_tssb(target));
-		Node* target_on_structure = NULL;
-		if(target->_owner_id_on_structure == 0){	// targetが木構造上のノードの場合
-			target_on_structure = target;
-		}else{		// targetがHTSSB上のノードの場合
-			target_on_structure = target->_structure_tssb_myself;
-		}
+	bool delete_node_on_structure_if_needed(Node* target_on_structure){
 		assert(target_on_structure != NULL);
+		assert(is_node_on_structure_tssb(target_on_structure));
 		if(target_on_structure->_depth_v == 0){
 			return false;
 		}

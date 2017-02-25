@@ -267,7 +267,7 @@ bool Node::delete_node_if_needed(){
 Node* Node::delete_child_node(int node_id){
 	Node* return_node = NULL;
 	for(int i = 0;i < _children.size();i++){
-		Node* &target = _children[i];
+		Node* target = _children[i];
 		if(target->_identifier == node_id){
 			assert(target->get_vertical_pass_count() == 0);
 			assert(target->get_vertical_stop_count() == 0);
