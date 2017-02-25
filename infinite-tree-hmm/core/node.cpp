@@ -306,4 +306,5 @@ string Node::_dump(){
 }
 
 // 特殊なTSSBの識別でもこのIDを使うのでノードのIDの開始を少し大きな値にする
+// ithmm.hのTSSB_STRUCTURE_IDとTSSB_BOS_IDよりも大きな値にする
 int Node::_auto_increment = 10;

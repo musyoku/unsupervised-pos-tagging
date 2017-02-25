@@ -616,6 +616,11 @@ void test27(){
 	new_state->dump();
 	new_state = model->_ithmm->draw_state_to_eos(prev_state, state, 10);
 	new_state->dump();
+
+	model->remove_all_data();
+	c_printf("[*]%s\n", "structure");
+	model->_ithmm->_structure_tssb->dump();
+
 }
 
 int main(){

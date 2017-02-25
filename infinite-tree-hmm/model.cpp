@@ -151,6 +151,9 @@ public:
 		_ithmm->set_word_g0(1.0 / _word_count.size());
 		_ithmm->initialize_data(_dataset);
 	}
+	void remove_all_data(){
+		_ithmm->remove_all_data(_dataset);
+	}
 	bool load(string dirname){
 		// 辞書を読み込み
 		string dictionary_filename = dirname + "/ihmm.dict";
@@ -206,5 +209,6 @@ BOOST_PYTHON_MODULE(model){
 	.def("add_line", &PyInfiniteTreeHMM::add_line)
 	.def("mark_low_frequency_words_as_unknown", &PyInfiniteTreeHMM::mark_low_frequency_words_as_unknown)
 	.def("load_textfile", &PyInfiniteTreeHMM::load_textfile)
-	.def("update_hyperparameters", &PyInfiniteTreeHMM::update_hyperparameters);
+	.def("update_hyperparameters", &PyInfiniteTreeHMM::update_hyperparameters)
+	.def("remove_all_data", &PyInfiniteTreeHMM::remove_all_data);
 }
