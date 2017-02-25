@@ -156,7 +156,7 @@ public:
 	}
 	bool load(string dirname){
 		// 辞書を読み込み
-		string dictionary_filename = dirname + "/ihmm.dict";
+		string dictionary_filename = dirname + "/ithmm.dict";
 		std::ifstream ifs(dictionary_filename);
 		if(ifs.good()){
 			boost::archive::binary_iarchive iarchive(ifs);
@@ -169,7 +169,7 @@ public:
 	}
 	bool save(string dirname){
 		// 辞書を保存
-		std::ofstream ofs(dirname + "/ihmm.dict");
+		std::ofstream ofs(dirname + "/ithmm.dict");
 		boost::archive::binary_oarchive oarchive(ofs);
 		oarchive << _dictionary;
 		oarchive << _dictionary_inv;
@@ -200,7 +200,7 @@ public:
 };
 
 BOOST_PYTHON_MODULE(model){
-	python::class_<PyInfiniteTreeHMM>("ihmm")
+	python::class_<PyInfiniteTreeHMM>("ithmm")
 	.def("string_to_word_id", &PyInfiniteTreeHMM::string_to_word_id)
 	.def("add_string", &PyInfiniteTreeHMM::add_string)
 	.def("perform_gibbs_sampling", &PyInfiniteTreeHMM::perform_gibbs_sampling)

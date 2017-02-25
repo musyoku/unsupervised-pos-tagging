@@ -654,18 +654,22 @@ void test28(){
 }
 
 void test29(){
-	string filename = "../alice.txt";
+	string filename = "../test.txt";
 	PyInfiniteTreeHMM* model = new PyInfiniteTreeHMM();
 	model->load_textfile(filename);
 
+	string dir = "out";
 	model->mark_low_frequency_words_as_unknown(1);
 	model->compile();
-	for(int i = 0;i < 100;i++){
+	for(int i = 0;i < 10;i++){
 		model->perform_gibbs_sampling();
 		model->update_hyperparameters();
-		c_printf("[*]%s\n", "structure");
+		// model->save(dir);
+		// c_printf("[*]%s\n", "structure");
+		// model->_ithmm->_structure_tssb->dump();
 		model->_ithmm->_structure_tssb->dump();
 	}
+	model->remove_all_data();
 }
 
 void test30(iTHMM* model){
