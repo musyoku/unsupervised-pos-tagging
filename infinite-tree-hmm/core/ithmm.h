@@ -105,15 +105,6 @@ public:
 			if(line.size() == 0){
 				continue;
 			}
-			// <bos>からの遷移
-			{
-				Node* state = line[0]->state;
-				assert(state != NULL);
-				Node* state_on_bos = _bos_tssb->find_node_by_tracing_horizontal_indices(state);
-				assert(state_on_bos != NULL);
-				add_customer_to_tssb_node(state_on_bos);
-			}
-
 			// 通常の状態遷移
 			Node* prev_state = NULL;
 			for(auto &word: line){
@@ -129,6 +120,14 @@ public:
 					prev_state->increment_transition_count_to_other();
 				}
 				prev_state = state;
+			}
+			// <bos>からの遷移
+			{
+				Node* state = line[0]->state;
+				assert(state != NULL);
+				Node* state_on_bos = _bos_tssb->find_node_by_tracing_horizontal_indices(state);
+				assert(state_on_bos != NULL);
+				add_customer_to_tssb_node(state_on_bos);
 			}
 
 			// <eos>への遷移
@@ -348,18 +347,18 @@ public:
 	}
 	// [0, 1)の一様分布からノードをサンプリング
 	// HTSSBの場合（木構造に対してはそもそも行わない）
-	Node* retrospective_sampling_on_htssb(double uniform, TSSB* tssb, double total_stick_length = 1.0){
-		assert(is_tssb_htssb(tssb));
+	Node* retrospective_sampling(double uniform, TSSB* tssb, double total_stick_length, bool htssb_mode){
+		assert( (htssb_mode && is_tssb_htssb(tssb)) || (htssb_mode == false && is_tssb_htssb(tssb) == false) );
 		Node* root = tssb->_root;
-		double ratio_v = compute_expectation_of_vertical_htssb_sbr_ratio(root);
+		double ratio_v = compute_expectation_of_vertical_sbr_ratio(root, htssb_mode);
 		double sum_probability = ratio_v;
 		root->_stick_length = total_stick_length;
 		root->_children_stick_length = total_stick_length * (1.0 - ratio_v);
-		Node* node =  _retrospective_sampling_on_htssb_by_iterating_node(uniform, sum_probability, root);
+		Node* node =  _retrospective_sampling_by_iterating_node(uniform, sum_probability, root, htssb_mode);
 		assert(node != NULL);
 		return node;
 	}
-	Node* _retrospective_sampling_on_htssb_by_iterating_node(double uniform, double &sum_probability, Node* iterator){
+	Node* _retrospective_sampling_by_iterating_node(double uniform, double &sum_probability, Node* iterator, bool htssb_mode){
 		if(uniform <= sum_probability){
 			return iterator;
 		}
@@ -374,8 +373,8 @@ public:
 		for(int i = 0;i < iterator->_children.size();i++){
 			Node* child = iterator->_children[i];
 			double alpha = _alpha * pow(_lambda, child->_depth_v);
-			double ratio_h = compute_expectation_of_horizontal_htssb_sbr_ratio(child);
-			double ratio_v = compute_expectation_of_vertical_htssb_sbr_ratio(child);
+			double ratio_h = compute_expectation_of_horizontal_sbr_ratio(child, htssb_mode);
+			double ratio_v = compute_expectation_of_vertical_sbr_ratio(child, htssb_mode);
 			child->_stick_length = rest_stick_length * ratio_h;
 			child->_probability = child->_stick_length * ratio_v;
 			child->_children_stick_length = child->_stick_length * (1.0 - ratio_v);
@@ -387,18 +386,18 @@ public:
 					return child;
 				}
 				if(child->has_child()){
-					return _retrospective_sampling_on_htssb_by_iterating_node(uniform, sum_probability, child);
+					return _retrospective_sampling_by_iterating_node(uniform, sum_probability, child, htssb_mode);
 				}
 				// 子ノード領域に当たった場合、uniformを超えるまで棒を折り続ける
 				Node* _child = generate_and_add_new_child_to(child);
-				double ratio_h = compute_expectation_of_horizontal_htssb_sbr_ratio(_child);
+				double ratio_h = compute_expectation_of_horizontal_sbr_ratio(_child, htssb_mode);
 				_child->_stick_length = child->_children_stick_length * ratio_h;
 				double alpha = _alpha * pow(_lambda, _child->_depth_v);
-				double ratio_v = compute_expectation_of_vertical_htssb_sbr_ratio(_child);
+				double ratio_v = compute_expectation_of_vertical_sbr_ratio(_child, htssb_mode);
 				_child->_probability = _child->_stick_length * ratio_v;
 				_child->_children_stick_length = _child->_stick_length * (1.0 - ratio_v);
 				assert(child->has_child());
-				return _retrospective_sampling_on_htssb_by_iterating_node(uniform, sum_probability, child);
+				return _retrospective_sampling_by_iterating_node(uniform, sum_probability, child, htssb_mode);
 			}
 			sum_stick_length_over_children += child->_stick_length;
 			rest_stick_length *= 1.0 - ratio_h;
@@ -407,7 +406,7 @@ public:
 		// 見つからなかったら一番右端のノードを返す
 		if(last_node != NULL){
 			if(last_node->has_child()){
-				return _retrospective_sampling_on_htssb_by_iterating_node(uniform, sum_probability, last_node);
+				return _retrospective_sampling_by_iterating_node(uniform, sum_probability, last_node, htssb_mode);
 			}
 			return last_node;
 		}
@@ -419,6 +418,12 @@ public:
 
 		}
 	}
+	void add_parameters(Node* prev_state_on_structure, Node* state_on_structure, Node* next_state_on_structure, id word_id){
+		
+	}
+	void remove_parameters(Node* prev_state_on_structure, Node* state_on_structure, Node* next_state_on_structure, id word_id){
+		
+	}
 	// 新しい状態のギブスサンプリング
 	// なるべく論文の記号を使う
 	Node* draw_state(Node* prev_state_on_structure, Node* state_on_structure, Node* next_state_on_structure, id word_id){
@@ -429,7 +434,7 @@ public:
 		double Pw_given_s = compute_Pw_given_s(word_id, state_on_structure);
 		assert(0 < Pw_given_s && Pw_given_s <= 1);
 		// 遷移確率
-		//// s_{t-1}から<eos>へ接続する確率
+		//// s_{t}から<eos>へ接続する確率
 		double Peos_given_s = state_on_structure->compute_transition_probability_to_eos(_tau0, _tau1);
 		//// <eos>以外に接続する確率を棒全体の長さとし、TSSBで分配
 		double stick_length = 1.0 - Peos_given_s;
@@ -461,7 +466,120 @@ public:
 		
 		while(true){
 			double u = Sampler::uniform(st, ed);
-			Node* new_state_on_htssb = retrospective_sampling_on_htssb(u, prev_state_on_structure->_transition_tssb, total_stick_length_of_prev_tssb);
+			Node* new_state_on_htssb = retrospective_sampling(u, prev_state_on_structure->_transition_tssb, total_stick_length_of_prev_tssb, true);
+			assert(new_state_on_htssb != NULL);
+			Node* new_state_on_structure = new_state_on_htssb->_structure_tssb_myself;
+			assert(new_state_on_structure != NULL);
+			assert(new_state_on_structure->_transition_tssb != NULL);
+
+			// 出力確率
+			double new_Pw_given_s = compute_Pw_given_s(word_id, new_state_on_structure);
+			assert(0 < new_Pw_given_s && new_Pw_given_s <= 1);
+			// 遷移確率
+			//// s_{new}からs_{t+1}へ接続する確率
+			Node* next_state_on_new_state_htssb = new_state_on_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(next_state_on_structure);
+			//// <eos>以外に接続する確率を棒全体の長さとし、TSSBで分配
+			double Peos_given_ns = new_state_on_structure->compute_transition_probability_to_eos(_tau0, _tau1);
+			double total_stick_length_of_new_tssb = 1.0 - Peos_given_ns;
+			double new_Pt_given_s = compute_node_probability_on_tssb(new_state_on_structure->_transition_tssb, next_state_on_new_state_htssb, total_stick_length_of_new_tssb);
+			assert(0 < new_Pt_given_s && new_Pt_given_s <= 1);
+			// 尤度を計算
+			double likelihoood = new_Pw_given_s * new_Pt_given_s;
+
+			// cout << "u: " << u << endl;
+			// new_state_on_htssb->dump();
+			// new_state_on_structure->dump();
+			// cout << "new_Pw_given_s: " << new_Pw_given_s << endl;
+			// next_state_on_new_state_htssb->dump();
+			// cout << "total_stick_length_of_new_tssb: " << total_stick_length_of_new_tssb << endl;
+			// cout << "new_Pt_given_s: " << new_Pt_given_s << endl;
+			// cout << "likelihoood: " << likelihoood << endl;
+
+
+			if(likelihoood > slice){
+				return new_state_on_structure;
+			}
+			// 辞書順で前にあるかどうか
+			if(is_node_to_the_left_of_node(new_state_on_structure, state_on_structure)){
+				st = u;
+			}else{
+				ed = u;
+			}
+		}
+	}
+	Node* draw_state_from_bos(Node* state_on_structure, Node* next_state_on_structure, id word_id){
+		assert(is_node_on_structure_tssb(state_on_structure));
+		assert(is_node_on_structure_tssb(next_state_on_structure));
+		// 出力確率
+		double Pw_given_s = compute_Pw_given_s(word_id, state_on_structure);
+		assert(0 < Pw_given_s && Pw_given_s <= 1);
+		// 遷移確率
+		//// s_{t}から<eos>へ接続する確率
+		double Peos_given_s = state_on_structure->compute_transition_probability_to_eos(_tau0, _tau1);
+		//// <eos>以外に接続する確率を棒全体の長さとし、TSSBで分配
+		double stick_length = 1.0 - Peos_given_s;
+		assert(state_on_structure->_transition_tssb != NULL);
+		Node* next_state_on_htssb = state_on_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(next_state_on_structure);
+		assert(next_state_on_htssb != NULL);
+		double Pt_given_s = compute_node_probability_on_tssb(state_on_structure->_transition_tssb, next_state_on_htssb, stick_length);
+		assert(0 < Pt_given_s && Pt_given_s <= 1);
+		// スライス
+		double slice = Pw_given_s * Pt_given_s;
+		double st = 0;
+		double ed = 1;
+		while(true){
+			double u = Sampler::uniform(st, ed);
+			Node* new_state_on_htssb = retrospective_sampling(u, _bos_tssb, 1.0, false);
+			assert(new_state_on_htssb != NULL);
+			Node* new_state_on_structure = new_state_on_htssb->_structure_tssb_myself;
+			assert(new_state_on_structure != NULL);
+			assert(new_state_on_structure->_transition_tssb != NULL);
+
+			// 出力確率
+			double new_Pw_given_s = compute_Pw_given_s(word_id, new_state_on_structure);
+			assert(0 < new_Pw_given_s && new_Pw_given_s <= 1);
+			// 遷移確率
+			//// s_{new}からs_{t+1}へ接続する確率
+			Node* next_state_on_new_state_htssb = new_state_on_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(next_state_on_structure);
+			//// <eos>以外に接続する確率を棒全体の長さとし、TSSBで分配
+			double Peos_given_ns = new_state_on_structure->compute_transition_probability_to_eos(_tau0, _tau1);
+			double total_stick_length_of_new_tssb = 1.0 - Peos_given_ns;
+			double new_Pt_given_s = compute_node_probability_on_tssb(new_state_on_structure->_transition_tssb, next_state_on_new_state_htssb, total_stick_length_of_new_tssb);
+			assert(0 < new_Pt_given_s && new_Pt_given_s <= 1);
+			// 尤度を計算
+			double likelihoood = new_Pw_given_s * new_Pt_given_s;
+			if(likelihoood > slice){
+				return new_state_on_structure;
+			}
+			// 辞書順で前にあるかどうか
+			if(is_node_to_the_left_of_node(new_state_on_structure, state_on_structure)){
+				st = u;
+			}else{
+				ed = u;
+			}
+		}
+	}
+	Node* draw_state_to_eos(Node* prev_state_on_structure, Node* state_on_structure, id word_id){
+		assert(is_node_on_structure_tssb(prev_state_on_structure));
+		assert(is_node_on_structure_tssb(state_on_structure));
+		// 出力確率
+		double Pw_given_s = compute_Pw_given_s(word_id, state_on_structure);
+		assert(0 < Pw_given_s && Pw_given_s <= 1);
+		// 遷移確率
+		//// s_{t}から<eos>へ接続する確率
+		double Peos_given_s = state_on_structure->compute_transition_probability_to_eos(_tau0, _tau1);
+		assert(0 < Peos_given_s && Peos_given_s <= 1);
+		// スライス
+		double slice = Pw_given_s * Peos_given_s;
+		double st = 0;
+		double ed = 1;
+		// s_{t-1}から<eos>へ接続する確率
+		double Peos_given_ps = prev_state_on_structure->compute_transition_probability_to_eos(_tau0, _tau1);
+		// <eos>以外に接続する確率を棒全体の長さとし、TSSBで分配
+		double total_stick_length_of_prev_tssb = 1.0 - Peos_given_ps;
+		while(true){
+			double u = Sampler::uniform(st, ed);
+			Node* new_state_on_htssb = retrospective_sampling(u, prev_state_on_structure->_transition_tssb, total_stick_length_of_prev_tssb, true);
 			assert(new_state_on_htssb != NULL);
 			Node* new_state_on_structure = new_state_on_htssb->_structure_tssb_myself;
 			assert(new_state_on_structure != NULL);
@@ -473,24 +591,9 @@ public:
 			// 遷移確率
 			//// s_{new}から<eos>へ接続する確率
 			double Peos_given_ns = new_state_on_structure->compute_transition_probability_to_eos(_tau0, _tau1);
-			//// s_{new}からs_{t+1}へ接続する確率
-			Node* next_state_on_new_state_htssb = new_state_on_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(next_state_on_structure);
-			//// <eos>以外に接続する確率を棒全体の長さとし、TSSBで分配
-			double total_stick_length_of_new_tssb = 1.0 - Peos_given_ns;
-			double new_Pt_given_ns = compute_node_probability_on_tssb(new_state_on_structure->_transition_tssb, next_state_on_new_state_htssb, total_stick_length_of_new_tssb);
-			assert(0 < new_Pt_given_ns && new_Pt_given_ns <= 1);
-			double likelihoood = new_Pw_given_s * new_Pt_given_ns;
-
-			// cout << "u: " << u << endl;
-			// new_state_on_htssb->dump();
-			// new_state_on_structure->dump();
-			// cout << "new_Pw_given_s: " << new_Pw_given_s << endl;
-			// next_state_on_new_state_htssb->dump();
-			// cout << "total_stick_length_of_new_tssb: " << total_stick_length_of_new_tssb << endl;
-			// cout << "new_Pt_given_ns: " << new_Pt_given_ns << endl;
-			// cout << "likelihoood: " << likelihoood << endl;
-
-
+			assert(0 < Peos_given_ns && Peos_given_ns <= 1);
+			// 尤度を計算
+			double likelihoood = new_Pw_given_s * Peos_given_ns;
 			if(likelihoood > slice){
 				return new_state_on_structure;
 			}
