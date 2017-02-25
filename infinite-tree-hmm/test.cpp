@@ -165,7 +165,7 @@ void test9(iTHMM* model){
 	add_customer(model, 10);
 	double uniform = 0;
 	TSSB* tssb = model->_structure_tssb->_root->_transition_tssb;
-	model->update_stick_length_of_tssb(tssb);
+	model->update_stick_length_of_tssb(tssb, 1.0, true);
 	tssb->dump();
 	vector<Node*> nodes_true;
 	vector<Node*> nodes;
@@ -208,7 +208,7 @@ void test10(iTHMM* model){
 		parent->_transition_tssb->dump();
 		parent = parent->_parent;
 	}
-	model->update_stick_length_of_tssb(target->_transition_tssb);
+	model->update_stick_length_of_tssb(target->_transition_tssb, 1.0, true);
 	Node* node = model->retrospective_sampling(uniform, target->_transition_tssb, 1.0, true);
 	c_printf("[*]%s\n", "sampled");
 	node->dump();
@@ -413,7 +413,7 @@ void test18(iTHMM* model){
 	}
 }
 void _test19(iTHMM* model, TSSB* tssb){
-	model->update_stick_length_of_tssb(tssb);
+	model->update_stick_length_of_tssb(tssb, 1.0, true);
 	c_printf("[*]%d\n", tssb->_owner_id);
 	tssb->dump();
 	vector<Node*> nodes;
@@ -550,7 +550,7 @@ void test23(){
 void test24(iTHMM* model){
 	test15(model);
 	Node* target = model->_structure_tssb->find_node_with_id(7);
-	model->update_stick_length_of_tssb(target->_transition_tssb);
+	model->update_stick_length_of_tssb(target->_transition_tssb, 1.0, true);
 	Node* node = model->retrospective_sampling(0.9, target->_transition_tssb, 1.0, true);
 	c_printf("[*]%s\n", "sampled");
 	node->dump();
@@ -564,14 +564,14 @@ void test25(iTHMM* model){
 	target = tssb->find_node_by_tracing_horizontal_indices(target);
 	double p = model->compute_node_probability_on_tssb(tssb, target, 1);
 	cout << p << endl;
-	model->update_stick_length_of_tssb(tssb);
+	model->update_stick_length_of_tssb(tssb, 1.0, true);
 	tssb->dump();
 }
 
 void test26(iTHMM* model){
 	test15(model);
 	vector<Node*> nodes;
-	model->update_stick_length_of_tssb(model->_structure_tssb->_root->_transition_tssb);
+	model->update_stick_length_of_tssb(model->_structure_tssb->_root->_transition_tssb, 1.0, true);
 	model->_structure_tssb->_root->_transition_tssb->enumerate_nodes_from_left_to_right(nodes);
 	cout << nodes.size() << endl;
 	for(int i = 0;i < nodes.size();i++){
@@ -668,8 +668,16 @@ void test29(){
 	}
 }
 
+void test30(iTHMM* model){
+	model->retrospective_sampling(0.999, model->_structure_tssb, 1.0, false);
+	model->update_stick_length_of_tssb(model->_structure_tssb, 1.0, false);
+	model->_structure_tssb->dump();
+	Node* target = model->_structure_tssb->find_node_with_id(22);
+	cout << model->compute_node_probability_on_tssb(model->_structure_tssb, target, 1.0) << endl;
+}
+
 int main(){
-	// iTHMM* model = new iTHMM();
-	test29();
+	iTHMM* model = new iTHMM();
+	test30(model);
 	return 0;
 }

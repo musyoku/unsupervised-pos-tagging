@@ -299,9 +299,9 @@ string Node::_dump(){
 	if(_hpylm != NULL){
 		hpylm_str = (boost::format("HPY[#c:%d,#t:%d,d:%d]") % _hpylm->_num_customers % _hpylm->_num_tables % _hpylm->_depth).str();
 	}
-	return (boost::format("$%d [vp:%d,vs:%d,hp:%d,hs:%d,ref:%d][len:%f,self:%f,ch:%f,p:%f][ow:$%d,dv:%d,dh:%d][%s]%s[eos:%d,other:%d]") 
+	return (boost::format("$%d [vp:%d,vs:%d,hp:%d,hs:%d,ref:%d][len:%f,self:%f,ch:%f,p:%f,sp:%f][ow:$%d,dv:%d,dh:%d][%s]%s[eos:%d,other:%d]") 
 		% _identifier % _pass_count_v % _stop_count_v % _pass_count_h % _stop_count_h % _ref_count % _stick_length 
-		% (_stick_length - _children_stick_length) % _children_stick_length % _probability % _owner_id_on_structure 
+		% (_stick_length - _children_stick_length) % _children_stick_length % _probability % _sum_probability % _owner_id_on_structure 
 		% _depth_v % _depth_h % indices_str.c_str() % hpylm_str.c_str() % _num_transitions_to_eos % _num_transitions_to_other).str();
 }
 
