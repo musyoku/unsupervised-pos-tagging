@@ -9,6 +9,7 @@ TSSB::TSSB(){
 	_alpha = 0;
 	_gamma = 0;
 	_lambda = 0;
+	_num_customers = 0;
 }
 TSSB::TSSB(double alpha, double gamma, double lambda){
 	_root = new Node(NULL);
@@ -18,6 +19,7 @@ TSSB::TSSB(double alpha, double gamma, double lambda){
 	_alpha = alpha;
 	_gamma = gamma;
 	_lambda = lambda;
+	_num_customers = 0;
 }
 TSSB::TSSB(Node* root, double alpha, double gamma, double lambda){
 	_root = root;
@@ -26,6 +28,7 @@ TSSB::TSSB(Node* root, double alpha, double gamma, double lambda){
 	_alpha = alpha;
 	_gamma = gamma;
 	_lambda = lambda;
+	_num_customers = 0;
 }
 void TSSB::enumerate_nodes_from_left_to_right(vector<Node*> &nodes){
 	_enumerate_nodes_from_left_to_right(_root, nodes);
@@ -90,11 +93,26 @@ int TSSB::_get_max_depth(Node* node){
 	}
 	return max_depth;
 }
+int TSSB::get_num_customers(){
+	return _get_num_customers(_root);
+}
+int TSSB::_get_num_customers(Node* node){
+	int count = node->_stop_count_h + node->_stop_count_v;
+	for(const auto &child: node->_children){
+		count += _get_num_customers(child);
+	}
+	return count;
+}
 void TSSB::increment_num_customers(){
 	_num_customers += 1;
 }
 void TSSB::decrement_num_customers(){
 	_num_customers -= 1;
+	if(_num_customers < 0){
+		dump();
+		cout << _num_customers << endl;
+		cout << get_num_customers() << endl;
+	}
 	assert(_num_customers >= 0);
 }
 void TSSB::dump(){

@@ -618,8 +618,39 @@ void test27(){
 	new_state->dump();
 
 	model->remove_all_data();
+	// model->_ithmm->delete_invalid_children_on_structure_tssb(model->_ithmm->_structure_tssb);
 	c_printf("[*]%s\n", "structure");
 	model->_ithmm->_structure_tssb->dump();
+
+}
+
+void test28(){
+	iTHMM* model = new iTHMM();
+	for(int n = 0;n < 100;n++){
+		Node* node = model->sample_node_on_htssb(model->_structure_tssb->_root->_transition_tssb);
+	}
+	c_printf("[*]%s\n", "structure");
+	model->_structure_tssb->dump();
+
+	Node* target_on_structure = model->_structure_tssb->find_node_with_id(20);
+	assert(target_on_structure != NULL);
+	Node* target_on_htssb = target_on_structure->_transition_tssb_myself;
+	assert(target_on_htssb != NULL);
+	for(int n = 0;n < 1000;n++){
+		model->add_customer_to_htssb_node(target_on_htssb);
+	}
+	c_printf("[*]%s\n", "htssb");
+	target_on_structure->_transition_tssb->dump();
+
+	vector<Node*> nodes;
+	model->_structure_tssb->enumerate_nodes_from_left_to_right(nodes);
+	for(const auto node: nodes){
+		int true_count = node->_transition_tssb->get_num_customers();
+		int count = node->_transition_tssb->_num_customers;
+		cout << count << " == " << true_count << endl;
+		node->_transition_tssb->dump();
+		assert(count == true_count);
+	}
 
 }
 
