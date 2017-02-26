@@ -1,8 +1,8 @@
 #ifndef _hyper_
 #define _hyper_
 
-#define iTHMM_ALPHA 1.0
-#define iTHMM_GAMMA 1.0
+#define iTHMM_ALPHA 0.2
+#define iTHMM_GAMMA 0.2
 #define iTHMM_LAMBDA 0.5	// 0以上1以下
 
 #define iTHMM_TAU_0 1.0

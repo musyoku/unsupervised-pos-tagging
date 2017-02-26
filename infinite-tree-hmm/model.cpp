@@ -18,12 +18,6 @@
 using namespace std;
 using namespace boost;
 
-struct value_comparator {
-	bool operator()(const pair<int, int> &a, const pair<int, int> &b) {
-		return a.second > b.second;
-	}   
-};
-
 class PyInfiniteTreeHMM{
 private:
 	unordered_map<id, wstring> _dictionary;
@@ -128,6 +122,9 @@ public:
 			_dataset.push_back(words);
 		}
 	}
+	int get_num_words(){
+		return _word_count.size();
+	}
 	int get_count_for_word(id word_id){
 		auto itr = _word_count.find(word_id);
 		if(itr == _word_count.end()){
@@ -153,6 +150,7 @@ public:
 	}
 	void remove_all_data(){
 		_ithmm->remove_all_data(_dataset);
+		_ithmm->delete_invalid_children_on_structure_tssb(_ithmm->_structure_tssb);
 	}
 	bool load(string dirname){
 		// 辞書を読み込み
@@ -197,6 +195,38 @@ public:
 	void update_hyperparameters(){
 		_ithmm->sample_hpylm_hyperparameters();
 	}
+	void show_typical_words_for_each_tag(int number_to_show_for_each_tag, bool show_probability = true){
+		auto pair = std::make_pair(0, 0);
+		vector<Node*> nodes;
+		_ithmm->_structure_tssb->enumerate_nodes_from_left_to_right(nodes);
+		for(const auto &node: nodes){
+			multiset<std::pair<id, double>, multiset_value_comparator> ranking;
+			_ithmm->geneerate_word_ranking_of_node(node, ranking);
+			int n = 0;
+			string indices = node->_dump_indices();
+			wstring tab = L"";
+			for(int i = 0;i < node->_depth_v;i++){
+				tab += L"	";
+			}
+			wcout << tab;
+			c_printf("[*]%s\n", (boost::format("[%s]") % indices.c_str()).str().c_str());
+			wcout << tab;
+			for(const auto &elem: ranking){
+				wstring &word = _dictionary[elem.first];
+				int count = node->_num_word_assignment[elem.first];
+				wcout << word << L" (" << count << L") ";
+				if(show_probability){
+					wcout << elem.second << L" ";
+				} 
+				n++;
+				if(n > number_to_show_for_each_tag){
+					break;
+				}
+			}
+			wcout << endl;
+			ranking.clear();
+		}
+	}
 };
 
 BOOST_PYTHON_MODULE(model){
@@ -211,5 +241,7 @@ BOOST_PYTHON_MODULE(model){
 	.def("mark_low_frequency_words_as_unknown", &PyInfiniteTreeHMM::mark_low_frequency_words_as_unknown)
 	.def("load_textfile", &PyInfiniteTreeHMM::load_textfile)
 	.def("update_hyperparameters", &PyInfiniteTreeHMM::update_hyperparameters)
+	.def("get_num_words", &PyInfiniteTreeHMM::get_num_words)
+	.def("get_count_for_word", &PyInfiniteTreeHMM::get_count_for_word)
 	.def("remove_all_data", &PyInfiniteTreeHMM::remove_all_data);
 }

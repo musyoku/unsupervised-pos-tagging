@@ -207,6 +207,18 @@ void Node::decrement_ref_count(){
 	_ref_count -= 1;
 	assert(_ref_count >= 0);
 }
+void Node::increment_word_assignment(id word_id){
+	_num_word_assignment[word_id] += 1;
+}
+void Node::decrement_word_assignment(id word_id){
+	auto itr = _num_word_assignment.find(word_id);
+	assert(itr != _num_word_assignment.end());
+	itr->second -= 1;
+	assert(itr->second >= 0);
+	if(itr->second == 0){
+		_num_word_assignment.erase(itr);
+	}
+}
 // 客を除去
 void Node::remove_customer_from_vertical_crp(bool &empty_table_deleted){
 	// cout << "remove_customer_from_vertical_crp: " << tssb_identifier << ", " << node->_identifier << endl;
@@ -289,12 +301,16 @@ Node* Node::delete_child_node(int node_id){
 void Node::dump(){
 	cout << _dump() << endl;
 }
-string Node::_dump(){
+string Node::_dump_indices(){
 	string indices_str = "";
 	for(int i = 0;i < _depth_v;i++){
 		indices_str += std::to_string(_horizontal_indices_from_root[i]);
 		indices_str += ",";
 	}
+	return indices_str;
+}
+string Node::_dump(){
+	string indices_str = _dump_indices();
 	string hpylm_str = "";
 	if(_hpylm != NULL){
 		hpylm_str = (boost::format("HPY[#c:%d,#t:%d,d:%d]") % _hpylm->_num_customers % _hpylm->_num_tables % _hpylm->_depth).str();

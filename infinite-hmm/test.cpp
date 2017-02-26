@@ -24,7 +24,7 @@ int main(){
 	for(int i = 0;i < 1000;i++){
 		model->perform_gibbs_sampling();
 		// model->_hmm->dump_oracle_tags();
-		// model->show_typical_words_for_each_tag(20);
+		model->show_typical_words_for_each_tag(20);
 		// model->_hmm->dump_oracle_words();
 		// model->_hmm->check_oracle_tag_count();
 		// model->_hmm->check_oracle_word_count();
