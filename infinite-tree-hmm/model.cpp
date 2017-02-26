@@ -204,8 +204,13 @@ public:
 			_ithmm->geneerate_word_ranking_of_node(node, ranking);
 			int count = 0;
 			string indices = node->_dump_indices();
+			wstring tab = L"";
+			for(int i = 0;i < node->_depth_v;i++){
+				tab += L"	";
+			}
+			wcout << tab;
 			c_printf("[*]%s\n", (boost::format("[%s]") % indices.c_str()).str().c_str());
-
+			wcout << tab;
 			for(const auto &elem: ranking){
 				wstring &word = _dictionary[elem.first];
 				wcout << word << L" ";

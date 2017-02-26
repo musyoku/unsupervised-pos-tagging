@@ -207,6 +207,15 @@ void Node::decrement_ref_count(){
 	_ref_count -= 1;
 	assert(_ref_count >= 0);
 }
+void Node::increment_word_assignment(id word_id){
+	_num_word_assignment[word_id] += 1;
+}
+void Node::decrement_word_assignment(id word_id){
+	auto itr = _num_word_assignment.find(word_id);
+	assert(itr != _num_word_assignment.end());
+	itr->second -= 1;
+	assert(itr->second >= 0);
+}
 // 客を除去
 void Node::remove_customer_from_vertical_crp(bool &empty_table_deleted){
 	// cout << "remove_customer_from_vertical_crp: " << tssb_identifier << ", " << node->_identifier << endl;
