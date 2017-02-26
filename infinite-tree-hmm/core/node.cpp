@@ -215,6 +215,9 @@ void Node::decrement_word_assignment(id word_id){
 	assert(itr != _num_word_assignment.end());
 	itr->second -= 1;
 	assert(itr->second >= 0);
+	if(itr->second == 0){
+		_num_word_assignment.erase(itr);
+	}
 }
 // 客を除去
 void Node::remove_customer_from_vertical_crp(bool &empty_table_deleted){

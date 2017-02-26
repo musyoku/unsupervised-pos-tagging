@@ -18,7 +18,7 @@ def main(args):
 	B[1] = 0, 0, 0.6, 0.4, 0, 0
 	B[2] = 0, 0, 0, 0, 0.1, 0.9
 
-	with codecs.open("test.txt", "w", "utf-8") as f:
+	with codecs.open("../test.txt", "w", "utf-8") as f:
 		for n in xrange(args.num_seq):
 			state = 0
 			sequence = ""

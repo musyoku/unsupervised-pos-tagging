@@ -117,6 +117,7 @@ public:
 			// 状態路ランダムに設定
 			for(int i = 0;i < line.size();i++){
 				Word* word = line[i];
+				// Node* state = _structure_tssb->_root;
 				Node* state = sample_node_on_tssb(_structure_tssb);
 				assert(state != NULL);
 				word->state = state;

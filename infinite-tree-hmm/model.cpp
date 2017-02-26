@@ -202,7 +202,7 @@ public:
 		for(const auto &node: nodes){
 			multiset<std::pair<id, double>, multiset_value_comparator> ranking;
 			_ithmm->geneerate_word_ranking_of_node(node, ranking);
-			int count = 0;
+			int n = 0;
 			string indices = node->_dump_indices();
 			wstring tab = L"";
 			for(int i = 0;i < node->_depth_v;i++){
@@ -213,12 +213,13 @@ public:
 			wcout << tab;
 			for(const auto &elem: ranking){
 				wstring &word = _dictionary[elem.first];
-				wcout << word << L" ";
+				int count = node->_num_word_assignment[elem.first];
+				wcout << word << L" (" << count << L") ";
 				if(show_probability){
 					wcout << elem.second << L" ";
 				} 
-				count++;
-				if(count > number_to_show_for_each_tag){
+				n++;
+				if(n > number_to_show_for_each_tag){
 					break;
 				}
 			}
