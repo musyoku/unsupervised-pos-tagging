@@ -97,7 +97,7 @@ int TSSB::get_num_customers(){
 	return _get_num_customers(_root);
 }
 int TSSB::_get_num_customers(Node* node){
-	int count = node->_stop_count_h + node->_stop_count_v;
+	int count = node->_table_v->_num_customers + node->_table_h->_num_customers;
 	for(const auto &child: node->_children){
 		count += _get_num_customers(child);
 	}
@@ -116,6 +116,7 @@ void TSSB::decrement_num_customers(){
 	assert(_num_customers >= 0);
 }
 void TSSB::dump(){
+	cout << (boost::format("TSSB[ow:$%d,#c:%d,#ct:%d]") % _owner_id % _num_customers % get_num_customers()).str() << endl;
 	_dump(_root);
 }
 void TSSB::_dump(Node* node){
