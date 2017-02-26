@@ -654,13 +654,15 @@ void test28(){
 }
 
 void test29(){
-	string filename = "../alice.txt";
+	string filename = "../test.txt";
 	PyInfiniteTreeHMM* model = new PyInfiniteTreeHMM();
 	model->load_textfile(filename);
 
 	string dir = "out";
 	// model->mark_low_frequency_words_as_unknown(1);
 	model->compile();
+	cout << model->get_num_words() << " words" << endl;
+	exit(0);
 	for(int i = 0;i < 50000;i++){
 		cout << i << endl;
 		model->perform_gibbs_sampling();
@@ -669,6 +671,7 @@ void test29(){
 		// c_printf("[*]%s\n", "structure");
 		if(i % 500 == 0){
 			model->_ithmm->_structure_tssb->dump();
+			model->show_typical_words_for_each_tag(20, false);
 		}
 	}
 	model->_ithmm->_structure_tssb->dump();

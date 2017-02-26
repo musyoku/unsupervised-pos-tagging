@@ -289,12 +289,16 @@ Node* Node::delete_child_node(int node_id){
 void Node::dump(){
 	cout << _dump() << endl;
 }
-string Node::_dump(){
+string Node::_dump_indices(){
 	string indices_str = "";
 	for(int i = 0;i < _depth_v;i++){
 		indices_str += std::to_string(_horizontal_indices_from_root[i]);
 		indices_str += ",";
 	}
+	return indices_str;
+}
+string Node::_dump(){
+	string indices_str = _dump_indices();
 	string hpylm_str = "";
 	if(_hpylm != NULL){
 		hpylm_str = (boost::format("HPY[#c:%d,#t:%d,d:%d]") % _hpylm->_num_customers % _hpylm->_num_tables % _hpylm->_depth).str();

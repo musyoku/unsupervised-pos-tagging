@@ -8,6 +8,7 @@
 #include <boost/format.hpp>
 #include <cmath>
 #include <vector>
+#include <set>
 #include <fstream>
 #include "tssb.hpp"
 #include "node.hpp"
@@ -16,6 +17,7 @@
 #include "cprintf.h"
 #include "util.h"
 #include "hyperparameters.h"
+using namespace std;
 
 // 10以下ならなんでもいい
 #define TSSB_STRUCTURE_ID 8
@@ -1453,6 +1455,21 @@ public:
 			_hpylm_b_m.pop_back();
 			_hpylm_alpha_m.pop_back();
 			_hpylm_beta_m.pop_back();
+		}
+	}
+	void geneerate_word_ranking_of_node(Node* node_on_structure, multiset<std::pair<id, double>, multiset_value_comparator> &ranking){
+		assert(node_on_structure != NULL);
+		assert(is_node_on_structure_tssb(node_on_structure));
+		HPYLM* hpylm = node_on_structure->_hpylm;
+		assert(hpylm != NULL);
+		assert(_word_g0 > 0);
+		std::pair<id, double> pair = std::make_pair(0, 0);
+		for(const auto &elem: hpylm->_arrangement){
+			id word_id = elem.first;
+			double Pw = hpylm->compute_Pw(word_id, _word_g0, _hpylm_d_m, _hpylm_theta_m);
+			pair.first = word_id;
+			pair.second = Pw;
+			ranking.insert(pair);
 		}
 	}
 	bool save(string dir = "out"){

@@ -8,6 +8,11 @@ using namespace std;
 using namespace boost;
 
 namespace {
+	struct multiset_value_comparator {
+		bool operator()(const pair<int, int> &a, const pair<int, int> &b) {
+			return a.second > b.second;
+		}   
+	};
 	template<class T>
 	python::list list_from_vector(vector<T> &vec){  
 		 python::list list;
