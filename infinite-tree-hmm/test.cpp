@@ -654,7 +654,7 @@ void test28(){
 }
 
 void test29(){
-	string filename = "../test.txt";
+	string filename = "../alice.txt";
 	PyInfiniteTreeHMM* model = new PyInfiniteTreeHMM();
 	model->load_textfile(filename);
 
@@ -667,7 +667,7 @@ void test29(){
 		model->update_hyperparameters();
 		// model->save(dir);
 		// c_printf("[*]%s\n", "structure");
-		if(i % 2000 == 0){
+		if(i % 1000 == 0){
 			cout << "epoch:" << i << endl;
 			model->_ithmm->_structure_tssb->dump();
 			model->show_typical_words_for_each_tag(20, false);

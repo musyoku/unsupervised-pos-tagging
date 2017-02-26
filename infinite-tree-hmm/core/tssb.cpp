@@ -30,6 +30,17 @@ TSSB::TSSB(Node* root, double alpha, double gamma, double lambda){
 	_lambda = lambda;
 	_num_customers = 0;
 }
+TSSB::~TSSB(){
+	_delete_children(_root);
+}
+void TSSB::_delete_children(Node* node){
+	for(auto &child: node->_children){
+		if(child->has_child()){
+			_delete_children(child);
+		}
+		delete child;
+	}
+}
 void TSSB::enumerate_nodes_from_left_to_right(vector<Node*> &nodes){
 	_enumerate_nodes_from_left_to_right(_root, nodes);
 }
