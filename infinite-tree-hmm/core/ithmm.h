@@ -24,10 +24,10 @@ using namespace std;
 #define TSSB_BOS_ID 7
 
 typedef struct Word {
-	id id;
-	Node* state;
+	id _id;
+	Node* _state;
 } Word;
-
+	
 struct multiset_value_comparator {
 	bool operator()(const pair<id, double> &a, const pair<id, double> &b) {
 		return a.second > b.second;
@@ -124,13 +124,13 @@ public:
 				// Node* state = _structure_tssb->_root;
 				Node* state = sample_node_on_tssb(_structure_tssb);
 				assert(state != NULL);
-				word->state = state;
+				word->_state = state;
 			}
 			Node* prev_state = NULL;						// <bos>
 			for(int i = 0;i < line.size();i++){
 				Word* word = line[i];
-				Node* state = word->state;
-				add_initial_parameters(prev_state, state, word->id);
+				Node* state = word->_state;
+				add_initial_parameters(prev_state, state, word->_id);
 				prev_state = state;
 			}
 			add_initial_parameters(prev_state, NULL, 0);	// <eos>
@@ -147,8 +147,8 @@ public:
 			Node* prev_state = NULL;
 			for(int i = 0;i < line.size();i++){
 				Word* word = line[i];
-				Node* state = word->state;
-				remove_initial_parameters(prev_state, state, word->id);
+				Node* state = word->_state;
+				remove_initial_parameters(prev_state, state, word->_id);
 				prev_state = state;
 			}
 			remove_initial_parameters(prev_state, NULL, 0);
@@ -491,17 +491,17 @@ public:
 	void perform_gibbs_sampling_line(vector<Word*> &line){
 		assert(line.size() > 0);
 		Node* prev_state = NULL;
-		Node* next_state = line.size() == 1 ? NULL : line[1]->state;
+		Node* next_state = line.size() == 1 ? NULL : line[1]->_state;
 		for(int i = 0;i < line.size();i++){
 			Word* word = line[i];
-			Node* state = word->state;
-			remove_parameters(prev_state, state, next_state, word->id);
-			state = draw_state(prev_state, state, next_state, word->id);
-			add_parameters(prev_state, state, next_state, word->id);
+			Node* state = word->_state;
+			remove_parameters(prev_state, state, next_state, word->_id);
+			state = draw_state(prev_state, state, next_state, word->_id);
+			add_parameters(prev_state, state, next_state, word->_id);
 			delete_invalid_children_of_node_on_structure(_structure_tssb->_root);
 			prev_state = state;
-			next_state = i < line.size() - 2 ? line[i + 2]->state : NULL;
-			word->state = state;
+			next_state = i < line.size() - 2 ? line[i + 2]->_state : NULL;
+			word->_state = state;
 		}
 	}
 	// データ読み込み時の状態初期化時にのみ使う

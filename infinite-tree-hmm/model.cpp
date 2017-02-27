@@ -117,15 +117,15 @@ public:
 					continue;
 				}
 				Word* word = new Word();
-				word->id = add_string(word_str);
-				word->state = NULL;
+				word->_id = add_string(word_str);
+				word->_state = NULL;
 				words.push_back(word);
-				_word_count[word->id] += 1;
+				_word_count[word->_id] += 1;
 			}
 
 			Word* eos = new Word();
-			eos->id = _eos_id;
-			eos->state = NULL;
+			eos->_id = _eos_id;
+			eos->_state = NULL;
 			words.push_back(eos);
 			_word_count[_eos_id] += 1;
 
@@ -147,10 +147,10 @@ public:
 		for(int data_index = 0;data_index < _dataset.size();data_index++){
 			vector<Word*> &line = _dataset[data_index];
 			for(auto word = line.begin(), end = line.end();word != end;word++){
-				id word_id = (*word)->id;
+				id word_id = (*word)->_id;
 				int count = get_count_for_word(word_id);
 				if(count <= threshold){
-					(*word)->id = _unk_id;
+					(*word)->_id = _unk_id;
 				}
 			}
 		}
