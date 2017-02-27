@@ -159,6 +159,26 @@ public:
 		_beam_sampling_table_u = NULL;
 		_beam_sampling_table_s = NULL;
 	}
+	~InfiniteHMM(){
+		delete[] _gibbs_sampling_table;
+		delete[] _beam_sampling_table_u;
+		for(int pos = 0;pos < _max_sequence_length;pos++){
+			delete[] _beam_sampling_table_s[pos];
+		}
+		delete[] _beam_sampling_table_s;
+		for(auto &elem: _bigram_tag_table){
+			unordered_map<int, Table*> &tables = elem.second;
+			for(auto &table: tables){
+				delete table.second;
+			}
+		}
+		for(auto &elem: _tag_word_table){
+			unordered_map<int, Table*> &tables = elem.second;
+			for(auto &table: tables){
+				delete table.second;
+			}
+		}
+	}
 	void initialize(vector<vector<Word*>> &dataset){
 		// サンプリングテーブル
 		for(int data_index = 0;data_index < dataset.size();data_index++){
@@ -171,12 +191,12 @@ public:
 			_tag_unigram_count.push_back(0);
 		}
 		_prev_tag_unigram_count_size = _tag_unigram_count.size();
-		_gibbs_sampling_table = (double*)malloc(_prev_tag_unigram_count_size * sizeof(double));
+		_gibbs_sampling_table = new double[_prev_tag_unigram_count_size];
 		assert(_max_sequence_length > 0);
-		_beam_sampling_table_u = (double*)malloc((_max_sequence_length + 1) * sizeof(double));
-		_beam_sampling_table_s = (double**)malloc(_max_sequence_length * sizeof(double));
+		_beam_sampling_table_u = new double[_max_sequence_length + 1];
+		_beam_sampling_table_s = new double*[_max_sequence_length];
 		for(int pos = 0;pos < _max_sequence_length;pos++){
-			_beam_sampling_table_s[pos] = (double*)malloc((_initial_num_tags + 1) * sizeof(double));
+			_beam_sampling_table_s[pos] = new double[_initial_num_tags + 1];
 		}
 		// nグラムカウントテーブル
 		init_ngram_counts(dataset);
@@ -369,6 +389,7 @@ public:
 			decrement_oracle_tag_count(tag_id);
 		}
 		if(table->is_empty()){
+			delete table;
 			tables.erase(itr_table);
 		}
 		if(tables.size() == 0){
@@ -396,6 +417,7 @@ public:
 			decrement_oracle_word_count(word_id);
 		}
 		if(table->is_empty()){
+			delete table;
 			tables.erase(itr_table);
 		}
 		if(tables.size() == 0){

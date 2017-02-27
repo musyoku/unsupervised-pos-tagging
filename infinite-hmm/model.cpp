@@ -64,6 +64,16 @@ public:
 
 		_minimum_temperature = 0.08;
 	}
+	~PyInfiniteHMM(){
+		delete _hmm;
+		for(int n = 0;n < _dataset.size();n++){
+			vector<Word*> &line = _dataset[n];
+			for(int m = 0;m < line.size();m++){
+				Word* word = line[m];
+				delete word;
+			}
+		}
+	}
 	int add_string(wstring word){
 		auto itr = _dictionary_inv.find(word);
 		if(itr == _dictionary_inv.end()){

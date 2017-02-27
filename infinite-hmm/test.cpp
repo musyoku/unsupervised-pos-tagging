@@ -16,15 +16,15 @@
 using namespace std;
 using namespace boost;
 
-int main(){
+void test1(){
 	PyInfiniteHMM* model = new PyInfiniteHMM(2);
 	model->load_textfile("../alice.txt");
 	model->mark_low_frequency_words_as_unknown(1);
 	model->initialize();
-	for(int i = 0;i < 1000;i++){
+	for(int i = 0;i < 10;i++){
 		model->perform_gibbs_sampling();
 		// model->_hmm->dump_oracle_tags();
-		// model->show_typical_words_for_each_tag(20);
+		model->show_typical_words_for_each_tag(20);
 		// model->_hmm->dump_oracle_words();
 		// model->_hmm->check_oracle_tag_count();
 		// model->_hmm->check_oracle_word_count();
@@ -36,10 +36,17 @@ int main(){
 		// model->_hmm->sample_gamma();
 		// model->_hmm->sample_gamma_emission();
 		// model->_hmm->dump_hyperparameters();
-		// model->show_log_Pdata();
+		model->show_log_Pdata();
 		if(i % 10 == 0){
-			// model->_hmm->save();
+			model->_hmm->save();
 		}
+	}
+	delete model;
+}
+
+int main(){
+	for(int i = 0;i < 5;i++){
+		test1();
 	}
 	return 0;
 }
