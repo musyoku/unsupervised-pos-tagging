@@ -1211,7 +1211,7 @@ public:
 					// cout << "alpha = " << alpha << endl;
 					double ratio_v = (1.0 + stop_count) / (1.0 + alpha + stop_count + iterator_on_htssb->_pass_count_v + EPS);
 					// cout << "ratio_v = " << ratio_v << endl;
-					assert(ratio_v < 1);
+					// assert(ratio_v < 1);
 					stop_ratio_over_parent[m] = ratio_v;
 					sbr_ratio = ratio_v;
 				}else{	// 親の遷移確率用HTSSBから生成
@@ -1226,7 +1226,7 @@ public:
 					// cout << "alpha = " << alpha << endl;
 					double ratio_v = (alpha * parent_stop_probability + stop_count) / (alpha * (1.0 - sum_parent_stop_probability) + stop_count + pass_count + EPS);
 					// cout << "ratio_v = " << ratio_v << endl;
-					assert(ratio_v < 1);
+					// assert(ratio_v < 1);
 					stop_ratio_over_parent[m] = ratio_v;
 					sum_parent_stop_probability += parent_stop_probability;
 					sbr_ratio = ratio_v;
@@ -1292,7 +1292,7 @@ public:
 					int stop_count = child_on_htssb->_stop_count_h;
 					// cout << "pass_count = " << pass_count << ", stop_count = " << stop_count << endl;
 					double ratio_h = (1.0 + stop_count) / (1.0 + _gamma + stop_count + pass_count + EPS);
-					assert(ratio_h < 1);
+					// assert(ratio_h < 1);
 					// cout << "ratio_h = " << ratio_h << endl;
 					stop_ratio_over_parent[m] = ratio_h;
 					sbr_ratio = ratio_h;
@@ -1304,7 +1304,7 @@ public:
 					// cout << "parent_stop_probability = " << parent_stop_probability << endl;
 					// cout << "sum_parent_stop_probability = " << sum_parent_stop_probability << endl;
 					double ratio_h = (_gamma * parent_stop_probability + stop_count) / (_gamma * (1.0 - sum_parent_stop_probability) + stop_count + pass_count + EPS);
-					assert(ratio_h < 1);
+					// assert(ratio_h < 1);
 					// cout << "ratio_h = " << ratio_h << endl;
 					stop_ratio_over_parent[m] = ratio_h;
 					sum_parent_stop_probability += parent_stop_probability;
