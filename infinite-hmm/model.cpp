@@ -120,8 +120,8 @@ public:
 			vector<Word*> words;
 			// <bos>
 			// Word* bos = new Word();
-			// bos->word_id = -1;
-			// bos->tag_id = BOP;
+			// bos->_id = -1;
+			// bos->_tag = BOP;
 			// words.push_back(bos);
 			// _word_count[_bos_id] += 1;
 
@@ -130,19 +130,19 @@ public:
 					continue;
 				}
 				Word* word = new Word();
-				word->word_id = add_string(word_str);
+				word->_id = add_string(word_str);
 				words.push_back(word);
-				_word_count[word->word_id] += 1;
+				_word_count[word->_id] += 1;
 			}
 
 			Word* eos = new Word();
-			eos->word_id = _eos_id;
+			eos->_id = _eos_id;
 			words.push_back(eos);
 			_word_count[_eos_id] += 1;
 
 			// Word* eop = new Word();
-			// eop->word_id = -1;
-			// eop->tag_id = EOP;
+			// eop->_id = -1;
+			// eop->_tag = EOP;
 			// words.push_back(eop);
 
 			// 訓練データに追加
@@ -163,10 +163,10 @@ public:
 		for(int data_index = 0;data_index < _dataset.size();data_index++){
 			vector<Word*> &line = _dataset[data_index];
 			for(auto word = line.begin(), end = line.end();word != end;word++){
-				int word_id = (*word)->word_id;
+				int word_id = (*word)->_id;
 				int count = get_count_for_word(word_id);
 				if(count <= threshold){
-					(*word)->word_id = _unk_id;
+					(*word)->_id = _unk_id;
 				}
 			}
 		}
