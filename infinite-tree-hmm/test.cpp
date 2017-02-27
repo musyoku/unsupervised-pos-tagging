@@ -662,7 +662,8 @@ void test29(){
 	model->mark_low_frequency_words_as_unknown(1);
 	model->compile();
 	cout << model->get_num_words() << " words" << endl;
-	for(int i = 0;i < 100000;i++){
+	for(int i = 0;i < 100;i++){
+		cout << i << endl;
 		model->perform_gibbs_sampling();
 		model->update_hyperparameters();
 		// model->save(dir);
@@ -684,6 +685,65 @@ void test30(iTHMM* model){
 	model->_structure_tssb->dump();
 	Node* target = model->_structure_tssb->find_node_with_id(22);
 	cout << model->compute_node_probability_on_tssb(model->_structure_tssb, target, 1.0) << endl;
+}
+
+void test31(){
+	string filename = "../alice.txt";
+	string dir = "out";
+	
+	for(int i = 0;i < 5;i++){
+		PyInfiniteTreeHMM* model = new PyInfiniteTreeHMM();
+		model->load_textfile(filename);
+
+		model->mark_low_frequency_words_as_unknown(1);
+		model->compile();
+		cout << model->get_num_words() << " words" << endl;
+		for(int i = 0;i < 10;i++){
+			model->perform_gibbs_sampling();
+			model->update_hyperparameters();
+		}
+		model->remove_all_data();
+		delete model;
+	}
+}
+
+void test32(){
+	bool new_table_generated = true;
+	for(int i = 0;i < 10;i++){
+		Node* node = new Node();
+		for(int j = 0;j < 10;j++){
+			node->add_customer_to_vertical_crp(0.5, 0.5, new_table_generated);
+			node->add_customer_to_horizontal_crp(0.5, 0.5, new_table_generated);
+			node->increment_word_assignment(j);
+		}
+		delete node;
+	}
+}
+void test33(){
+	bool new_table_generated = true;
+	for(int i = 0;i < 10;i++){
+		Node* node = new Node();
+		TSSB* tssb = new TSSB(node, 1, 1, 1);
+		for(int j = 0;j < 10;j++){
+			node->add_customer_to_vertical_crp(0.5, 0.5, new_table_generated);
+			node->add_customer_to_horizontal_crp(0.5, 0.5, new_table_generated);
+			node->increment_word_assignment(j);
+		}
+		delete tssb;
+	}
+}
+void test34(){
+	bool new_table_generated = true;
+	for(int i = 0;i < 10;i++){
+		iTHMM* model = new iTHMM();
+		for(int j = 0;j < 100;j++){
+			Node* node = model->sample_node_on_tssb(model->_structure_tssb);
+			model->add_customer_to_tssb_node(node);
+			node = model->sample_node_on_tssb(model->_bos_tssb);
+			model->add_customer_to_tssb_node(node);
+		}
+		delete model;
+	}
 }
 
 int main(){

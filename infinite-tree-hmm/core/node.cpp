@@ -85,6 +85,11 @@ Node::~Node(){
 	delete[] _stop_ratio_v_over_parent;
 	delete[] _nodes_from_root_to_myself;
 	delete[] _horizontal_indices_from_root;
+	delete[] _stop_probability_h_over_parent;
+	delete[] _stop_ratio_h_over_parent;
+	if(_hpylm != NULL){
+		delete _hpylm;
+	}
 }
 Node* Node::generate_child(){
 	Node* child = new Node(this);

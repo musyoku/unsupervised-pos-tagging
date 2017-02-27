@@ -34,8 +34,8 @@ namespace {
 		}
 		return n * factorial(n - 1);
 	}
-	vector<wstring> split_word_by(const wstring &str, wchar_t delim){
-	    vector<wstring> elems;
+	void split_word_by(const wstring &str, wchar_t delim, vector<wstring> &elems){
+		elems.clear();
 	    wstring item;
 	    for(wchar_t ch: str){
 	        if (ch == delim){
@@ -51,7 +51,6 @@ namespace {
 	    if (!item.empty()){
 	        elems.push_back(item);
 	    }
-	    return elems;
 	}
 	void show_progress(int step, int total){
 		double progress = step / (double)(total - 1);

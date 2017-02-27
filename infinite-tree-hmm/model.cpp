@@ -56,6 +56,16 @@ public:
 		_max_num_words_in_line = -1;
 		_min_num_words_in_line = -1;
 	}
+	~PyInfiniteTreeHMM(){
+		delete _ithmm;
+		for(int n = 0;n < _dataset.size();n++){
+			vector<Word*> &line = _dataset[n];
+			for(int m = 0;m < line.size();m++){
+				Word* word = line[m];
+				delete word;
+			}
+		}
+	}
 	id add_string(wstring word){
 		auto itr = _dictionary_inv.find(word);
 		if(itr == _dictionary_inv.end()){
@@ -90,7 +100,8 @@ public:
 		c_printf("[*]%s\n", (boost::format("%sを読み込みました.") % filename.c_str()).str().c_str());
 	}
 	void add_line(wstring line_str){
-		vector<wstring> word_strs = split_word_by(line_str, L' ');	// スペースで分割
+		vector<wstring> word_strs;
+		split_word_by(line_str, L' ', word_strs);	// スペースで分割
 		int num_words = word_strs.size();
 		if(num_words > _max_num_words_in_line){
 			_max_num_words_in_line = num_words;
@@ -106,15 +117,15 @@ public:
 					continue;
 				}
 				Word* word = new Word();
-				word->id = add_string(word_str);
-				word->state = NULL;
+				word->_id = add_string(word_str);
+				word->_state = NULL;
 				words.push_back(word);
-				_word_count[word->id] += 1;
+				_word_count[word->_id] += 1;
 			}
 
 			Word* eos = new Word();
-			eos->id = _eos_id;
-			eos->state = NULL;
+			eos->_id = _eos_id;
+			eos->_state = NULL;
 			words.push_back(eos);
 			_word_count[_eos_id] += 1;
 
@@ -136,10 +147,10 @@ public:
 		for(int data_index = 0;data_index < _dataset.size();data_index++){
 			vector<Word*> &line = _dataset[data_index];
 			for(auto word = line.begin(), end = line.end();word != end;word++){
-				id word_id = (*word)->id;
+				id word_id = (*word)->_id;
 				int count = get_count_for_word(word_id);
 				if(count <= threshold){
-					(*word)->id = _unk_id;
+					(*word)->_id = _unk_id;
 				}
 			}
 		}
