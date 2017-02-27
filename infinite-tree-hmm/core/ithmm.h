@@ -1102,6 +1102,7 @@ public:
 		double ratio_v = compute_expectation_of_vertical_sbr_ratio(iterator, htssb_mode);
 		iterator->_probability = iterator->_stick_length * ratio_v;
 		iterator->_children_stick_length = iterator->_stick_length * (1.0 - ratio_v);
+		double min_probability = 1;		// 0が返るのを防ぐ
 		for(int n = 0;n < node->_depth_v;n++){
 			int depth_h = node->_horizontal_indices_from_root[n];
 			double rest_stick_length = iterator->_children_stick_length;
@@ -1110,7 +1111,15 @@ public:
 				double ratio_h = compute_expectation_of_horizontal_sbr_ratio(child, htssb_mode);
 				child->_stick_length = rest_stick_length * ratio_h;
 				double ratio_v = compute_expectation_of_vertical_sbr_ratio(child, htssb_mode);
-				child->_probability = child->_stick_length * ratio_v;
+				double probability = child->_stick_length * ratio_v;
+				if(probability == 0){		// ものすごく深いノードがサンプリングされた時にdouble型の限界を超える
+					child->_probability = min_probability;
+				}else{
+					child->_probability = probability;
+					if(probability < min_probability){
+						min_probability = probability;
+					}
+				}
 				child->_children_stick_length = child->_stick_length * (1.0 - ratio_v);
 				rest_stick_length *= (1.0 - ratio_h);
 			}
