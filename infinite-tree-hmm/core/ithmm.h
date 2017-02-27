@@ -74,9 +74,9 @@ public:
 	vector<double> _hpylm_alpha_m;	// ガンマ分布のパラメータ	θの推定用
 	vector<double> _hpylm_beta_m;	// ガンマ分布のパラメータ	θの推定用
 	iTHMM(){
-		_alpha = iTHMM_ALPHA;
-		_gamma = iTHMM_GAMMA;
-		_lambda = iTHMM_LAMBDA;
+		_alpha = Sampler::uniform(iTHMM_ALPHA_MIN, iTHMM_ALPHA_MAX);
+		_gamma = Sampler::uniform(iTHMM_GAMMA_MIN, iTHMM_GAMMA_MAX);
+		_lambda = Sampler::uniform(iTHMM_LAMBDA_MIN, iTHMM_LAMBDA_MAX);
 		_tau0 = iTHMM_TAU_0;
 		_tau1 = iTHMM_TAU_1;
 		_max_depth = 0;
@@ -112,7 +112,7 @@ public:
 		delete _structure_tssb;
 		delete _bos_tssb;
 	}
-	void initialize_data(vector<vector<Word*>> &dataset){
+	void initialize_data(vector<vector<Word*>> &dataset, bool assign_random_tag = true){
 		for(int data_index = 0;data_index < dataset.size();data_index++){
 			vector<Word*> &line = dataset[data_index];
 			if(line.size() == 0){
@@ -121,8 +121,12 @@ public:
 			// 状態路ランダムに設定
 			for(int i = 0;i < line.size();i++){
 				Word* word = line[i];
-				// Node* state = _structure_tssb->_root;
-				Node* state = sample_node_on_tssb(_structure_tssb);
+				Node* state = NULL;
+				if(assign_random_tag){
+					state = sample_node_on_tssb(_structure_tssb);
+				}else{
+					state = _structure_tssb->_root;
+				}
 				assert(state != NULL);
 				word->_state = state;
 			}
@@ -970,8 +974,12 @@ public:
 	void _add_customer_to_htssb_vertical_crp(double alpha, Node* iterator){
 		assert(iterator != NULL);
 		assert(is_node_on_htssb(iterator));
+		Node* iterator_on_parent_htssb = iterator->_parent_transition_tssb_myself;
+		double ratio_v = 0;	// 親の場合はテーブルの増加は無視してよい
+		if(iterator_on_parent_htssb != NULL){
+			ratio_v = compute_expectation_of_vertical_htssb_sbr_ratio(iterator_on_parent_htssb);	// g0は親の停止確率なので注意
+		}
 		bool new_table_generated = false;
-		double ratio_v = compute_expectation_of_vertical_htssb_sbr_ratio(iterator);
 		iterator->add_customer_to_vertical_crp(alpha, ratio_v, new_table_generated);
 		// 総客数のインクリメント
 		Node* owner_on_structure = iterator->_owner_on_structure;
@@ -985,7 +993,6 @@ public:
 		assert(iterator_on_structure != NULL);
 		iterator_on_structure->increment_ref_count();
 		// 親TSSBに代理客を追加
-		Node* iterator_on_parent_htssb = iterator->_parent_transition_tssb_myself;
 		if(new_table_generated && iterator_on_parent_htssb != NULL){
 			_add_customer_to_htssb_vertical_crp(alpha, iterator_on_parent_htssb);
 		}
@@ -993,8 +1000,12 @@ public:
 	void _add_customer_to_htssb_horizontal_crp(double gamma, Node* iterator){
 		assert(iterator != NULL);
 		assert(is_node_on_htssb(iterator));
+		Node* iterator_on_parent_htssb = iterator->_parent_transition_tssb_myself;
+		double ratio_h = 0;	// 親の場合はテーブルの増加は無視してよい
+		if(iterator_on_parent_htssb != NULL){
+			ratio_h = compute_expectation_of_horizontal_htssb_sbr_ratio(iterator_on_parent_htssb);	// g0は親の停止確率なので注意
+		}
 		bool new_table_generated = false;
-		double ratio_h = compute_expectation_of_horizontal_htssb_sbr_ratio(iterator);
 		iterator->add_customer_to_horizontal_crp(gamma, ratio_h, new_table_generated);
 		// 総客数のインクリメント
 		Node* owner_on_structure = iterator->_owner_on_structure;
@@ -1010,7 +1021,6 @@ public:
 		assert(iterator_on_structure != NULL);
 		iterator_on_structure->increment_ref_count();
 		// 親TSSBに代理客を追加
-		Node* iterator_on_parent_htssb = iterator->_parent_transition_tssb_myself;
 		if(new_table_generated && iterator_on_parent_htssb != NULL){
 			_add_customer_to_htssb_horizontal_crp(gamma, iterator_on_parent_htssb);
 		}
