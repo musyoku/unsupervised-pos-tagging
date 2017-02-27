@@ -215,13 +215,17 @@ public:
 			_ithmm->geneerate_word_ranking_of_node(node, ranking);
 			int n = 0;
 			string indices = node->_dump_indices();
-			wstring tab = L"";
+			// linuxでバグるのでstringとwstring両方作る
+			string tab = "";
 			for(int i = 0;i < node->_depth_v;i++){
-				tab += L"	";
+				tab += "	";
 			}
-			wcout << tab;
-			c_printf("[*]%s\n", (boost::format("[%s]") % indices.c_str()).str().c_str());
-			wcout << tab;
+			cout << "\x1b[32;1m" << tab << "[" << indices << "]" << "\x1b[0m" << endl;
+			wstring wtab = L"";
+			for(int i = 0;i < node->_depth_v;i++){
+				wtab += L"	";
+			}
+			wcout << wtab;
 			for(const auto &elem: ranking){
 				wstring &word = _dictionary[elem.first];
 				int count = node->_num_word_assignment[elem.first];

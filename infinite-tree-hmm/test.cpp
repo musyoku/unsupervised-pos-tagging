@@ -662,8 +662,7 @@ void test29(){
 	model->mark_low_frequency_words_as_unknown(1);
 	model->compile();
 	cout << model->get_num_words() << " words" << endl;
-	for(int i = 0;i < 100;i++){
-		cout << i << endl;
+	for(int i = 0;i < 1000000;i++){
 		model->perform_gibbs_sampling();
 		model->update_hyperparameters();
 		// model->save(dir);
