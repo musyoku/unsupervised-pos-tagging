@@ -268,6 +268,7 @@ public:
 				}
 			}
 			wcout << endl;
+			ranking.clear();
 		}
 	}
 };

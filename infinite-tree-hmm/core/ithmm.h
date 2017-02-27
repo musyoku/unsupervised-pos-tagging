@@ -108,6 +108,10 @@ public:
 		_hpylm_alpha_m.push_back(HPYLM_ALPHA);
 		_hpylm_beta_m.push_back(HPYLM_BETA);
 	}
+	~iTHMM(){
+		delete _structure_tssb;
+		delete _bos_tssb;
+	}
 	void initialize_data(vector<vector<Word*>> &dataset){
 		for(int data_index = 0;data_index < dataset.size();data_index++){
 			vector<Word*> &line = dataset[data_index];

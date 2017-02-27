@@ -56,6 +56,16 @@ public:
 		_max_num_words_in_line = -1;
 		_min_num_words_in_line = -1;
 	}
+	~PyInfiniteTreeHMM(){
+		delete _ithmm;
+		for(int n = 0;n < _dataset.size();n++){
+			vector<Word*> &line = _dataset[n];
+			for(int m = 0;m < line.size();m++){
+				Word* word = line[m];
+				delete word;
+			}
+		}
+	}
 	id add_string(wstring word){
 		auto itr = _dictionary_inv.find(word);
 		if(itr == _dictionary_inv.end()){
@@ -90,7 +100,8 @@ public:
 		c_printf("[*]%s\n", (boost::format("%sを読み込みました.") % filename.c_str()).str().c_str());
 	}
 	void add_line(wstring line_str){
-		vector<wstring> word_strs = split_word_by(line_str, L' ');	// スペースで分割
+		vector<wstring> word_strs;
+		split_word_by(line_str, L' ', word_strs);	// スペースで分割
 		int num_words = word_strs.size();
 		if(num_words > _max_num_words_in_line){
 			_max_num_words_in_line = num_words;
