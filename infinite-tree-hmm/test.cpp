@@ -662,7 +662,8 @@ void test29(){
 	model->mark_low_frequency_words_as_unknown(1);
 	model->compile();
 	cout << model->get_num_words() << " words" << endl;
-	for(int i = 0;i < 100000;i++){
+	for(int i = 0;i < 100;i++){
+		cout << i << endl;
 		model->perform_gibbs_sampling();
 		model->update_hyperparameters();
 		// model->save(dir);
@@ -696,12 +697,12 @@ void test31(){
 
 		model->mark_low_frequency_words_as_unknown(1);
 		model->compile();
-		// cout << model->get_num_words() << " words" << endl;
-		// for(int i = 0;i < 10;i++){
-		// 	model->perform_gibbs_sampling();
-		// 	model->update_hyperparameters();
-		// }
-		// model->remove_all_data();
+		cout << model->get_num_words() << " words" << endl;
+		for(int i = 0;i < 10;i++){
+			model->perform_gibbs_sampling();
+			model->update_hyperparameters();
+		}
+		model->remove_all_data();
 		delete model;
 	}
 }
@@ -747,6 +748,6 @@ void test34(){
 
 int main(){
 	// iTHMM* model = new iTHMM();
-	test31();
+	test29();
 	return 0;
 }
