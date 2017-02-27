@@ -391,7 +391,7 @@ public:
 			return iterator;
 		}
 		if(iterator->_depth_v > 10){
-			c_printf("[r]%s\n", "DEPTH > 10");
+			c_printf("[r]%s\n", "depth > 10");
 			Node* node_on_structure = _structure_tssb->find_node_with_id(iterator->_owner_id_on_structure);
 			assert(node_on_structure != NULL);
 			cout << "uniform: " << uniform << endl;
@@ -1114,6 +1114,8 @@ public:
 				double probability = child->_stick_length * ratio_v;
 				if(probability == 0){		// ものすごく深いノードがサンプリングされた時にdouble型の限界を超える
 					child->_probability = min_probability;
+					c_printf("[r]%s\n", "stick length == 0");
+					cout << "fixed to " << min_probability << endl;
 				}else{
 					child->_probability = probability;
 					if(probability < min_probability){
@@ -1341,19 +1343,19 @@ public:
 	void _update_stick_length_of_parent_node(double &sum_probability, Node* parent, bool htssb_mode){
 		assert(parent->_children_stick_length > 0);
 		double rest_stick_length = parent->_children_stick_length;	// 親ノードが持っている子ノードに割り当てる棒の長さ
-		double sum_stick_length_over_children = sum_probability;
+		double sum_stick_length_from_left_to_current_node = sum_probability;
 		for(int i = 0;i < parent->_children.size();i++){
 			Node* child = parent->_children[i];
 			double ratio_h = compute_expectation_of_horizontal_sbr_ratio(child, htssb_mode);
-			child->_stick_length = rest_stick_length * ratio_h;		// このノードかこのノードの子ノードに止まる確率
 			double ratio_v = compute_expectation_of_vertical_sbr_ratio(child, htssb_mode);
+			child->_stick_length = rest_stick_length * ratio_h;		// このノードかこのノードの子ノードに止まる確率
 			child->_probability = child->_stick_length * ratio_v;	// このノードに止まる確率
+			child->_children_stick_length = child->_stick_length * (1.0 - ratio_v);	// 子ノードに割り当てる長さはこのノードに降りない確率
 			sum_probability += child->_probability;
-			sum_stick_length_over_children += child->_stick_length;
-			child->_sum_probability = sum_stick_length_over_children - child->_children_stick_length;				// このノードより左側の全ての棒の長さの総和
+			sum_stick_length_from_left_to_current_node += child->_stick_length;
+			child->_sum_probability = sum_stick_length_from_left_to_current_node - child->_children_stick_length;				// このノードより左側の全ての棒の長さの総和
 			rest_stick_length *= 1.0 - ratio_h;
 			double alpha = _alpha * pow(_lambda, child->_depth_v);
-			child->_children_stick_length = child->_stick_length * (1.0 - ratio_v);	// 子ノードに割り当てる長さはこのノードに降りない確率
 			if(child->has_child()){
 				_update_stick_length_of_parent_node(child->_sum_probability, child, htssb_mode);
 			}

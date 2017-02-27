@@ -679,11 +679,16 @@ void test29(){
 }
 
 void test30(iTHMM* model){
-	model->retrospective_sampling(0.999, model->_structure_tssb, 1.0, false);
-	model->update_stick_length_of_tssb(model->_structure_tssb, 1.0, false);
-	model->_structure_tssb->dump();
-	Node* target = model->_structure_tssb->find_node_with_id(22);
-	cout << model->compute_node_probability_on_tssb(model->_structure_tssb, target, 1.0) << endl;
+	add_customer(model, 100000);
+	for(int i = 0;i < 1000;i++){
+		double uniform = Sampler::uniform(0, 1);
+		Node* node = model->retrospective_sampling(uniform, model->_structure_tssb->_root->_transition_tssb, 1.0, true);
+		model->add_customer_to_htssb_node(node);
+	}
+	model->update_stick_length_of_tssb(model->_structure_tssb->_root->_transition_tssb, 0.5, true);
+	model->_structure_tssb->_root->_transition_tssb->dump();
+	// Node* target = model->_structure_tssb->find_node_with_id(22);
+	// cout << model->compute_node_probability_on_tssb(model->_structure_tssb, target, 1.0) << endl;
 }
 
 void test31(){
@@ -746,7 +751,7 @@ void test34(){
 }
 
 int main(){
-	// iTHMM* model = new iTHMM();
-	test29();
+	iTHMM* model = new iTHMM();
+	test30(model);
 	return 0;
 }

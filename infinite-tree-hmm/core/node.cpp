@@ -28,14 +28,14 @@ void Node::init(){
 	_depth_v = (_parent != NULL) ? _parent->_depth_v + 1 : 0;
 	_depth_h = (_parent != NULL) ? _parent->_children.size() : 0;
 	_owner_id_on_structure = (_parent != NULL) ? _parent->_owner_id_on_structure : 0;
-	_stick_length = -1;
-	_children_stick_length = -1;
+	_stick_length = 0;
+	_children_stick_length = 0;
+	_probability = 0;
 	_pass_count_v = 0;
 	_stop_count_v = 0;
 	_pass_count_h = 0;
 	_stop_count_h = 0;
 	_ref_count = 0;
-	_probability = -1;
 	_num_transitions_to_eos = 0;
 	_num_transitions_to_other = 0;
 	_transition_tssb = NULL;
