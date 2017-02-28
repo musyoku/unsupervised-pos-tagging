@@ -45,13 +45,15 @@ void test1(){
 }
 
 void test2(){
-	PyInfiniteHMM* model = new PyInfiniteHMM(20);
-	model->load_textfile("../test.txt");
+	PyInfiniteHMM* model = new PyInfiniteHMM(2);
+	model->load_textfile("../alice.txt");
 	model->mark_low_frequency_words_as_unknown(1);
 	model->compile();
 	for(int i = 0;i < 10000;i++){
 		model->perform_gibbs_sampling();
-		model->show_typical_words_for_each_tag(20);
+		if(i % 10 == 0){
+			model->show_typical_words_for_each_tag(20);
+		}
 	}
 	delete model;
 }

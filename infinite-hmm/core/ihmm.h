@@ -147,8 +147,8 @@ public:
 		_alpha = 0.1;
 		_beta = 1;
 		_gamma = 1;
-		_beta_emission = 0.01;
-		_gamma_emission = 0.01;
+		_beta_emission = 1;
+		_gamma_emission = 1;
 		_initial_num_tags = initial_num_tags;
 		_sum_oracle_words_count = 0;
 		_sum_oracle_tags_count = 0;
@@ -654,32 +654,6 @@ public:
 			}
 		}
 		return new_tag;
-	}
-	int sample_from_Ptag_context_word(int context_tag_id, int word_id){
-		double max_p = 0;
-		double max_tag = 0;
-		double sum = 0;
-		for(int tag = EOS + 1;tag < _tag_unigram_count.size();tag++){
-			// if(is_tag_new(tag)){
-			// 	continue;
-			// }
-			double Ptag = compute_Ptag_context(tag, context_tag_id);
-			double Pword = compute_Pword_tag(word_id, tag);
-			double p = Ptag * Pword;
-			_gibbs_sampling_table[tag] = p;
-			sum += p;
-		}
-		assert(sum > 0);
-		double normalizer = 1.0 / sum;
-		double bernoulli = Sampler::uniform(0, 1);
-		sum = 0;
-		for(int tag = EOS + 1;tag < _tag_unigram_count.size();tag++){
-			sum += _gibbs_sampling_table[tag] * normalizer;
-			if(bernoulli <= sum){
-				return tag;
-			}
-		}
-		assert(false);
 	}
 	int argmax_Ptag_context_word(int context_tag_id, int word_id){
 		double max_p = 0;

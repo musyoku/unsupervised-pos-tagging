@@ -760,8 +760,28 @@ void test35(){
 	string dir = "out";
 	PyInfiniteTreeHMM* model = new PyInfiniteTreeHMM();
 	model->load(dir);
-	model->show_typical_words_for_each_tag(20, false);
+	model->show_hpylm_for_each_tag();
+	model->show_typical_words_for_each_tag(20, true);
 	model->show_sticks();
+	for(int i = 0;i < model->_ithmm->_max_depth;i++){
+		cout << "d[" << i << "] = " << model->_ithmm->_hpylm_d_m[i] << endl;
+		cout << "theta[" << i << "] = " << model->_ithmm->_hpylm_theta_m[i] << endl;
+	}
+}
+
+void test36(){
+	PyInfiniteTreeHMM* model = new PyInfiniteTreeHMM();
+	model->_ithmm->set_word_g0(0.001);
+	for(int i = 0;i < 10000;i++){
+		double uniform = Sampler::uniform(0, 1);
+		Node* node = model->_ithmm->retrospective_sampling(uniform, model->_ithmm->_structure_tssb, 1.0, false);
+		if(node->_depth_v == 0){
+			continue;
+		}
+		model->_ithmm->add_customer_to_hpylm(node, 100);
+	}
+	c_printf("[*]%s\n", "sampled");
+	model->show_hpylm_for_each_tag();
 }
 
 int main(){

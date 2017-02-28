@@ -26,7 +26,7 @@ HPYLM::HPYLM(Node* node){
 	}
 }
 // 客をテーブルに追加
-bool HPYLM::add_customer_to_table(id token_id, int table_k, double parent_Pw, vector<double> &d_m, vector<double> &theta_m){
+bool HPYLM::add_customer_to_table(id token_id, int table_k, double g0, vector<double> &d_m, vector<double> &theta_m){
 	auto itr = _arrangement.find(token_id);
 	assert(itr != _arrangement.end());
 	vector<int> &num_customers_at_table = itr->second;
@@ -35,7 +35,7 @@ bool HPYLM::add_customer_to_table(id token_id, int table_k, double parent_Pw, ve
 	_num_customers++;
 	return true;
 }
-bool HPYLM::add_customer_to_new_table(id token_id, double parent_Pw, vector<double> &d_m, vector<double> &theta_m){
+bool HPYLM::add_customer_to_new_table(id token_id, double g0, vector<double> &d_m, vector<double> &theta_m){
 	auto itr = _arrangement.find(token_id);
 	if(itr == _arrangement.end()){
 		vector<int> tables = {1};
@@ -47,7 +47,7 @@ bool HPYLM::add_customer_to_new_table(id token_id, double parent_Pw, vector<doub
 	_num_tables++;
 	_num_customers++;
 	if(_parent != NULL){
-		bool success = _parent->add_customer(token_id, parent_Pw, d_m, theta_m);
+		bool success = _parent->add_customer(token_id, g0, d_m, theta_m);
 		assert(success == true);
 	}
 	return true;
@@ -100,7 +100,7 @@ bool HPYLM::add_customer(id token_id, double g0, vector<double> &d_m, vector<dou
 	}
 	auto itr = _arrangement.find(token_id);
 	if(itr == _arrangement.end()){
-		add_customer_to_new_table(token_id, parent_Pw, d_m, theta_m);
+		add_customer_to_new_table(token_id, g0, d_m, theta_m);
 		return true;
 	}
 	vector<int> &num_customers_at_table = itr->second;
@@ -116,18 +116,18 @@ bool HPYLM::add_customer(id token_id, double g0, vector<double> &d_m, vector<dou
 	for(int k = 0;k < num_customers_at_table.size();k++){
 		sum += std::max(0.0, num_customers_at_table[k] - d_u) * normalizer;
 		if(r <= sum){
-			add_customer_to_table(token_id, k, parent_Pw, d_m, theta_m);
+			add_customer_to_table(token_id, k, g0, d_m, theta_m);
 			return true;
 		}
 	}
-	add_customer_to_new_table(token_id, parent_Pw, d_m, theta_m);
+	add_customer_to_new_table(token_id, g0, d_m, theta_m);
 	return true;
 }
 bool HPYLM::remove_customer(id token_id){
 	auto itr = _arrangement.find(token_id);
 	assert(itr != _arrangement.end());
 	vector<int> &num_customers_at_table = itr->second;
-	double sum = std::accumulate(num_customers_at_table.begin(), num_customers_at_table.end(), 0);		
+	double sum = std::accumulate(num_customers_at_table.begin(), num_customers_at_table.end(), 0);
 	double normalizer = 1.0 / sum;
 	double r = Sampler::uniform(0, 1);
 	sum = 0;

@@ -227,12 +227,15 @@ public:
 			}
 			wcout << wtab;
 			for(const auto &elem: ranking){
-				wstring &word = _dictionary[elem.first];
-				int count = node->_num_word_assignment[elem.first];
-				wcout << word << L" (" << count << L") ";
+				id word_id = elem.first;
+				wstring &word = _dictionary[word_id];
+				double p = elem.second;
+				int count = node->_num_word_assignment[word_id];
+				wcout << "\x1b[1m" << word << "\x1b[0m" << L" (" << count;
 				if(show_probability){
-					wcout << elem.second << L" ";
+					wcout << L";p=" << p;
 				} 
+				wcout << L") ";
 				n++;
 				if(n > number_to_show_for_each_tag){
 					break;
@@ -240,6 +243,36 @@ public:
 			}
 			wcout << endl;
 			ranking.clear();
+		}
+	}
+	void show_hpylm_for_each_tag(){
+		auto pair = std::make_pair(0, 0);
+		vector<Node*> nodes;
+		_ithmm->_structure_tssb->enumerate_nodes_from_left_to_right(nodes);
+		for(const auto &node: nodes){
+			multiset<std::pair<id, double>, multiset_value_comparator> ranking;
+			_ithmm->geneerate_word_ranking_of_node(node, ranking);
+			int n = 0;
+			string indices = node->_dump_indices();
+			// linuxでバグるのでstringとwstring両方作る
+			string tab = "";
+			for(int i = 0;i < node->_depth_v;i++){
+				tab += "	";
+			}
+			cout << "\x1b[32;1m" << tab << "[" << indices << "]" << "\x1b[0m" << endl;
+			wstring wtab = L"";
+			for(int i = 0;i < node->_depth_v;i++){
+				wtab += L"	";
+			}
+			wcout << wtab;
+			for(const auto &table: node->_hpylm->_arrangement){
+				id word_id = table.first;
+				wstring &word = _dictionary[word_id];
+				int num_tables = table.second.size();
+				int num_customers = std::accumulate(table.second.begin(), table.second.end(), 0);
+				wcout << "\x1b[1m" << word << "\x1b[0m" << L" (#t=" << num_tables << ";#c=" << num_customers << L") ";
+			}
+			wcout << endl;
 		}
 	}
 	void show_sticks(){

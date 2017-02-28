@@ -1503,6 +1503,11 @@ public:
 			_hpylm_d_m[u] = Sampler::beta(_hpylm_a_m[u] + sum_1_y_ui_m[u], _hpylm_b_m[u] + sum_1_z_uwkj_m[u]);
 			_hpylm_theta_m[u] = Sampler::gamma(_hpylm_alpha_m[u] + sum_y_ui_m[u], _hpylm_beta_m[u] - sum_log_x_u_m[u]);
 		}
+
+		// ルートノードだけ固定する場合
+		_hpylm_d_m[0] = HPYLM_D_ROOT;
+		_hpylm_theta_m[0] = HPYLM_THETA_ROOT;
+
 		// 不要な深さのハイパーパラメータを削除
 		int num_remove = _hpylm_d_m.size() - _max_depth - 1;
 		for(int n = 0;n < num_remove;n++){
