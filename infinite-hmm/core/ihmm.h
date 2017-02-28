@@ -137,14 +137,14 @@ public:
 	int _sum_oracle_tags_count;
 	int _sum_oracle_words_count;
 	int _max_sequence_length;
-	double _temperature;
+	// double _temperature;
 	unordered_map<int, int> _sum_bigram_destination;
 	unordered_map<int, int> _sum_word_count_for_tag;
 	double* _gibbs_sampling_table;
 	double* _beam_sampling_table_u;
 	double** _beam_sampling_table_s;
 	InfiniteHMM(int initial_num_tags){
-		_alpha = 1;
+		_alpha = 0;
 		_beta = 1;
 		_gamma = 1;
 		_beta_emission = 1;
@@ -153,7 +153,7 @@ public:
 		_sum_oracle_words_count = 0;
 		_sum_oracle_tags_count = 0;
 		_num_words = 0;
-		_temperature = 1;
+		// _temperature = 2;
 		_max_sequence_length = 0;
 		_gibbs_sampling_table = NULL;
 		_beam_sampling_table_u = NULL;
@@ -294,7 +294,6 @@ public:
 	}
 	void increment_tag_bigram_count(int context_tag_id, int tag_id){
 		_sum_bigram_destination[context_tag_id] += 1;
-
 		Table* table = NULL;
 		auto itr_context = _bigram_tag_table.find(context_tag_id);
 		if(itr_context == _bigram_tag_table.end()){
@@ -552,6 +551,7 @@ public:
 		// cout << "tag = " << tag_id <<  ", m_i = " << m_i << ", m_iq = " << m_iq << endl;
 		// cout << "m_o = " << m_o << ", m_oq = " << m_oq << endl;
 		double oracle_p = (m_oq + _gamma_emission * g0) / (m_o + _gamma_emission);
+		// cout << empirical_p << ", " << pow(empirical_p, 1.0 / 0.08) << endl;
 		// cout << "empirical_p = " << empirical_p << ", coeff_oracle_p = " << coeff_oracle_p << ", oracle_p = " << oracle_p << endl;
 		return empirical_p + coeff_oracle_p * oracle_p;
 	}
@@ -630,7 +630,7 @@ public:
 		}
 		return max_tag;
 	}
-	void perform_gibbs_sampling_with_line(vector<Word*> &line){
+	void perform_gibbs_sampling_line(vector<Word*> &line){
 		if(line.size() < 2){
 			return;
 		}
@@ -659,7 +659,7 @@ public:
 			ti_1 = new_tag;
 		}
 	}
-	void perform_beam_sampling_with_line(vector<Word*> &line){
+	void perform_beam_sampling_line(vector<Word*> &line){
 		if(line.size() < 1){
 			return;
 		}

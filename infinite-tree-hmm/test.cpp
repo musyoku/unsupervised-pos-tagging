@@ -654,13 +654,13 @@ void test28(){
 }
 
 void test29(){
-	string filename = "../wiki.txt";
+	string filename = "../test.txt";
 	PyInfiniteTreeHMM* model = new PyInfiniteTreeHMM();
 	model->load_textfile(filename);
 
 	string dir = "out";
 	model->mark_low_frequency_words_as_unknown(1);
-	model->compile(false);
+	model->compile(true);
 	cout << model->get_num_words() << " words" << endl;
 	for(int i = 0;i < 1000000;i++){
 		model->perform_gibbs_sampling();

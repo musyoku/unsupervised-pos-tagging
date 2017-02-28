@@ -44,9 +44,22 @@ void test1(){
 	delete model;
 }
 
-int main(){
-	for(int i = 0;i < 5;i++){
-		test1();
+void test2(){
+	PyInfiniteHMM* model = new PyInfiniteHMM(2);
+	model->load_textfile("../test.txt");
+	model->mark_low_frequency_words_as_unknown(1);
+	model->initialize();
+	for(int i = 0;i < 10000;i++){
+		model->perform_gibbs_sampling();
+		model->show_typical_words_for_each_tag(20);
 	}
+	delete model;
+}
+
+int main(){
+	// for(int i = 0;i < 5;i++){
+	// 	test1();
+	// }
+	test2();
 	return 0;
 }

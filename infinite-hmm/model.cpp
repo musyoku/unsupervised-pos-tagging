@@ -214,7 +214,7 @@ public:
 			}
 			int data_index = _rand_indices[n];
 			vector<Word*> &line = _dataset[data_index];
-			_hmm->perform_gibbs_sampling_with_line(line);
+			_hmm->perform_gibbs_sampling_line(line);
 		}
 	}
 	void perform_beam_sampling(){
@@ -231,20 +231,20 @@ public:
 			}
 			int data_index = _rand_indices[n];
 			vector<Word*> &line = _dataset[data_index];
-			_hmm->perform_beam_sampling_with_line(line);
+			_hmm->perform_beam_sampling_line(line);
 		}
 	}
-	void set_temperature(double temperature){
-		_hmm->_temperature = temperature;
-	}
-	void anneal_temperature(double multiplier){
-		if(_hmm->_temperature > _minimum_temperature){
-			_hmm->_temperature *= multiplier;
-		}
-	}
-	void show_temperature(){
-		c_printf("[*]%s: %lf\n", "temperature", _hmm->_temperature);
-	}
+	// void set_temperature(double temperature){
+	// 	_hmm->_temperature = temperature;
+	// }
+	// void anneal_temperature(double multiplier){
+	// 	if(_hmm->_temperature > _minimum_temperature){
+	// 		_hmm->_temperature *= multiplier;
+	// 	}
+	// }
+	// void show_temperature(){
+	// 	c_printf("[*]%s: %lf\n", "temperature", _hmm->_temperature);
+	// }
 	void show_log_Pdata(){
 		double log_p = 0;
 		for(int data_index = 0;data_index < _dataset.size();data_index++){
@@ -290,15 +290,15 @@ BOOST_PYTHON_MODULE(model){
 	.def("perform_gibbs_sampling", &PyInfiniteHMM::perform_gibbs_sampling)
 	.def("perform_beam_sampling", &PyInfiniteHMM::perform_beam_sampling)
 	.def("initialize", &PyInfiniteHMM::initialize)
-	.def("set_temperature", &PyInfiniteHMM::set_temperature)
-	.def("anneal_temperature", &PyInfiniteHMM::anneal_temperature)
+	// .def("set_temperature", &PyInfiniteHMM::set_temperature)
+	// .def("anneal_temperature", &PyInfiniteHMM::anneal_temperature)
 	.def("load", &PyInfiniteHMM::load)
 	.def("save", &PyInfiniteHMM::save)
 	.def("add_line", &PyInfiniteHMM::add_line)
 	.def("mark_low_frequency_words_as_unknown", &PyInfiniteHMM::mark_low_frequency_words_as_unknown)
 	.def("show_typical_words_for_each_tag", &PyInfiniteHMM::show_typical_words_for_each_tag)
 	.def("show_log_Pdata", &PyInfiniteHMM::show_log_Pdata)
-	.def("show_temperature", &PyInfiniteHMM::show_temperature)
+	// .def("show_temperature", &PyInfiniteHMM::show_temperature)
 	.def("argmax_Ptag_context_word", &PyInfiniteHMM::argmax_Ptag_context_word)
 	.def("get_num_tags", &PyInfiniteHMM::get_num_tags)
 	.def("load_textfile", &PyInfiniteHMM::load_textfile);

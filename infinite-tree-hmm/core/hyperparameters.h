@@ -5,9 +5,9 @@
 #define iTHMM_ALPHA_MIN 0.05
 #define iTHMM_ALPHA_MAX 0.3
 #define iTHMM_GAMMA_MIN 0.05
-#define iTHMM_GAMMA_MAX 0.3
+#define iTHMM_GAMMA_MAX 0.5
 #define iTHMM_LAMBDA_MIN 0.05	// 0以上1以下
-#define iTHMM_LAMBDA_MAX 0.8	// 0以上1以下
+#define iTHMM_LAMBDA_MAX 0.5	// 0以上1以下
 
 // これらのハイパーパラメータは固定*2
 #define iTHMM_TAU_0 1.0
