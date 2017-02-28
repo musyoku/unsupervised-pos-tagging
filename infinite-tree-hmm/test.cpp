@@ -672,6 +672,11 @@ void test29(){
 			cout << "epoch:" << i << endl;
 			// model->_ithmm->_structure_tssb->dump();
 			model->show_typical_words_for_each_tag(20, false);
+			model->save(dir);
+			cout << "alpha: " << model->_ithmm->_alpha << endl;
+			cout << "gamma: " << model->_ithmm->_gamma << endl;
+			cout << "lambda: " << model->_ithmm->_lambda << endl;
+			cout << "strength: " << model->_ithmm->_strength << endl;
 		}
 	}
 	model->_ithmm->_structure_tssb->dump();
@@ -749,6 +754,14 @@ void test34(){
 		}
 		delete model;
 	}
+}
+
+void test35(){
+	string dir = "out";
+	PyInfiniteTreeHMM* model = new PyInfiniteTreeHMM();
+	model->load(dir);
+	model->show_typical_words_for_each_tag(20, false);
+	model->show_sticks();
 }
 
 int main(){

@@ -171,8 +171,8 @@ public:
 			}
 		}
 	}
-	void initialize(){
-		_hmm->initialize(_dataset);
+	void compile(){
+		_hmm->initialize_data(_dataset);
 	}
 	bool load(string dirname){
 		// 辞書を読み込み
@@ -289,7 +289,7 @@ BOOST_PYTHON_MODULE(model){
 	.def("add_string", &PyInfiniteHMM::add_string)
 	.def("perform_gibbs_sampling", &PyInfiniteHMM::perform_gibbs_sampling)
 	.def("perform_beam_sampling", &PyInfiniteHMM::perform_beam_sampling)
-	.def("initialize", &PyInfiniteHMM::initialize)
+	.def("compile", &PyInfiniteHMM::compile)
 	// .def("set_temperature", &PyInfiniteHMM::set_temperature)
 	// .def("anneal_temperature", &PyInfiniteHMM::anneal_temperature)
 	.def("load", &PyInfiniteHMM::load)

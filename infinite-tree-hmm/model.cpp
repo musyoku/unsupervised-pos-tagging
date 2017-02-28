@@ -242,6 +242,31 @@ public:
 			ranking.clear();
 		}
 	}
+	void show_sticks(){
+		vector<Node*> nodes;
+		_ithmm->_structure_tssb->enumerate_nodes_from_left_to_right(nodes);
+		for(const auto &node: nodes){
+			string indices = node->_dump_indices();
+			c_printf("[*]%s\n", ((boost::format("[%s]") % indices.c_str())).str().c_str());
+			_show_stick(node);
+		}
+	}
+	void _show_stick(Node* node_on_structure){
+		assert(node_on_structure != NULL);
+		double p_eos = node_on_structure->compute_transition_probability_to_eos(_ithmm->_tau0, _ithmm->_tau1);
+		_ithmm->update_stick_length_of_tssb(node_on_structure->_transition_tssb, 1.0 - p_eos, true);
+
+		vector<Node*> nodes;
+		node_on_structure->_transition_tssb->enumerate_nodes_from_left_to_right(nodes);
+		for(const auto &node: nodes){
+			string indices = node->_dump_indices();
+			string tab = "";
+			for(int i = 0;i < node->_depth_v;i++){
+				tab += "	";
+			}
+			cout << "\x1b[32;1m" << tab << "[" << indices << "]" << "\x1b[0m " << node->_probability << endl;
+		}
+	}
 };
 
 BOOST_PYTHON_MODULE(model){

@@ -20,7 +20,7 @@ void test1(){
 	PyInfiniteHMM* model = new PyInfiniteHMM(2);
 	model->load_textfile("../alice.txt");
 	model->mark_low_frequency_words_as_unknown(1);
-	model->initialize();
+	model->compile();
 	for(int i = 0;i < 10;i++){
 		model->perform_gibbs_sampling();
 		// model->_hmm->dump_oracle_tags();
@@ -45,10 +45,10 @@ void test1(){
 }
 
 void test2(){
-	PyInfiniteHMM* model = new PyInfiniteHMM(2);
+	PyInfiniteHMM* model = new PyInfiniteHMM(20);
 	model->load_textfile("../test.txt");
 	model->mark_low_frequency_words_as_unknown(1);
-	model->initialize();
+	model->compile();
 	for(int i = 0;i < 10000;i++){
 		model->perform_gibbs_sampling();
 		model->show_typical_words_for_each_tag(20);

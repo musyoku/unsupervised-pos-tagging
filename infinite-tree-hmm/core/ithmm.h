@@ -63,6 +63,7 @@ public:
 	double _alpha;
 	double _gamma;
 	double _lambda;
+	double _strength;		// HTSSBにおいて親の情報をどの程度受け継ぐかをコントロール
 	double _tau0;
 	double _tau1;
 	double _word_g0;
@@ -77,6 +78,7 @@ public:
 		_alpha = Sampler::uniform(iTHMM_ALPHA_MIN, iTHMM_ALPHA_MAX);
 		_gamma = Sampler::uniform(iTHMM_GAMMA_MIN, iTHMM_GAMMA_MAX);
 		_lambda = Sampler::uniform(iTHMM_LAMBDA_MIN, iTHMM_LAMBDA_MAX);
+		_strength = Sampler::uniform(iTHMM_STRENGTH_MIN, iTHMM_STRENGTH_MAX);
 		_tau0 = iTHMM_TAU_0;
 		_tau1 = iTHMM_TAU_1;
 		_max_depth = 0;
@@ -1119,8 +1121,8 @@ public:
 			for(int m = 0;m <= depth_h;m++){
 				Node* child = iterator->_children[m];
 				double ratio_h = compute_expectation_of_horizontal_sbr_ratio(child, htssb_mode);
-				child->_stick_length = rest_stick_length * ratio_h;
 				double ratio_v = compute_expectation_of_vertical_sbr_ratio(child, htssb_mode);
+				child->_stick_length = rest_stick_length * ratio_h;
 				double probability = child->_stick_length * ratio_v;
 				if(probability == 0){		// ものすごく深いノードがサンプリングされた時にdouble型の限界を超える
 					child->_probability = min_probability;
@@ -1222,9 +1224,8 @@ public:
 					parent_stop_probability = stop_probability_over_parent[m];
 					// cout << "parent_stop_probability = " << parent_stop_probability << endl;
 					// cout << "sum_parent_stop_probability = " << sum_parent_stop_probability << endl;
-					double alpha = _alpha * pow(_lambda, iterator_on_htssb->_depth_v);
-					// cout << "alpha = " << alpha << endl;
-					double ratio_v = (alpha * parent_stop_probability + stop_count) / (alpha * (1.0 - sum_parent_stop_probability) + stop_count + pass_count + EPS);
+					// ここでのαは集中度であることに注意
+					double ratio_v = (_strength * parent_stop_probability + stop_count) / (_strength * (1.0 - sum_parent_stop_probability) + stop_count + pass_count + EPS);
 					// cout << "ratio_v = " << ratio_v << endl;
 					// assert(ratio_v < 1);
 					stop_ratio_over_parent[m] = ratio_v;
@@ -1303,7 +1304,8 @@ public:
 					parent_stop_probability = stop_probability_over_parent[m];
 					// cout << "parent_stop_probability = " << parent_stop_probability << endl;
 					// cout << "sum_parent_stop_probability = " << sum_parent_stop_probability << endl;
-					double ratio_h = (_gamma * parent_stop_probability + stop_count) / (_gamma * (1.0 - sum_parent_stop_probability) + stop_count + pass_count + EPS);
+					// ルートノードではガンマを使うがそれ以外は集中度を使う
+					double ratio_h = (_strength * parent_stop_probability + stop_count) / (_strength * (1.0 - sum_parent_stop_probability) + stop_count + pass_count + EPS);
 					// assert(ratio_h < 1);
 					// cout << "ratio_h = " << ratio_h << endl;
 					stop_ratio_over_parent[m] = ratio_h;

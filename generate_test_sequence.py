@@ -3,26 +3,24 @@ import argparse, codecs, re
 import numpy as np
 
 def main(args):
-	num_state = 5
+	num_state = 4
 	num_symbol = 6
 
 	# 状態遷移確率
 	A = np.zeros((num_state, num_state), dtype=np.float64)
-	A[0] = 0.2, 0.2, 0.2, 0.2, 0.2
-	A[1] = 0.1, 0.2, 0.3, 0.1, 0.3
-	A[2] = 0.1, 0.1, 0.2, 0.3, 0.3
-	A[3] = 0.3, 0.3, 0.1, 0.2, 0.1
-	A[4] = 0.3, 0.1, 0.3, 0.1, 0.2
+	A[0] = 0.4, 0.1, 0.4, 0.1,
+	A[1] = 0.2, 0.3, 0.2, 0.3,
+	A[2] = 0.3, 0.2, 0.1, 0.4,
+	A[3] = 0.1, 0.4, 0.3, 0.2,
 
 	# 出力確率
 	B = np.zeros((num_state, num_symbol), dtype=np.float64)
 	B[0] = 0.3, 0.7, 0.0, 0.0, 0.0, 0.0
-	B[1] = 1.0, 0.0, 0.0, 0.0, 0.0, 0.0
-	B[2] = 0.0, 0.0, 0.0, 0.0, 0.3, 0.7
-	B[3] = 0.0, 0.0, 0.0, 0.0, 0.9, 0.1
-	B[4] = 0.0, 0.0, 0.1, 0.9, 0.0, 0.0
+	B[1] = 0.0, 0.0, 1.0, 0.0, 0.0, 0.0
+	B[2] = 0.0, 0.0, 0.0, 1.0, 0.0, 0.0
+	B[3] = 0.0, 0.0, 0.0, 0.0, 0.7, 0.3
 
-	with codecs.open("../test.txt", "w", "utf-8") as f:
+	with codecs.open("test.txt", "w", "utf-8") as f:
 		for n in xrange(args.num_seq):
 			state = 0
 			sequence = ""
