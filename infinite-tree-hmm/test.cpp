@@ -654,7 +654,7 @@ void test28(){
 }
 
 void test29(){
-	string filename = "../test.txt";
+	string filename = "../alice.txt";
 	PyInfiniteTreeHMM* model = new PyInfiniteTreeHMM();
 	model->load_textfile(filename);
 

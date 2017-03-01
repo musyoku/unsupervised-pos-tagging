@@ -46,7 +46,7 @@ void test1(){
 
 void test2(){
 	PyInfiniteHMM* model = new PyInfiniteHMM(2);
-	model->load_textfile("../alice.txt");
+	model->load_textfile("../test.txt");
 	model->mark_low_frequency_words_as_unknown(1);
 	model->compile();
 	for(int i = 0;i < 10000;i++){
