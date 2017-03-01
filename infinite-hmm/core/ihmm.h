@@ -219,9 +219,7 @@ public:
 			for(int pos = 0;pos < line.size();pos++){	// 2-gramなので2番目から.
 				Word* word = line[pos];
 				int ti = Sampler::uniform_int(EOS + 1, _initial_num_tags - 1);
-				// int ti = sample_tag_from_oracle(_initial_num_tags);
 				int wi = word->_id;
-				// int ti = sample_from_Ptag_context_word(ti, wi);
 				increment_tag_bigram_count(ti_1, ti);
 				increment_tag_unigram_count(ti);
 				increment_tag_word_count(ti, wi);
@@ -602,47 +600,6 @@ public:
 		if(new_tag < _tag_unigram_count.size()){
 			_gibbs_sampling_table[new_tag] = p_conditional;
 		}
-		assert(sum > 0);
-		double normalizer = 1.0 / sum;
-		double bernoulli = Sampler::uniform(0, 1);
-		sum = 0;
-		for(int tag = EOS + 1;tag < _tag_unigram_count.size();tag++){
-			sum += _gibbs_sampling_table[tag] * normalizer;
-			if(bernoulli <= sum){
-				return tag;
-			}
-		}
-		return new_tag;
-	}
-	// oracleからの品詞のサンプリング
-	// 初期化時に使う
-	int sample_tag_from_oracle(int num_tags){
-		assert(num_tags > 0);
-		double sum = 0;
-		for(int tag = EOS + 1;tag < _tag_unigram_count.size();tag++){
-			// if(is_tag_new(tag)){
-			// 	_gibbs_sampling_table[tag] = 0;
-			// 	continue;
-			// }
-			double n_o = sum_oracle_tags_count();
-			double n_oj = get_oracle_count_for_tag(tag);
-			double g0 = 1.0 / (num_tags + 1.0);
-			// double g0 = 1.0;
-			// cout << (boost::format("tag = %d, n_o = %d, n_oj = %d, T = %d, g0 = %lf") % tag % n_o % n_oj % num_tags % g0).str() << endl;
-			double oracle_p = (n_oj + _gamma * g0) / (n_o + _gamma);
-			_gibbs_sampling_table[tag] = oracle_p;
-			sum += oracle_p;
-		}
-		int new_tag = get_new_tag_id();
-		// double n_o = sum_oracle_tags_count();
-		// double n_oj = get_oracle_count_for_tag(new_tag);
-		// double g0 = 1.0 / (num_tags + 1.0);
-		// cout << (boost::format("new_tag = %d, n_o = %d, n_oj = %d, T = %d, g0 = %lf") % new_tag % n_o % n_oj % num_tags % g0).str() << endl;
-		// double oracle_p = (n_oj + _gamma * g0) / (n_o + _gamma);
-		// if(new_tag < _tag_unigram_count.size()){
-		// 	_gibbs_sampling_table[new_tag] = oracle_p;
-		// }
-		// sum += oracle_p;
 		assert(sum > 0);
 		double normalizer = 1.0 / sum;
 		double bernoulli = Sampler::uniform(0, 1);
