@@ -1,9 +1,29 @@
-under :construction:
+## The Infinite Hidden Markov Model
 
 - [The Infinite Hidden Markov Model](http://mlg.eng.cam.ac.uk/zoubin/papers/ihmm.pdf)
 - [Beam Sampling for the Infinite Hidden Markov Model](http://mlg.eng.cam.ac.uk/pub/pdf/VanSaaTehGha08.pdf)
+- [実装について](http://musyoku.github.io/2017/02/27/Infinite-Hidden-Markov-Model%E3%81%AB%E3%82%88%E3%82%8B%E6%95%99%E5%B8%AB%E3%81%AA%E3%81%97%E5%93%81%E8%A9%9E%E6%8E%A8%E5%AE%9A/)
 
-## Gibbs Sampling
+#### Todo:
+
+- [ ] ハイパーパラメータのサンプリング
+- [ ] ビームサンプリング
+
+## ビルド
+
+```
+make install
+```
+
+## 学習
+
+### 英語
+
+```
+python train_en.py -f ../alice.txt -n 2 -e 100000 -u 1
+```
+
+## 結果
 
 ```
 tag 1:
@@ -45,7 +65,3 @@ tag 18:
 tag 19:
 	these/2, ten/2, first/2, afterwards/1, verdict/1, hour/1, <unk>/1, carry/1, come/1, soldier/1, sentence/1, 
 ```
-
-## Beam Sampling
-
-実装途中です
