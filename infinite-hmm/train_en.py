@@ -33,6 +33,22 @@ def collapse_pos(pos):
 		return "JJ"
 	return pos
 
+def parse_tagger_result_str(result_str):
+	result = result_str.split("\t")
+	if len(result) == 1:		# URLなど
+		lowercase = result[0]
+		match = re.search(r"<([^ ]+) ", lowercase)
+		lowercase = "<" + match.group(1) + ">"
+		pos = "SYM"
+	else:
+		word, pos, lowercase = result
+	if lowercase == "@card@":
+		lowercase = "##"
+	if lowercase == "@ord@":
+		lowercase = "##"
+	pos = collapse_pos(pos)
+	return pos, lowercase
+
 class stdout:
 	BOLD = "\033[1m"
 	END = "\033[0m"
@@ -64,24 +80,16 @@ def main(args):
 			line = re.sub(ur"^ +", "",  line)	# 行頭の空白を除去
 			sys.stdout.write("\r{}行目を処理中です ...".format(i))
 			sys.stdout.flush()
-			result = tagger.tag_text(line)
-			if len(result) == 0:
+			results = tagger.tag_text(line)
+			if len(results) == 0:
 				continue
 			# 形態素解析を行いながら訓練データも作る
 			# 英語は通常スペース区切りなので不要と思うかもしれないが、TreeTaggerを使うと$600が$ 600に分割されたりする
 			# そのためplot_en.pyで評価の際に文の単語数が[スペース区切り]と[TreeTagger]で異なる場合があり正しく評価を行えなくなる
 			# よって単語分割は全てTreeTaggerによるものに統一しておく
 			segmentation = ""
-			for poses in result:
-				poses = poses.split("\t")
-				if len(poses) == 1:
-					lowercase = poses[0]
-				else:
-					word, pos, lowercase = poses
-				if lowercase == "@card@":
-					lowercase = "##"
-				if lowercase == "@ord@":
-					lowercase = "##"
+			for result_str in results:
+				pos, lowercase = parse_tagger_result_str(result_str)
 				word_count.add(lowercase)
 				segmentation += lowercase + " "
 				pos = collapse_pos(pos)
@@ -94,13 +102,20 @@ def main(args):
 			segmentation = re.sub(r" +$", "",  segmentation)	# 行末の空白を除去
 			hmm.add_line(segmentation)	# 学習用データに追加
 
+	# ハイパーパラメータの設定
+	hmm.set_alpha(0)
+	hmm.set_beta(1)
+	hmm.set_gamma(1)
+	hmm.set_beta_emission(1)
+	hmm.set_gamma_emission(1)
+
 	hmm.mark_low_frequency_words_as_unknown(args.unknown_threshold)	# 低頻度語を全て<unk>に置き換える
-	hmm.initialize()	# 品詞数をセットしてから初期化
+	hmm.compile()	# 品詞をランダムに割り当てる初期化
 
 	for epoch in xrange(1, args.epoch + 1):
 		start = time.time()
 
-		if args.beam:
+		if args.beam:	# ビームサンプリングは未実装です
 			hmm.perform_beam_sampling()
 		else:
 			hmm.perform_gibbs_sampling()

@@ -118,13 +118,6 @@ public:
 		}
 		if(word_strs.size() > 0){
 			vector<Word*> words;
-			// <bos>
-			// Word* bos = new Word();
-			// bos->_id = -1;
-			// bos->_tag = BOP;
-			// words.push_back(bos);
-			// _word_count[_bos_id] += 1;
-
 			for(auto &word_str: word_strs){
 				if(word_str.size() == 0){
 					continue;
@@ -139,12 +132,6 @@ public:
 			eos->_id = _eos_id;
 			words.push_back(eos);
 			_word_count[_eos_id] += 1;
-
-			// Word* eop = new Word();
-			// eop->_id = -1;
-			// eop->_tag = EOP;
-			// words.push_back(eop);
-
 			// 訓練データに追加
 			_dataset.push_back(words);
 		}
@@ -174,6 +161,21 @@ public:
 	void compile(){
 		_hmm->initialize_data(_dataset);
 	}
+	void set_beta(double beta){
+		_hmm->_beta = beta;
+	}
+	void set_gamma(double gamma){
+		_hmm->_gamma = gamma;
+	}
+	void set_beta_emission(double beta_emission){
+		_hmm->_beta_emission = beta_emission;
+	}
+	void set_gamma_emission(double gamma_emission){
+		_hmm->_gamma_emission = gamma_emission;
+	}
+	void set_alpha(double alpha){
+		_hmm->_alpha = alpha;
+	}
 	bool load(string dirname){
 		// 辞書を読み込み
 		string dictionary_filename = dirname + "/ihmm.dict";
@@ -197,8 +199,8 @@ public:
 		ofs.close();
 		return _hmm->save(dirname);
 	}
-	int argmax_Ptag_context_word(int context_tag_id, int word_id){
-		return _hmm->argmax_Ptag_context_word(context_tag_id, word_id);
+	int argmax_Ptag_given_context_word(int context_tag_id, int word_id){
+		return _hmm->argmax_Ptag_given_context_word(context_tag_id, word_id);
 	}
 	void perform_gibbs_sampling(){
 		if(_rand_indices.size() != _dataset.size()){
@@ -217,6 +219,7 @@ public:
 			_hmm->perform_gibbs_sampling_line(line);
 		}
 	}
+	// 未完成
 	void perform_beam_sampling(){
 		if(_rand_indices.size() != _dataset.size()){
 			_rand_indices.clear();
@@ -234,17 +237,6 @@ public:
 			_hmm->perform_beam_sampling_line(line);
 		}
 	}
-	// void set_temperature(double temperature){
-	// 	_hmm->_temperature = temperature;
-	// }
-	// void anneal_temperature(double multiplier){
-	// 	if(_hmm->_temperature > _minimum_temperature){
-	// 		_hmm->_temperature *= multiplier;
-	// 	}
-	// }
-	// void show_temperature(){
-	// 	c_printf("[*]%s: %lf\n", "temperature", _hmm->_temperature);
-	// }
 	void show_log_Pdata(){
 		double log_p = 0;
 		for(int data_index = 0;data_index < _dataset.size();data_index++){
@@ -290,16 +282,18 @@ BOOST_PYTHON_MODULE(model){
 	.def("perform_gibbs_sampling", &PyInfiniteHMM::perform_gibbs_sampling)
 	.def("perform_beam_sampling", &PyInfiniteHMM::perform_beam_sampling)
 	.def("compile", &PyInfiniteHMM::compile)
-	// .def("set_temperature", &PyInfiniteHMM::set_temperature)
-	// .def("anneal_temperature", &PyInfiniteHMM::anneal_temperature)
 	.def("load", &PyInfiniteHMM::load)
 	.def("save", &PyInfiniteHMM::save)
 	.def("add_line", &PyInfiniteHMM::add_line)
 	.def("mark_low_frequency_words_as_unknown", &PyInfiniteHMM::mark_low_frequency_words_as_unknown)
 	.def("show_typical_words_for_each_tag", &PyInfiniteHMM::show_typical_words_for_each_tag)
 	.def("show_log_Pdata", &PyInfiniteHMM::show_log_Pdata)
-	// .def("show_temperature", &PyInfiniteHMM::show_temperature)
-	.def("argmax_Ptag_context_word", &PyInfiniteHMM::argmax_Ptag_context_word)
+	.def("argmax_Ptag_given_context_word", &PyInfiniteHMM::argmax_Ptag_given_context_word)
 	.def("get_num_tags", &PyInfiniteHMM::get_num_tags)
+	.def("set_alpha", &PyInfiniteHMM::set_alpha)
+	.def("set_beta", &PyInfiniteHMM::set_beta)
+	.def("set_gamma", &PyInfiniteHMM::set_gamma)
+	.def("set_beta_emission", &PyInfiniteHMM::set_beta_emission)
+	.def("set_gamma_emission", &PyInfiniteHMM::set_gamma_emission)
 	.def("load_textfile", &PyInfiniteHMM::load_textfile);
 }

@@ -5,7 +5,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import model
-from train_en import collapse_pos, posset, stdout
+from train_en import collapse_pos, posset, stdout, parse_tagger_result_str
 
 # フォントをセット
 # UbuntuならTakaoGothicなどが標準で入っている
@@ -26,15 +26,14 @@ def main(args):
 			if i % 500 == 0:
 				sys.stdout.write("\r{}行目を処理中です ...".format(i))
 				sys.stdout.flush()
-			tag_ids = [0, 0]	# <bos>の品詞IDは0. 3-gramなので文脈は2つ
-			line = re.sub(ur"\n", "", line)	# 開業を消す
-			poses = tagger.tag_text(line)	# 形態素解析
-			for i, word_pos_lowercase in enumerate(poses):
-				pos = collapse_pos(word_pos_lowercase.split("\t")[1])
-				lowercase = collapse_pos(word_pos_lowercase.split("\t")[2])
+			tag_ids = [0]	# <bos>の品詞IDは0. 2-gramなので文脈は1つ
+			line = re.sub(ur"\n", "", line)	# 改行を消す
+			results = tagger.tag_text(line)	# 形態素解析
+			for i, result_str in enumerate(results):
+				pos, lowercase = parse_tagger_result_str(result_str)
 				all_types_of_pos.add(pos)
 				word_id = hmm.string_to_word_id(lowercase)
-				tag_id = hmm.argmax_Ptag_context_word(tag_ids[-1], word_id)
+				tag_id = hmm.argmax_Ptag_given_context_word(tag_ids[-1], word_id)
 				tag_ids.append(tag_id)
 				if tag_id not in num_occurrence_of_pos_for_tag:
 					num_occurrence_of_pos_for_tag[tag_id] = {}

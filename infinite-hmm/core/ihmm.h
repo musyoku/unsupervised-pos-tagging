@@ -144,7 +144,7 @@ public:
 	double* _beam_sampling_table_u;
 	double** _beam_sampling_table_s;
 	InfiniteHMM(int initial_num_tags){
-		_alpha = 0.1;
+		_alpha = 1;
 		_beta = 1;
 		_gamma = 1;
 		_beta_emission = 1;
@@ -209,14 +209,8 @@ public:
 		unordered_map<int, int> tag_for_word;
 		for(int data_index = 0;data_index < dataset.size();data_index++){
 			vector<Word*> &line = dataset[data_index];
-			// Word* word = line[0];
-			// word->_tag = BOS;
-			// word_set.insert(word->_id);
-			// increment_tag_word_count(line[0]);
-			// increment_tag_unigram_count(line[0]->_tag);
-			
 			int ti_1 = BOS;
-			for(int pos = 0;pos < line.size();pos++){	// 2-gramなので2番目から.
+			for(int pos = 0;pos < line.size();pos++){
 				Word* word = line[pos];
 				int ti = Sampler::uniform_int(EOS + 1, _initial_num_tags - 1);
 				int wi = word->_id;
@@ -320,7 +314,6 @@ public:
 	}
 	void increment_tag_word_count(int tag_id, int word_id){
 		_sum_word_count_for_tag[tag_id] += 1;
-
 		Table* table = NULL;
 		auto itr_tag = _tag_word_table.find(tag_id);
 		if(itr_tag == _tag_word_table.end()){
@@ -612,7 +605,7 @@ public:
 		}
 		return new_tag;
 	}
-	int argmax_Ptag_context_word(int context_tag_id, int word_id){
+	int argmax_Ptag_given_context_word(int context_tag_id, int word_id){
 		double max_p = 0;
 		double max_tag = 0;
 		for(int tag = EOS + 1;tag < _tag_unigram_count.size();tag++){
