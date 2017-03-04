@@ -6,9 +6,6 @@ TSSB::TSSB(){
 	_root = NULL;
 	_owner_id = 0;
 	_owner = NULL;
-	_alpha = 0;
-	_gamma = 0;
-	_lambda = 0;
 	_num_customers = 0;
 }
 TSSB::TSSB(double alpha, double gamma, double lambda){
@@ -16,18 +13,12 @@ TSSB::TSSB(double alpha, double gamma, double lambda){
 	_root->_stick_length = 1;
 	_owner_id = 0;
 	_owner = NULL;
-	_alpha = alpha;
-	_gamma = gamma;
-	_lambda = lambda;
 	_num_customers = 0;
 }
 TSSB::TSSB(Node* root, double alpha, double gamma, double lambda){
 	_root = root;
 	_owner_id = 0;
 	_owner = NULL;
-	_alpha = alpha;
-	_gamma = gamma;
-	_lambda = lambda;
 	_num_customers = 0;
 }
 TSSB::~TSSB(){

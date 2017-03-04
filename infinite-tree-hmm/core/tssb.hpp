@@ -26,9 +26,6 @@ private:
 	}
 public:
 	Node* _root;
-	double _alpha;
-	double _gamma;
-	double _lambda;
 	int _owner_id;		// HTSSBの場合は木構造上でこのTSSBを持っているノードのID
 	Node* _owner;
 	int _num_customers;

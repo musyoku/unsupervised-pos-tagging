@@ -961,8 +961,7 @@ public:
 	void add_customer_to_htssb_node(Node* target_on_htssb){
 		assert(target_on_htssb != NULL);
 		assert(is_node_on_htssb(target_on_htssb));
-		double alpha = _alpha * pow(_lambda, target_on_htssb->_depth_v);
-		_add_customer_to_htssb_vertical_crp(alpha, target_on_htssb);
+		_add_customer_to_htssb_vertical_crp(_strength, target_on_htssb);
 		_add_customer_to_htssb_horizontal_crp(_gamma, target_on_htssb);
 	}
 	void _add_customer_to_htssb_vertical_crp(double alpha, Node* iterator){
@@ -1326,6 +1325,7 @@ public:
 		}
 		if(sbr_ratio <= 0){		// 仕方ない
 			c_printf("[r]%s\n", "sbr_ratio_h <= 0");
+			cout << parent_ratio_h << endl;
 			assert(parent_ratio_h > 0);
 			return parent_ratio_h;
 		}
