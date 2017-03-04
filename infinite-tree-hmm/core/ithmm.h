@@ -422,19 +422,7 @@ public:
 				if(uniform < sum_probability){
 					return child;
 				}
-				// if(child->has_child()){
-					return _retrospective_sampling_by_iterating_node(uniform, sum_probability, child, htssb_mode);
-				// }
-				// 子ノード領域に当たった場合、uniformを超えるまで棒を折り続ける
-				// Node* _child = generate_and_add_new_child_to(child);
-				// double ratio_h = compute_expectation_of_horizontal_sbr_ratio(_child, htssb_mode);
-				// _child->_stick_length = child->_children_stick_length * ratio_h;
-				// double alpha = _alpha * pow(_lambda, _child->_depth_v);
-				// double ratio_v = compute_expectation_of_vertical_sbr_ratio(_child, htssb_mode);
-				// _child->_probability = _child->_stick_length * ratio_v;
-				// _child->_children_stick_length = _child->_stick_length * (1.0 - ratio_v);
-				// assert(child->has_child());
-				// return _retrospective_sampling_by_iterating_node(uniform, sum_probability, child, htssb_mode);
+				return _retrospective_sampling_by_iterating_node(uniform, sum_probability, child, htssb_mode);
 			}
 			sum_stick_length_over_children += child->_stick_length;
 			rest_stick_length *= 1.0 - ratio_h;
@@ -459,33 +447,6 @@ public:
 			sum_stick_length_over_children += child->_stick_length;
 			rest_stick_length *= 1.0 - ratio_h;
 		}
-		
-		// double alpha = _alpha * pow(_lambda, _child->_depth_v);
-		// double ratio_v = compute_expectation_of_vertical_sbr_ratio(_child, htssb_mode);
-		// _child->_probability = _child->_stick_length * ratio_v;
-		// _child->_children_stick_length = _child->_stick_length * (1.0 - ratio_v);
-		// assert(child->has_child());
-		// return _retrospective_sampling_by_iterating_node(uniform, sum_probability, child, htssb_mode);
-
-		// if(is_node_on_htssb(iterator)){
-		// 	Node* owner = _structure_tssb->find_node_with_id(iterator->_owner_id_on_structure);
-		// 	iterator->dump();
-		// 	assert(owner != NULL);
-		// 	double p = owner->compute_transition_probability_to_eos(_tau0, _tau1);
-		// 	update_stick_length_of_tssb(owner->_transition_tssb, 1 - p);
-		// 	owner->_transition_tssb->dump();
-		// 	last_node->dump();
-		// 	cout << uniform << ", ";
-		// 	cout << sum_probability << endl;
-		// }
-		// // 見つからなかったら一番右端のノードを返す
-		// if(last_node != NULL){
-		// 	if(last_node->has_child()){
-		// 		return _retrospective_sampling_by_iterating_node(uniform, sum_probability, last_node, htssb_mode);
-		// 	}
-		// 	return last_node;
-		// }
-		// return NULL;
 	}
 	void perform_gibbs_sampling_line(vector<Word*> &line){
 		assert(line.size() > 0);
@@ -497,7 +458,6 @@ public:
 			remove_parameters(prev_state, state, next_state, word->_id);
 			state = draw_state(prev_state, state, next_state, word->_id);
 			add_parameters(prev_state, state, next_state, word->_id);
-			delete_invalid_children_of_node_on_structure(_structure_tssb->_root);
 			prev_state = state;
 			next_state = i < line.size() - 2 ? line[i + 2]->_state : NULL;
 			word->_state = state;
@@ -763,14 +723,6 @@ public:
 		double st = 0;
 		double ed = 1;
 
-		// cout << "Pw_given_s: " << Pw_given_s << endl;
-		// cout << "Peos_given_s: " << Peos_given_s << endl;
-		// cout << "stick_length: " << stick_length << endl;
-		// next_state_on_htssb->dump();
-		// cout << "Pt_given_s: " << Pt_given_s << endl;
-		// cout << "slice: " << slice << endl;
-		// cout << "Peos_given_ps: " << Peos_given_ps << endl;
-		
 		while(true){
 			double u = Sampler::uniform(st, ed);
 			assert(st <= u && u < ed);
@@ -793,21 +745,6 @@ public:
 			assert(0 < new_Pt_given_s && new_Pt_given_s <= 1);
 			// 尤度を計算
 			double likelihoood = new_Pw_given_s * new_Pt_given_s;
-
-			// cout << "u: " << u << endl;
-			// new_state_on_htssb->dump();
-			// new_state_on_structure->dump();
-			// cout << "new_Pw_given_s: " << new_Pw_given_s << endl;
-			// next_state_on_new_state_htssb->dump();
-			// cout << "total_stick_length_of_new_tssb: " << total_stick_length_of_new_tssb << endl;
-			// cout << "new_Pt_given_s: " << new_Pt_given_s << endl;
-			// cout << "likelihoood: " << likelihoood << endl;
-
-			// cout << likelihoood << ", " << slice << endl;
-			// update_stick_length_of_tssb(prev_state_on_structure->_transition_tssb, total_stick_length_of_new_tssb, true);
-			// prev_state_on_structure->_transition_tssb->dump();
-			// state_on_structure->dump();
-			// new_state_on_structure->dump();
 
 			if(likelihoood > slice){
 				return new_state_on_structure;
@@ -1325,7 +1262,6 @@ public:
 		}
 		if(sbr_ratio <= 0){		// 仕方ない
 			c_printf("[r]%s\n", "sbr_ratio_h <= 0");
-			cout << parent_ratio_h << endl;
 			assert(parent_ratio_h > 0);
 			return parent_ratio_h;
 		}
@@ -1372,16 +1308,19 @@ public:
 			}
 		}
 	}
-	void delete_invalid_children_on_structure_tssb(TSSB* tssb){
-		assert(is_tssb_structure(tssb));
-		delete_invalid_children_of_node_on_structure(tssb->_root);
+	void delete_invalid_children(){
+		_delete_invalid_children_on_structure_tssb(_structure_tssb);
 	}
-	void delete_invalid_children_of_node_on_structure(Node* parent){
+	void _delete_invalid_children_on_structure_tssb(TSSB* tssb){
+		assert(is_tssb_structure(tssb));
+		_delete_invalid_children_of_node_on_structure(tssb->_root);
+	}
+	void _delete_invalid_children_of_node_on_structure(Node* parent){
 		assert(is_node_on_structure_tssb(parent));
 		vector<Node*> &children = parent->_children;
 		for(int i = children.size() - 1;i >= 0;i--){
 			Node* child = children[i];
-			delete_invalid_children_of_node_on_structure(child);
+			_delete_invalid_children_of_node_on_structure(child);
 			bool success = delete_node_on_structure_if_needed(child);
 			if(success == false){	// 失敗したらそれ以上は消さない
 				// break;

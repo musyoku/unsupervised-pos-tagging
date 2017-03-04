@@ -17,9 +17,6 @@ private:
 	{
 		static_cast<void>(version);
 		archive & _root;
-		archive & _alpha;
-		archive & _gamma;
-		archive & _lambda;
 		archive & _owner_id;
 		archive & _owner;
 		archive & _num_customers;

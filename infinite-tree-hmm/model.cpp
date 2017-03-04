@@ -161,7 +161,7 @@ public:
 	}
 	void remove_all_data(){
 		_ithmm->remove_all_data(_dataset);
-		_ithmm->delete_invalid_children_on_structure_tssb(_ithmm->_structure_tssb);
+		_ithmm->delete_invalid_children();
 	}
 	bool load(string dirname){
 		// 辞書を読み込み
@@ -202,6 +202,7 @@ public:
 			vector<Word*> &line = _dataset[data_index];
 			_ithmm->perform_gibbs_sampling_line(line);
 		}
+		_ithmm->delete_invalid_children();
 	}
 	void update_hyperparameters(){
 		_ithmm->sample_hpylm_hyperparameters();

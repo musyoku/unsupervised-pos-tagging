@@ -618,7 +618,7 @@ void test27(){
 	new_state->dump();
 
 	model->remove_all_data();
-	model->_ithmm->delete_invalid_children_on_structure_tssb(model->_ithmm->_structure_tssb);
+	model->_ithmm->delete_invalid_children();
 	c_printf("[*]%s\n", "structure");
 	model->_ithmm->_structure_tssb->dump();
 
