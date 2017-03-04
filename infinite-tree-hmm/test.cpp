@@ -659,8 +659,8 @@ void test29(){
 	model->load_textfile(filename);
 
 	string dir = "out";
-	model->mark_low_frequency_words_as_unknown(1);
-	model->compile(true);
+	model->compile();
+	model->show_typical_words_for_each_tag(20, false);
 	cout << model->get_num_words() << " words" << endl;
 	for(int i = 0;i < 1000000;i++){
 		model->perform_gibbs_sampling();

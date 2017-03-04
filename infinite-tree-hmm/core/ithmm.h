@@ -114,7 +114,7 @@ public:
 		delete _structure_tssb;
 		delete _bos_tssb;
 	}
-	void initialize_data(vector<vector<Word*>> &dataset, bool assign_random_tag = true){
+	void initialize_data(vector<vector<Word*>> &dataset){
 		for(int data_index = 0;data_index < dataset.size();data_index++){
 			vector<Word*> &line = dataset[data_index];
 			if(line.size() == 0){
@@ -124,11 +124,7 @@ public:
 			for(int i = 0;i < line.size();i++){
 				Word* word = line[i];
 				Node* state = NULL;
-				if(assign_random_tag){
-					state = sample_node_on_tssb(_structure_tssb);
-				}else{
-					state = _structure_tssb->_root;
-				}
+				state = sample_node_on_tssb(_structure_tssb, false);
 				assert(state != NULL);
 				word->_state = state;
 			}
@@ -174,6 +170,9 @@ public:
 	bool is_node_on_htssb(Node* node){
 		assert(node != NULL);
 		return is_node_on_bos_tssb(node) == false && is_node_on_structure_tssb(node) == false;
+	}
+	bool is_node_root(Node* node){
+		return node->_depth_v == 0;
 	}
 	bool is_tssb_bos(TSSB* tssb){
 		assert(tssb != NULL);
@@ -335,28 +334,30 @@ public:
 		}
 	}
 	// コインを投げる操作を繰り返して到達したノードを返す
-	Node* sample_node_on_tssb(TSSB* tssb){
+	Node* sample_node_on_tssb(TSSB* tssb, bool ignore_root = false){
 		assert(is_tssb_structure(tssb));
-		Node* node = _sample_node_on_tssb_by_iterating_node(tssb->_root, false);
+		Node* node = _sample_node_on_tssb_by_iterating_node(tssb->_root, false, ignore_root);
 		return node;
 	}
 	// HTSSB上でノードをサンプリング
-	Node* sample_node_on_htssb(TSSB* tssb){
+	Node* sample_node_on_htssb(TSSB* tssb, bool ignore_root = false){
 		assert(is_tssb_htssb(tssb));
-		Node* node = _sample_node_on_tssb_by_iterating_node(tssb->_root, true);
+		Node* node = _sample_node_on_tssb_by_iterating_node(tssb->_root, true, ignore_root);
 		assert(node->_owner_id_on_structure == tssb->_owner_id);
 		return node;
 	}
 	// 止まるノードを決定する
 	// htssb_modeがtrueの場合、停止確率は親のHTSSBから生成する
 	// htssb_modeがfalseの場合は普通のTSSBによるクラスタリング
-	Node* _sample_node_on_tssb_by_iterating_node(Node* iterator, bool htssb_mode){
+	Node* _sample_node_on_tssb_by_iterating_node(Node* iterator, bool htssb_mode, bool ignore_root = false){
 		assert(iterator != NULL);
 		double head = compute_expectation_of_vertical_sbr_ratio(iterator, htssb_mode);
 		iterator->_children_stick_length = iterator->_stick_length * (1 - head);
 		double bernoulli = Sampler::uniform(0, 1);
 		if(bernoulli <= head){			// 表が出たらこのノードに降りる
-			return iterator;
+			if(is_node_root(iterator) == false || (is_node_root(iterator) && ignore_root == false)){
+				return iterator;
+			}
 		}
 		// 子ノードがある場合
 		for(int i = 0;i < iterator->_children.size();i++){
@@ -365,7 +366,7 @@ public:
 			double head = compute_expectation_of_horizontal_sbr_ratio(child, htssb_mode);
 			double bernoulli = Sampler::uniform(0, 1);
 			if(bernoulli <= head){		// 表が出たら次に止まるかどうかを決める
-				return _sample_node_on_tssb_by_iterating_node(child, htssb_mode);
+				return _sample_node_on_tssb_by_iterating_node(child, htssb_mode, ignore_root);
 			}
 		}
 		// ない場合生成しながらコインを投げる
@@ -374,7 +375,7 @@ public:
 			double head = compute_expectation_of_horizontal_sbr_ratio(child, htssb_mode);
 			double bernoulli = Sampler::uniform(0, 1);
 			if(bernoulli <= head){		// 表が出たら次に止まるかどうかを決める
-				return _sample_node_on_tssb_by_iterating_node(child, htssb_mode);
+				return _sample_node_on_tssb_by_iterating_node(child, htssb_mode, ignore_root);
 			}
 		}
 	}
@@ -396,15 +397,6 @@ public:
 		if(uniform < sum_probability){
 			return iterator;
 		}
-		if(iterator->_depth_v > 10){
-			c_printf("[r]%s\n", "depth > 10");
-			Node* node_on_structure = _structure_tssb->find_node_with_id(iterator->_owner_id_on_structure);
-			assert(node_on_structure != NULL);
-			cout << "uniform: " << uniform << endl;
-			update_stick_length_of_tssb(node_on_structure->_transition_tssb, 1.0 - node_on_structure->compute_transition_probability_to_eos(_tau0, _tau1), true);
-			node_on_structure->_transition_tssb->dump();
-			iterator->dump();
-		}
 		// 棒の長さとノードの確率の関係に気をつける
 		// [<------------------- 棒の長さ -------------------]
 		// [<--親ノードの確率--><---子ノードに割り当てる長さ --->]
@@ -420,6 +412,7 @@ public:
 			double ratio_h = compute_expectation_of_horizontal_sbr_ratio(child, htssb_mode);
 			double ratio_v = compute_expectation_of_vertical_sbr_ratio(child, htssb_mode);
 			child->_stick_length = rest_stick_length * ratio_h;
+			assert(child->_stick_length > 0);
 			child->_probability = child->_stick_length * ratio_v;
 			child->_children_stick_length = child->_stick_length * (1.0 - ratio_v);
 			if(uniform < sum_probability + sum_stick_length_over_children + child->_stick_length){
@@ -759,19 +752,16 @@ public:
 		assert(state_on_structure->_transition_tssb != NULL);
 		Node* next_state_on_htssb = state_on_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(next_state_on_structure);
 		assert(next_state_on_htssb != NULL);
+		assert(next_state_on_htssb->_identifier == next_state_on_structure->_identifier);
 		double Pt_given_s = compute_node_probability_on_tssb(state_on_structure->_transition_tssb, next_state_on_htssb, stick_length);
 		assert(0 < Pt_given_s && Pt_given_s <= 1);
 
 		// スライス
 		double slice = Pw_given_s * Pt_given_s * Sampler::uniform(0, 1);
+		assert(slice > 0);
 
-		// s_{t-1}から<eos>へ接続する確率
-		double Peos_given_ps = prev_state_on_structure->compute_transition_probability_to_eos(_tau0, _tau1);
-		// <eos>以外に接続する確率を棒全体の長さとし、TSSBで分配
-		double total_stick_length_of_prev_tssb = 1.0 - Peos_given_ps;
 		double st = 0;
-		double ed = total_stick_length_of_prev_tssb;	// 最大値は棒の長さなので補正する
-
+		double ed = 1;
 
 		// cout << "Pw_given_s: " << Pw_given_s << endl;
 		// cout << "Peos_given_s: " << Peos_given_s << endl;
@@ -780,11 +770,11 @@ public:
 		// cout << "Pt_given_s: " << Pt_given_s << endl;
 		// cout << "slice: " << slice << endl;
 		// cout << "Peos_given_ps: " << Peos_given_ps << endl;
-		// cout << "total_stick_length_of_prev_tssb: " << total_stick_length_of_prev_tssb << endl;
 		
 		while(true){
 			double u = Sampler::uniform(st, ed);
-			Node* new_state_on_htssb = retrospective_sampling(u, prev_state_on_structure->_transition_tssb, total_stick_length_of_prev_tssb, true);
+			assert(st <= u && u < ed);
+			Node* new_state_on_htssb = retrospective_sampling(u, prev_state_on_structure->_transition_tssb, 1.0, true);
 			assert(new_state_on_htssb != NULL);
 			Node* new_state_on_structure = new_state_on_htssb->_structure_tssb_myself;
 			assert(new_state_on_structure != NULL);
@@ -797,8 +787,8 @@ public:
 			//// s_{new}からs_{t+1}へ接続する確率
 			Node* next_state_on_new_state_htssb = new_state_on_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(next_state_on_structure);
 			//// <eos>以外に接続する確率を棒全体の長さとし、TSSBで分配
-			double Peos_given_ns = new_state_on_structure->compute_transition_probability_to_eos(_tau0, _tau1);
-			double total_stick_length_of_new_tssb = 1.0 - Peos_given_ns;
+			double Peos_given_s = new_state_on_structure->compute_transition_probability_to_eos(_tau0, _tau1);
+			double total_stick_length_of_new_tssb = 1.0 - Peos_given_s;
 			double new_Pt_given_s = compute_node_probability_on_tssb(new_state_on_structure->_transition_tssb, next_state_on_new_state_htssb, total_stick_length_of_new_tssb);
 			assert(0 < new_Pt_given_s && new_Pt_given_s <= 1);
 			// 尤度を計算
@@ -854,6 +844,7 @@ public:
 		double ed = 1;	// ここは補正なし
 		while(true){
 			double u = Sampler::uniform(st, ed);
+			assert(st <= u && u < ed);
 			Node* new_state_on_bos = retrospective_sampling(u, _bos_tssb, 1.0, false);
 			assert(is_node_on_bos_tssb(new_state_on_bos));
 			assert(new_state_on_bos != NULL);
@@ -907,6 +898,7 @@ public:
 		double ed = total_stick_length_of_prev_tssb;	// 最大値は棒の長さなので補正する
 		while(true){
 			double u = Sampler::uniform(st, ed);
+			assert(st <= u && u < ed);
 			Node* new_state_on_htssb = retrospective_sampling(u, prev_state_on_structure->_transition_tssb, total_stick_length_of_prev_tssb, true);
 			assert(new_state_on_htssb != NULL);
 			Node* new_state_on_structure = new_state_on_htssb->_structure_tssb_myself;
@@ -1168,7 +1160,6 @@ public:
 		int stop_count = target_on_tssb->_stop_count_h;
 		return (1.0 + stop_count) / (1.0 + _gamma + stop_count + pass_count);
 	}
-	// 縦の棒折り過程における、棒を折る比率を計算。親のTSSBから階層的に生成
 	double compute_expectation_of_vertical_htssb_sbr_ratio(Node* target_on_htssb){
 		// c_printf("[*]%s\n", "compute_expectation_of_vertical_htssb_sbr_ratio");
 		assert(target_on_htssb != NULL);
@@ -1186,7 +1177,7 @@ public:
 		// キャッシュ用配列
 		double* stop_ratio_over_parent = target_on_htssb->_stop_ratio_v_over_parent;
 		double* stop_probability_over_parent = target_on_htssb->_stop_probability_v_over_parent;
-		double parent_stop_probability = 0;
+		double parent_ratio_v = 0;
 		// 計算
 		for(int n = 0;n < num_itr_on_structure;n++){
 			// cout << "n = " << n << endl;
@@ -1211,7 +1202,7 @@ public:
 					// cout << "depth = " << iterator_on_htssb->_depth_v << endl;
 					double alpha = _alpha * pow(_lambda, iterator_on_htssb->_depth_v);
 					// cout << "alpha = " << alpha << endl;
-					double ratio_v = (1.0 + stop_count) / (1.0 + alpha + stop_count + iterator_on_htssb->_pass_count_v + EPS);
+					double ratio_v = (1.0 + stop_count) / (1.0 + alpha + stop_count + pass_count + EPS);
 					// cout << "ratio_v = " << ratio_v << endl;
 					// assert(ratio_v < 1);
 					stop_ratio_over_parent[m] = ratio_v;
@@ -1221,11 +1212,13 @@ public:
 					int stop_count = iterator_on_htssb->_stop_count_v;
 					// cout << "pass_count = " << pass_count << ", stop_count = " << stop_count << endl;
 					// cout << "depth = " << iterator_on_htssb->_depth_v << endl;
-					parent_stop_probability = stop_probability_over_parent[m];
+					double parent_stop_probability = stop_probability_over_parent[m];
+					parent_ratio_v = (stop_ratio_over_parent[m] > 0) ?  stop_ratio_over_parent[m] : parent_ratio_v;
 					// cout << "parent_stop_probability = " << parent_stop_probability << endl;
 					// cout << "sum_parent_stop_probability = " << sum_parent_stop_probability << endl;
 					// ここでのαは集中度であることに注意
 					double ratio_v = (_strength * parent_stop_probability + stop_count) / (_strength * (1.0 - sum_parent_stop_probability) + stop_count + pass_count + EPS);
+					assert(ratio_v >= 0);
 					// cout << "ratio_v = " << ratio_v << endl;
 					// assert(ratio_v < 1);
 					stop_ratio_over_parent[m] = ratio_v;
@@ -1254,7 +1247,9 @@ public:
 			}
 		}
 		if(sbr_ratio <= 0){		// 仕方ない
-			return parent_stop_probability;
+			c_printf("[r]%s\n", "sbr_ratio <= 0");
+			assert(parent_ratio_v > 0);
+			return parent_ratio_v;
 		}
 		return sbr_ratio;
 	}
@@ -1269,7 +1264,7 @@ public:
 		assert(owner_on_structure != NULL);
 		int num_itr_on_structure = owner_on_structure->_depth_v + 1;
 		int num_itr_horizontal = target_on_htssb->_depth_h + 1;
-		double parent_stop_probability = 0;
+		double parent_ratio_h = 0;
 		double sbr_ratio = 0;
 		double* stop_ratio_over_parent = target_on_htssb->_stop_ratio_h_over_parent;
 		double* stop_probability_over_parent = target_on_htssb->_stop_probability_h_over_parent;
@@ -1301,11 +1296,13 @@ public:
 					int pass_count = child_on_htssb->_pass_count_h;
 					int stop_count = child_on_htssb->_stop_count_h;
 					// cout << "pass_count = " << pass_count << ", stop_count = " << stop_count << endl;
-					parent_stop_probability = stop_probability_over_parent[m];
+					double parent_stop_probability = stop_probability_over_parent[m];
+					parent_ratio_h = (stop_ratio_over_parent[m] > 0) ?  stop_ratio_over_parent[m] : parent_ratio_h;
 					// cout << "parent_stop_probability = " << parent_stop_probability << endl;
 					// cout << "sum_parent_stop_probability = " << sum_parent_stop_probability << endl;
 					// ルートノードではガンマを使うがそれ以外は集中度を使う
 					double ratio_h = (_strength * parent_stop_probability + stop_count) / (_strength * (1.0 - sum_parent_stop_probability) + stop_count + pass_count + EPS);
+					assert(ratio_h >= 0);
 					// assert(ratio_h < 1);
 					// cout << "ratio_h = " << ratio_h << endl;
 					stop_ratio_over_parent[m] = ratio_h;
@@ -1328,7 +1325,9 @@ public:
 			}
 		}
 		if(sbr_ratio <= 0){		// 仕方ない
-			return parent_stop_probability;
+			c_printf("[r]%s\n", "sbr_ratio_h <= 0");
+			assert(parent_ratio_h > 0);
+			return parent_ratio_h;
 		}
 		return sbr_ratio;
 	}
@@ -1505,8 +1504,8 @@ public:
 		}
 
 		// ルートノードだけ固定する場合
-		_hpylm_d_m[0] = HPYLM_D_ROOT;
-		_hpylm_theta_m[0] = HPYLM_THETA_ROOT;
+		// _hpylm_d_m[0] = HPYLM_D_ROOT;
+		// _hpylm_theta_m[0] = HPYLM_THETA_ROOT;
 
 		// 不要な深さのハイパーパラメータを削除
 		int num_remove = _hpylm_d_m.size() - _max_depth - 1;

@@ -103,11 +103,11 @@ def main(args):
 			hmm.add_line(segmentation)	# 学習用データに追加
 
 	# ハイパーパラメータの設定
-	hmm.set_alpha(0)
+	hmm.set_alpha(0.1)
 	hmm.set_beta(1)
 	hmm.set_gamma(1)
-	hmm.set_beta_emission(1)
-	hmm.set_gamma_emission(1)
+	hmm.set_beta_emission(0.1)
+	hmm.set_gamma_emission(0.1)
 
 	hmm.mark_low_frequency_words_as_unknown(args.unknown_threshold)	# 低頻度語を全て<unk>に置き換える
 	hmm.compile()	# 品詞をランダムに割り当てる初期化
