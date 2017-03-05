@@ -31,6 +31,7 @@ void Node::init(){
 	_stick_length = 0;
 	_children_stick_length = 0;
 	_probability = 0;
+	_sum_probability = 0;
 	_pass_count_v = 0;
 	_stop_count_v = 0;
 	_pass_count_h = 0;

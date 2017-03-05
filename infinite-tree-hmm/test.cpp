@@ -656,9 +656,11 @@ void test28(){
 void test29(){
 	string filename = "../alice.txt";
 	PyInfiniteTreeHMM* model = new PyInfiniteTreeHMM();
+	model->set_depth_limit(1);
 	model->load_textfile(filename);
 
 	string dir = "out";
+	model->mark_low_frequency_words_as_unknown(1);
 	model->compile();
 	model->show_typical_words_for_each_tag(20, false);
 	cout << model->get_num_words() << " words" << endl;
@@ -763,7 +765,7 @@ void test35(){
 	model->show_hpylm_for_each_tag();
 	model->show_typical_words_for_each_tag(20, true);
 	model->show_sticks();
-	for(int i = 0;i < model->_ithmm->_max_depth;i++){
+	for(int i = 0;i <= model->_ithmm->_current_max_depth;i++){
 		cout << "d[" << i << "] = " << model->_ithmm->_hpylm_d_m[i] << endl;
 		cout << "theta[" << i << "] = " << model->_ithmm->_hpylm_theta_m[i] << endl;
 	}

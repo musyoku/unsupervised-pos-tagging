@@ -3,15 +3,15 @@
 
 // これらのハイパーパラメータは実行前に一度だけ一様分布からサンプリングしていたのでminとmaxを設定する*1
 #define iTHMM_ALPHA_MIN 1
-#define iTHMM_ALPHA_MAX 10
-#define iTHMM_GAMMA_MIN 0.1
-#define iTHMM_GAMMA_MAX 1.0
+#define iTHMM_ALPHA_MAX 20
+#define iTHMM_GAMMA_MIN 0.5
+#define iTHMM_GAMMA_MAX 2.0
 #define iTHMM_LAMBDA_MIN 0.01	// 0以上1以下
 #define iTHMM_LAMBDA_MAX 0.2	// 0以上1以下
 // HTSSBで親の情報をどの程度受け継ぐかを制御するパラメータ
 // 論文では上のαと同じ記号が使われているが区別する必要がある
-#define iTHMM_STRENGTH_MIN 5.0
-#define iTHMM_STRENGTH_MAX 20.0
+#define iTHMM_STRENGTH_MIN 0.01
+#define iTHMM_STRENGTH_MAX 1.0
 
 // これらのハイパーパラメータは固定*2
 #define iTHMM_TAU_0 1.0
@@ -23,7 +23,7 @@
 #define HPYLM_THETA 0.1			// 集中度
 // ルートノードでは単語の出力分布はフラットになってほしいので以下の固定値を用いる
 #define HPYLM_D_ROOT 0.2		// ルートノードでのディスカウント係数
-#define HPYLM_THETA_ROOT 10		// ルートノードでの集中度
+#define HPYLM_THETA_ROOT 100000		// ルートノードでの集中度
 // 以下は上のハイパーパラメータ2つを推定する時に使うハイパーパラメータ
 // 実行中常に固定値
 #define HPYLM_A 	1.0

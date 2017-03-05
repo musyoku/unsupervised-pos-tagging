@@ -49,7 +49,7 @@ private:
 		archive & _tau0;
 		archive & _tau1;
 		archive & _word_g0;
-		archive & _max_depth;
+		archive & _current_max_depth;
 		archive & _hpylm_d_m;
 		archive & _hpylm_theta_m;
 		archive & _hpylm_a_m;
@@ -67,7 +67,8 @@ public:
 	double _tau0;
 	double _tau1;
 	double _word_g0;
-	int _max_depth;
+	int _current_max_depth;
+	int _depth_limit;		// -1なら無限大
 	vector<double> _hpylm_d_m;		// HPYLMのハイパーパラメータ（ディスカウント係数）
 	vector<double> _hpylm_theta_m;	// HPYLMのハイパーパラメータ（集中度）
 	vector<double> _hpylm_a_m;		// ベータ分布のパラメータ	dの推定用
@@ -81,7 +82,7 @@ public:
 		_strength = Sampler::uniform(iTHMM_STRENGTH_MIN, iTHMM_STRENGTH_MAX);
 		_tau0 = iTHMM_TAU_0;
 		_tau1 = iTHMM_TAU_1;
-		_max_depth = 0;
+		_current_max_depth = 0;
 		_word_g0 = -1;
 
 		_structure_tssb = new TSSB(_alpha, _gamma, _lambda);
@@ -124,7 +125,7 @@ public:
 			for(int i = 0;i < line.size();i++){
 				Word* word = line[i];
 				Node* state = NULL;
-				state = sample_node_on_tssb(_structure_tssb, false);
+				state = sample_node_on_tssb(_structure_tssb, true);
 				assert(state != NULL);
 				word->_state = state;
 			}
@@ -155,6 +156,9 @@ public:
 			}
 			remove_initial_parameters(prev_state, NULL, 0);
 		}
+	}
+	void set_depth_limit(int limit){
+		_depth_limit = limit;
 	}
 	void set_word_g0(double g0){
 		_word_g0 = g0;
@@ -247,24 +251,24 @@ public:
 			iterator_on_htssb = iterator_on_parent_htssb;
 		}
 		// HPYLM用のハイパーパラメータを追加
-		if(return_child->_depth_v > _max_depth){
-			_max_depth = return_child->_depth_v;		
-			while(_max_depth >= _hpylm_d_m.size()){
+		if(return_child->_depth_v > _current_max_depth){
+			_current_max_depth = return_child->_depth_v;		
+			while(_current_max_depth >= _hpylm_d_m.size()){
 				_hpylm_d_m.push_back(HPYLM_D);
 			}			
-			while(_max_depth >= _hpylm_theta_m.size()){
+			while(_current_max_depth >= _hpylm_theta_m.size()){
 				_hpylm_theta_m.push_back(HPYLM_THETA);
 			}		
-			while(_max_depth >= _hpylm_a_m.size()){
+			while(_current_max_depth >= _hpylm_a_m.size()){
 				_hpylm_a_m.push_back(HPYLM_A);
 			}			
-			while(_max_depth >= _hpylm_b_m.size()){
+			while(_current_max_depth >= _hpylm_b_m.size()){
 				_hpylm_b_m.push_back(HPYLM_B);
 			}		
-			while(_max_depth >= _hpylm_alpha_m.size()){
+			while(_current_max_depth >= _hpylm_alpha_m.size()){
 				_hpylm_alpha_m.push_back(HPYLM_ALPHA);
 			}			
-			while(_max_depth >= _hpylm_beta_m.size()){
+			while(_current_max_depth >= _hpylm_beta_m.size()){
 				_hpylm_beta_m.push_back(HPYLM_BETA);
 			}	
 		}
@@ -389,6 +393,8 @@ public:
 		double sum_probability = total_stick_length * ratio_v;
 		root->_stick_length = total_stick_length;
 		root->_children_stick_length = total_stick_length * (1.0 - ratio_v);
+		root->_sum_probability = sum_probability;
+		// uniform = uniform * root->_children_stick_length + sum_probability; // ルートを除外する場合
 		Node* node =  _retrospective_sampling_by_iterating_node(uniform, sum_probability, root, htssb_mode);
 		assert(node != NULL);
 		return node;
@@ -419,6 +425,7 @@ public:
 				// child->_stick_lengthだけだとこのノードの棒の長さ（つまりこのノード+子ノードに割り当てる棒）なので
 				// ratio_vも掛けてこのノードで止まる確率にする必要がある
 				sum_probability += sum_stick_length_over_children + child->_stick_length * ratio_v;
+				child->_sum_probability = sum_probability;
 				if(uniform < sum_probability){
 					return child;
 				}
@@ -439,6 +446,7 @@ public:
 			child->_children_stick_length = child->_stick_length * (1.0 - ratio_v);
 			if(uniform < sum_probability + sum_stick_length_over_children + child->_stick_length){
 				sum_probability += sum_stick_length_over_children + child->_probability;
+				child->_sum_probability = sum_probability;
 				if(uniform < sum_probability){
 					return child;
 				}
@@ -777,8 +785,10 @@ public:
 		assert(0 < Pt_given_s && Pt_given_s <= 1);
 		// スライス
 		double slice = Pw_given_s * Pt_given_s * Sampler::uniform(0, 1);
+		assert(slice > 0);
+
 		double st = 0;
-		double ed = 1;	// ここは補正なし
+		double ed = 1;
 		while(true){
 			double u = Sampler::uniform(st, ed);
 			assert(st <= u && u < ed);
@@ -827,16 +837,21 @@ public:
 		assert(0 < Peos_given_s && Peos_given_s <= 1);
 		// スライス
 		double slice = Pw_given_s * Peos_given_s * Sampler::uniform(0, 1);
-		// s_{t-1}から<eos>へ接続する確率
-		double Peos_given_ps = prev_state_on_structure->compute_transition_probability_to_eos(_tau0, _tau1);
+		assert(slice > 0);
+		// // s_{t-1}から<eos>へ接続する確率
+		// double Peos_given_prev_s = prev_state_on_structure->compute_transition_probability_to_eos(_tau0, _tau1);
 		// <eos>以外に接続する確率を棒全体の長さとし、TSSBで分配
-		double total_stick_length_of_prev_tssb = 1.0 - Peos_given_ps;
 		double st = 0;
-		double ed = total_stick_length_of_prev_tssb;	// 最大値は棒の長さなので補正する
+		double ed = 1;
+		// c_printf("[r]%s\n", "_draw_state_to_eos");
+		// state_on_structure->dump();
 		while(true){
 			double u = Sampler::uniform(st, ed);
 			assert(st <= u && u < ed);
-			Node* new_state_on_htssb = retrospective_sampling(u, prev_state_on_structure->_transition_tssb, total_stick_length_of_prev_tssb, true);
+			Node* new_state_on_htssb = retrospective_sampling(u, prev_state_on_structure->_transition_tssb, 1.0, true);
+			// prev_state_on_structure->_transition_tssb->dump();
+			// cout << u << endl;
+			// new_state_on_htssb->dump();
 			assert(new_state_on_htssb != NULL);
 			Node* new_state_on_structure = new_state_on_htssb->_structure_tssb_myself;
 			assert(new_state_on_structure != NULL);
@@ -1070,6 +1085,11 @@ public:
 		return iterator->_probability;
 	}
 	double compute_expectation_of_vertical_sbr_ratio(Node* iterator, bool htssb_mode){
+		if(_depth_limit > 0){
+			if(iterator->_depth_v >= _depth_limit){
+				return 1;
+			}
+		}
 		if(htssb_mode){
 			assert(is_node_on_htssb(iterator));
 			return compute_expectation_of_vertical_htssb_sbr_ratio(iterator);
@@ -1414,18 +1434,18 @@ public:
 	}
 	// dとθの推定
 	void sample_hpylm_hyperparameters(){
-		assert(_max_depth < _hpylm_d_m.size());
-		assert(_max_depth < _hpylm_theta_m.size());
-		assert(_max_depth < _hpylm_a_m.size());
-		assert(_max_depth < _hpylm_b_m.size());
-		assert(_max_depth < _hpylm_alpha_m.size());
-		assert(_max_depth < _hpylm_beta_m.size());
+		assert(_current_max_depth < _hpylm_d_m.size());
+		assert(_current_max_depth < _hpylm_theta_m.size());
+		assert(_current_max_depth < _hpylm_a_m.size());
+		assert(_current_max_depth < _hpylm_b_m.size());
+		assert(_current_max_depth < _hpylm_alpha_m.size());
+		assert(_current_max_depth < _hpylm_beta_m.size());
 
 		// 親ノードの深さが0であることに注意
-		vector<double> sum_log_x_u_m(_max_depth + 1, 0.0);
-		vector<double> sum_y_ui_m(_max_depth + 1, 0.0);
-		vector<double> sum_1_y_ui_m(_max_depth + 1, 0.0);
-		vector<double> sum_1_z_uwkj_m(_max_depth + 1, 0.0);
+		vector<double> sum_log_x_u_m(_current_max_depth + 1, 0.0);
+		vector<double> sum_y_ui_m(_current_max_depth + 1, 0.0);
+		vector<double> sum_1_y_ui_m(_current_max_depth + 1, 0.0);
+		vector<double> sum_1_z_uwkj_m(_current_max_depth + 1, 0.0);
 
 		// _root
 		HPYLM* root = _structure_tssb->_root->_hpylm;
@@ -1437,7 +1457,7 @@ public:
 		// それ以外
 		sum_auxiliary_variables_recursively_for_hpylm(_structure_tssb->_root, sum_log_x_u_m, sum_y_ui_m, sum_1_y_ui_m, sum_1_z_uwkj_m);
 
-		for(int u = 0;u <= _max_depth;u++){
+		for(int u = 0;u <= _current_max_depth;u++){
 			_hpylm_d_m[u] = Sampler::beta(_hpylm_a_m[u] + sum_1_y_ui_m[u], _hpylm_b_m[u] + sum_1_z_uwkj_m[u]);
 			_hpylm_theta_m[u] = Sampler::gamma(_hpylm_alpha_m[u] + sum_y_ui_m[u], _hpylm_beta_m[u] - sum_log_x_u_m[u]);
 		}
@@ -1447,7 +1467,7 @@ public:
 		// _hpylm_theta_m[0] = HPYLM_THETA_ROOT;
 
 		// 不要な深さのハイパーパラメータを削除
-		int num_remove = _hpylm_d_m.size() - _max_depth - 1;
+		int num_remove = _hpylm_d_m.size() - _current_max_depth - 1;
 		for(int n = 0;n < num_remove;n++){
 			_hpylm_d_m.pop_back();
 			_hpylm_theta_m.pop_back();

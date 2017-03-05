@@ -159,6 +159,9 @@ public:
 		_ithmm->set_word_g0(1.0 / _word_count.size());
 		_ithmm->initialize_data(_dataset);
 	}
+	void set_depth_limit(int limit){
+		_ithmm->set_depth_limit(limit);
+	}
 	void remove_all_data(){
 		_ithmm->remove_all_data(_dataset);
 		_ithmm->delete_invalid_children();
