@@ -759,23 +759,27 @@ public:
 			assert(new_state_on_structure->_transition_tssb != NULL);
 
 			// 出力確率
-			double new_Pw_given_s = compute_Pw_given_s(word_id, new_state_on_structure);
+			double new_Pw_given_s;
+			if(new_state_on_structure->_identifier == state_on_structure->_identifier){
+				// s_t^new == s_tの場合、再計算すると確率が変わることがある（代理客が確率的に配置されるため）ので
+				// キャッシュを使う
+				new_Pw_given_s = Pw_given_s;
+			}else{
+				new_Pw_given_s = compute_Pw_given_s(word_id, new_state_on_structure);
+			}
 			assert(0 < new_Pw_given_s && new_Pw_given_s <= 1);
 			// 遷移確率
 			//// s_{new}からs_{t+1}へ接続する確率
 			Node* next_state_on_new_state_htssb = new_state_on_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(next_state_on_structure);
 			//// <eos>以外に接続する確率を棒全体の長さとし、TSSBで分配
-			if(new_state_on_structure->_identifier == next_state_on_structure->_identifier){
-				// s_t == s_{t+1}の場合は正しい確率を求めるためにp(s_t|s_{t-1})に客を追加
-				// word_idは使わないので何を指定しても良い
-				add_initial_parameters(new_state_on_structure, next_state_on_structure, word_id);
+			double new_Pnext_given_s;
+			if(new_state_on_structure->_identifier == state_on_structure->_identifier){
+				new_Pnext_given_s = Pnext_given_s;
+			}else{
+				double Peos_given_s = new_state_on_structure->compute_transition_probability_to_eos(_tau0, _tau1);
+				new_Pnext_given_s = (1.0 - Peos_given_s) * compute_node_probability_on_tssb(new_state_on_structure->_transition_tssb, next_state_on_new_state_htssb, 1.0);
 			}
-			double Peos_given_s = new_state_on_structure->compute_transition_probability_to_eos(_tau0, _tau1);
-			double new_Pnext_given_s = (1.0 - Peos_given_s) * compute_node_probability_on_tssb(new_state_on_structure->_transition_tssb, next_state_on_new_state_htssb, 1.0);
 			assert(0 < new_Pnext_given_s && new_Pnext_given_s <= 1);
-			if(new_state_on_structure->_identifier == next_state_on_structure->_identifier){
-				remove_initial_parameters(new_state_on_structure, next_state_on_structure, word_id);
-			}
 			// 尤度を計算
 			double likelihoood = new_Pw_given_s * new_Pnext_given_s;
 
@@ -796,12 +800,9 @@ public:
 				assert(new_state_on_root_htssb->_identifier == new_state_on_structure->_identifier);
 				compute_node_probability_on_tssb(_structure_tssb->_root->_transition_tssb, state_on_root_htssb, 1.0);
 				compute_node_probability_on_tssb(_structure_tssb->_root->_transition_tssb, new_state_on_root_htssb, 1.0);
-				double Peos_given_new_s = new_state_on_structure->compute_transition_probability_to_eos(_tau0, _tau1);
 				double Ps = state_on_root_htssb->_probability;
 				double Pnew_s = new_state_on_root_htssb->_probability;
-
 				double Pw_given_new_s = compute_Pw_given_s(word_id, new_state_on_structure);
-
 				assert(Ps_given_prev * Pw_given_new_s > 0);
 				double adoption = (Pnew_s_given_prev * Pw_given_s) / (Ps_given_prev * Pw_given_new_s);
 				adoption = std::min(1.0, adoption);
@@ -813,8 +814,9 @@ public:
 				_num_mh_rejection += 1;
 				return state_on_structure;
 			}
+			assert(new_state_on_structure->_identifier != state_on_structure->_identifier);	// 同じになる場合バグっている
 			// 辞書順で前にあるかどうか
-			if( (new_state_on_structure->_identifier == state_on_structure->_identifier) || is_node_to_the_left_of_node(new_state_on_structure, state_on_structure)){
+			if(is_node_to_the_left_of_node(new_state_on_structure, state_on_structure)){
 				assert(new_state_on_prev_htssb->_sum_probability >= u);
 				st = new_state_on_prev_htssb->_sum_probability;
 			}else{
