@@ -75,6 +75,9 @@ public:
 	vector<double> _hpylm_b_m;		// ベータ分布のパラメータ	dの推定用
 	vector<double> _hpylm_alpha_m;	// ガンマ分布のパラメータ	θの推定用
 	vector<double> _hpylm_beta_m;	// ガンマ分布のパラメータ	θの推定用
+	// 統計
+	int _num_mh_acceptance;
+	int _num_mh_rejection;
 	iTHMM(){
 		_alpha = Sampler::uniform(iTHMM_ALPHA_MIN, iTHMM_ALPHA_MAX);
 		_gamma = Sampler::uniform(iTHMM_GAMMA_MIN, iTHMM_GAMMA_MAX);
@@ -110,6 +113,9 @@ public:
 		_hpylm_b_m.push_back(HPYLM_B);
 		_hpylm_alpha_m.push_back(HPYLM_ALPHA);
 		_hpylm_beta_m.push_back(HPYLM_BETA);
+
+		_num_mh_rejection = 0;
+		_num_mh_acceptance = 0;
 	}
 	~iTHMM(){
 		delete _structure_tssb;
@@ -714,20 +720,27 @@ public:
 		double Pw_given_s = compute_Pw_given_s(word_id, state_on_structure);
 		assert(0 < Pw_given_s && Pw_given_s <= 1);
 		// 遷移確率
-		//// s_{t}から<eos>へ接続する確率
+		// s_tから<eos>へ接続する確率
 		double Peos_given_s = state_on_structure->compute_transition_probability_to_eos(_tau0, _tau1);
 		assert(state_on_structure->_transition_tssb != NULL);
 		Node* next_state_on_htssb = state_on_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(next_state_on_structure);
 		assert(next_state_on_htssb != NULL);
 		assert(next_state_on_htssb->_identifier == next_state_on_structure->_identifier);
-		//// <eos>以外に接続する確率を棒全体の長さとする
-		double stick_length = 1.0 - Peos_given_s;
-		double Pt_given_s = compute_node_probability_on_tssb(state_on_structure->_transition_tssb, next_state_on_htssb, 1.0);
-		Pt_given_s *= stick_length;
-		assert(0 < Pt_given_s && Pt_given_s <= 1);
+		// <eos>以外に接続する確率を棒全体の長さとする
+		if(state_on_structure->_identifier == next_state_on_structure->_identifier){
+			// s_t == s_{t+1}の場合は正しい確率を求めるためにp(s_t|s_{t-1})に客を追加
+			// word_idは使わないので何を指定しても良い
+			add_initial_parameters(state_on_structure, next_state_on_structure, word_id);
+		}
+		double Pnext_given_s = (1.0 - Peos_given_s) * compute_node_probability_on_tssb(state_on_structure->_transition_tssb, next_state_on_htssb, 1.0);
+		assert(0 < Pnext_given_s && Pnext_given_s <= 1);
+
+		if(state_on_structure->_identifier == next_state_on_structure->_identifier){
+			remove_initial_parameters(state_on_structure, next_state_on_structure, word_id);
+		}
 
 		// スライス
-		double slice = Pw_given_s * Pt_given_s * Sampler::uniform(0, 1);
+		double slice = Pw_given_s * Pnext_given_s * Sampler::uniform(0, 1);
 		assert(slice > 0);
 
 		double st = 0;
@@ -735,10 +748,13 @@ public:
 
 		while(true){
 			double u = Sampler::uniform(st, ed);
-			assert(st <= u && u < ed);
-			Node* new_state_on_htssb = retrospective_sampling(u, prev_state_on_structure->_transition_tssb, 1.0, true);
-			assert(new_state_on_htssb != NULL);
-			Node* new_state_on_structure = new_state_on_htssb->_structure_tssb_myself;
+			if( (st <= u && u < ed) == false){	// 見つからなかったら元の状態を返す
+				return state_on_structure;
+			}
+			// assert(st <= u && u < ed);
+			Node* new_state_on_prev_htssb = retrospective_sampling(u, prev_state_on_structure->_transition_tssb, 1.0, true);
+			assert(new_state_on_prev_htssb != NULL);
+			Node* new_state_on_structure = new_state_on_prev_htssb->_structure_tssb_myself;
 			assert(new_state_on_structure != NULL);
 			assert(new_state_on_structure->_transition_tssb != NULL);
 
@@ -749,25 +765,62 @@ public:
 			//// s_{new}からs_{t+1}へ接続する確率
 			Node* next_state_on_new_state_htssb = new_state_on_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(next_state_on_structure);
 			//// <eos>以外に接続する確率を棒全体の長さとし、TSSBで分配
+			if(new_state_on_structure->_identifier == next_state_on_structure->_identifier){
+				// s_t == s_{t+1}の場合は正しい確率を求めるためにp(s_t|s_{t-1})に客を追加
+				// word_idは使わないので何を指定しても良い
+				add_initial_parameters(new_state_on_structure, next_state_on_structure, word_id);
+			}
 			double Peos_given_s = new_state_on_structure->compute_transition_probability_to_eos(_tau0, _tau1);
-			double total_stick_length_of_new_tssb = 1.0 - Peos_given_s;
-			double new_Pt_given_s = compute_node_probability_on_tssb(new_state_on_structure->_transition_tssb, next_state_on_new_state_htssb, 1.0);
-			new_Pt_given_s *= total_stick_length_of_new_tssb;
-			assert(0 < new_Pt_given_s && new_Pt_given_s <= 1);
+			double new_Pnext_given_s = (1.0 - Peos_given_s) * compute_node_probability_on_tssb(new_state_on_structure->_transition_tssb, next_state_on_new_state_htssb, 1.0);
+			assert(0 < new_Pnext_given_s && new_Pnext_given_s <= 1);
+			if(new_state_on_structure->_identifier == next_state_on_structure->_identifier){
+				remove_initial_parameters(new_state_on_structure, next_state_on_structure, word_id);
+			}
 			// 尤度を計算
-			double likelihoood = new_Pw_given_s * new_Pt_given_s;
+			double likelihoood = new_Pw_given_s * new_Pnext_given_s;
 
 			if(likelihoood > slice){
-				return new_state_on_structure;
+				// メトロポリス・ヘイスティングス法
+				Node* state_on_prev_htssb = prev_state_on_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(state_on_structure);
+				assert(state_on_prev_htssb != NULL);
+				assert(state_on_prev_htssb->_identifier == state_on_structure->_identifier);
+				double Peos_given_prev = prev_state_on_structure->compute_transition_probability_to_eos(_tau0, _tau1);
+				double Ps_given_prev = (1.0 - Peos_given_prev) * compute_node_probability_on_tssb(prev_state_on_structure->_transition_tssb, state_on_prev_htssb, 1.0);
+				double Pnew_s_given_prev = (1.0 - Peos_given_prev) * compute_node_probability_on_tssb(prev_state_on_structure->_transition_tssb, new_state_on_prev_htssb, 1.0);
+
+				Node* state_on_root_htssb = _structure_tssb->_root->_transition_tssb->find_node_by_tracing_horizontal_indices(state_on_structure);
+				assert(state_on_root_htssb != NULL);
+				assert(state_on_root_htssb->_identifier == state_on_structure->_identifier);
+				Node* new_state_on_root_htssb = _structure_tssb->_root->_transition_tssb->find_node_by_tracing_horizontal_indices(new_state_on_structure);
+				assert(new_state_on_root_htssb != NULL);
+				assert(new_state_on_root_htssb->_identifier == new_state_on_structure->_identifier);
+				compute_node_probability_on_tssb(_structure_tssb->_root->_transition_tssb, state_on_root_htssb, 1.0);
+				compute_node_probability_on_tssb(_structure_tssb->_root->_transition_tssb, new_state_on_root_htssb, 1.0);
+				double Peos_given_new_s = new_state_on_structure->compute_transition_probability_to_eos(_tau0, _tau1);
+				double Ps = state_on_root_htssb->_probability;
+				double Pnew_s = new_state_on_root_htssb->_probability;
+
+				double Pw_given_new_s = compute_Pw_given_s(word_id, new_state_on_structure);
+
+				assert(Ps_given_prev * Pw_given_new_s > 0);
+				double adoption = (Pnew_s_given_prev * Pw_given_s) / (Ps_given_prev * Pw_given_new_s);
+				adoption = std::min(1.0, adoption);
+				double u = Sampler::uniform(0, 1);
+				if(u <= adoption){
+					_num_mh_acceptance += 1;
+					return new_state_on_structure;
+				}
+				_num_mh_rejection += 1;
+				return state_on_structure;
 			}
 			// 辞書順で前にあるかどうか
-			if(is_node_to_the_left_of_node(new_state_on_structure, state_on_structure)){
-				assert(new_state_on_htssb->_sum_probability >= u);
-				st = new_state_on_htssb->_sum_probability;
+			if( (new_state_on_structure->_identifier == state_on_structure->_identifier) || is_node_to_the_left_of_node(new_state_on_structure, state_on_structure)){
+				assert(new_state_on_prev_htssb->_sum_probability >= u);
+				st = new_state_on_prev_htssb->_sum_probability;
 			}else{
-				assert(new_state_on_htssb->_sum_probability >= u);
-				assert(new_state_on_htssb->_sum_probability - new_state_on_htssb->_probability <= u);
-				ed = new_state_on_htssb->_sum_probability - new_state_on_htssb->_probability;
+				assert(new_state_on_prev_htssb->_sum_probability >= u);
+				assert(new_state_on_prev_htssb->_sum_probability - new_state_on_prev_htssb->_probability <= u);
+				ed = new_state_on_prev_htssb->_sum_probability - new_state_on_prev_htssb->_probability;
 			}
 		}
 	}
@@ -780,7 +833,7 @@ public:
 		double Pw_given_s = compute_Pw_given_s(word_id, state_on_structure);
 		assert(0 < Pw_given_s && Pw_given_s <= 1);
 		// 遷移確率
-		//// s_{t}から<eos>へ接続する確率
+		//// s_tから<eos>へ接続する確率
 		double Peos_given_s = state_on_structure->compute_transition_probability_to_eos(_tau0, _tau1);
 		assert(state_on_structure->_transition_tssb != NULL);
 		Node* next_state_on_htssb = state_on_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(next_state_on_structure);
@@ -812,15 +865,14 @@ public:
 			// 遷移確率
 			//// s_{new}からs_{t+1}へ接続する確率
 			Node* next_state_on_new_state_htssb = new_state_on_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(next_state_on_structure);
-			//// <eos>以外に接続する確率を棒全体の長さとし、TSSBで分配
 			double Peos_given_ns = new_state_on_structure->compute_transition_probability_to_eos(_tau0, _tau1);
+			double new_Pnext_given_s = compute_node_probability_on_tssb(new_state_on_structure->_transition_tssb, next_state_on_new_state_htssb, 1.0);
+			//// <eos>以外に接続する確率を棒全体の長さとし、TSSBで分配
 			double total_stick_length_of_new_tssb = 1.0 - Peos_given_ns;
-			double new_Pt_given_s = compute_node_probability_on_tssb(new_state_on_structure->_transition_tssb, next_state_on_new_state_htssb, 1.0);
-			
-			new_Pt_given_s *= total_stick_length_of_new_tssb;
-			assert(0 < new_Pt_given_s && new_Pt_given_s <= 1);
+			new_Pnext_given_s *= total_stick_length_of_new_tssb;
+			assert(0 < new_Pnext_given_s && new_Pnext_given_s <= 1);
 			// 尤度を計算
-			double likelihoood = new_Pw_given_s * new_Pt_given_s;
+			double likelihoood = new_Pw_given_s * new_Pnext_given_s;
 			if(likelihoood > slice){
 				return new_state_on_structure;
 			}
@@ -841,7 +893,7 @@ public:
 		double Pw_given_s = compute_Pw_given_s(word_id, state_on_structure);
 		assert(0 < Pw_given_s && Pw_given_s <= 1);
 		// 遷移確率
-		//// s_{t}から<eos>へ接続する確率
+		//// s_tから<eos>へ接続する確率
 		double Peos_given_s = state_on_structure->compute_transition_probability_to_eos(_tau0, _tau1);
 		assert(0 < Peos_given_s && Peos_given_s <= 1);
 		// スライス
@@ -1331,7 +1383,6 @@ public:
 			sum_stick_length_from_left_to_current_node += child->_stick_length;
 			child->_sum_probability = sum_stick_length_from_left_to_current_node - child->_children_stick_length;				// このノードより左側の全ての棒の長さの総和
 			rest_stick_length *= 1.0 - ratio_h;
-			double alpha = _alpha * pow(_lambda, child->_depth_v);
 			if(child->has_child()){
 				_update_stick_length_of_parent_node(child->_sum_probability, child, htssb_mode);
 			}

@@ -656,7 +656,7 @@ void test28(){
 void test29(){
 	string filename = "../alice.txt";
 	PyInfiniteTreeHMM* model = new PyInfiniteTreeHMM();
-	model->set_depth_limit(1);
+	model->set_depth_limit(2);
 	model->load_textfile(filename);
 
 	string dir = "out";
@@ -679,6 +679,7 @@ void test29(){
 			cout << "gamma: " << model->_ithmm->_gamma << endl;
 			cout << "lambda: " << model->_ithmm->_lambda << endl;
 			cout << "strength: " << model->_ithmm->_strength << endl;
+			cout << "MH: " << model->_ithmm->_num_mh_acceptance / (double)(model->_ithmm->_num_mh_acceptance + model->_ithmm->_num_mh_rejection) << endl;;
 			for(int i = 0;i <= model->_ithmm->_current_max_depth;i++){
 				cout << "d[" << i << "] = " << model->_ithmm->_hpylm_d_m[i] << endl;
 				cout << "theta[" << i << "] = " << model->_ithmm->_hpylm_theta_m[i] << endl;

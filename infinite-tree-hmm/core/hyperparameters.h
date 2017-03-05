@@ -4,8 +4,8 @@
 // これらのハイパーパラメータは実行前に一度だけ一様分布からサンプリングしていたのでminとmaxを設定する*1
 #define iTHMM_ALPHA_MIN 2.86421
 #define iTHMM_ALPHA_MAX 2.86421
-#define iTHMM_GAMMA_MIN 1.86046
-#define iTHMM_GAMMA_MAX 1.86046
+#define iTHMM_GAMMA_MIN 1
+#define iTHMM_GAMMA_MAX 2
 #define iTHMM_LAMBDA_MIN 0.0332636	// 0以上1以下
 #define iTHMM_LAMBDA_MAX 0.0332636	// 0以上1以下
 // HTSSBで親の情報をどの程度受け継ぐかを制御するパラメータ
