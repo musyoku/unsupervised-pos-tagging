@@ -727,17 +727,17 @@ public:
 		assert(next_state_on_htssb != NULL);
 		assert(next_state_on_htssb->_identifier == next_state_on_structure->_identifier);
 		// <eos>以外に接続する確率を棒全体の長さとする
-		if(state_on_structure->_identifier == next_state_on_structure->_identifier){
+		// if(state_on_structure->_identifier == next_state_on_structure->_identifier){
 			// s_t == s_{t+1}の場合は正しい確率を求めるためにp(s_t|s_{t-1})に客を追加
 			// word_idは使わないので何を指定しても良い
 			add_initial_parameters(state_on_structure, next_state_on_structure, word_id);
-		}
+		// }
 		double Pnext_given_s = (1.0 - Peos_given_s) * compute_node_probability_on_tssb(state_on_structure->_transition_tssb, next_state_on_htssb, 1.0);
 		assert(0 < Pnext_given_s && Pnext_given_s <= 1);
 
-		if(state_on_structure->_identifier == next_state_on_structure->_identifier){
+		// if(state_on_structure->_identifier == next_state_on_structure->_identifier){
 			remove_initial_parameters(state_on_structure, next_state_on_structure, word_id);
-		}
+		// }
 
 		// スライス
 		double slice = Pw_given_s * Pnext_given_s * Sampler::uniform(0, 1);
