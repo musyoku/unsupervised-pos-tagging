@@ -392,6 +392,7 @@ public:
 		double ratio_v = compute_expectation_of_vertical_sbr_ratio(root, htssb_mode);
 		double sum_probability = total_stick_length * ratio_v;
 		root->_stick_length = total_stick_length;
+		root->_probability = total_stick_length * ratio_v;
 		root->_children_stick_length = total_stick_length * (1.0 - ratio_v);
 		root->_sum_probability = sum_probability;
 		// uniform = uniform * root->_children_stick_length + sum_probability; // ルートを除外する場合
@@ -421,11 +422,11 @@ public:
 			assert(child->_stick_length > 0);
 			child->_probability = child->_stick_length * ratio_v;
 			child->_children_stick_length = child->_stick_length * (1.0 - ratio_v);
+			child->_sum_probability = sum_probability + sum_stick_length_over_children + child->_probability;
 			if(uniform < sum_probability + sum_stick_length_over_children + child->_stick_length){
 				// child->_stick_lengthだけだとこのノードの棒の長さ（つまりこのノード+子ノードに割り当てる棒）なので
 				// ratio_vも掛けてこのノードで止まる確率にする必要がある
 				sum_probability += sum_stick_length_over_children + child->_stick_length * ratio_v;
-				child->_sum_probability = sum_probability;
 				if(uniform < sum_probability){
 					return child;
 				}
@@ -444,9 +445,9 @@ public:
 			child->_stick_length = rest_stick_length * ratio_h;
 			child->_probability = child->_stick_length * ratio_v;
 			child->_children_stick_length = child->_stick_length * (1.0 - ratio_v);
+			child->_sum_probability = sum_probability + sum_stick_length_over_children + child->_probability;
 			if(uniform < sum_probability + sum_stick_length_over_children + child->_stick_length){
 				sum_probability += sum_stick_length_over_children + child->_probability;
-				child->_sum_probability = sum_probability;
 				if(uniform < sum_probability){
 					return child;
 				}
@@ -715,13 +716,14 @@ public:
 		// 遷移確率
 		//// s_{t}から<eos>へ接続する確率
 		double Peos_given_s = state_on_structure->compute_transition_probability_to_eos(_tau0, _tau1);
-		//// <eos>以外に接続する確率を棒全体の長さとし、TSSBで分配
-		double stick_length = 1.0 - Peos_given_s;
 		assert(state_on_structure->_transition_tssb != NULL);
 		Node* next_state_on_htssb = state_on_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(next_state_on_structure);
 		assert(next_state_on_htssb != NULL);
 		assert(next_state_on_htssb->_identifier == next_state_on_structure->_identifier);
-		double Pt_given_s = compute_node_probability_on_tssb(state_on_structure->_transition_tssb, next_state_on_htssb, stick_length);
+		//// <eos>以外に接続する確率を棒全体の長さとする
+		double stick_length = 1.0 - Peos_given_s;
+		double Pt_given_s = compute_node_probability_on_tssb(state_on_structure->_transition_tssb, next_state_on_htssb, 1.0);
+		Pt_given_s *= stick_length;
 		assert(0 < Pt_given_s && Pt_given_s <= 1);
 
 		// スライス
@@ -749,7 +751,8 @@ public:
 			//// <eos>以外に接続する確率を棒全体の長さとし、TSSBで分配
 			double Peos_given_s = new_state_on_structure->compute_transition_probability_to_eos(_tau0, _tau1);
 			double total_stick_length_of_new_tssb = 1.0 - Peos_given_s;
-			double new_Pt_given_s = compute_node_probability_on_tssb(new_state_on_structure->_transition_tssb, next_state_on_new_state_htssb, total_stick_length_of_new_tssb);
+			double new_Pt_given_s = compute_node_probability_on_tssb(new_state_on_structure->_transition_tssb, next_state_on_new_state_htssb, 1.0);
+			new_Pt_given_s *= total_stick_length_of_new_tssb;
 			assert(0 < new_Pt_given_s && new_Pt_given_s <= 1);
 			// 尤度を計算
 			double likelihoood = new_Pw_given_s * new_Pt_given_s;
@@ -759,9 +762,12 @@ public:
 			}
 			// 辞書順で前にあるかどうか
 			if(is_node_to_the_left_of_node(new_state_on_structure, state_on_structure)){
-				st = u;
+				assert(new_state_on_htssb->_sum_probability >= u);
+				st = new_state_on_htssb->_sum_probability;
 			}else{
-				ed = u;
+				assert(new_state_on_htssb->_sum_probability >= u);
+				assert(new_state_on_htssb->_sum_probability - new_state_on_htssb->_probability <= u);
+				ed = new_state_on_htssb->_sum_probability - new_state_on_htssb->_probability;
 			}
 		}
 	}
@@ -776,12 +782,13 @@ public:
 		// 遷移確率
 		//// s_{t}から<eos>へ接続する確率
 		double Peos_given_s = state_on_structure->compute_transition_probability_to_eos(_tau0, _tau1);
-		//// <eos>以外に接続する確率を棒全体の長さとし、TSSBで分配
-		double stick_length = 1.0 - Peos_given_s;
 		assert(state_on_structure->_transition_tssb != NULL);
 		Node* next_state_on_htssb = state_on_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(next_state_on_structure);
 		assert(next_state_on_htssb != NULL);
-		double Pt_given_s = compute_node_probability_on_tssb(state_on_structure->_transition_tssb, next_state_on_htssb, stick_length);
+		//// <eos>以外に接続する確率を棒全体の長さとし、TSSBで分配
+		double stick_length = 1.0 - Peos_given_s;
+		double Pt_given_s = compute_node_probability_on_tssb(state_on_structure->_transition_tssb, next_state_on_htssb, 1.0);
+		Pt_given_s *= stick_length;
 		assert(0 < Pt_given_s && Pt_given_s <= 1);
 		// スライス
 		double slice = Pw_given_s * Pt_given_s * Sampler::uniform(0, 1);
@@ -808,7 +815,9 @@ public:
 			//// <eos>以外に接続する確率を棒全体の長さとし、TSSBで分配
 			double Peos_given_ns = new_state_on_structure->compute_transition_probability_to_eos(_tau0, _tau1);
 			double total_stick_length_of_new_tssb = 1.0 - Peos_given_ns;
-			double new_Pt_given_s = compute_node_probability_on_tssb(new_state_on_structure->_transition_tssb, next_state_on_new_state_htssb, total_stick_length_of_new_tssb);
+			double new_Pt_given_s = compute_node_probability_on_tssb(new_state_on_structure->_transition_tssb, next_state_on_new_state_htssb, 1.0);
+			
+			new_Pt_given_s *= total_stick_length_of_new_tssb;
 			assert(0 < new_Pt_given_s && new_Pt_given_s <= 1);
 			// 尤度を計算
 			double likelihoood = new_Pw_given_s * new_Pt_given_s;

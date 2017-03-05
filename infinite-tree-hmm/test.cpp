@@ -660,7 +660,7 @@ void test29(){
 	model->load_textfile(filename);
 
 	string dir = "out";
-	model->mark_low_frequency_words_as_unknown(1);
+	// model->mark_low_frequency_words_as_unknown(1);
 	model->compile();
 	model->show_typical_words_for_each_tag(20, false);
 	cout << model->get_num_words() << " words" << endl;
@@ -679,6 +679,10 @@ void test29(){
 			cout << "gamma: " << model->_ithmm->_gamma << endl;
 			cout << "lambda: " << model->_ithmm->_lambda << endl;
 			cout << "strength: " << model->_ithmm->_strength << endl;
+			for(int i = 0;i <= model->_ithmm->_current_max_depth;i++){
+				cout << "d[" << i << "] = " << model->_ithmm->_hpylm_d_m[i] << endl;
+				cout << "theta[" << i << "] = " << model->_ithmm->_hpylm_theta_m[i] << endl;
+			}
 		}
 	}
 	model->_ithmm->_structure_tssb->dump();
