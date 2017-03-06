@@ -515,6 +515,21 @@ public:
 		add_customer_to_hpylm(state_on_structure, word_id);
 		prev_state_on_structure->increment_transition_count_to_other();
 	}
+	void add_temporal_parameters(Node* prev_state_on_structure, Node* state_on_structure){
+		assert(prev_state_on_structure != NULL);
+		assert(state_on_structure != NULL);
+		assert(prev_state_on_structure->_transition_tssb != NULL);
+		assert(state_on_structure->_transition_tssb != NULL);
+		assert(is_node_on_structure_tssb(prev_state_on_structure));
+		assert(is_node_on_structure_tssb(state_on_structure));
+
+		Node* state_on_prev_state_htssb = prev_state_on_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(state_on_structure);
+		assert(state_on_prev_state_htssb != NULL);
+		assert(state_on_structure->_identifier == state_on_prev_state_htssb->_identifier);
+		add_customer_to_htssb_node(state_on_prev_state_htssb);
+		add_customer_to_tssb_node(state_on_structure);			// 参照カウント用
+		prev_state_on_structure->increment_transition_count_to_other();
+	}
 	void add_parameters(Node* prev_state_on_structure, Node* state_on_structure, Node* next_state_on_structure, id word_id){
 		// <bos>からの遷移を含む場合
 		if(prev_state_on_structure == NULL){
@@ -627,6 +642,20 @@ public:
 		remove_customer_from_hpylm(state_on_structure, word_id);
 		prev_state_on_structure->decrement_transition_count_to_other();
 	}
+	void remove_temporal_parameters(Node* prev_state_on_structure, Node* state_on_structure){
+		assert(prev_state_on_structure != NULL);
+		assert(state_on_structure != NULL);
+		assert(prev_state_on_structure->_transition_tssb != NULL);
+		assert(state_on_structure->_transition_tssb != NULL);
+		assert(is_node_on_structure_tssb(prev_state_on_structure));
+		assert(is_node_on_structure_tssb(state_on_structure));
+		Node* state_on_prev_state_htssb = prev_state_on_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(state_on_structure);
+		assert(state_on_prev_state_htssb != NULL);
+		assert(state_on_structure->_identifier == state_on_prev_state_htssb->_identifier);
+		remove_customer_from_htssb_node(state_on_prev_state_htssb, true);
+		remove_customer_from_tssb_node(state_on_structure);			// 参照カウント用
+		prev_state_on_structure->decrement_transition_count_to_other();
+	}
 	void remove_parameters(Node* prev_state_on_structure, Node* state_on_structure, Node* next_state_on_structure, id word_id){
 		// <bos>からの遷移を含む場合
 		if(prev_state_on_structure == NULL){
@@ -721,7 +750,6 @@ public:
 		assert(0 < Pw_given_s && Pw_given_s <= 1);
 		// 遷移確率
 		// s_tから<eos>へ接続する確率
-		double Peos_given_s = state_on_structure->compute_transition_probability_to_eos(_tau0, _tau1);
 		assert(state_on_structure->_transition_tssb != NULL);
 		Node* next_state_on_htssb = state_on_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(next_state_on_structure);
 		assert(next_state_on_htssb != NULL);
@@ -730,13 +758,14 @@ public:
 		// if(state_on_structure->_identifier == next_state_on_structure->_identifier){
 			// s_t == s_{t+1}の場合は正しい確率を求めるためにp(s_t|s_{t-1})に客を追加
 			// word_idは使わないので何を指定しても良い
-			add_initial_parameters(state_on_structure, next_state_on_structure, word_id);
+			add_temporal_parameters(prev_state_on_structure, state_on_structure);
 		// }
+		double Peos_given_s = state_on_structure->compute_transition_probability_to_eos(_tau0, _tau1);
 		double Pnext_given_s = (1.0 - Peos_given_s) * compute_node_probability_on_tssb(state_on_structure->_transition_tssb, next_state_on_htssb, 1.0);
 		assert(0 < Pnext_given_s && Pnext_given_s <= 1);
 
 		// if(state_on_structure->_identifier == next_state_on_structure->_identifier){
-			remove_initial_parameters(state_on_structure, next_state_on_structure, word_id);
+			remove_temporal_parameters(prev_state_on_structure, state_on_structure);
 		// }
 
 		// スライス
@@ -759,27 +788,28 @@ public:
 			assert(new_state_on_structure->_transition_tssb != NULL);
 
 			// 出力確率
-			double new_Pw_given_s;
-			if(new_state_on_structure->_identifier == state_on_structure->_identifier){
-				// s_t^new == s_tの場合、再計算すると確率が変わることがある（代理客が確率的に配置されるため）ので
-				// キャッシュを使う
-				new_Pw_given_s = Pw_given_s;
-			}else{
-				new_Pw_given_s = compute_Pw_given_s(word_id, new_state_on_structure);
-			}
+			double new_Pw_given_s = compute_Pw_given_s(word_id, new_state_on_structure);
 			assert(0 < new_Pw_given_s && new_Pw_given_s <= 1);
+			if(new_state_on_structure->_identifier == state_on_structure->_identifier){
+				assert(new_Pw_given_s == Pw_given_s);	// 一致しないならバグ
+			}
 			// 遷移確率
 			//// s_{new}からs_{t+1}へ接続する確率
 			Node* next_state_on_new_state_htssb = new_state_on_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(next_state_on_structure);
 			//// <eos>以外に接続する確率を棒全体の長さとし、TSSBで分配
 			double new_Pnext_given_s;
+			double new_Peos_given_s;
 			if(new_state_on_structure->_identifier == state_on_structure->_identifier){
 				new_Pnext_given_s = Pnext_given_s;
+				new_Peos_given_s = Peos_given_s;
 			}else{
-				double Peos_given_s = new_state_on_structure->compute_transition_probability_to_eos(_tau0, _tau1);
-				new_Pnext_given_s = (1.0 - Peos_given_s) * compute_node_probability_on_tssb(new_state_on_structure->_transition_tssb, next_state_on_new_state_htssb, 1.0);
+				add_temporal_parameters(prev_state_on_structure, new_state_on_structure);
+				new_Peos_given_s = new_state_on_structure->compute_transition_probability_to_eos(_tau0, _tau1);
+				new_Pnext_given_s = (1.0 - new_Peos_given_s) * compute_node_probability_on_tssb(new_state_on_structure->_transition_tssb, next_state_on_new_state_htssb, 1.0);
+				remove_temporal_parameters(prev_state_on_structure, new_state_on_structure);
 			}
 			assert(0 < new_Pnext_given_s && new_Pnext_given_s <= 1);
+			
 			// 尤度を計算
 			double likelihoood = new_Pw_given_s * new_Pnext_given_s;
 
@@ -812,6 +842,7 @@ public:
 					return new_state_on_structure;
 				}
 				_num_mh_rejection += 1;
+				return new_state_on_structure;
 				return state_on_structure;
 			}
 			assert(new_state_on_structure->_identifier != state_on_structure->_identifier);	// 同じになる場合バグっている
@@ -820,6 +851,17 @@ public:
 				assert(new_state_on_prev_htssb->_sum_probability >= u);
 				st = new_state_on_prev_htssb->_sum_probability;
 			}else{
+				if(new_state_on_prev_htssb->_sum_probability - new_state_on_prev_htssb->_probability > u){
+					prev_state_on_structure->_transition_tssb->dump();
+					state_on_structure->dump();
+					new_state_on_structure->dump();
+					printf("%.15f\n", prev_state_on_structure->_transition_tssb->_root->_sum_probability);
+					printf("%.15f\n", prev_state_on_structure->_transition_tssb->_root->_probability);
+					printf("%.15f\n", new_state_on_prev_htssb->_sum_probability);
+					printf("%.15f\n", new_state_on_prev_htssb->_probability);
+					printf("%.15f\n", new_state_on_prev_htssb->_sum_probability - new_state_on_prev_htssb->_probability);
+					printf("%.15f\n", u);
+				}
 				assert(new_state_on_prev_htssb->_sum_probability >= u);
 				assert(new_state_on_prev_htssb->_sum_probability - new_state_on_prev_htssb->_probability <= u);
 				ed = new_state_on_prev_htssb->_sum_probability - new_state_on_prev_htssb->_probability;
@@ -1060,17 +1102,21 @@ public:
 			target_on_structure->decrement_ref_count();
 		}
 	}
-	void remove_customer_from_htssb_node(Node* target_on_htssb){
+	void remove_customer_from_htssb_node(Node* target_on_htssb, bool remove_last_customer = false){
 		assert(target_on_htssb != NULL);
 		assert(is_node_on_htssb(target_on_htssb));
-		_remove_customer_from_htssb_vertical_crp(target_on_htssb);
-		_remove_customer_from_htssb_horizontal_crp(target_on_htssb);
+		_remove_customer_from_htssb_vertical_crp(target_on_htssb, remove_last_customer);
+		_remove_customer_from_htssb_horizontal_crp(target_on_htssb, remove_last_customer);
 	}
-	void _remove_customer_from_htssb_vertical_crp(Node* iterator){
+	void _remove_customer_from_htssb_vertical_crp(Node* iterator, bool remove_last_customer = false){
 		assert(iterator != NULL);
 		assert(is_node_on_htssb(iterator));
 		bool empty_table_deleted = false;
-		iterator->remove_customer_from_vertical_crp(empty_table_deleted);
+		if(remove_last_customer){
+			iterator->remove_last_customer_from_vertical_crp(empty_table_deleted);
+		}else{
+			iterator->remove_customer_from_vertical_crp(empty_table_deleted);
+		}
 		// 総客数のインクリメント
 		Node* owner_on_structure = iterator->_owner_on_structure;
 		assert(owner_on_structure != NULL);
@@ -1085,13 +1131,17 @@ public:
 		// 親TSSBから代理客を削除
 		Node* iterator_on_parent_htssb = iterator->_parent_transition_tssb_myself;
 		if(empty_table_deleted && iterator_on_parent_htssb != NULL){
-			_remove_customer_from_htssb_vertical_crp(iterator_on_parent_htssb);
+			_remove_customer_from_htssb_vertical_crp(iterator_on_parent_htssb, remove_last_customer);
 		}
 	}
-	void _remove_customer_from_htssb_horizontal_crp(Node* iterator){
+	void _remove_customer_from_htssb_horizontal_crp(Node* iterator, bool remove_last_customer = false){
 		assert(iterator != NULL);
 		bool empty_table_deleted = false;
-		iterator->remove_customer_from_horizontal_crp(empty_table_deleted);
+		if(remove_last_customer){
+			iterator->remove_last_customer_from_horizontal_crp(empty_table_deleted);
+		}else{
+			iterator->remove_customer_from_horizontal_crp(empty_table_deleted);
+		}
 		// 総客数のインクリメント
 		Node* owner_on_structure = iterator->_owner_on_structure;
 		assert(owner_on_structure != NULL);
@@ -1108,7 +1158,7 @@ public:
 		// 親TSSBから代理客を削除
 		Node* iterator_on_parent_htssb = iterator->_parent_transition_tssb_myself;
 		if(empty_table_deleted && iterator_on_parent_htssb != NULL){
-			_remove_customer_from_htssb_horizontal_crp(iterator_on_parent_htssb);
+			_remove_customer_from_htssb_horizontal_crp(iterator_on_parent_htssb, remove_last_customer);
 		}
 	}
 	// update_stick_length_of_tssbは全ノードを更新するのに対しこっちは対象ノードのみ正確に計算する

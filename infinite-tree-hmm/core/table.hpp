@@ -21,15 +21,18 @@ private:
 		archive & _arrangement;
 		archive & _num_customers;
 		archive & _token_id;
+		archive & _last_added_index;
 	}
 public:
 	vector<int> _arrangement;
 	int _num_customers;
 	int _token_id;
+	int _last_added_index;
 	Table();
 	Table(int token_id);
 	bool is_empty();
 	void add_customer(double concentration_parameter, double g0, int num_total_customers, bool &new_table_generated);
 	void remove_customer(bool &empty_table_deleted);
+	void remove_last_customer(bool &empty_table_deleted);
 };
 #endif

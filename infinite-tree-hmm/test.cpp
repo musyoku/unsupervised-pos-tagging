@@ -656,7 +656,7 @@ void test28(){
 void test29(){
 	string filename = "../alice.txt";
 	PyInfiniteTreeHMM* model = new PyInfiniteTreeHMM();
-	model->set_depth_limit(1);
+	model->set_depth_limit(2);
 	model->load_textfile(filename);
 
 	string dir = "out";

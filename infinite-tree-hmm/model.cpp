@@ -196,6 +196,8 @@ public:
 				_rand_indices.push_back(data_index);
 			}
 		}
+		_ithmm->_num_mh_acceptance = 0;
+		_ithmm->_num_mh_rejection = 0;
 		shuffle(_rand_indices.begin(), _rand_indices.end(), Sampler::mt);	// データをシャッフル
 		for(int n = 0;n < _dataset.size();n++){
 			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック

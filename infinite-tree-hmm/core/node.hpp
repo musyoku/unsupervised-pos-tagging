@@ -133,7 +133,11 @@ public:
 	void decrement_word_assignment(id word_id);
 	// 客を除去
 	void remove_customer_from_vertical_crp(bool &empty_table_deleted);
+	void remove_last_customer_from_vertical_crp(bool &empty_table_deleted);
+	void _remove_customer_from_vertical_crp(bool remove_last_customer, bool &empty_table_deleted);
 	void remove_customer_from_horizontal_crp(bool &empty_table_deleted);
+	void remove_last_customer_from_horizontal_crp(bool &empty_table_deleted);
+	void _remove_customer_from_horizontal_crp(bool remove_last_customer, bool &empty_table_deleted);
 	bool delete_node_if_needed();
 	Node* delete_child_node(int node_id);
 	void dump();

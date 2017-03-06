@@ -227,10 +227,20 @@ void Node::decrement_word_assignment(id word_id){
 }
 // 客を除去
 void Node::remove_customer_from_vertical_crp(bool &empty_table_deleted){
+	_remove_customer_from_vertical_crp(false, empty_table_deleted);
+}
+void Node::remove_last_customer_from_vertical_crp(bool &empty_table_deleted){
+	_remove_customer_from_vertical_crp(true, empty_table_deleted);
+}
+void Node::_remove_customer_from_vertical_crp(bool remove_last_customer, bool &empty_table_deleted){
 	// cout << "remove_customer_from_vertical_crp: " << tssb_identifier << ", " << node->_identifier << endl;
 	Table* table = get_vertical_table();
 	assert(table != NULL);
-	table->remove_customer(empty_table_deleted);
+	if(remove_last_customer){
+		table->remove_last_customer(empty_table_deleted);
+	}else{
+		table->remove_customer(empty_table_deleted);
+	}
 	// 停止回数・通過回数を更新
 	decrement_vertical_stop_count();
 	Node* parent = _parent;
@@ -240,10 +250,21 @@ void Node::remove_customer_from_vertical_crp(bool &empty_table_deleted){
 	}
 }
 void Node::remove_customer_from_horizontal_crp(bool &empty_table_deleted){
+	_remove_customer_from_horizontal_crp(false, empty_table_deleted);
+}
+void Node::remove_last_customer_from_horizontal_crp(bool &empty_table_deleted){
+	_remove_customer_from_horizontal_crp(true, empty_table_deleted);
+}
+void Node::_remove_customer_from_horizontal_crp(bool remove_last_customer, bool &empty_table_deleted){
 	// cout << "remove_customer_from_horizontal_crp: " << _identifier << "," << node->_identifier << endl;
+	empty_table_deleted = false;
 	Table* table = get_horizontal_table();
 	assert(table != NULL);
-	table->remove_customer(empty_table_deleted);
+	if(remove_last_customer){
+		table->remove_last_customer(empty_table_deleted);
+	}else{
+		table->remove_customer(empty_table_deleted);
+	}
 	// 停止回数・通過回数を更新
 	Node* stopped_child = this;
 	Node* parent = _parent;
