@@ -469,7 +469,7 @@ void test20(iTHMM* model){
 void test21(){
 	string filename = "../alice.txt";
 	PyInfiniteTreeHMM* model = new PyInfiniteTreeHMM();
-	model->load_textfile(filename);
+	model->load_textfile(filename, 1000);
 
 	model->mark_low_frequency_words_as_unknown(1);
 	model->compile();
@@ -599,7 +599,7 @@ void test26(iTHMM* model){
 void test27(){
 	string filename = "../alice.txt";
 	PyInfiniteTreeHMM* model = new PyInfiniteTreeHMM();
-	model->load_textfile(filename);
+	model->load_textfile(filename, 1000);
 
 	model->mark_low_frequency_words_as_unknown(1);
 	model->compile();
@@ -656,8 +656,8 @@ void test28(){
 void test29(){
 	string filename = "../alice.txt";
 	PyInfiniteTreeHMM* model = new PyInfiniteTreeHMM();
-	model->set_depth_limit(1);
-	model->load_textfile(filename);
+	model->set_depth_limit(2);
+	model->load_textfile(filename, 1100);
 
 	string dir = "out";
 	// model->mark_low_frequency_words_as_unknown(1);
@@ -674,13 +674,15 @@ void test29(){
 			cout << "epoch:" << i << endl;
 			// model->_ithmm->_structure_tssb->dump();
 			model->show_typical_words_for_each_tag(20, false);
-			double log_Pdata = model->compute_log_Pdataset();
 			model->save(dir);
 			cout << "alpha: " << model->_ithmm->_alpha << endl;
 			cout << "gamma: " << model->_ithmm->_gamma << endl;
 			cout << "lambda: " << model->_ithmm->_lambda << endl;
 			cout << "strength: " << model->_ithmm->_strength << endl;
-			cout << "log_Pdata: " << log_Pdata << endl;
+			cout << "log_Pdata: " << model->compute_log_Pdataset_test() << endl;
+			cout << "log2_Pdata: " << model->compute_log2_Pdataset_test() << endl;
+			cout << "PPL (train): " << model->compute_perplexity_train() << endl;
+			cout << "PPL (test): " << model->compute_perplexity_test() << endl;
 			cout << "MH: " << model->_ithmm->_num_mh_acceptance / (double)(model->_ithmm->_num_mh_acceptance + model->_ithmm->_num_mh_rejection) << endl;;
 			for(int i = 0;i <= model->_ithmm->_current_max_depth;i++){
 				cout << "d[" << i << "] = " << model->_ithmm->_hpylm_d_m[i] << endl;
@@ -712,7 +714,7 @@ void test31(){
 	
 	for(int i = 0;i < 5;i++){
 		PyInfiniteTreeHMM* model = new PyInfiniteTreeHMM();
-		model->load_textfile(filename);
+		model->load_textfile(filename, 1000);
 
 		model->mark_low_frequency_words_as_unknown(1);
 		model->compile();

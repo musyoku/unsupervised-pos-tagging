@@ -23,7 +23,8 @@ private:
 	unordered_map<id, wstring> _dictionary;
 	unordered_map<wstring, id> _dictionary_inv;
 	unordered_map<id, int> _word_count;
-	vector<vector<Word*>> _dataset;
+	vector<vector<Word*>> _dataset_train;
+	vector<vector<Word*>> _dataset_test;
 	vector<int> _rand_indices;
 	id _autoincrement;
 	id _bos_id;
@@ -61,8 +62,15 @@ public:
 	}
 	~PyInfiniteTreeHMM(){
 		delete _ithmm;
-		for(int n = 0;n < _dataset.size();n++){
-			vector<Word*> &data = _dataset[n];
+		for(int n = 0;n < _dataset_train.size();n++){
+			vector<Word*> &data = _dataset_train[n];
+			for(int m = 0;m < data.size();m++){
+				Word* word = data[m];
+				delete word;
+			}
+		}
+		for(int n = 0;n < _dataset_test.size();n++){
+			vector<Word*> &data = _dataset_test[n];
 			for(int m = 0;m < data.size();m++){
 				Word* word = data[m];
 				delete word;
@@ -86,7 +94,7 @@ public:
 		}
 		return itr->second;
 	}
-	void load_textfile(string filename){
+	void load_textfile(string filename, int train_split){
 		c_printf("[*]%s\n", (boost::format("%sを読み込んでいます ...") % filename.c_str()).str().c_str());
 		wifstream ifs(filename.c_str());
 		wstring line_str;
@@ -94,24 +102,40 @@ public:
 			c_printf("[R]%s [*]%s", "エラー", (boost::format("%sを開けません.") % filename.c_str()).str().c_str());
 			exit(1);
 		}
+		vector<wstring> lines;
 		while (getline(ifs, line_str) && !line_str.empty()){
 			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
 				return;
 			}
-			add_line(line_str);
+			lines.push_back(line_str);
 		}
+		assert(lines.size() > train_split);
+		vector<int> rand_indices;
+		for(int i = 0;i < lines.size();i++){
+			rand_indices.push_back(i);
+		}
+		shuffle(rand_indices.begin(), rand_indices.end(), Sampler::mt);	// データをシャッフル
+		for(int i = 0;i < rand_indices.size();i++){
+			wstring &line_str = lines[rand_indices[i]];
+			if(i < train_split){
+				add_train_data(line_str);
+			}else{
+				add_test_data(line_str);
+			}
+		}
+		cout << "train: " << _dataset_train.size() << endl;
+		cout << "test:  " << _dataset_test.size() << endl;
 		c_printf("[*]%s\n", (boost::format("%sを読み込みました.") % filename.c_str()).str().c_str());
 	}
-	void add_line(wstring line_str){
+	void add_train_data(wstring line_str){
+		_add_data_to(line_str, _dataset_train);
+	}
+	void add_test_data(wstring line_str){
+		_add_data_to(line_str, _dataset_test);
+	}
+	void _add_data_to(wstring &line_str, vector<vector<Word*>> &dataset){
 		vector<wstring> word_strs;
 		split_word_by(line_str, L' ', word_strs);	// スペースで分割
-		int num_words = word_strs.size();
-		if(num_words > _max_num_words_in_line){
-			_max_num_words_in_line = num_words;
-		}
-		if(num_words < _max_num_words_in_line || _min_num_words_in_line == -1){
-			_min_num_words_in_line = num_words;
-		}
 		if(word_strs.size() > 0){
 			vector<Word*> words;
 
@@ -132,8 +156,14 @@ public:
 			words.push_back(eos);
 			_word_count[_eos_id] += 1;
 
-			// 訓練データに追加
-			_dataset.push_back(words);
+			dataset.push_back(words);
+
+			if((int)words.size() > _max_num_words_in_line){
+				_max_num_words_in_line = words.size();
+			}
+			if((int)words.size() < _min_num_words_in_line || _min_num_words_in_line == -1){
+				_min_num_words_in_line = words.size();
+			}
 		}
 	}
 	int get_num_words(){
@@ -147,8 +177,8 @@ public:
 		return itr->second;
 	}
 	void mark_low_frequency_words_as_unknown(int threshold = 1){
-		for(int data_index = 0;data_index < _dataset.size();data_index++){
-			vector<Word*> &data = _dataset[data_index];
+		for(int data_index = 0;data_index < _dataset_train.size();data_index++){
+			vector<Word*> &data = _dataset_train[data_index];
 			for(auto word = data.begin(), end = data.end();word != end;word++){
 				id word_id = (*word)->_id;
 				int count = get_count_for_word(word_id);
@@ -160,13 +190,13 @@ public:
 	}
 	void compile(){
 		_ithmm->set_word_g0(1.0 / _word_count.size());
-		_ithmm->initialize_data(_dataset);
+		_ithmm->initialize_data(_dataset_train);
 	}
 	void set_depth_limit(int limit){
 		_ithmm->set_depth_limit(limit);
 	}
 	void remove_all_data(){
-		_ithmm->remove_all_data(_dataset);
+		_ithmm->remove_all_data(_dataset_train);
 		_ithmm->delete_invalid_children();
 	}
 	bool load(string dirname){
@@ -193,28 +223,28 @@ public:
 		return _ithmm->save(dirname);
 	}
 	void perform_gibbs_sampling(){
-		if(_rand_indices.size() != _dataset.size()){
+		if(_rand_indices.size() != _dataset_train.size()){
 			_rand_indices.clear();
-			for(int data_index = 0;data_index < _dataset.size();data_index++){
+			for(int data_index = 0;data_index < _dataset_train.size();data_index++){
 				_rand_indices.push_back(data_index);
 			}
 		}
 		_ithmm->_num_mh_acceptance = 0;
 		_ithmm->_num_mh_rejection = 0;
 		shuffle(_rand_indices.begin(), _rand_indices.end(), Sampler::mt);	// データをシャッフル
-		for(int n = 0;n < _dataset.size();n++){
+		for(int n = 0;n < _dataset_train.size();n++){
 			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
 				return;
 			}
 			int data_index = _rand_indices[n];
-			vector<Word*> &data = _dataset[data_index];
+			vector<Word*> &data = _dataset_train[data_index];
 			_ithmm->perform_gibbs_sampling_data(data);
 		}
 		_ithmm->delete_invalid_children();
 	}
 	// データの対数尤度を計算
 	// 前向きアルゴリズム
-	double compute_log_Pdata(vector<Word*> &data, vector<Node*> &states){
+	double compute_Pdata(vector<Word*> &data, vector<Node*> &states){
 		// 初期化
 		Word* word = data[0];
 		for(int i = 0;i < states.size();i++){
@@ -227,8 +257,7 @@ public:
 			assert(Pword_given_s > 0);
 			_forward_table[0][i] = Pword_given_s * Ps;
 		}
-		int t = 1;
-		for(;t < data.size();t++){
+		for(int t = 1;t < data.size();t++){
 			Word* word = data[t];
 			for(int j = 0;j < states.size();j++){
 				Node* state = states[j];
@@ -243,18 +272,15 @@ public:
 				}
 			}
 		}
+		int t = data.size() - 1;
 		double Px = 0;
 		for(int j = 0;j < states.size();j++){
 			Px += _forward_table[t][j];
 		}
-		return log(Px);
+		return Px;
 	}
-	// データセット全体の対数尤度を計算
-	double compute_log_Pdataset(){
-		cout << _max_num_words_in_line << endl;
-		exit(0);
+	void _before_compute_log_Pdataset(vector<Node*> &nodes){
 		// あらかじめ全HTSSBの棒の長さを計算しておく
-		vector<Node*> nodes;
 		_ithmm->_structure_tssb->enumerate_nodes_from_left_to_right(nodes);
 		for(auto node: nodes){
 			double Peos_given_s = node->compute_transition_probability_to_eos(_ithmm->_tau0, _ithmm->_tau1);
@@ -263,25 +289,90 @@ public:
 		}
 		_ithmm->update_stick_length_of_tssb(_ithmm->_bos_tssb, 1.0, false);
 		// 計算用のテーブルを確保
-		_forward_table = new double*[_max_num_words_in_line + 1];
-		for(int i = 0;i < _max_num_words_in_line + 1;i++){
+		_forward_table = new double*[_max_num_words_in_line];
+		for(int i = 0;i < _max_num_words_in_line;i++){
 			_forward_table[i] = new double[nodes.size()];
 		}
-		// データごとの対数尤度を足していく
-		double log_Pdataset = 0;
-		for(int data_index = 0;data_index < _dataset.size();data_index++){
-			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
-				return 0;
-			}
-			vector<Word*> &data = _dataset[data_index];
-			log_Pdataset += compute_log_Pdata(data, nodes);
-		}
+	}
+	void _after_compute_log_Pdataset(){
 		// 計算用のテーブルを解放
-		for(int i = 0;i < _max_num_words_in_line + 1;i++){
+		for(int i = 0;i < _max_num_words_in_line;i++){
 			delete[] _forward_table[i];
 		}
 		delete[] _forward_table;
+	}
+	// データセット全体の対数尤度を計算
+	double compute_log_Pdataset_train(){
+		return _compute_log_Pdataset(_dataset_train);
+	}
+	double compute_log_Pdataset_test(){
+		return _compute_log_Pdataset(_dataset_test);
+	}
+	double _compute_log_Pdataset(vector<vector<Word*>> &dataset){
+		vector<Node*> nodes;
+		_before_compute_log_Pdataset(nodes);
+		// データごとの対数尤度を足していく
+		double log_Pdataset = 0;
+		for(int data_index = 0;data_index < dataset.size();data_index++){
+			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
+				return 0;
+			}
+			vector<Word*> &data = dataset[data_index];
+			double Px = compute_Pdata(data, nodes);
+			if(Px > 0){
+				log_Pdataset += log(Px);
+			}
+		}
+		_after_compute_log_Pdataset();
 		return log_Pdataset;
+	}
+	double compute_log2_Pdataset_train(){
+		return _compute_log2_Pdataset(_dataset_train);
+	}
+	double compute_log2_Pdataset_test(){
+		return _compute_log2_Pdataset(_dataset_test);
+	}
+	double _compute_log2_Pdataset(vector<vector<Word*>> &dataset){
+		vector<Node*> nodes;
+		_before_compute_log_Pdataset(nodes);
+		// データごとの対数尤度を足していく
+		double log_Pdataset = 0;
+		for(int data_index = 0;data_index < dataset.size();data_index++){
+			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
+				return 0;
+			}
+			vector<Word*> &data = dataset[data_index];
+			double Px = compute_Pdata(data, nodes);
+			if(Px > 0){
+				log_Pdataset += log2(Px);
+			}
+		}
+		_after_compute_log_Pdataset();
+		return log_Pdataset;
+	}
+	double compute_perplexity_train(){
+		return _compute_perplexity(_dataset_train);
+	}
+	double compute_perplexity_test(){
+		return _compute_perplexity(_dataset_test);
+	}
+	double _compute_perplexity(vector<vector<Word*>> &dataset){
+		vector<Node*> nodes;
+		_before_compute_log_Pdataset(nodes);
+		// データごとの対数尤度を足していく
+		double log_Pdataset = 0;
+		for(int data_index = 0;data_index < dataset.size();data_index++){
+			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
+				return 0;
+			}
+			vector<Word*> &data = dataset[data_index];
+			double Px = compute_Pdata(data, nodes);
+			if(Px > 0){
+				log_Pdataset += log(Px) / data.size();
+			}
+		}
+		_after_compute_log_Pdataset();
+		return exp(-log_Pdataset / (double)dataset.size());
 	}
 	void update_hyperparameters(){
 		_ithmm->sample_hpylm_hyperparameters();
@@ -390,7 +481,7 @@ BOOST_PYTHON_MODULE(model){
 	.def("compile", &PyInfiniteTreeHMM::compile)
 	.def("load", &PyInfiniteTreeHMM::load)
 	.def("save", &PyInfiniteTreeHMM::save)
-	.def("add_line", &PyInfiniteTreeHMM::add_line)
+	.def("add_train_data", &PyInfiniteTreeHMM::add_train_data)
 	.def("mark_low_frequency_words_as_unknown", &PyInfiniteTreeHMM::mark_low_frequency_words_as_unknown)
 	.def("load_textfile", &PyInfiniteTreeHMM::load_textfile)
 	.def("update_hyperparameters", &PyInfiniteTreeHMM::update_hyperparameters)
