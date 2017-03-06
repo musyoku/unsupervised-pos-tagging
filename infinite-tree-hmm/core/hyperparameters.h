@@ -2,16 +2,16 @@
 #define _hyper_
 
 // これらのハイパーパラメータは実行前に一度だけ一様分布からサンプリングしていたのでminとmaxを設定する*1
-#define iTHMM_ALPHA_MIN 2.86421
-#define iTHMM_ALPHA_MAX 2.86421
+#define iTHMM_ALPHA_MIN 2
+#define iTHMM_ALPHA_MAX 3
 #define iTHMM_GAMMA_MIN 1
 #define iTHMM_GAMMA_MAX 2
-#define iTHMM_LAMBDA_MIN 0.0332636	// 0以上1以下
-#define iTHMM_LAMBDA_MAX 0.0332636	// 0以上1以下
+#define iTHMM_LAMBDA_MIN 0.001	// 0以上1以下
+#define iTHMM_LAMBDA_MAX 0.05	// 0以上1以下
 // HTSSBで親の情報をどの程度受け継ぐかを制御するパラメータ
 // 論文では上のαと同じ記号が使われているが区別する必要がある
-#define iTHMM_STRENGTH_MIN 0.902916
-#define iTHMM_STRENGTH_MAX 0.902916
+#define iTHMM_STRENGTH_MIN 0.5
+#define iTHMM_STRENGTH_MAX 2
 
 // これらのハイパーパラメータは固定*2
 #define iTHMM_TAU_0 1.0
