@@ -674,11 +674,13 @@ void test29(){
 			cout << "epoch:" << i << endl;
 			// model->_ithmm->_structure_tssb->dump();
 			model->show_typical_words_for_each_tag(20, false);
+			double log_Pdata = model->compute_log_Pdataset();
 			model->save(dir);
 			cout << "alpha: " << model->_ithmm->_alpha << endl;
 			cout << "gamma: " << model->_ithmm->_gamma << endl;
 			cout << "lambda: " << model->_ithmm->_lambda << endl;
 			cout << "strength: " << model->_ithmm->_strength << endl;
+			cout << "log_Pdata: " << log_Pdata << endl;
 			cout << "MH: " << model->_ithmm->_num_mh_acceptance / (double)(model->_ithmm->_num_mh_acceptance + model->_ithmm->_num_mh_rejection) << endl;;
 			for(int i = 0;i <= model->_ithmm->_current_max_depth;i++){
 				cout << "d[" << i << "] = " << model->_ithmm->_hpylm_d_m[i] << endl;

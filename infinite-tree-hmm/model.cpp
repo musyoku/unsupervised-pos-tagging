@@ -31,6 +31,7 @@ private:
 	id _unk_id;
 	int _max_num_words_in_line;
 	int _min_num_words_in_line;
+	double** _forward_table;		// 前向き確率計算用
 public:
 	iTHMM* _ithmm;
 	PyInfiniteTreeHMM(){
@@ -55,13 +56,15 @@ public:
 
 		_max_num_words_in_line = -1;
 		_min_num_words_in_line = -1;
+
+		_forward_table = NULL;
 	}
 	~PyInfiniteTreeHMM(){
 		delete _ithmm;
 		for(int n = 0;n < _dataset.size();n++){
-			vector<Word*> &line = _dataset[n];
-			for(int m = 0;m < line.size();m++){
-				Word* word = line[m];
+			vector<Word*> &data = _dataset[n];
+			for(int m = 0;m < data.size();m++){
+				Word* word = data[m];
 				delete word;
 			}
 		}
@@ -145,8 +148,8 @@ public:
 	}
 	void mark_low_frequency_words_as_unknown(int threshold = 1){
 		for(int data_index = 0;data_index < _dataset.size();data_index++){
-			vector<Word*> &line = _dataset[data_index];
-			for(auto word = line.begin(), end = line.end();word != end;word++){
+			vector<Word*> &data = _dataset[data_index];
+			for(auto word = data.begin(), end = data.end();word != end;word++){
 				id word_id = (*word)->_id;
 				int count = get_count_for_word(word_id);
 				if(count <= threshold){
@@ -204,10 +207,81 @@ public:
 				return;
 			}
 			int data_index = _rand_indices[n];
-			vector<Word*> &line = _dataset[data_index];
-			_ithmm->perform_gibbs_sampling_line(line);
+			vector<Word*> &data = _dataset[data_index];
+			_ithmm->perform_gibbs_sampling_data(data);
 		}
 		_ithmm->delete_invalid_children();
+	}
+	// データの対数尤度を計算
+	// 前向きアルゴリズム
+	double compute_log_Pdata(vector<Word*> &data, vector<Node*> &states){
+		// 初期化
+		Word* word = data[0];
+		for(int i = 0;i < states.size();i++){
+			Node* state = states[i];
+			Node* state_on_bos = _ithmm->_bos_tssb->find_node_by_tracing_horizontal_indices(state);
+			assert(state_on_bos != NULL);
+			double Ps = state_on_bos->_probability;
+			double Pword_given_s = _ithmm->compute_Pw_given_s(word->_id, state);
+			assert(Ps > 0);
+			assert(Pword_given_s > 0);
+			_forward_table[0][i] = Pword_given_s * Ps;
+		}
+		int t = 1;
+		for(;t < data.size();t++){
+			Word* word = data[t];
+			for(int j = 0;j < states.size();j++){
+				Node* state = states[j];
+				_forward_table[t][j] = 0;
+				for(int i = 0;i < states.size();i++){
+					Node* prev_state = states[i];
+					Node* state_on_prev_htssb = prev_state->_transition_tssb->find_node_by_tracing_horizontal_indices(state);
+					assert(state_on_prev_htssb != NULL);
+					double Ps_given_prev = state_on_prev_htssb->_probability;
+					double Pword_given_s = _ithmm->compute_Pw_given_s(word->_id, state);
+					_forward_table[t][j] += Pword_given_s * Ps_given_prev * _forward_table[t - 1][i];
+				}
+			}
+		}
+		double Px = 0;
+		for(int j = 0;j < states.size();j++){
+			Px += _forward_table[t][j];
+		}
+		return log(Px);
+	}
+	// データセット全体の対数尤度を計算
+	double compute_log_Pdataset(){
+		cout << _max_num_words_in_line << endl;
+		exit(0);
+		// あらかじめ全HTSSBの棒の長さを計算しておく
+		vector<Node*> nodes;
+		_ithmm->_structure_tssb->enumerate_nodes_from_left_to_right(nodes);
+		for(auto node: nodes){
+			double Peos_given_s = node->compute_transition_probability_to_eos(_ithmm->_tau0, _ithmm->_tau1);
+			double total_stick_length = 1.0 - Peos_given_s;	// <eos>以外に遷移する確率をTSSBで分配する
+			_ithmm->update_stick_length_of_tssb(node->_transition_tssb, total_stick_length, true);
+		}
+		_ithmm->update_stick_length_of_tssb(_ithmm->_bos_tssb, 1.0, false);
+		// 計算用のテーブルを確保
+		_forward_table = new double*[_max_num_words_in_line + 1];
+		for(int i = 0;i < _max_num_words_in_line + 1;i++){
+			_forward_table[i] = new double[nodes.size()];
+		}
+		// データごとの対数尤度を足していく
+		double log_Pdataset = 0;
+		for(int data_index = 0;data_index < _dataset.size();data_index++){
+			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
+				return 0;
+			}
+			vector<Word*> &data = _dataset[data_index];
+			log_Pdataset += compute_log_Pdata(data, nodes);
+		}
+		// 計算用のテーブルを解放
+		for(int i = 0;i < _max_num_words_in_line + 1;i++){
+			delete[] _forward_table[i];
+		}
+		delete[] _forward_table;
+		return log_Pdataset;
 	}
 	void update_hyperparameters(){
 		_ithmm->sample_hpylm_hyperparameters();

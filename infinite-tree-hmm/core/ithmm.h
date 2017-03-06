@@ -123,21 +123,21 @@ public:
 	}
 	void initialize_data(vector<vector<Word*>> &dataset){
 		for(int data_index = 0;data_index < dataset.size();data_index++){
-			vector<Word*> &line = dataset[data_index];
-			if(line.size() == 0){
+			vector<Word*> &data = dataset[data_index];
+			if(data.size() == 0){
 				continue;
 			}
 			// 状態路ランダムに設定
-			for(int i = 0;i < line.size();i++){
-				Word* word = line[i];
+			for(int i = 0;i < data.size();i++){
+				Word* word = data[i];
 				Node* state = NULL;
 				state = sample_node_on_tssb(_structure_tssb, true);
 				assert(state != NULL);
 				word->_state = state;
 			}
 			Node* prev_state = NULL;						// <bos>
-			for(int i = 0;i < line.size();i++){
-				Word* word = line[i];
+			for(int i = 0;i < data.size();i++){
+				Word* word = data[i];
 				Node* state = word->_state;
 				add_initial_parameters(prev_state, state, word->_id);
 				prev_state = state;
@@ -149,13 +149,13 @@ public:
 	// これを呼んで全パラメータが消えなかったらバグっている
 	void remove_all_data(vector<vector<Word*>> &dataset){
 		for(int data_index = 0;data_index < dataset.size();data_index++){
-			vector<Word*> &line = dataset[data_index];
-			if(line.size() == 0){
+			vector<Word*> &data = dataset[data_index];
+			if(data.size() == 0){
 				continue;
 			}
 			Node* prev_state = NULL;
-			for(int i = 0;i < line.size();i++){
-				Word* word = line[i];
+			for(int i = 0;i < data.size();i++){
+				Word* word = data[i];
 				Node* state = word->_state;
 				remove_initial_parameters(prev_state, state, word->_id);
 				prev_state = state;
@@ -463,18 +463,18 @@ public:
 			rest_stick_length *= 1.0 - ratio_h;
 		}
 	}
-	void perform_gibbs_sampling_line(vector<Word*> &line){
-		assert(line.size() > 0);
+	void perform_gibbs_sampling_data(vector<Word*> &data){
+		assert(data.size() > 0);
 		Node* prev_state = NULL;
-		Node* next_state = line.size() == 1 ? NULL : line[1]->_state;
-		for(int i = 0;i < line.size();i++){
-			Word* word = line[i];
+		Node* next_state = data.size() == 1 ? NULL : data[1]->_state;
+		for(int i = 0;i < data.size();i++){
+			Word* word = data[i];
 			Node* state = word->_state;
 			remove_parameters(prev_state, state, next_state, word->_id);
 			state = draw_state(prev_state, state, next_state, word->_id);
 			add_parameters(prev_state, state, next_state, word->_id);
 			prev_state = state;
-			next_state = i < line.size() - 2 ? line[i + 2]->_state : NULL;
+			next_state = i < data.size() - 2 ? data[i + 2]->_state : NULL;
 			word->_state = state;
 		}
 	}
@@ -809,7 +809,7 @@ public:
 				remove_temporal_parameters(prev_state_on_structure, new_state_on_structure);
 			}
 			assert(0 < new_Pnext_given_s && new_Pnext_given_s <= 1);
-			
+
 			// 尤度を計算
 			double likelihoood = new_Pw_given_s * new_Pnext_given_s;
 
@@ -1409,6 +1409,7 @@ public:
 		assert(_word_g0 > 0);
 		return node_on_structure->_hpylm->compute_Pw(token_id, _word_g0, _hpylm_d_m, _hpylm_theta_m);
 	}
+	// TSSBの全ての棒の長さを計算
 	void update_stick_length_of_tssb(TSSB* tssb, double total_stick_length, bool htssb_mode){
 		// assert(tssb->_owner_id != 0);	// 木構造の場合は計算しない
 		Node* root = tssb->_root;
@@ -1440,6 +1441,7 @@ public:
 			}
 		}
 	}
+	// 不要なノードの削除
 	void delete_invalid_children(){
 		_delete_invalid_children_on_structure_tssb(_structure_tssb);
 	}
@@ -1544,7 +1546,7 @@ public:
 			sum_auxiliary_variables_recursively_for_hpylm(child, sum_log_x_u_m, sum_y_ui_m, sum_1_y_ui_m, sum_1_z_uwkj_m);
 		}
 	}
-	// dとθの推定
+	// HPYLMのdとθの推定
 	void sample_hpylm_hyperparameters(){
 		assert(_current_max_depth < _hpylm_d_m.size());
 		assert(_current_max_depth < _hpylm_theta_m.size());
@@ -1553,30 +1555,33 @@ public:
 		assert(_current_max_depth < _hpylm_alpha_m.size());
 		assert(_current_max_depth < _hpylm_beta_m.size());
 
-		// 親ノードの深さが0であることに注意
+		// ルートノードの深さが0であることに注意
 		vector<double> sum_log_x_u_m(_current_max_depth + 1, 0.0);
 		vector<double> sum_y_ui_m(_current_max_depth + 1, 0.0);
 		vector<double> sum_1_y_ui_m(_current_max_depth + 1, 0.0);
 		vector<double> sum_1_z_uwkj_m(_current_max_depth + 1, 0.0);
 
-		// _root
+		// ルートノード
 		HPYLM* root = _structure_tssb->_root->_hpylm;
-		sum_log_x_u_m[0] = root->auxiliary_log_x_u(_hpylm_theta_m[0]);			// log(x_u)
+		sum_log_x_u_m[0] = root->auxiliary_log_x_u(_hpylm_theta_m[0]);					// log(x_u)
 		sum_y_ui_m[0] = root->auxiliary_y_ui(_hpylm_d_m[0], _hpylm_theta_m[0]);			// y_ui
 		sum_1_y_ui_m[0] = root->auxiliary_1_y_ui(_hpylm_d_m[0], _hpylm_theta_m[0]);		// 1 - y_ui
-		sum_1_z_uwkj_m[0] = root->auxiliary_1_z_uwkj(_hpylm_d_m[0]);				// 1 - z_uwkj
+		sum_1_z_uwkj_m[0] = root->auxiliary_1_z_uwkj(_hpylm_d_m[0]);					// 1 - z_uwkj
 
 		// それ以外
 		sum_auxiliary_variables_recursively_for_hpylm(_structure_tssb->_root, sum_log_x_u_m, sum_y_ui_m, sum_1_y_ui_m, sum_1_z_uwkj_m);
 
+		// サンプリング
 		for(int u = 0;u <= _current_max_depth;u++){
 			_hpylm_d_m[u] = Sampler::beta(_hpylm_a_m[u] + sum_1_y_ui_m[u], _hpylm_b_m[u] + sum_1_z_uwkj_m[u]);
 			_hpylm_theta_m[u] = Sampler::gamma(_hpylm_alpha_m[u] + sum_y_ui_m[u], _hpylm_beta_m[u] - sum_log_x_u_m[u]);
 		}
 
-		// ルートノードだけ固定する場合
-		// _hpylm_d_m[0] = HPYLM_D_ROOT;
-		// _hpylm_theta_m[0] = HPYLM_THETA_ROOT;
+		assert(_hpylm_d_m.size() == _hpylm_theta_m.size());
+		assert(_hpylm_theta_m.size() == _hpylm_a_m.size());
+		assert(_hpylm_a_m.size() == _hpylm_b_m.size());
+		assert(_hpylm_b_m.size() == _hpylm_alpha_m.size());
+		assert(_hpylm_alpha_m.size() == _hpylm_beta_m.size());
 
 		// 不要な深さのハイパーパラメータを削除
 		int num_remove = _hpylm_d_m.size() - _current_max_depth - 1;
