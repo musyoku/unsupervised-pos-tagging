@@ -1,5 +1,6 @@
 # coding: utf-8
 import argparse, sys, os, time, re, codecs, random
+import pandas as pd
 import treetaggerwrapper
 import model
 
@@ -66,8 +67,6 @@ def main(args):
 	num_words_in_train_dataset = 0
 	print stdout.BOLD + "データを準備しています ..." + stdout.END
 	word_count = set()	# 単語の種類の総数
-	# 似たような品詞をまとめる
-	# https://courses.washington.edu/hypertxt/csar-v02/penntable.html
 	dataset = []
 	with codecs.open(args.filename, "r", "utf-8") as f:
 		for data in f:
@@ -120,7 +119,10 @@ def main(args):
 
 	ithmm.mark_low_frequency_words_as_unknown(args.unknown_threshold)	# 低頻度語を全て<unk>に置き換える
 	ithmm.compile()	# 品詞をランダムに割り当てる初期化
-	ithmm.set_metropolis_hastings_enabled(False)
+
+	# グラフプロット用
+	csv_likelihood = []
+	csv_perplexity = []
 
 	for epoch in xrange(1, args.epoch + 1):
 		start = time.time()
@@ -132,11 +134,22 @@ def main(args):
 		if epoch % 100 == 0:
 			print "\n"
 			ithmm.show_typical_words_for_each_tag(20, False);
+			log_likelihood = ithmm.compute_log_Pdataset_test() 
+			perplexity = ithmm.compute_perplexity_test()
 			print "alpha:", ithmm.get_alpha(), "gamma:", ithmm.get_gamma(), "lambda:", ithmm.get_lambda(), "strength:", ithmm.get_strength(), "tau0:", ithmm.get_tau0(), "tau1:", ithmm.get_tau1()
-			print "logP(x):", ithmm.compute_log_Pdataset_test() 
-			print "PPL:", ithmm.compute_perplexity_test() 
-			print "MH:", ithmm.get_metropolis_hastings_acceptance_rate() 
+			print "log_likelihood:", log_likelihood
+			print "perplexity:", perplexity
+			# print "MH:", ithmm.get_metropolis_hastings_acceptance_rate() 
 			ithmm.save(args.model);
+			# CSV出力
+			csv_likelihood.append([epoch, log_likelihood])
+			data = pd.DataFrame(csv_likelihood)
+			data.columns = ["epoch", "log_likelihood"]
+			data.to_csv("{}/likelihood.csv".format(args.model))
+			csv_perplexity.append([epoch, perplexity])
+			data = pd.DataFrame(csv_perplexity)
+			data.columns = ["epoch", "perplexity"]
+			data.to_csv("{}/perplexity.csv".format(args.model))
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()

@@ -820,7 +820,10 @@ public:
 					_num_mh_acceptance += 1;
 					return new_state_on_structure;
 				}
-				// メトロポリス・ヘイスティングス法
+				// メトロポリス・ヘイスティングス法による補正
+				// 未完成なためサンプリングした新しい品詞をそのまま返す
+				_num_mh_acceptance += 1;
+				return new_state_on_structure;
 				Node* state_on_prev_htssb = prev_state_on_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(state_on_structure);
 				assert(state_on_prev_htssb != NULL);
 				assert(state_on_prev_htssb->_identifier == state_on_structure->_identifier);
@@ -840,6 +843,7 @@ public:
 				double Pnew_s = new_state_on_root_htssb->_probability;
 				double Pw_given_new_s = compute_Pw_given_s(word_id, new_state_on_structure);
 				assert(Ps_given_prev * Pw_given_new_s > 0);
+				// 採択率の計算式が不明
 				double adoption = (Pnew_s_given_prev * Pw_given_s) / (Ps_given_prev * Pw_given_new_s);
 				adoption = std::min(1.0, adoption);
 				double u = Sampler::uniform(0, 1);
