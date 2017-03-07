@@ -36,18 +36,22 @@ def collapse_pos(pos):
 def parse_tagger_result_str(result_str):
 	result = result_str.split("\t")
 	if len(result) == 1:		# URLなど
-		lowercase = result[0]
-		match = re.search(r"<([^ ]+) ", lowercase)
-		lowercase = "<" + match.group(1) + ">"
-		pos = "SYM"
+		word = result[0]
+		if word == "<eos>":
+			pos = "EOS"
+		else:
+			match = re.search(r"<([^ ]+)", word)
+			word = "<" + match.group(1) + ">"
+			pos = "SYM"
 	else:
-		word, pos, lowercase = result
-	if lowercase == "@card@":
-		lowercase = "##"
-	if lowercase == "@ord@":
-		lowercase = "##"
+		word, pos, orig = result
+		word = word.lower()
+		if orig == "@card@":
+			word = "##"
+		if orig == "@ord@":
+			word = "##"
 	pos = collapse_pos(pos)
-	return pos, lowercase
+	return pos, word
 
 class stdout:
 	BOLD = "\033[1m"
@@ -66,8 +70,6 @@ def main(args):
 
 	# 訓練データを形態素解析して各品詞ごとにその品詞になりうる単語の総数を求めておく
 	print stdout.BOLD + "データを準備しています ..." + stdout.END
-	Wt_count = {}
-	word_count = set()	# 単語の種類の総数
 	# 似たような品詞をまとめる
 	# https://courses.washington.edu/hypertxt/csar-v02/penntable.html
 	with codecs.open(args.filename, "r", "utf-8") as f:
@@ -90,15 +92,8 @@ def main(args):
 			segmentation = ""
 			for result_str in results:
 				pos, lowercase = parse_tagger_result_str(result_str)
-				word_count.add(lowercase)
 				segmentation += lowercase + " "
 				pos = collapse_pos(pos)
-				if pos not in Wt_count:
-					Wt_count[pos] = {}
-				if lowercase not in Wt_count[pos]:
-					Wt_count[pos][lowercase] = 1
-				else:
-					Wt_count[pos][lowercase] += 1
 			segmentation = re.sub(r" +$", "",  segmentation)	# 行末の空白を除去
 			hmm.add_line(segmentation)	# 学習用データに追加
 

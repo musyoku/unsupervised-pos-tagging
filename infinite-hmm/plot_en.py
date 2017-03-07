@@ -20,6 +20,7 @@ def main(args):
 	print stdout.BOLD + "データを集計しています ..." + stdout.END
 	num_occurrence_of_pos_for_tag = {}
 	all_types_of_pos = set()
+	all_types_of_pos.append("EOS")
 	tagger = treetaggerwrapper.TreeTagger(TAGLANG="en")
 	with codecs.open(args.filename, "r", "utf-8") as f:
 		for i, line in enumerate(f):
