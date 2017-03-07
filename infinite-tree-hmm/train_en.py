@@ -106,10 +106,10 @@ def main(args):
 	print "テストデータ数:", len(dataset) - args.train_split, stdout.END
 
 	# ハイパーパラメータの設定
-	ithmm.set_alpha(6)
-	ithmm.set_gamma(0.5)
-	ithmm.set_lambda(0.02)
-	ithmm.set_strength(3)
+	ithmm.set_alpha(random.uniform(2, 10))
+	ithmm.set_gamma(random.uniform(0.1, 1))
+	ithmm.set_lambda(random.uniform(0.001, 0.05))
+	ithmm.set_strength(random.uniform(0.5, 5))
 	ithmm.set_tau0(1)
 	ithmm.set_tau1(100)
 
