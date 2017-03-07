@@ -816,6 +816,6 @@ void test37(){
 
 int main(){
 	// iTHMM* model = new iTHMM();
-	test37();
+	test29();
 	return 0;
 }

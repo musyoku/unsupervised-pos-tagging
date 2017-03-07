@@ -842,7 +842,6 @@ public:
 					return new_state_on_structure;
 				}
 				_num_mh_rejection += 1;
-				return new_state_on_structure;
 				return state_on_structure;
 			}
 			assert(new_state_on_structure->_identifier != state_on_structure->_identifier);	// 同じになる場合バグっている
@@ -851,17 +850,6 @@ public:
 				assert(new_state_on_prev_htssb->_sum_probability >= u);
 				st = new_state_on_prev_htssb->_sum_probability;
 			}else{
-				if(new_state_on_prev_htssb->_sum_probability - new_state_on_prev_htssb->_probability > u){
-					prev_state_on_structure->_transition_tssb->dump();
-					state_on_structure->dump();
-					new_state_on_structure->dump();
-					printf("%.15f\n", prev_state_on_structure->_transition_tssb->_root->_sum_probability);
-					printf("%.15f\n", prev_state_on_structure->_transition_tssb->_root->_probability);
-					printf("%.15f\n", new_state_on_prev_htssb->_sum_probability);
-					printf("%.15f\n", new_state_on_prev_htssb->_probability);
-					printf("%.15f\n", new_state_on_prev_htssb->_sum_probability - new_state_on_prev_htssb->_probability);
-					printf("%.15f\n", u);
-				}
 				assert(new_state_on_prev_htssb->_sum_probability >= u);
 				assert(new_state_on_prev_htssb->_sum_probability - new_state_on_prev_htssb->_probability <= u);
 				ed = new_state_on_prev_htssb->_sum_probability - new_state_on_prev_htssb->_probability;

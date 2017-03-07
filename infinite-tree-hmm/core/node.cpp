@@ -336,6 +336,14 @@ string Node::_dump_indices(){
 	}
 	return indices_str;
 }
+wstring Node::_wdump_indices(){
+	wstring indices_str = L"";
+	for(int i = 0;i < _depth_v;i++){
+		indices_str += std::to_wstring(_horizontal_indices_from_root[i]);
+		indices_str += L",";
+	}
+	return indices_str;
+}
 string Node::_dump(){
 	string indices_str = _dump_indices();
 	string hpylm_str = "";

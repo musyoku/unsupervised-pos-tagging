@@ -79,6 +79,24 @@ public:
 			}
 		}
 	}
+	double get_alpha(){
+		return _ithmm->_alpha;
+	}
+	double get_gamma(){
+		return _ithmm->_gamma;
+	}
+	double get_lambda(){
+		return _ithmm->_lambda;
+	}
+	double get_strength(){
+		return _ithmm->_strength;
+	}
+	double get_tau0(){
+		return _ithmm->_tau0;
+	}
+	double get_tau1(){
+		return _ithmm->_tau1;
+	}
 	void set_alpha(double alpha){
 		_ithmm->_alpha = alpha;
 	}
@@ -96,6 +114,9 @@ public:
 	}
 	void set_tau1(double tau1){
 		_ithmm->_tau1 = tau1;
+	}
+	void set_depth_limit(int limit){
+		_ithmm->set_depth_limit(limit);
 	}
 	id add_string(wstring word){
 		auto itr = _dictionary_inv.find(word);
@@ -212,9 +233,6 @@ public:
 		_ithmm->set_word_g0(1.0 / _word_count.size());
 		_ithmm->initialize_data(_dataset_train);
 	}
-	void set_depth_limit(int limit){
-		_ithmm->set_depth_limit(limit);
-	}
 	void remove_all_data(){
 		_ithmm->remove_all_data(_dataset_train);
 		_ithmm->delete_invalid_children();
@@ -276,29 +294,55 @@ public:
 		}
 		delete[] _decode_table;
 	}
-	void viterbi_decode_test(){
+	python::list viterbi_decode_test(){
+		python::list result_list;
 		vector<Node*> nodes;
 		_before_viterbi_decode(nodes);
 		vector<Node*> series;
 		for(int data_index = 0;data_index < _dataset_test.size();data_index++){
 			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
-				return;
+				return result_list;
 			}
 			vector<Word*> &data = _dataset_test[data_index];
+			python::list tuple_list;
 			viterbi_decode_data(data, nodes, series);
 			for(int i = 0;i < data.size();i++){
-				wstring &word = _dictionary[data[i]->_id];
-				string tag = series[i]->_dump_indices();
-				wcout << word << L" ";
-				cout << "[" << tag << "]" << endl;
+				python::list tuple;
+				wstring word = _dictionary[data[i]->_id];
+				wstring tag = L"[" + series[i]->_wdump_indices() + L"]";
+				tuple.append(word);
+				tuple.append(tag);
+				tuple_list.append(tuple);
 			}
+			result_list.append(tuple_list);
 		}
 		_after_viterbi_decode();
+		return result_list;
 	}
-	void viterbi_decode_train(){
+	python::list viterbi_decode_train(){
+		python::list result_list;
 		vector<Node*> nodes;
 		_before_viterbi_decode(nodes);
+		vector<Node*> series;
+		for(int data_index = 0;data_index < _dataset_train.size();data_index++){
+			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
+				return result_list;
+			}
+			vector<Word*> &data = _dataset_train[data_index];
+			python::list tuple_list;
+			viterbi_decode_data(data, nodes, series);
+			for(int i = 0;i < data.size();i++){
+				python::list tuple;
+				wstring word = _dictionary[data[i]->_id];
+				wstring tag = L"[" + series[i]->_wdump_indices() + L"]";
+				tuple.append(word);
+				tuple.append(tag);
+				tuple_list.append(tuple);
+			}
+			result_list.append(tuple_list);
+		}
 		_after_viterbi_decode();
+		return result_list;
 	}
 	// 状態系列の復号
 	// ビタビアルゴリズム
@@ -600,11 +644,36 @@ BOOST_PYTHON_MODULE(model){
 	.def("compile", &PyInfiniteTreeHMM::compile)
 	.def("load", &PyInfiniteTreeHMM::load)
 	.def("save", &PyInfiniteTreeHMM::save)
-	.def("add_train_data", &PyInfiniteTreeHMM::add_train_data)
-	.def("mark_low_frequency_words_as_unknown", &PyInfiniteTreeHMM::mark_low_frequency_words_as_unknown)
 	.def("load_textfile", &PyInfiniteTreeHMM::load_textfile)
+	.def("add_train_data", &PyInfiniteTreeHMM::add_train_data)
+	.def("add_test_data", &PyInfiniteTreeHMM::add_test_data)
+	.def("mark_low_frequency_words_as_unknown", &PyInfiniteTreeHMM::mark_low_frequency_words_as_unknown)
 	.def("update_hyperparameters", &PyInfiniteTreeHMM::update_hyperparameters)
 	.def("get_num_words", &PyInfiniteTreeHMM::get_num_words)
 	.def("get_count_for_word", &PyInfiniteTreeHMM::get_count_for_word)
+	.def("get_alpha", &PyInfiniteTreeHMM::get_alpha)
+	.def("get_gamma", &PyInfiniteTreeHMM::get_gamma)
+	.def("get_lambda", &PyInfiniteTreeHMM::get_lambda)
+	.def("get_strength", &PyInfiniteTreeHMM::get_strength)
+	.def("get_tau0", &PyInfiniteTreeHMM::get_tau0)
+	.def("get_tau1", &PyInfiniteTreeHMM::get_tau1)
+	.def("set_alpha", &PyInfiniteTreeHMM::set_alpha)
+	.def("set_gamma", &PyInfiniteTreeHMM::set_gamma)
+	.def("set_lambda", &PyInfiniteTreeHMM::set_lambda)
+	.def("set_strength", &PyInfiniteTreeHMM::set_strength)
+	.def("set_tau0", &PyInfiniteTreeHMM::set_tau0)
+	.def("set_tau1", &PyInfiniteTreeHMM::set_tau1)
+	.def("set_depth_limit", &PyInfiniteTreeHMM::set_depth_limit)
+	.def("viterbi_decode_train", &PyInfiniteTreeHMM::viterbi_decode_train)
+	.def("viterbi_decode_test", &PyInfiniteTreeHMM::viterbi_decode_test)
+	.def("show_typical_words_for_each_tag", &PyInfiniteTreeHMM::show_typical_words_for_each_tag)
+	.def("show_hpylm_for_each_tag", &PyInfiniteTreeHMM::show_hpylm_for_each_tag)
+	.def("show_sticks", &PyInfiniteTreeHMM::show_sticks)
+	.def("compute_perplexity_test", &PyInfiniteTreeHMM::compute_perplexity_test)
+	.def("compute_perplexity_train", &PyInfiniteTreeHMM::compute_perplexity_train)
+	.def("compute_log2_Pdataset_test", &PyInfiniteTreeHMM::compute_log2_Pdataset_test)
+	.def("compute_log2_Pdataset_train", &PyInfiniteTreeHMM::compute_log2_Pdataset_train)
+	.def("compute_log_Pdataset_test", &PyInfiniteTreeHMM::compute_log_Pdataset_test)
+	.def("compute_log_Pdataset_train", &PyInfiniteTreeHMM::compute_log_Pdataset_train)
 	.def("remove_all_data", &PyInfiniteTreeHMM::remove_all_data);
 }

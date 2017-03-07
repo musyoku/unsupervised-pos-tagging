@@ -142,6 +142,7 @@ public:
 	Node* delete_child_node(int node_id);
 	void dump();
 	string _dump_indices();
+	wstring _wdump_indices();
 	string _dump();
 };
 #endif
