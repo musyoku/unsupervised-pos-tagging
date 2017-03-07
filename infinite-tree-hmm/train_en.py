@@ -116,7 +116,7 @@ def main(args):
 
 	# 深さを制限する場合
 	# コメントアウトか-1指定で無限大
-	ithmm.set_depth_limit(1)
+	ithmm.set_depth_limit(args.depth_limit)
 
 	ithmm.mark_low_frequency_words_as_unknown(args.unknown_threshold)	# 低頻度語を全て<unk>に置き換える
 	ithmm.compile()	# 品詞をランダムに割り当てる初期化
@@ -144,5 +144,6 @@ if __name__ == "__main__":
 	parser.add_argument("-e", "--epoch", type=int, default=1000000, help="総epoch.")
 	parser.add_argument("-m", "--model", type=str, default="out", help="保存フォルダ名.")
 	parser.add_argument("-u", "--unknown-threshold", type=int, default=0, help="出現回数がこの値以下の単語は<unk>に置き換える.")
+	parser.add_argument("-d", "--depth-limit", type=int, default=-1, help="最大の深さ.")
 	parser.add_argument("-l", "--train-split", type=int, default=None, help="テキストデータの最初の何行を訓練データにするか.")
 	main(parser.parse_args())
