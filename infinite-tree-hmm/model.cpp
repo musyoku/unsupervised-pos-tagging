@@ -33,6 +33,7 @@ private:
 	int _max_num_words_in_line;
 	int _min_num_words_in_line;
 	double** _forward_table;		// 前向き確率計算用
+	double** _decode_table;		// viterbiデコーディング用
 public:
 	iTHMM* _ithmm;
 	PyInfiniteTreeHMM(){
@@ -59,6 +60,7 @@ public:
 		_min_num_words_in_line = -1;
 
 		_forward_table = NULL;
+		_decode_table = NULL;
 	}
 	~PyInfiniteTreeHMM(){
 		delete _ithmm;
@@ -76,6 +78,24 @@ public:
 				delete word;
 			}
 		}
+	}
+	void set_alpha(double alpha){
+		_ithmm->_alpha = alpha;
+	}
+	void set_gamma(double gamma){
+		_ithmm->_gamma = gamma;
+	}
+	void set_lambda(double lambda){
+		_ithmm->_lambda = lambda;
+	}
+	void set_strength(double strength){
+		_ithmm->_strength = strength;
+	}
+	void set_tau0(double tau0){
+		_ithmm->_tau0 = tau0;
+	}
+	void set_tau1(double tau1){
+		_ithmm->_tau1 = tau1;
 	}
 	id add_string(wstring word){
 		auto itr = _dictionary_inv.find(word);
@@ -242,6 +262,105 @@ public:
 		}
 		_ithmm->delete_invalid_children();
 	}
+	void _before_viterbi_decode(vector<Node*> &nodes){
+		_before_compute_log_Pdataset(nodes);
+		_decode_table = new double*[_max_num_words_in_line];
+		for(int i = 0;i < _max_num_words_in_line;i++){
+			_decode_table[i] = new double[nodes.size()];
+		}
+	}
+	void _after_viterbi_decode(){
+		_after_compute_log_Pdataset();
+		for(int i = 0;i < _max_num_words_in_line;i++){
+			delete[] _decode_table[i];
+		}
+		delete[] _decode_table;
+	}
+	void viterbi_decode_test(){
+		vector<Node*> nodes;
+		_before_viterbi_decode(nodes);
+		vector<Node*> series;
+		for(int data_index = 0;data_index < _dataset_test.size();data_index++){
+			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
+				return;
+			}
+			vector<Word*> &data = _dataset_test[data_index];
+			viterbi_decode_data(data, nodes, series);
+			for(int i = 0;i < data.size();i++){
+				wstring &word = _dictionary[data[i]->_id];
+				string tag = series[i]->_dump_indices();
+				wcout << word << L" ";
+				cout << "[" << tag << "]" << endl;
+			}
+		}
+		_after_viterbi_decode();
+	}
+	void viterbi_decode_train(){
+		vector<Node*> nodes;
+		_before_viterbi_decode(nodes);
+		_after_viterbi_decode();
+	}
+	// 状態系列の復号
+	// ビタビアルゴリズム
+	void viterbi_decode_data(vector<Word*> &data, vector<Node*> &states, vector<Node*> &series){
+		// 初期化
+		Word* word = data[0];
+		for(int i = 0;i < states.size();i++){
+			Node* state = states[i];
+			Node* state_on_bos = _ithmm->_bos_tssb->find_node_by_tracing_horizontal_indices(state);
+			assert(state_on_bos != NULL);
+			double Ps = state_on_bos->_probability;
+			double Pword_given_s = _ithmm->compute_Pw_given_s(word->_id, state);
+			assert(Ps > 0);
+			assert(Pword_given_s > 0);
+			_forward_table[0][i] = Pword_given_s * Ps;
+			_decode_table[0][i] = 0;
+		}
+		for(int t = 1;t < data.size();t++){
+			Word* word = data[t];
+			for(int j = 0;j < states.size();j++){
+				Node* state = states[j];
+				_forward_table[t][j] = 0;
+				double max_value = 0;
+				double Pword_given_s = _ithmm->compute_Pw_given_s(word->_id, state);
+				for(int i = 0;i < states.size();i++){
+					Node* prev_state = states[i];
+					Node* state_on_prev_htssb = prev_state->_transition_tssb->find_node_by_tracing_horizontal_indices(state);
+					assert(state_on_prev_htssb != NULL);
+					double Ps_given_prev = state_on_prev_htssb->_probability;
+					double value = Ps_given_prev * _forward_table[t - 1][i];
+					if(value > max_value){
+						max_value = value;
+						_forward_table[t][j] = value * Pword_given_s;
+						_decode_table[t][j] = i;
+					}
+				}
+			}
+		}
+		// 後ろ向きに系列を復元
+		vector<int> series_indices;
+		int n = data.size() - 1;
+		int k = 0;
+		double max_value = 0;
+		for(int i = 0;i < states.size();i++){
+			if(_forward_table[n][i] > max_value){
+				k = i;
+				max_value = _forward_table[n][i];
+			}
+		}
+		series_indices.push_back(k);
+		for(int t = n - 1;t >= 0;t--){
+			k = _decode_table[t + 1][series_indices[n - t - 1]];
+			series_indices.push_back(k);
+		}
+		std::reverse(series_indices.begin(), series_indices.end());
+		// ノードをセット
+		series.clear();
+		for(int t = 0;t <= n;t++){
+			int k = series_indices[t];
+			series.push_back(states[k]);
+		}
+	}
 	// データの対数尤度を計算
 	// 前向きアルゴリズム
 	double compute_Pdata(vector<Word*> &data, vector<Node*> &states){
@@ -262,12 +381,12 @@ public:
 			for(int j = 0;j < states.size();j++){
 				Node* state = states[j];
 				_forward_table[t][j] = 0;
+				double Pword_given_s = _ithmm->compute_Pw_given_s(word->_id, state);
 				for(int i = 0;i < states.size();i++){
 					Node* prev_state = states[i];
 					Node* state_on_prev_htssb = prev_state->_transition_tssb->find_node_by_tracing_horizontal_indices(state);
 					assert(state_on_prev_htssb != NULL);
 					double Ps_given_prev = state_on_prev_htssb->_probability;
-					double Pword_given_s = _ithmm->compute_Pw_given_s(word->_id, state);
 					_forward_table[t][j] += Pword_given_s * Ps_given_prev * _forward_table[t - 1][i];
 				}
 			}

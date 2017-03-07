@@ -656,7 +656,7 @@ void test28(){
 void test29(){
 	string filename = "../alice.txt";
 	PyInfiniteTreeHMM* model = new PyInfiniteTreeHMM();
-	model->set_depth_limit(2);
+	model->set_depth_limit(1);
 	model->load_textfile(filename, 1100);
 
 	string dir = "out";
@@ -793,8 +793,29 @@ void test36(){
 	model->show_hpylm_for_each_tag();
 }
 
+void test37(){
+	string filename = "../alice.txt";
+	string dir = "out";
+	PyInfiniteTreeHMM* model = new PyInfiniteTreeHMM();
+	model->load(dir);
+	model->load_textfile(filename, 1100);
+	model->show_typical_words_for_each_tag(20, false);
+	cout << model->get_num_words() << " words" << endl;
+	cout << "alpha: " << model->_ithmm->_alpha << endl;
+	cout << "gamma: " << model->_ithmm->_gamma << endl;
+	cout << "lambda: " << model->_ithmm->_lambda << endl;
+	cout << "strength: " << model->_ithmm->_strength << endl;
+	cout << "log_Pdata: " << model->compute_log_Pdataset_test() << endl;
+	cout << "PPL: " << model->compute_perplexity_test() << endl;
+	for(int i = 0;i <= model->_ithmm->_current_max_depth;i++){
+		cout << "d[" << i << "] = " << model->_ithmm->_hpylm_d_m[i] << endl;
+		cout << "theta[" << i << "] = " << model->_ithmm->_hpylm_theta_m[i] << endl;
+	}
+	model->viterbi_decode_test();
+}
+
 int main(){
 	// iTHMM* model = new iTHMM();
-	test29();
+	test37();
 	return 0;
 }

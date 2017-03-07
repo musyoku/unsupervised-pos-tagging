@@ -12,7 +12,6 @@ namespace {
 	python::list list_from_vector(vector<T> &vec){  
 		 python::list list;
 		 typename vector<T>::const_iterator it;
-
 		 for(it = vec.begin(); it != vec.end(); ++it){
 			  list.append(*it);
 		 }
