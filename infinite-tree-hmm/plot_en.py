@@ -89,7 +89,7 @@ def main(args):
 	plt.xlabel(u"予測タグ")
 	plt.ylabel(u"正解品詞")
 	heatmap = ax.get_figure()
-	heatmap.savefig("pos.png")
+	heatmap.savefig("{}/pos.png".format(args.model))
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
