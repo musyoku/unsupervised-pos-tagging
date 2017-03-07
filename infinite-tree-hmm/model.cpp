@@ -100,6 +100,26 @@ public:
 	double get_metropolis_hastings_acceptance_rate(){
 		return _ithmm->_num_mh_acceptance / (double)(_ithmm->_num_mh_acceptance + _ithmm->_num_mh_rejection);
 	}
+	int get_num_words(){
+		return _word_count.size();
+	}
+	int get_count_for_word(id word_id){
+		auto itr = _word_count.find(word_id);
+		if(itr == _word_count.end()){
+			return 0;
+		}
+		return itr->second;
+	}
+	python::list get_all_tags(){
+		python::list tags;
+		vector<Node*> nodes;
+		_ithmm->_structure_tssb->enumerate_nodes_from_left_to_right(nodes);
+		for(const auto &node: nodes){
+			string indices = "[" + node->_dump_indices() + "]";
+			tags.append(indices);
+		}
+		return tags;
+	}
 	void set_alpha(double alpha){
 		_ithmm->_alpha = alpha;
 	}
@@ -212,16 +232,6 @@ public:
 				_min_num_words_in_line = words.size();
 			}
 		}
-	}
-	int get_num_words(){
-		return _word_count.size();
-	}
-	int get_count_for_word(id word_id){
-		auto itr = _word_count.find(word_id);
-		if(itr == _word_count.end()){
-			return 0;
-		}
-		return itr->second;
 	}
 	void mark_low_frequency_words_as_unknown(int threshold = 1){
 		for(int data_index = 0;data_index < _dataset_train.size();data_index++){
@@ -664,6 +674,7 @@ BOOST_PYTHON_MODULE(model){
 	.def("get_tau0", &PyInfiniteTreeHMM::get_tau0)
 	.def("get_tau1", &PyInfiniteTreeHMM::get_tau1)
 	.def("get_metropolis_hastings_acceptance_rate", &PyInfiniteTreeHMM::get_metropolis_hastings_acceptance_rate)
+	.def("get_all_tags", &PyInfiniteTreeHMM::get_all_tags)
 	.def("set_alpha", &PyInfiniteTreeHMM::set_alpha)
 	.def("set_gamma", &PyInfiniteTreeHMM::set_gamma)
 	.def("set_lambda", &PyInfiniteTreeHMM::set_lambda)

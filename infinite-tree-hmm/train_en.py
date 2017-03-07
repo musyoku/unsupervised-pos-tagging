@@ -37,18 +37,22 @@ def collapse_pos(pos):
 def parse_tagger_result_str(result_str):
 	result = result_str.split("\t")
 	if len(result) == 1:		# URLなど
-		lowercase = result[0]
-		match = re.search(r"<([^ ]+) ", lowercase)
-		lowercase = "<" + match.group(1) + ">"
-		pos = "SYM"
+		word = result[0]
+		if word == "<eos>":
+			pos = "EOS"
+		else:
+			match = re.search(r"<([^ ]+)", word)
+			word = "<" + match.group(1) + ">"
+			pos = "SYM"
 	else:
-		word, pos, lowercase = result
-	if lowercase == "@card@":
-		lowercase = "##"
-	if lowercase == "@ord@":
-		lowercase = "##"
+		word, pos, orig = result
+		word = word.lower()
+		if orig == "@card@":
+			word = "##"
+		if orig == "@ord@":
+			word = "##"
 	pos = collapse_pos(pos)
-	return pos, lowercase
+	return pos, word
 
 class stdout:
 	BOLD = "\033[1m"
@@ -81,8 +85,9 @@ def main(args):
 		data = re.sub(ur"\n", "", data)
 		data = re.sub(ur" +$", "",  data)	# 行末の空白を除去
 		data = re.sub(ur"^ +", "",  data)	# 行頭の空白を除去
-		sys.stdout.write("\r{}行目を処理中です ...".format(i))
-		sys.stdout.flush()
+		if i % 10 == 0:
+			sys.stdout.write("\r{}行目を処理中です ...".format(i))
+			sys.stdout.flush()
 		results = tagger.tag_text(data)
 		if len(results) == 0:
 			continue
@@ -97,7 +102,7 @@ def main(args):
 			segmentation += lowercase + " "
 		segmentation = re.sub(r" +$", "",  segmentation)	# 行末の空白を除去
 		if i > args.train_split:
-			ithmm.add_test_data(segmentation)	# 学習用データに追加
+			ithmm.add_test_data(segmentation)	# テストデータに追加
 		else:
 			ithmm.add_train_data(segmentation)	# 学習用データに追加
 			num_words_in_train_dataset += len(results)
@@ -106,8 +111,8 @@ def main(args):
 	print "テストデータ数:", len(dataset) - args.train_split, stdout.END
 
 	# ハイパーパラメータの設定
-	ithmm.set_alpha(random.uniform(2, 10))
-	ithmm.set_gamma(random.uniform(0.1, 1))
+	ithmm.set_alpha(random.uniform(5, 10))
+	ithmm.set_gamma(random.uniform(0.3, 1))
 	ithmm.set_lambda(random.uniform(0.001, 0.05))
 	ithmm.set_strength(random.uniform(0.5, 5))
 	ithmm.set_tau0(1)
@@ -137,8 +142,8 @@ def main(args):
 			log_likelihood = ithmm.compute_log_Pdataset_test() 
 			perplexity = ithmm.compute_perplexity_test()
 			print "alpha:", ithmm.get_alpha(), "gamma:", ithmm.get_gamma(), "lambda:", ithmm.get_lambda(), "strength:", ithmm.get_strength(), "tau0:", ithmm.get_tau0(), "tau1:", ithmm.get_tau1()
-			print "log_likelihood:", log_likelihood
-			print "perplexity:", perplexity
+			print "log_likelihood:", int(log_likelihood)
+			print "perplexity:", int(perplexity)
 			# print "MH:", ithmm.get_metropolis_hastings_acceptance_rate() 
 			ithmm.save(args.model);
 			# CSV出力

@@ -50,6 +50,7 @@ private:
 		archive & _tau1;
 		archive & _word_g0;
 		archive & _current_max_depth;
+		archive & _depth_limit;
 		archive & _hpylm_d_m;
 		archive & _hpylm_theta_m;
 		archive & _hpylm_a_m;
