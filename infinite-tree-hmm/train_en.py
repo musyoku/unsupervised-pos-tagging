@@ -120,6 +120,7 @@ def main(args):
 
 	ithmm.mark_low_frequency_words_as_unknown(args.unknown_threshold)	# 低頻度語を全て<unk>に置き換える
 	ithmm.compile()	# 品詞をランダムに割り当てる初期化
+	ithmm.set_metropolis_hastings_enabled(False)
 
 	for epoch in xrange(1, args.epoch + 1):
 		start = time.time()
@@ -134,6 +135,7 @@ def main(args):
 			print "alpha:", ithmm.get_alpha(), "gamma:", ithmm.get_gamma(), "lambda:", ithmm.get_lambda(), "strength:", ithmm.get_strength(), "tau0:", ithmm.get_tau0(), "tau1:", ithmm.get_tau1()
 			print "logP(x):", ithmm.compute_log_Pdataset_test() 
 			print "PPL:", ithmm.compute_perplexity_test() 
+			print "MH:", ithmm.get_metropolis_hastings_acceptance_rate() 
 			ithmm.save(args.model);
 
 if __name__ == "__main__":

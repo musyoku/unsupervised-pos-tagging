@@ -75,6 +75,7 @@ public:
 	vector<double> _hpylm_b_m;		// ベータ分布のパラメータ	dの推定用
 	vector<double> _hpylm_alpha_m;	// ガンマ分布のパラメータ	θの推定用
 	vector<double> _hpylm_beta_m;	// ガンマ分布のパラメータ	θの推定用
+	bool _mh_enabled;				// メトロポリス・ヘイスティングス法による補正を行うかどうか
 	// 統計
 	int _num_mh_acceptance;
 	int _num_mh_rejection;
@@ -114,6 +115,7 @@ public:
 		_hpylm_alpha_m.push_back(HPYLM_ALPHA);
 		_hpylm_beta_m.push_back(HPYLM_BETA);
 
+		_mh_enabled = true;
 		_num_mh_rejection = 0;
 		_num_mh_acceptance = 0;
 	}
@@ -814,6 +816,10 @@ public:
 			double likelihoood = new_Pw_given_s * new_Pnext_given_s;
 
 			if(likelihoood > slice){
+				if(_mh_enabled == false){
+					_num_mh_acceptance += 1;
+					return new_state_on_structure;
+				}
 				// メトロポリス・ヘイスティングス法
 				Node* state_on_prev_htssb = prev_state_on_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(state_on_structure);
 				assert(state_on_prev_htssb != NULL);

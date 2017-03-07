@@ -97,6 +97,9 @@ public:
 	double get_tau1(){
 		return _ithmm->_tau1;
 	}
+	double get_metropolis_hastings_acceptance_rate(){
+		return _ithmm->_num_mh_acceptance / (double)(_ithmm->_num_mh_acceptance + _ithmm->_num_mh_rejection);
+	}
 	void set_alpha(double alpha){
 		_ithmm->_alpha = alpha;
 	}
@@ -117,6 +120,9 @@ public:
 	}
 	void set_depth_limit(int limit){
 		_ithmm->set_depth_limit(limit);
+	}
+	void set_metropolis_hastings_enabled(bool enabled){
+		_ithmm->_mh_enabled = enabled;
 	}
 	id add_string(wstring word){
 		auto itr = _dictionary_inv.find(word);
@@ -657,6 +663,7 @@ BOOST_PYTHON_MODULE(model){
 	.def("get_strength", &PyInfiniteTreeHMM::get_strength)
 	.def("get_tau0", &PyInfiniteTreeHMM::get_tau0)
 	.def("get_tau1", &PyInfiniteTreeHMM::get_tau1)
+	.def("get_metropolis_hastings_acceptance_rate", &PyInfiniteTreeHMM::get_metropolis_hastings_acceptance_rate)
 	.def("set_alpha", &PyInfiniteTreeHMM::set_alpha)
 	.def("set_gamma", &PyInfiniteTreeHMM::set_gamma)
 	.def("set_lambda", &PyInfiniteTreeHMM::set_lambda)
@@ -664,6 +671,7 @@ BOOST_PYTHON_MODULE(model){
 	.def("set_tau0", &PyInfiniteTreeHMM::set_tau0)
 	.def("set_tau1", &PyInfiniteTreeHMM::set_tau1)
 	.def("set_depth_limit", &PyInfiniteTreeHMM::set_depth_limit)
+	.def("set_metropolis_hastings_enabled", &PyInfiniteTreeHMM::set_metropolis_hastings_enabled)
 	.def("viterbi_decode_train", &PyInfiniteTreeHMM::viterbi_decode_train)
 	.def("viterbi_decode_test", &PyInfiniteTreeHMM::viterbi_decode_test)
 	.def("show_typical_words_for_each_tag", &PyInfiniteTreeHMM::show_typical_words_for_each_tag)
