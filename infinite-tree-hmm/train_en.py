@@ -138,7 +138,7 @@ def main(args):
 		sys.stdout.flush()
 		if epoch % 100 == 0:
 			print "\n"
-			ithmm.show_typical_words_for_each_tag(20, False);
+			ithmm.show_assigned_words_for_each_tag(20, False);
 			log_likelihood = ithmm.compute_log_Pdataset_test() 
 			perplexity = ithmm.compute_perplexity_test()
 			print "alpha:", ithmm.get_alpha(), "gamma:", ithmm.get_gamma(), "lambda:", ithmm.get_lambda(), "strength:", ithmm.get_strength(), "tau0:", ithmm.get_tau0(), "tau1:", ithmm.get_tau1()

@@ -556,7 +556,7 @@ public:
 	void update_hyperparameters(){
 		_ithmm->sample_hpylm_hyperparameters();
 	}
-	void show_typical_words_for_each_tag(int number_to_show_for_each_tag, bool show_probability = true){
+	void show_assigned_words_for_each_tag(int number_to_show_for_each_tag, bool show_probability = true){
 		auto pair = std::make_pair(0, 0);
 		vector<Node*> nodes;
 		_ithmm->_structure_tssb->enumerate_nodes_from_left_to_right(nodes);
@@ -586,6 +586,31 @@ public:
 					wcout << L";p=" << p;
 				} 
 				wcout << L") ";
+				n++;
+				if(n > number_to_show_for_each_tag){
+					break;
+				}
+			}
+			wcout << endl;
+			ranking.clear();
+		}
+	}
+	void show_assigned_words_and_probability_for_each_tag(int number_to_show_for_each_tag){
+		auto pair = std::make_pair(0, 0);
+		vector<Node*> nodes;
+		_ithmm->_structure_tssb->enumerate_nodes_from_left_to_right(nodes);
+		for(const auto &node: nodes){
+			multiset<std::pair<id, double>, multiset_value_comparator> ranking;
+			_ithmm->geneerate_word_ranking_of_node(node, ranking);
+			int n = 0;
+			string indices = node->_dump_indices();
+			cout << "\x1b[32;1m" << "[" << indices << "]" << "\x1b[0m" << endl;
+			for(const auto &elem: ranking){
+				id word_id = elem.first;
+				wstring &word = _dictionary[word_id];
+				double p = elem.second;
+				int count = node->_num_word_assignment[word_id];
+				wcout << "\x1b[1m" << word << "\x1b[0m" << L"	" << count << L"	" << p << endl;
 				n++;
 				if(n > number_to_show_for_each_tag){
 					break;
@@ -685,7 +710,8 @@ BOOST_PYTHON_MODULE(model){
 	.def("set_metropolis_hastings_enabled", &PyInfiniteTreeHMM::set_metropolis_hastings_enabled)
 	.def("viterbi_decode_train", &PyInfiniteTreeHMM::viterbi_decode_train)
 	.def("viterbi_decode_test", &PyInfiniteTreeHMM::viterbi_decode_test)
-	.def("show_typical_words_for_each_tag", &PyInfiniteTreeHMM::show_typical_words_for_each_tag)
+	.def("show_assigned_words_for_each_tag", &PyInfiniteTreeHMM::show_assigned_words_for_each_tag)
+	.def("show_assigned_words_and_probability_for_each_tag", &PyInfiniteTreeHMM::show_assigned_words_and_probability_for_each_tag)
 	.def("show_hpylm_for_each_tag", &PyInfiniteTreeHMM::show_hpylm_for_each_tag)
 	.def("show_sticks", &PyInfiniteTreeHMM::show_sticks)
 	.def("compute_perplexity_test", &PyInfiniteTreeHMM::compute_perplexity_test)

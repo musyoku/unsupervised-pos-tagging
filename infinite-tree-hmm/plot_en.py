@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# coding: utf-8
 import argparse, sys, re, pylab, codecs
 import treetaggerwrapper
 import pandas as pd
