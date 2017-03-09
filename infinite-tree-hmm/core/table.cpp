@@ -27,7 +27,9 @@ void Table::add_customer(double concentration_parameter, double g0, int num_tota
 	new_table_generated = false;
 	double sum = std::accumulate(_arrangement.begin(), _arrangement.end(), 0);
 	double scale = num_total_customers / sum;
-	sum = num_total_customers + concentration_parameter * g0;
+	// g0を掛けるかどうかがよく分からない
+	// sum = num_total_customers + concentration_parameter * g0;
+	sum = num_total_customers + concentration_parameter;
 	double normalizer = 1.0 / sum;
 	double bernoulli = Sampler::uniform(0, 1);
 	sum = 0;

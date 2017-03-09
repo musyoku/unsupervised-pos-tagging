@@ -1,3 +1,46 @@
-under :construction:
+## 無限木構造隠れMarkovモデルによる階層的品詞の教師なし学習
 
-[無限木構造隠れMarkovモデルによる階層的品詞の教師なし学習](http://chasen.org/~daiti-m/paper/nl226ithmm.pdf)
+- [無限木構造隠れMarkovモデルによる階層的品詞の教師なし学習](http://chasen.org/~daiti-m/paper/nl226ithmm.pdf)
+- [実装について](http://musyoku.github.io/2017/03/09/%E7%84%A1%E9%99%90%E6%9C%A8%E6%A7%8B%E9%80%A0%E9%9A%A0%E3%82%8CMarkov%E3%83%A2%E3%83%87%E3%83%AB%E3%81%AB%E3%82%88%E3%82%8B%E9%9A%8E%E5%B1%A4%E7%9A%84%E5%93%81%E8%A9%9E%E3%81%AE%E6%95%99%E5%B8%AB%E3%81%AA%E3%81%97%E5%AD%A6%E7%BF%92/)
+
+#### Todo:
+
+- [ ] メトロポリス・ヘイスティングス法
+- [ ] 日本語の学習用コード
+
+## ビルド
+
+```
+make install
+```
+
+## 英語
+
+### 学習
+
+`alice.txt`を用いる場合
+
+`-l`で訓練データのうち何行を訓練ようにするかを指定します。
+
+残りのデータはテスト用になり、対数尤度やパープレキシティはすべてテストデータを用いて計算します。
+
+`-d`で木の深さを固定できます。
+
+```
+python train_en.py -f ../alice.txt -d 2 -l 1100
+```
+
+### 結果の可視化
+
+それぞれの状態の出力分布から確率の高い単語のランキングを表示
+
+```
+python show.py --words
+```
+
+木の形と割り当てられた単語を確認
+
+```
+python show.py --tssb
+```
+
