@@ -6,8 +6,10 @@
 #define iTHMM_ALPHA_MAX 10
 #define iTHMM_GAMMA_MIN 0.1
 #define iTHMM_GAMMA_MAX 1
-#define iTHMM_LAMBDA_MIN 0.001	// 0以上1以下
-#define iTHMM_LAMBDA_MAX 0.05	// 0以上1以下
+#define iTHMM_LAMBDA_ALPHA_MIN 0.001	// 0以上1以下
+#define iTHMM_LAMBDA_ALPHA_MAX 0.05		// 0以上1以下
+#define iTHMM_LAMBDA_GAMMA_MIN 0.001	// 0以上1以下. 両方1にすればオリジナルのiTHMMと同等
+#define iTHMM_LAMBDA_GAMMA_MAX 0.05		// 0以上1以下
 // HTSSBで親の情報をどの程度受け継ぐかを制御するパラメータ
 // 論文では上のαと同じ記号が使われているが区別する必要がある
 #define iTHMM_STRENGTH_MIN 0.5

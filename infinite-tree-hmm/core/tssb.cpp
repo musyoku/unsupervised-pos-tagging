@@ -3,19 +3,13 @@
 #include "node.hpp"
 
 TSSB::TSSB(){
-	_root = NULL;
-	_owner_id = 0;
-	_owner = NULL;
-	_num_customers = 0;
-}
-TSSB::TSSB(double alpha, double gamma, double lambda){
 	_root = new Node(NULL);
 	_root->_stick_length = 1;
 	_owner_id = 0;
 	_owner = NULL;
 	_num_customers = 0;
 }
-TSSB::TSSB(Node* root, double alpha, double gamma, double lambda){
+TSSB::TSSB(Node* root){
 	_root = root;
 	_owner_id = 0;
 	_owner = NULL;

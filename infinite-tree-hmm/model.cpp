@@ -85,8 +85,11 @@ public:
 	double get_gamma(){
 		return _ithmm->_gamma;
 	}
-	double get_lambda(){
-		return _ithmm->_lambda;
+	double get_lambda_alpha(){
+		return _ithmm->_lambda_alpha;
+	}
+	double get_lambda_gamma(){
+		return _ithmm->_lambda_gamma;
 	}
 	double get_strength(){
 		return _ithmm->_strength;
@@ -126,8 +129,11 @@ public:
 	void set_gamma(double gamma){
 		_ithmm->_gamma = gamma;
 	}
-	void set_lambda(double lambda){
-		_ithmm->_lambda = lambda;
+	void set_lambda_alpha(double lambda_alpha){
+		_ithmm->_lambda_alpha = lambda_alpha;
+	}
+	void set_lambda_gamma(double lambda_gamma){
+		_ithmm->_lambda_gamma = lambda_gamma;
 	}
 	void set_strength(double strength){
 		_ithmm->_strength = strength;
@@ -694,7 +700,8 @@ BOOST_PYTHON_MODULE(model){
 	.def("get_count_for_word", &PyInfiniteTreeHMM::get_count_for_word)
 	.def("get_alpha", &PyInfiniteTreeHMM::get_alpha)
 	.def("get_gamma", &PyInfiniteTreeHMM::get_gamma)
-	.def("get_lambda", &PyInfiniteTreeHMM::get_lambda)
+	.def("get_lambda_alpha", &PyInfiniteTreeHMM::get_lambda_alpha)
+	.def("get_lambda_gamma", &PyInfiniteTreeHMM::get_lambda_gamma)
 	.def("get_strength", &PyInfiniteTreeHMM::get_strength)
 	.def("get_tau0", &PyInfiniteTreeHMM::get_tau0)
 	.def("get_tau1", &PyInfiniteTreeHMM::get_tau1)
@@ -702,7 +709,8 @@ BOOST_PYTHON_MODULE(model){
 	.def("get_all_tags", &PyInfiniteTreeHMM::get_all_tags)
 	.def("set_alpha", &PyInfiniteTreeHMM::set_alpha)
 	.def("set_gamma", &PyInfiniteTreeHMM::set_gamma)
-	.def("set_lambda", &PyInfiniteTreeHMM::set_lambda)
+	.def("set_lambda_alpha", &PyInfiniteTreeHMM::set_lambda_alpha)
+	.def("set_lambda_gamma", &PyInfiniteTreeHMM::set_lambda_gamma)
 	.def("set_strength", &PyInfiniteTreeHMM::set_strength)
 	.def("set_tau0", &PyInfiniteTreeHMM::set_tau0)
 	.def("set_tau1", &PyInfiniteTreeHMM::set_tau1)

@@ -45,7 +45,8 @@ private:
 		archive & _bos_tssb;
 		archive & _alpha;
 		archive & _gamma;
-		archive & _lambda;
+		archive & _lambda_alpha;
+		archive & _lambda_gamma;
 		archive & _tau0;
 		archive & _tau1;
 		archive & _word_g0;
@@ -63,7 +64,8 @@ public:
 	TSSB* _bos_tssb;		// <bos>からの遷移を表すTSSB
 	double _alpha;
 	double _gamma;
-	double _lambda;
+	double _lambda_alpha;	// 縦のTSSBの減衰率. 論文のlambdaに該当
+	double _lambda_gamma;	// 横のTSSBの減衰率
 	double _strength;		// HTSSBにおいて親の情報をどの程度受け継ぐかをコントロール
 	double _tau0;
 	double _tau1;
@@ -83,14 +85,15 @@ public:
 	iTHMM(){
 		_alpha = Sampler::uniform(iTHMM_ALPHA_MIN, iTHMM_ALPHA_MAX);
 		_gamma = Sampler::uniform(iTHMM_GAMMA_MIN, iTHMM_GAMMA_MAX);
-		_lambda = Sampler::uniform(iTHMM_LAMBDA_MIN, iTHMM_LAMBDA_MAX);
+		_lambda_alpha = Sampler::uniform(iTHMM_LAMBDA_ALPHA_MIN, iTHMM_LAMBDA_ALPHA_MAX);
+		_lambda_gamma = Sampler::uniform(iTHMM_LAMBDA_GAMMA_MAX, iTHMM_LAMBDA_GAMMA_MAX);
 		_strength = Sampler::uniform(iTHMM_STRENGTH_MIN, iTHMM_STRENGTH_MAX);
 		_tau0 = iTHMM_TAU_0;
 		_tau1 = iTHMM_TAU_1;
 		_current_max_depth = 0;
 		_word_g0 = -1;
 
-		_structure_tssb = new TSSB(_alpha, _gamma, _lambda);
+		_structure_tssb = new TSSB();
 		_structure_tssb->_root->_owner_id_on_structure = TSSB_STRUCTURE_ID;
 		_structure_tssb->_owner_id = TSSB_STRUCTURE_ID;
 		Node* root_on_structure = _structure_tssb->_root;
@@ -99,14 +102,14 @@ public:
 		root_on_htssb->_owner_id_on_structure = root_on_structure->_identifier;
 		root_on_htssb->_owner_on_structure = root_on_structure;
 		root_on_htssb->_structure_tssb_myself = root_on_structure;
-		root_on_structure->_transition_tssb = new TSSB(root_on_htssb, _alpha, _gamma, _lambda);
+		root_on_structure->_transition_tssb = new TSSB(root_on_htssb);
 		root_on_structure->_transition_tssb->_owner_id = root_on_structure->_identifier;
 		root_on_structure->_transition_tssb_myself = root_on_htssb;
 
 		Node* root_on_bos = new Node(NULL, root_on_structure->_identifier);
 		root_on_bos->_owner_id_on_structure = TSSB_BOS_ID;		// そもそも木構造上に所有者がいないが気にしない
 		root_on_bos->_structure_tssb_myself = root_on_structure;
-		_bos_tssb = new TSSB(root_on_bos, _alpha, _gamma, _lambda);
+		_bos_tssb = new TSSB(root_on_bos);
 		_bos_tssb->_owner_id = TSSB_BOS_ID;
 
 		_hpylm_d_m.push_back(HPYLM_D);
@@ -329,7 +332,7 @@ public:
 		}
 		root_on_htssb->_structure_tssb_myself = root_on_structure;
 		copy_children_on_structure_to_transition_tssb(root_on_structure, root_on_htssb, owner_on_structure);
-		TSSB* target = new TSSB(root_on_htssb, _alpha, _gamma, _lambda);
+		TSSB* target = new TSSB(root_on_htssb);
 		target->_owner_id = owner_on_structure->_identifier;
 		target->_owner = owner_on_structure;
 		return target;
@@ -424,7 +427,6 @@ public:
 		// Node* last_node = NULL;
 		for(int i = 0;i < iterator->_children.size();i++){
 			Node* child = iterator->_children[i];
-			double alpha = _alpha * pow(_lambda, child->_depth_v);
 			double ratio_h = compute_expectation_of_horizontal_sbr_ratio(child, htssb_mode);
 			double ratio_v = compute_expectation_of_vertical_sbr_ratio(child, htssb_mode);
 			child->_stick_length = rest_stick_length * ratio_h;
@@ -994,12 +996,13 @@ public:
 	void add_customer_to_tssb_node(Node* target_on_tssb){
 		assert(target_on_tssb != NULL);
 		assert(is_node_on_htssb(target_on_tssb) == false);
-		double alpha = _alpha * pow(_lambda, target_on_tssb->_depth_v);
+		double alpha = _alpha * pow(_lambda_alpha, target_on_tssb->_depth_v);
+		double gamma = _gamma * pow(_lambda_gamma, std::max(0, target_on_tssb->_depth_v - 1));
 		bool new_table_generated = false;
 		// double ratio_v = compute_expectation_of_vertical_tssb_sbr_ratio(target_on_tssb);		// 特に計算しても意味はない
 		target_on_tssb->add_customer_to_vertical_crp(alpha, 0, new_table_generated);
 		// double ratio_h = compute_expectation_of_horizontal_tssb_sbr_ratio(target_on_tssb);		// 特に計算しても意味はない
-		target_on_tssb->add_customer_to_horizontal_crp(_gamma, 0, new_table_generated);
+		target_on_tssb->add_customer_to_horizontal_crp(gamma, 0, new_table_generated);
 		// 総客数のインクリメント
 		if(is_node_on_structure_tssb(target_on_tssb)){
 			_structure_tssb->increment_num_customers();
@@ -1220,13 +1223,14 @@ public:
 	double compute_expectation_of_vertical_tssb_sbr_ratio(Node* target_on_tssb){
 		int pass_count = target_on_tssb->_pass_count_v;
 		int stop_count = target_on_tssb->_stop_count_v;
-		double alpha = _alpha * pow(_lambda, target_on_tssb->_depth_v);
+		double alpha = _alpha * pow(_lambda_alpha, target_on_tssb->_depth_v);
 		return (1.0 + stop_count) / (1.0 + alpha + stop_count + target_on_tssb->_pass_count_v);
 	}
 	double compute_expectation_of_horizontal_tssb_sbr_ratio(Node* target_on_tssb){
 		int pass_count = target_on_tssb->_pass_count_h;
 		int stop_count = target_on_tssb->_stop_count_h;
-		return (1.0 + stop_count) / (1.0 + _gamma + stop_count + pass_count);
+		double gamma = _gamma * pow(_lambda_gamma, std::max(0, target_on_tssb->_depth_v - 1));
+		return (1.0 + stop_count) / (1.0 + gamma + stop_count + pass_count);
 	}
 	double compute_expectation_of_vertical_htssb_sbr_ratio(Node* target_on_htssb){
 		// c_printf("[*]%s\n", "compute_expectation_of_vertical_htssb_sbr_ratio");
@@ -1268,7 +1272,7 @@ public:
 					int stop_count = iterator_on_htssb->_stop_count_v;
 					// cout << "pass_count = " << pass_count << ", stop_count = " << stop_count << endl;
 					// cout << "depth = " << iterator_on_htssb->_depth_v << endl;
-					double alpha = _alpha * pow(_lambda, iterator_on_htssb->_depth_v);
+					double alpha = _alpha * pow(_lambda_alpha, iterator_on_htssb->_depth_v);
 					// cout << "alpha = " << alpha << endl;
 					double ratio_v = (1.0 + stop_count) / (1.0 + alpha + stop_count + pass_count + EPS);
 					// cout << "ratio_v = " << ratio_v << endl;
@@ -1354,8 +1358,9 @@ public:
 				if(n == 0){		// 親ノードの場合
 					int pass_count = child_on_htssb->_pass_count_h;
 					int stop_count = child_on_htssb->_stop_count_h;
+					double gamma = _gamma * pow(_lambda_gamma, std::max(0, iterator_on_htssb->_depth_v - 1));
 					// cout << "pass_count = " << pass_count << ", stop_count = " << stop_count << endl;
-					double ratio_h = (1.0 + stop_count) / (1.0 + _gamma + stop_count + pass_count + EPS);
+					double ratio_h = (1.0 + stop_count) / (1.0 + gamma + stop_count + pass_count + EPS);
 					// assert(ratio_h < 1);
 					// cout << "ratio_h = " << ratio_h << endl;
 					stop_ratio_over_parent[m] = ratio_h;

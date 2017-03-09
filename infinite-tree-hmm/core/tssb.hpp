@@ -27,8 +27,7 @@ public:
 	Node* _owner;
 	int _num_customers;
 	TSSB();
-	TSSB(double alpha, double gamma, double lambda);
-	TSSB(Node* root, double alpha, double gamma, double lambda);
+	TSSB(Node* root);
 	~TSSB();
 	void _delete_children(Node* node);
 	void enumerate_nodes_from_left_to_right(vector<Node*> &nodes);

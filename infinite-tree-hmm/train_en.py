@@ -113,8 +113,9 @@ def main(args):
 	# ハイパーパラメータの設定
 	ithmm.set_alpha(random.uniform(10, 20))
 	ithmm.set_gamma(random.uniform(0.5, 1))
-	ithmm.set_lambda(random.uniform(0.001, 0.05))
-	ithmm.set_strength(random.uniform(1, 10))
+	ithmm.set_lambda_alpha(random.uniform(0.001, 0.05))
+	ithmm.set_lambda_gamma(random.uniform(0.001, 0.05))	# 1にすればオリジナルのiTHMMと同等
+	ithmm.set_strength(random.uniform(1, 10))			# HTSSBの集中度
 	ithmm.set_tau0(1)
 	ithmm.set_tau1(100)
 
@@ -141,7 +142,7 @@ def main(args):
 			ithmm.show_assigned_words_for_each_tag(20, False);
 			log_likelihood = ithmm.compute_log_Pdataset_test() 
 			perplexity = ithmm.compute_perplexity_test()
-			print "alpha:", ithmm.get_alpha(), "gamma:", ithmm.get_gamma(), "lambda:", ithmm.get_lambda(), "strength:", ithmm.get_strength(), "tau0:", ithmm.get_tau0(), "tau1:", ithmm.get_tau1()
+			print "alpha:", ithmm.get_alpha(), "gamma:", ithmm.get_gamma(), "lambda_alpha:", ithmm.get_lambda_alpha(), "lambda_gamma:", ithmm.get_lambda_gamma(), "strength:", ithmm.get_strength(), "tau0:", ithmm.get_tau0(), "tau1:", ithmm.get_tau1()
 			print "log_likelihood:", int(log_likelihood)
 			print "perplexity:", int(perplexity)
 			# print "MH:", ithmm.get_metropolis_hastings_acceptance_rate() 
