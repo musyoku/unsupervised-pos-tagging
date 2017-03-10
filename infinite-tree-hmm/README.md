@@ -32,6 +32,12 @@ python train_en.py -f ../alice.txt -d 2 -l 1100
 
 ### 結果の可視化
 
+正解品詞と予測タグの対応関係をプロット
+
+```
+python plot_en.py -f ../alice.txt
+```
+
 それぞれの状態の出力分布から確率の高い単語のランキングを表示
 
 ```
