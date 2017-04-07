@@ -847,7 +847,7 @@ public:
 				double Pw_given_new_s = compute_Pw_given_s(word_id, new_state_on_structure);
 				assert(Ps_given_prev * Pw_given_new_s > 0);
 				// 採択率の計算式が不明
-				double adoption = (Pnew_s_given_prev * Pw_given_s) / (Ps_given_prev * Pw_given_new_s);
+				double adoption = Pnew_s_given_prev / Ps_given_prev;
 				adoption = std::min(1.0, adoption);
 				double u = Sampler::uniform(0, 1);
 				if(u <= adoption){
@@ -910,10 +910,10 @@ public:
 			// 遷移確率
 			//// s_{new}からs_{t+1}へ接続する確率
 			Node* next_state_on_new_state_htssb = new_state_on_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(next_state_on_structure);
-			double Peos_given_ns = new_state_on_structure->compute_transition_probability_to_eos(_tau0, _tau1);
+			double Peos_given_new_s = new_state_on_structure->compute_transition_probability_to_eos(_tau0, _tau1);
 			double new_Pnext_given_s = compute_node_probability_on_tssb(new_state_on_structure->_transition_tssb, next_state_on_new_state_htssb, 1.0);
 			//// <eos>以外に接続する確率を棒全体の長さとし、TSSBで分配
-			double total_stick_length_of_new_tssb = 1.0 - Peos_given_ns;
+			double total_stick_length_of_new_tssb = 1.0 - Peos_given_new_s;
 			new_Pnext_given_s *= total_stick_length_of_new_tssb;
 			assert(0 < new_Pnext_given_s && new_Pnext_given_s <= 1);
 			// 尤度を計算
@@ -968,10 +968,10 @@ public:
 			assert(0 < new_Pw_given_s && new_Pw_given_s <= 1);
 			// 遷移確率
 			//// s_{new}から<eos>へ接続する確率
-			double Peos_given_ns = new_state_on_structure->compute_transition_probability_to_eos(_tau0, _tau1);
-			assert(0 < Peos_given_ns && Peos_given_ns <= 1);
+			double Peos_given_new_s = new_state_on_structure->compute_transition_probability_to_eos(_tau0, _tau1);
+			assert(0 < Peos_given_new_s && Peos_given_new_s <= 1);
 			// 尤度を計算
-			double likelihoood = new_Pw_given_s * Peos_given_ns;
+			double likelihoood = new_Pw_given_s * Peos_given_new_s;
 			if(likelihoood > slice){
 				return new_state_on_structure;
 			}

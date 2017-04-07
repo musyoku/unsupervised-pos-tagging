@@ -662,10 +662,10 @@ void test29(){
 	string dir = "out";
 	// model->mark_low_frequency_words_as_unknown(1);
 	model->compile();
-	model->show_typical_words_for_each_tag(20, false);
-	model->set_metropolis_hastings_enabled(true);
+	model->show_assigned_words_for_each_tag(20, false);
+	model->set_metropolis_hastings_enabled(false);
 	cout << model->get_num_words() << " words" << endl;
-	for(int i = 0;i < 1000000;i++){
+	for(int i = 0;i < 100;i++){
 		model->perform_gibbs_sampling();
 		model->update_hyperparameters();
 		// model->save(dir);
@@ -674,20 +674,24 @@ void test29(){
 		if(i % 100 == 0){
 			cout << "epoch:" << i << endl;
 			// model->_ithmm->_structure_tssb->dump();
-			model->show_typical_words_for_each_tag(20, false);
+			model->show_assigned_words_for_each_tag(20, false);
 			model->save(dir);
 			cout << "alpha: " << model->_ithmm->_alpha << endl;
 			cout << "gamma: " << model->_ithmm->_gamma << endl;
-			cout << "lambda: " << model->_ithmm->_lambda << endl;
+			cout << "lambda_alpha: " << model->_ithmm->_lambda_alpha << endl;
+			cout << "lambda_gamma: " << model->_ithmm->_lambda_gamma << endl;
 			cout << "strength: " << model->_ithmm->_strength << endl;
-			cout << "log_Pdata: " << model->compute_log_Pdataset_test() << endl;
-			cout << "PPL: " << model->compute_perplexity_test() << endl;
+			cout << "log_Pdata: " << model->compute_log_Pdataset_test() << ", " << model->compute_log_Pdataset_train() << endl;
+			cout << "PPL: " << model->compute_perplexity_test() << ", " << model->compute_perplexity_train() << endl;
 			cout << "MH: " << model->_ithmm->_num_mh_acceptance / (double)(model->_ithmm->_num_mh_acceptance + model->_ithmm->_num_mh_rejection) << endl;;
 			for(int i = 0;i <= model->_ithmm->_current_max_depth;i++){
 				cout << "d[" << i << "] = " << model->_ithmm->_hpylm_d_m[i] << endl;
 				cout << "theta[" << i << "] = " << model->_ithmm->_hpylm_theta_m[i] << endl;
 			}
 		}
+		// if(i == 4000){
+		// 	model->set_depth_limit(2);
+		// }
 	}
 	model->_ithmm->_structure_tssb->dump();
 	model->remove_all_data();
@@ -743,7 +747,7 @@ void test33(){
 	bool new_table_generated = true;
 	for(int i = 0;i < 10;i++){
 		Node* node = new Node();
-		TSSB* tssb = new TSSB(node, 1, 1, 1);
+		TSSB* tssb = new TSSB(node);
 		for(int j = 0;j < 10;j++){
 			node->add_customer_to_vertical_crp(0.5, 0.5, new_table_generated);
 			node->add_customer_to_horizontal_crp(0.5, 0.5, new_table_generated);
@@ -771,7 +775,7 @@ void test35(){
 	PyInfiniteTreeHMM* model = new PyInfiniteTreeHMM();
 	model->load(dir);
 	model->show_hpylm_for_each_tag();
-	model->show_typical_words_for_each_tag(20, true);
+	model->show_assigned_words_for_each_tag(20, true);
 	model->show_sticks();
 	for(int i = 0;i <= model->_ithmm->_current_max_depth;i++){
 		cout << "d[" << i << "] = " << model->_ithmm->_hpylm_d_m[i] << endl;
@@ -800,11 +804,11 @@ void test37(){
 	PyInfiniteTreeHMM* model = new PyInfiniteTreeHMM();
 	model->load(dir);
 	model->load_textfile(filename, 1100);
-	model->show_typical_words_for_each_tag(20, false);
+	model->show_assigned_words_for_each_tag(20, false);
 	cout << model->get_num_words() << " words" << endl;
 	cout << "alpha: " << model->_ithmm->_alpha << endl;
 	cout << "gamma: " << model->_ithmm->_gamma << endl;
-	cout << "lambda: " << model->_ithmm->_lambda << endl;
+	cout << "lambda_alpha: " << model->_ithmm->_lambda_alpha << endl;
 	cout << "strength: " << model->_ithmm->_strength << endl;
 	cout << "log_Pdata: " << model->compute_log_Pdataset_test() << endl;
 	cout << "PPL: " << model->compute_perplexity_test() << endl;
@@ -814,6 +818,30 @@ void test37(){
 	}
 	model->viterbi_decode_test();
 }
+
+void test38(){
+	string filename = "../alice.txt";
+	PyInfiniteTreeHMM* model = new PyInfiniteTreeHMM();
+	model->set_depth_limit(1);
+	model->load_textfile(filename, 1100);
+
+	string dir = "out";
+	// model->mark_low_frequency_words_as_unknown(1);
+	model->compile();
+	// model->set_metropolis_hastings_enabled(true);
+	for(int i = 0;i < 1000000;i++){
+		model->perform_gibbs_sampling();
+		model->update_hyperparameters();
+		if(i % 100 == 0){
+			cout << "log_Pdata: " << model->compute_log_Pdataset_train() << ", " << model->compute_log_Pdataset_test() << endl;
+			cout << "PPL: " << model->compute_perplexity_train() << ", " << model->compute_perplexity_test() << endl;
+		}
+		// if(i == 4000){
+		// 	model->set_depth_limit(2);
+		// }
+	}
+}
+
 
 int main(){
 	// iTHMM* model = new iTHMM();

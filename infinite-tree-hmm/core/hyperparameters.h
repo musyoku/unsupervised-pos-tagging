@@ -2,9 +2,9 @@
 #define _hyper_
 
 // これらのハイパーパラメータは実行前に一度だけ一様分布からサンプリングしていたのでminとmaxを設定する*1
-#define iTHMM_ALPHA_MIN 2
-#define iTHMM_ALPHA_MAX 10
-#define iTHMM_GAMMA_MIN 0.1
+#define iTHMM_ALPHA_MIN 10
+#define iTHMM_ALPHA_MAX 20
+#define iTHMM_GAMMA_MIN 0.5
 #define iTHMM_GAMMA_MAX 1
 #define iTHMM_LAMBDA_ALPHA_MIN 0.001	// 0以上1以下
 #define iTHMM_LAMBDA_ALPHA_MAX 0.05		// 0以上1以下

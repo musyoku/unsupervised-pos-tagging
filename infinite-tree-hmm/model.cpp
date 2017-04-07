@@ -553,11 +553,11 @@ public:
 			vector<Word*> &data = dataset[data_index];
 			double Px = compute_Pdata(data, nodes);
 			if(Px > 0){
-				log_Pdataset += log(Px) / data.size();
+				log_Pdataset += log2(Px) / data.size();
 			}
 		}
 		_after_compute_log_Pdataset();
-		return exp(-log_Pdataset / (double)dataset.size());
+		return pow(2.0, -log_Pdataset / (double)dataset.size());
 	}
 	void update_hyperparameters(){
 		_ithmm->sample_hpylm_hyperparameters();

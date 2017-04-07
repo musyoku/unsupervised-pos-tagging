@@ -113,7 +113,7 @@ def main(args):
 	# ハイパーパラメータの設定
 	ithmm.set_alpha(random.uniform(10, 20))
 	ithmm.set_gamma(random.uniform(0.5, 1))
-	ithmm.set_lambda_alpha(random.uniform(0.001, 0.05))
+	ithmm.set_lambda_alpha(random.uniform(0.1, 0.5))
 	ithmm.set_lambda_gamma(random.uniform(0.001, 0.05))	# 1にすればオリジナルのiTHMMと同等
 	ithmm.set_strength(random.uniform(1, 10))			# HTSSBの集中度
 	ithmm.set_tau0(1)
@@ -125,6 +125,8 @@ def main(args):
 
 	ithmm.mark_low_frequency_words_as_unknown(args.unknown_threshold)	# 低頻度語を全て<unk>に置き換える
 	ithmm.compile()	# 品詞をランダムに割り当てる初期化
+	ithmm.show_assigned_words_for_each_tag(20, False);
+	print "alpha:", ithmm.get_alpha(), "gamma:", ithmm.get_gamma(), "lambda_alpha:", ithmm.get_lambda_alpha(), "lambda_gamma:", ithmm.get_lambda_gamma(), "strength:", ithmm.get_strength(), "tau0:", ithmm.get_tau0(), "tau1:", ithmm.get_tau1()
 
 	# グラフプロット用
 	csv_likelihood = []
