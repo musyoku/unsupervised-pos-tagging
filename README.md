@@ -1,14 +1,16 @@
 ## Python tools for unsupervised POS tagging
 
-教師なし品詞推定の論文3本の実装・解説を目標にしています。
+教師なし品詞推定の論文4本の実装・解説を目標にしています。
 
 実装状況
 
-:smile: [A Fully Bayesian Approach to Unsupervised Part-of-Speech Tagging](http://homepages.inf.ed.ac.uk/sgwater/papers/acl07-bhmm.pdf)
+- [x] [A Fully Bayesian Approach to Unsupervised Part-of-Speech Tagging](http://homepages.inf.ed.ac.uk/sgwater/papers/acl07-bhmm.pdf)
 
-:confused: [The Infinite Hidden Markov Model](http://mlg.eng.cam.ac.uk/zoubin/papers/ihmm.pdf)
+- [x] [The Infinite Hidden Markov Model](http://mlg.eng.cam.ac.uk/zoubin/papers/ihmm.pdf)
 
-:tired_face: [無限木構造隠れMarkovモデルによる階層的品詞の教師なし学習](http://chasen.org/~daiti-m/paper/nl226ithmm.pdf)
+- [x] [無限木構造隠れMarkovモデルによる階層的品詞の教師なし学習](http://chasen.org/~daiti-m/paper/nl226ithmm.pdf)
+
+- [ ] [Embedded HMM](https://papers.nips.cc/paper/2391-inferring-state-sequences-for-non-linear-systems-with-embedded-hidden-markov-models.pdf)に基づくiTHMMのforward-backwardによる学習
 
 ## データセット
 
