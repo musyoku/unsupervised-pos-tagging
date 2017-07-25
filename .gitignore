@@ -14,8 +14,8 @@ infinite-tree-hmm/*
 infinite-tree-hmm/core/*
 !infinite-hmm/
 infinite-hmm/*
-!infinite-hmm/core
-infinite-hmm/core/*
+!infinite-hmm/src
+infinite-hmm/src/*
 
 # allow any
 !.gitignore
