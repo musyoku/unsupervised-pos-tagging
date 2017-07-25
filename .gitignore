@@ -10,12 +10,12 @@ hpylm-hmm/*
 hpylm-hmm/core/*
 !infinite-tree-hmm/
 infinite-tree-hmm/*
-!infinite-tree-hmm/core
-infinite-tree-hmm/core/*
+!infinite-tree-hmm/src
+infinite-tree-hmm/src/*
 !infinite-hmm/
 infinite-hmm/*
-!infinite-hmm/src
-infinite-hmm/src/*
+!infinite-hmm/core
+infinite-hmm/core/*
 
 # allow any
 !.gitignore
