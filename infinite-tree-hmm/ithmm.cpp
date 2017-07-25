@@ -12,33 +12,25 @@
 #include <functional>
 #include <fstream>
 #include <cassert>
-#include "core/hpylm.hpp"
-#include "core/ithmm.h"
-#include "core/util.h"
-using namespace std;
+#include "src/hpylm.hpp"
+#include "src/ithmm.h"
+#include "src/util.h"
 using namespace boost;
 
-class PyInfiniteTreeHMM{
-private:
+#define ID_BOS 0
+#define ID_EOS 1
+#define ID_UNK 2
+
+class Model{
+public:
 	unordered_map<id, wstring> _dictionary;
 	unordered_map<wstring, id> _dictionary_inv;
-	unordered_map<id, int> _word_count;
-	vector<vector<Word*>> _dataset_train;
-	vector<vector<Word*>> _dataset_test;
-	vector<int> _rand_indices;
 	id _autoincrement;
-	id _bos_id;
-	id _eos_id;
-	id _unk_id;
-	int _max_num_words_in_line;
-	int _min_num_words_in_line;
 	double** _forward_table;		// 前向き確率計算用
 	double** _decode_table;		// viterbiデコーディング用
-public:
 	iTHMM* _ithmm;
-	PyInfiniteTreeHMM(){
+	Model(){
 		// 日本語周り
-		// ただのテンプレ
 		setlocale(LC_CTYPE, "ja_JP.UTF-8");
 		ios_base::sync_with_stdio(false);
 		locale default_loc("ja_JP.UTF-8");
@@ -48,13 +40,28 @@ public:
 		wcin.imbue(ctype_default);
 
 		_ithmm = new iTHMM();
-		_bos_id = 0;
-		_dictionary[_bos_id] = L"<bos>";
-		_eos_id = 1;
-		_dictionary[_eos_id] = L"<eos>";
-		_unk_id = 2;
-		_dictionary[_unk_id] = L"<unk>";
-		_autoincrement = _unk_id + 1;
+		_forward_table = NULL;
+		_decode_table = NULL;
+	}
+	~Model(){
+		delete _ithmm;
+	}
+};
+
+class Trainer: Model{
+public:
+	unordered_map<id, int> _word_count;
+	vector<vector<Word*>> _dataset_train;
+	vector<vector<Word*>> _dataset_test;
+	vector<int> _rand_indices;
+	int _max_num_words_in_line;
+	int _min_num_words_in_line;
+	Trainer(){
+		_ithmm = new iTHMM();
+		_dictionary[ID_BOS] = L"<bos>";
+		_dictionary[ID_EOS] = L"<eos>";
+		_dictionary[ID_UNK] = L"<unk>";
+		_autoincrement = ID_UNK + 1;
 
 		_max_num_words_in_line = -1;
 		_min_num_words_in_line = -1;
@@ -62,7 +69,7 @@ public:
 		_forward_table = NULL;
 		_decode_table = NULL;
 	}
-	~PyInfiniteTreeHMM(){
+	~Trainer(){
 		delete _ithmm;
 		for(int n = 0;n < _dataset_train.size();n++){
 			vector<Word*> &data = _dataset_train[n];
@@ -163,7 +170,7 @@ public:
 	id string_to_word_id(wstring word){
 		auto itr = _dictionary_inv.find(word);
 		if(itr == _dictionary_inv.end()){
-			return _unk_id;
+			return ID_UNK;
 		}
 		return itr->second;
 	}
@@ -224,10 +231,10 @@ public:
 			}
 
 			Word* eos = new Word();
-			eos->_id = _eos_id;
+			eos->_id = ID_EOS;
 			eos->_state = NULL;
 			words.push_back(eos);
-			_word_count[_eos_id] += 1;
+			_word_count[ID_EOS] += 1;
 
 			dataset.push_back(words);
 
@@ -246,7 +253,7 @@ public:
 				id word_id = (*word)->_id;
 				int count = get_count_for_word(word_id);
 				if(count <= threshold){
-					(*word)->_id = _unk_id;
+					(*word)->_id = ID_UNK;
 				}
 			}
 		}
@@ -684,49 +691,49 @@ public:
 };
 
 BOOST_PYTHON_MODULE(model){
-	python::class_<PyInfiniteTreeHMM>("ithmm")
-	.def("string_to_word_id", &PyInfiniteTreeHMM::string_to_word_id)
-	.def("add_string", &PyInfiniteTreeHMM::add_string)
-	.def("perform_gibbs_sampling", &PyInfiniteTreeHMM::perform_gibbs_sampling)
-	.def("compile", &PyInfiniteTreeHMM::compile)
-	.def("load", &PyInfiniteTreeHMM::load)
-	.def("save", &PyInfiniteTreeHMM::save)
-	.def("load_textfile", &PyInfiniteTreeHMM::load_textfile)
-	.def("add_train_data", &PyInfiniteTreeHMM::add_train_data)
-	.def("add_test_data", &PyInfiniteTreeHMM::add_test_data)
-	.def("mark_low_frequency_words_as_unknown", &PyInfiniteTreeHMM::mark_low_frequency_words_as_unknown)
-	.def("update_hyperparameters", &PyInfiniteTreeHMM::update_hyperparameters)
-	.def("get_num_words", &PyInfiniteTreeHMM::get_num_words)
-	.def("get_count_for_word", &PyInfiniteTreeHMM::get_count_for_word)
-	.def("get_alpha", &PyInfiniteTreeHMM::get_alpha)
-	.def("get_gamma", &PyInfiniteTreeHMM::get_gamma)
-	.def("get_lambda_alpha", &PyInfiniteTreeHMM::get_lambda_alpha)
-	.def("get_lambda_gamma", &PyInfiniteTreeHMM::get_lambda_gamma)
-	.def("get_strength", &PyInfiniteTreeHMM::get_strength)
-	.def("get_tau0", &PyInfiniteTreeHMM::get_tau0)
-	.def("get_tau1", &PyInfiniteTreeHMM::get_tau1)
-	.def("get_metropolis_hastings_acceptance_rate", &PyInfiniteTreeHMM::get_metropolis_hastings_acceptance_rate)
-	.def("get_all_tags", &PyInfiniteTreeHMM::get_all_tags)
-	.def("set_alpha", &PyInfiniteTreeHMM::set_alpha)
-	.def("set_gamma", &PyInfiniteTreeHMM::set_gamma)
-	.def("set_lambda_alpha", &PyInfiniteTreeHMM::set_lambda_alpha)
-	.def("set_lambda_gamma", &PyInfiniteTreeHMM::set_lambda_gamma)
-	.def("set_strength", &PyInfiniteTreeHMM::set_strength)
-	.def("set_tau0", &PyInfiniteTreeHMM::set_tau0)
-	.def("set_tau1", &PyInfiniteTreeHMM::set_tau1)
-	.def("set_depth_limit", &PyInfiniteTreeHMM::set_depth_limit)
-	.def("set_metropolis_hastings_enabled", &PyInfiniteTreeHMM::set_metropolis_hastings_enabled)
-	.def("viterbi_decode_train", &PyInfiniteTreeHMM::viterbi_decode_train)
-	.def("viterbi_decode_test", &PyInfiniteTreeHMM::viterbi_decode_test)
-	.def("show_assigned_words_for_each_tag", &PyInfiniteTreeHMM::show_assigned_words_for_each_tag)
-	.def("show_assigned_words_and_probability_for_each_tag", &PyInfiniteTreeHMM::show_assigned_words_and_probability_for_each_tag)
-	.def("show_hpylm_for_each_tag", &PyInfiniteTreeHMM::show_hpylm_for_each_tag)
-	.def("show_sticks", &PyInfiniteTreeHMM::show_sticks)
-	.def("compute_perplexity_test", &PyInfiniteTreeHMM::compute_perplexity_test)
-	.def("compute_perplexity_train", &PyInfiniteTreeHMM::compute_perplexity_train)
-	.def("compute_log2_Pdataset_test", &PyInfiniteTreeHMM::compute_log2_Pdataset_test)
-	.def("compute_log2_Pdataset_train", &PyInfiniteTreeHMM::compute_log2_Pdataset_train)
-	.def("compute_log_Pdataset_test", &PyInfiniteTreeHMM::compute_log_Pdataset_test)
-	.def("compute_log_Pdataset_train", &PyInfiniteTreeHMM::compute_log_Pdataset_train)
-	.def("remove_all_data", &PyInfiniteTreeHMM::remove_all_data);
+	python::class_<Trainer>("ithmm")
+	.def("string_to_word_id", &Trainer::string_to_word_id)
+	.def("add_string", &Trainer::add_string)
+	.def("perform_gibbs_sampling", &Trainer::perform_gibbs_sampling)
+	.def("compile", &Trainer::compile)
+	.def("load", &Trainer::load)
+	.def("save", &Trainer::save)
+	.def("load_textfile", &Trainer::load_textfile)
+	.def("add_train_data", &Trainer::add_train_data)
+	.def("add_test_data", &Trainer::add_test_data)
+	.def("mark_low_frequency_words_as_unknown", &Trainer::mark_low_frequency_words_as_unknown)
+	.def("update_hyperparameters", &Trainer::update_hyperparameters)
+	.def("get_num_words", &Trainer::get_num_words)
+	.def("get_count_for_word", &Trainer::get_count_for_word)
+	.def("get_alpha", &Trainer::get_alpha)
+	.def("get_gamma", &Trainer::get_gamma)
+	.def("get_lambda_alpha", &Trainer::get_lambda_alpha)
+	.def("get_lambda_gamma", &Trainer::get_lambda_gamma)
+	.def("get_strength", &Trainer::get_strength)
+	.def("get_tau0", &Trainer::get_tau0)
+	.def("get_tau1", &Trainer::get_tau1)
+	.def("get_metropolis_hastings_acceptance_rate", &Trainer::get_metropolis_hastings_acceptance_rate)
+	.def("get_all_tags", &Trainer::get_all_tags)
+	.def("set_alpha", &Trainer::set_alpha)
+	.def("set_gamma", &Trainer::set_gamma)
+	.def("set_lambda_alpha", &Trainer::set_lambda_alpha)
+	.def("set_lambda_gamma", &Trainer::set_lambda_gamma)
+	.def("set_strength", &Trainer::set_strength)
+	.def("set_tau0", &Trainer::set_tau0)
+	.def("set_tau1", &Trainer::set_tau1)
+	.def("set_depth_limit", &Trainer::set_depth_limit)
+	.def("set_metropolis_hastings_enabled", &Trainer::set_metropolis_hastings_enabled)
+	.def("viterbi_decode_train", &Trainer::viterbi_decode_train)
+	.def("viterbi_decode_test", &Trainer::viterbi_decode_test)
+	.def("show_assigned_words_for_each_tag", &Trainer::show_assigned_words_for_each_tag)
+	.def("show_assigned_words_and_probability_for_each_tag", &Trainer::show_assigned_words_and_probability_for_each_tag)
+	.def("show_hpylm_for_each_tag", &Trainer::show_hpylm_for_each_tag)
+	.def("show_sticks", &Trainer::show_sticks)
+	.def("compute_perplexity_test", &Trainer::compute_perplexity_test)
+	.def("compute_perplexity_train", &Trainer::compute_perplexity_train)
+	.def("compute_log2_Pdataset_test", &Trainer::compute_log2_Pdataset_test)
+	.def("compute_log2_Pdataset_train", &Trainer::compute_log2_Pdataset_train)
+	.def("compute_log_Pdataset_test", &Trainer::compute_log_Pdataset_test)
+	.def("compute_log_Pdataset_train", &Trainer::compute_log_Pdataset_train)
+	.def("remove_all_data", &Trainer::remove_all_data);
 }

@@ -2,7 +2,7 @@
 import argparse, sys, os, time, re, codecs, random
 import pandas as pd
 import treetaggerwrapper
-import model
+import ithmm
 
 class posset:
 	sym = {"SYM", "SENT", ":", ",", "$", "(", ")", "'", "\""}
@@ -67,7 +67,7 @@ def main(args):
 	except:
 		pass
 
-	ithmm = model.ithmm()
+	trainer = ithmm.trainer()
 	num_words_in_train_dataset = 0
 	print stdout.BOLD + "データを準備しています ..." + stdout.END
 	word_count = set()	# 単語の種類の総数
@@ -102,31 +102,31 @@ def main(args):
 			segmentation += lowercase + " "
 		segmentation = re.sub(r" +$", "",  segmentation)	# 行末の空白を除去
 		if i > args.train_split:
-			ithmm.add_test_data(segmentation)	# テストデータに追加
+			trainer.add_test_data(segmentation)	# テストデータに追加
 		else:
-			ithmm.add_train_data(segmentation)	# 学習用データに追加
+			trainer.add_train_data(segmentation)	# 学習用データに追加
 			num_words_in_train_dataset += len(results)
 
 	print "\n", stdout.BOLD, "訓練データ数:", args.train_split 
 	print "テストデータ数:", len(dataset) - args.train_split, stdout.END
 
 	# ハイパーパラメータの設定
-	ithmm.set_alpha(random.uniform(10, 20))
-	ithmm.set_gamma(random.uniform(0.5, 1))
-	ithmm.set_lambda_alpha(random.uniform(0.1, 0.5))
-	ithmm.set_lambda_gamma(random.uniform(0.001, 0.05))	# 1にすればオリジナルのiTHMMと同等
-	ithmm.set_strength(random.uniform(1, 10))			# HTSSBの集中度
-	ithmm.set_tau0(1)
-	ithmm.set_tau1(100)
+	trainer.set_alpha(random.uniform(10, 20))
+	trainer.set_gamma(random.uniform(0.5, 1))
+	trainer.set_lambda_alpha(random.uniform(0.1, 0.5))
+	trainer.set_lambda_gamma(random.uniform(0.001, 0.05))	# 1にすればオリジナルのiTHMMと同等
+	trainer.set_strength(random.uniform(1, 10))			# HTSSBの集中度
+	trainer.set_tau0(1)
+	trainer.set_tau1(100)
 
 	# 深さを制限する場合
 	# コメントアウトか-1指定で無限大
-	ithmm.set_depth_limit(args.depth_limit)
+	trainer.set_depth_limit(args.depth_limit)
 
-	ithmm.mark_low_frequency_words_as_unknown(args.unknown_threshold)	# 低頻度語を全て<unk>に置き換える
-	ithmm.compile()	# 品詞をランダムに割り当てる初期化
-	ithmm.show_assigned_words_for_each_tag(20, False);
-	print "alpha:", ithmm.get_alpha(), "gamma:", ithmm.get_gamma(), "lambda_alpha:", ithmm.get_lambda_alpha(), "lambda_gamma:", ithmm.get_lambda_gamma(), "strength:", ithmm.get_strength(), "tau0:", ithmm.get_tau0(), "tau1:", ithmm.get_tau1()
+	trainer.mark_low_frequency_words_as_unknown(args.unknown_threshold)	# 低頻度語を全て<unk>に置き換える
+	trainer.compile()	# 品詞をランダムに割り当てる初期化
+	trainer.show_assigned_words_for_each_tag(20, False);
+	print "alpha:", trainer.get_alpha(), "gamma:", trainer.get_gamma(), "lambda_alpha:", trainer.get_lambda_alpha(), "lambda_gamma:", trainer.get_lambda_gamma(), "strength:", trainer.get_strength(), "tau0:", trainer.get_tau0(), "tau1:", trainer.get_tau1()
 
 	# グラフプロット用
 	csv_likelihood = []
@@ -134,21 +134,21 @@ def main(args):
 
 	for epoch in xrange(1, args.epoch + 1):
 		start = time.time()
-		ithmm.perform_gibbs_sampling()
+		trainer.perform_gibbs_sampling()
 
 		elapsed_time = time.time() - start
 		sys.stdout.write(" Epoch {} / {} - {:.3f} sec - {:.1f} gibbs/s\r".format(epoch, args.epoch, elapsed_time, num_words_in_train_dataset / elapsed_time))		
 		sys.stdout.flush()
 		if epoch % 100 == 0:
 			print "\n"
-			ithmm.show_assigned_words_for_each_tag(20, False);
-			log_likelihood = ithmm.compute_log_Pdataset_test() 
-			perplexity = ithmm.compute_perplexity_test()
-			print "alpha:", ithmm.get_alpha(), "gamma:", ithmm.get_gamma(), "lambda_alpha:", ithmm.get_lambda_alpha(), "lambda_gamma:", ithmm.get_lambda_gamma(), "strength:", ithmm.get_strength(), "tau0:", ithmm.get_tau0(), "tau1:", ithmm.get_tau1()
+			trainer.show_assigned_words_for_each_tag(20, False);
+			log_likelihood = trainer.compute_log_Pdataset_test() 
+			perplexity = trainer.compute_perplexity_test()
+			print "alpha:", trainer.get_alpha(), "gamma:", trainer.get_gamma(), "lambda_alpha:", trainer.get_lambda_alpha(), "lambda_gamma:", trainer.get_lambda_gamma(), "strength:", trainer.get_strength(), "tau0:", trainer.get_tau0(), "tau1:", trainer.get_tau1()
 			print "log_likelihood:", int(log_likelihood)
 			print "perplexity:", int(perplexity)
-			# print "MH:", ithmm.get_metropolis_hastings_acceptance_rate() 
-			ithmm.save(args.model);
+			# print "MH:", trainer.get_metropolis_hastings_acceptance_rate() 
+			trainer.save(args.model);
 			# CSV出力
 			csv_likelihood.append([epoch, log_likelihood])
 			data = pd.DataFrame(csv_likelihood)
