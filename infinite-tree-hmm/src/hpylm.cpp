@@ -6,6 +6,8 @@
 #include "node.hpp"
 #include "hpylm.hpp"
 
+using std::vector;
+
 HPYLM::HPYLM(){
 	_num_tables = 0;
 	_num_customers = 0;
@@ -233,10 +235,10 @@ double HPYLM::auxiliary_1_z_uwkj(double d_u){
 }
 void HPYLM::dump(){
 	assert(_state_node != NULL);
-	string indices_str = "";
+	std::string indices_str = "";
 	for(int i = 0;i < _state_node->_depth_v;i++){
 		indices_str += std::to_string(_state_node->_horizontal_indices_from_root[i]);
 		indices_str += ",";
 	}
-	cout << (boost::format("HPYLM: %d [tables:%d,customers:%d][%s]") % _state_node->_identifier % _num_tables % _num_customers % indices_str.c_str()).str() << endl;
+	std::cout << (boost::format("HPYLM: %d [tables:%d,customers:%d][%s]") % _state_node->_identifier % _num_tables % _num_customers % indices_str.c_str()).str() << std::endl;
 }

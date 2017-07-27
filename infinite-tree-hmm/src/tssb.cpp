@@ -2,6 +2,9 @@
 #include "tssb.hpp"
 #include "node.hpp"
 
+using std::cout;
+using std::endl;
+
 TSSB::TSSB(){
 	_root = new Node(NULL);
 	_root->_stick_length = 1;
@@ -33,10 +36,10 @@ void TSSB::_delete_children(Node* node){
 		delete child;
 	}
 }
-void TSSB::enumerate_nodes_from_left_to_right(vector<Node*> &nodes){
+void TSSB::enumerate_nodes_from_left_to_right(std::vector<Node*> &nodes){
 	_enumerate_nodes_from_left_to_right(_root, nodes);
 }
-void TSSB::_enumerate_nodes_from_left_to_right(Node* node, vector<Node*> &nodes){
+void TSSB::_enumerate_nodes_from_left_to_right(Node* node, std::vector<Node*> &nodes){
 	nodes.push_back(node);
 	for(const auto child: node->_children){
 		_enumerate_nodes_from_left_to_right(child, nodes);
@@ -123,7 +126,7 @@ void TSSB::dump(){
 	_dump(_root);
 }
 void TSSB::_dump(Node* node){
-	string tab = "";
+	std::string tab = "";
 	for(int i = 0;i < node->_depth_v;i++){
 		tab += "	";
 	}

@@ -27,7 +27,7 @@ typedef struct Word {
 } Word;
 	
 struct multiset_value_comparator {
-	bool operator()(const pair<id, double> &a, const pair<id, double> &b) {
+	bool operator()(const std::pair<id, double> &a, const std::pair<id, double> &b) {
 		return a.second > b.second;
 	}   
 };
@@ -70,12 +70,12 @@ public:
 	double _word_g0;
 	int _current_max_depth;
 	int _depth_limit;		// -1なら無限大
-	vector<double> _hpylm_d_m;		// HPYLMのハイパーパラメータ（ディスカウント係数）
-	vector<double> _hpylm_theta_m;	// HPYLMのハイパーパラメータ（集中度）
-	vector<double> _hpylm_a_m;		// ベータ分布のパラメータ	dの推定用
-	vector<double> _hpylm_b_m;		// ベータ分布のパラメータ	dの推定用
-	vector<double> _hpylm_alpha_m;	// ガンマ分布のパラメータ	θの推定用
-	vector<double> _hpylm_beta_m;	// ガンマ分布のパラメータ	θの推定用
+	std::vector<double> _hpylm_d_m;		// HPYLMのハイパーパラメータ（ディスカウント係数）
+	std::vector<double> _hpylm_theta_m;	// HPYLMのハイパーパラメータ（集中度）
+	std::vector<double> _hpylm_a_m;		// ベータ分布のパラメータ	dの推定用
+	std::vector<double> _hpylm_b_m;		// ベータ分布のパラメータ	dの推定用
+	std::vector<double> _hpylm_alpha_m;	// ガンマ分布のパラメータ	θの推定用
+	std::vector<double> _hpylm_beta_m;	// ガンマ分布のパラメータ	θの推定用
 	bool _mh_enabled;				// メトロポリス・ヘイスティングス法による補正を行うかどうか
 	// 統計
 	int _num_mh_acceptance;
@@ -125,9 +125,9 @@ public:
 		delete _structure_tssb;
 		delete _bos_tssb;
 	}
-	void initialize_data(vector<vector<Word*>> &dataset){
+	void initialize_data(std::vector<std::vector<Word*>> &dataset){
 		for(int data_index = 0;data_index < dataset.size();data_index++){
-			vector<Word*> &data = dataset[data_index];
+			std::vector<Word*> &data = dataset[data_index];
 			if(data.size() == 0){
 				continue;
 			}
@@ -151,9 +151,9 @@ public:
 	}
 	// デバッグ用
 	// これを呼んで全パラメータが消えなかったらバグっている
-	void remove_all_data(vector<vector<Word*>> &dataset){
+	void remove_all_data(std::vector<std::vector<Word*>> &dataset){
 		for(int data_index = 0;data_index < dataset.size();data_index++){
-			vector<Word*> &data = dataset[data_index];
+			std::vector<Word*> &data = dataset[data_index];
 			if(data.size() == 0){
 				continue;
 			}
@@ -466,7 +466,7 @@ public:
 			rest_stick_length *= 1.0 - ratio_h;
 		}
 	}
-	void perform_gibbs_sampling_data(vector<Word*> &data){
+	void perform_gibbs_sampling_data(std::vector<Word*> &data){
 		assert(data.size() > 0);
 		Node* prev_state = NULL;
 		Node* next_state = data.size() == 1 ? NULL : data[1]->_state;
@@ -1183,7 +1183,7 @@ public:
 				if(probability == 0){		// ものすごく深いノードがサンプリングされた時にdouble型の限界を超える
 					child->_probability = min_probability;
 					c_printf("[r]%s\n", "stick length == 0");
-					cout << "fixed to " << min_probability << endl;
+					std::cout << "fixed to " << min_probability << std::endl;
 				}else{
 					child->_probability = probability;
 					if(probability < min_probability){
@@ -1453,7 +1453,7 @@ public:
 	}
 	void _delete_invalid_children_of_node_on_structure(Node* parent){
 		assert(is_node_on_structure_tssb(parent));
-		vector<Node*> &children = parent->_children;
+		std::vector<Node*> &children = parent->_children;
 		for(int i = children.size() - 1;i >= 0;i--){
 			Node* child = children[i];
 			_delete_invalid_children_of_node_on_structure(child);
@@ -1532,7 +1532,7 @@ public:
 	}
 	// "A Bayesian Interpretation of Interpolated Kneser-Ney" Appendix C参照
 	// http://www.gatsby.ucl.ac.uk/~ywteh/research/compling/hpylm.pdf
-	void sum_auxiliary_variables_recursively_for_hpylm(Node* parent, vector<double> &sum_log_x_u_m, vector<double> &sum_y_ui_m, vector<double> &sum_1_y_ui_m, vector<double> &sum_1_z_uwkj_m){
+	void sum_auxiliary_variables_recursively_for_hpylm(Node* parent, std::vector<double> &sum_log_x_u_m, std::vector<double> &sum_y_ui_m, std::vector<double> &sum_1_y_ui_m, std::vector<double> &sum_1_z_uwkj_m){
 		for(const auto &child: parent->_children){
 			int depth = child->_depth_v;
 			assert(depth < _hpylm_d_m.size());
@@ -1558,10 +1558,10 @@ public:
 		assert(_current_max_depth < _hpylm_beta_m.size());
 
 		// ルートノードの深さが0であることに注意
-		vector<double> sum_log_x_u_m(_current_max_depth + 1, 0.0);
-		vector<double> sum_y_ui_m(_current_max_depth + 1, 0.0);
-		vector<double> sum_1_y_ui_m(_current_max_depth + 1, 0.0);
-		vector<double> sum_1_z_uwkj_m(_current_max_depth + 1, 0.0);
+		std::vector<double> sum_log_x_u_m(_current_max_depth + 1, 0.0);
+		std::vector<double> sum_y_ui_m(_current_max_depth + 1, 0.0);
+		std::vector<double> sum_1_y_ui_m(_current_max_depth + 1, 0.0);
+		std::vector<double> sum_1_z_uwkj_m(_current_max_depth + 1, 0.0);
 
 		// ルートノード
 		HPYLM* root = _structure_tssb->_root->_hpylm;
@@ -1596,7 +1596,7 @@ public:
 			_hpylm_beta_m.pop_back();
 		}
 	}
-	void geneerate_word_ranking_of_node(Node* node_on_structure, multiset<std::pair<id, double>, multiset_value_comparator> &ranking){
+	void geneerate_word_ranking_of_node(Node* node_on_structure, std::multiset<std::pair<id, double>, multiset_value_comparator> &ranking){
 		assert(node_on_structure != NULL);
 		assert(is_node_on_structure_tssb(node_on_structure));
 		HPYLM* hpylm = node_on_structure->_hpylm;
@@ -1611,9 +1611,9 @@ public:
 			ranking.insert(pair);
 		}
 	}
-	bool save(string dir = "out"){
+	bool save(std::string dir = "out"){
 		bool success = false;
-		ofstream ofs(dir + "/ithmm.model");
+		std::ofstream ofs(dir + "/ithmm.model");
 		if(ofs.good()){
 			boost::archive::binary_oarchive oarchive(ofs);
 			oarchive << static_cast<const iTHMM&>(*this);
@@ -1622,22 +1622,22 @@ public:
 		ofs.close();
 		return success;
 	}
-	bool load(string dir = "out"){
+	bool load(std::string dir = "out"){
 		bool success = false;
-		ifstream ifs(dir + "/ithmm.model");
+		std::ifstream ifs(dir + "/ithmm.model");
 		if(ifs.good()){
 			boost::archive::binary_iarchive iarchive(ifs);
 			iarchive >> *this;
 			assert(_structure_tssb != NULL);
 			assert(_structure_tssb->_root != NULL);
-			vector<Node*> nodes;
+			std::vector<Node*> nodes;
 			_structure_tssb->enumerate_nodes_from_left_to_right(nodes);
 			for(auto node: nodes){
 				// 配列を確保
 				node->init_arrays();
 				node->init_horizontal_indices();
 				node->init_pointers_from_root_to_myself();
-				vector<Node*> nodes_on_htssb;
+				std::vector<Node*> nodes_on_htssb;
 				node->_transition_tssb->enumerate_nodes_from_left_to_right(nodes_on_htssb);
 				for(auto node_on_htssb: nodes_on_htssb){
 					// 配列を確保
@@ -1645,10 +1645,10 @@ public:
 					node_on_htssb->init_horizontal_indices();
 					node_on_htssb->init_pointers_from_root_to_myself();
 				}
-				vector<Node*>().swap(nodes_on_htssb);	// 解放
+				std::vector<Node*>().swap(nodes_on_htssb);	// 解放
 			}
 			nodes.clear();
-			vector<Node*>().swap(nodes);				// 解放
+			std::vector<Node*>().swap(nodes);				// 解放
 			_bos_tssb->enumerate_nodes_from_left_to_right(nodes);
 			for(auto node: nodes){
 				// 配列を確保
@@ -1656,7 +1656,7 @@ public:
 				node->init_horizontal_indices();
 				node->init_pointers_from_root_to_myself();
 			}
-			vector<Node*>().swap(nodes);				// 解放
+			std::vector<Node*>().swap(nodes);				// 解放
 			success = true;
 		}
 		ifs.close();

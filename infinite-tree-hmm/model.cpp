@@ -22,8 +22,8 @@
 
 class Model{
 public:
-	unordered_map<id, wstring> _dictionary;
-	unordered_map<wstring, id> _dictionary_inv;
+	std::unordered_map<id, std::wstring> _dictionary;
+	std::unordered_map<std::wstring, id> _dictionary_inv;
 	id _autoincrement;
 	double** _forward_table;		// 前向き確率計算用
 	double** _decode_table;		// viterbiデコーディング用
@@ -31,12 +31,12 @@ public:
 	Model(){
 		// 日本語周り
 		setlocale(LC_CTYPE, "ja_JP.UTF-8");
-		ios_base::sync_with_stdio(false);
-		locale default_loc("ja_JP.UTF-8");
-		locale::global(default_loc);
-		locale ctype_default(locale::classic(), default_loc, locale::ctype); //※
-		wcout.imbue(ctype_default);
-		wcin.imbue(ctype_default);
+		std::ios_base::sync_with_stdio(false);
+		std::locale default_loc("ja_JP.UTF-8");
+		std::locale::global(default_loc);
+		std::locale ctype_default(std::locale::classic(), default_loc, std::locale::ctype); //※
+		std::wcout.imbue(ctype_default);
+		std::wcin.imbue(ctype_default);
 
 		_ithmm = new iTHMM();
 		_forward_table = NULL;
@@ -49,10 +49,10 @@ public:
 
 class Trainer: Model{
 public:
-	unordered_map<id, int> _word_count;
-	vector<vector<Word*>> _dataset_train;
-	vector<vector<Word*>> _dataset_test;
-	vector<int> _rand_indices;
+	std::unordered_map<id, int> _word_count;
+	std::vector<std::vector<Word*>> _dataset_train;
+	std::vector<std::vector<Word*>> _dataset_test;
+	std::vector<int> _rand_indices;
 	int _max_num_words_in_line;
 	int _min_num_words_in_line;
 	Trainer(){
@@ -71,14 +71,14 @@ public:
 	~Trainer(){
 		delete _ithmm;
 		for(int n = 0;n < _dataset_train.size();n++){
-			vector<Word*> &data = _dataset_train[n];
+			std::vector<Word*> &data = _dataset_train[n];
 			for(int m = 0;m < data.size();m++){
 				Word* word = data[m];
 				delete word;
 			}
 		}
 		for(int n = 0;n < _dataset_test.size();n++){
-			vector<Word*> &data = _dataset_test[n];
+			std::vector<Word*> &data = _dataset_test[n];
 			for(int m = 0;m < data.size();m++){
 				Word* word = data[m];
 				delete word;
@@ -119,12 +119,12 @@ public:
 		}
 		return itr->second;
 	}
-	python::list get_all_tags(){
-		python::list tags;
-		vector<Node*> nodes;
+	boost::python::list get_all_tags(){
+		boost::python::list tags;
+		std::vector<Node*> nodes;
 		_ithmm->_structure_tssb->enumerate_nodes_from_left_to_right(nodes);
 		for(const auto &node: nodes){
-			string indices = "[" + node->_dump_indices() + "]";
+			std::string indices = "[" + node->_dump_indices() + "]";
 			tags.append(indices);
 		}
 		return tags;
@@ -156,7 +156,7 @@ public:
 	void set_metropolis_hastings_enabled(bool enabled){
 		_ithmm->_mh_enabled = enabled;
 	}
-	id add_string(wstring word){
+	id add_string(std::wstring word){
 		auto itr = _dictionary_inv.find(word);
 		if(itr == _dictionary_inv.end()){
 			_dictionary[_autoincrement] = word;
@@ -166,22 +166,22 @@ public:
 		}
 		return itr->second;
 	}
-	id string_to_word_id(wstring word){
+	id string_to_word_id(std::wstring word){
 		auto itr = _dictionary_inv.find(word);
 		if(itr == _dictionary_inv.end()){
 			return ID_UNK;
 		}
 		return itr->second;
 	}
-	void load_textfile(string filename, int train_split){
+	void load_textfile(std::string filename, int train_split){
 		c_printf("[*]%s\n", (boost::format("%sを読み込んでいます ...") % filename.c_str()).str().c_str());
-		wifstream ifs(filename.c_str());
-		wstring line_str;
+		std::wifstream ifs(filename.c_str());
+		std::wstring line_str;
 		if (ifs.fail()){
 			c_printf("[R]%s [*]%s", "エラー", (boost::format("%sを開けません.") % filename.c_str()).str().c_str());
 			exit(1);
 		}
-		vector<wstring> lines;
+		std::vector<std::wstring> lines;
 		while (getline(ifs, line_str) && !line_str.empty()){
 			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
 				return;
@@ -189,34 +189,34 @@ public:
 			lines.push_back(line_str);
 		}
 		assert(lines.size() > train_split);
-		vector<int> rand_indices;
+		std::vector<int> rand_indices;
 		for(int i = 0;i < lines.size();i++){
 			rand_indices.push_back(i);
 		}
 		shuffle(rand_indices.begin(), rand_indices.end(), Sampler::mt);	// データをシャッフル
 		for(int i = 0;i < rand_indices.size();i++){
-			wstring &line_str = lines[rand_indices[i]];
+			std::wstring &line_str = lines[rand_indices[i]];
 			if(i < train_split){
 				add_train_data(line_str);
 			}else{
 				add_test_data(line_str);
 			}
 		}
-		cout << "train: " << _dataset_train.size() << endl;
-		cout << "test:  " << _dataset_test.size() << endl;
+		std::cout << "train: " << _dataset_train.size() << std::endl;
+		std::cout << "test:  " << _dataset_test.size() << std::endl;
 		c_printf("[*]%s\n", (boost::format("%sを読み込みました.") % filename.c_str()).str().c_str());
 	}
-	void add_train_data(wstring line_str){
+	void add_train_data(std::wstring line_str){
 		_add_data_to(line_str, _dataset_train);
 	}
-	void add_test_data(wstring line_str){
+	void add_test_data(std::wstring line_str){
 		_add_data_to(line_str, _dataset_test);
 	}
-	void _add_data_to(wstring &line_str, vector<vector<Word*>> &dataset){
-		vector<wstring> word_strs;
+	void _add_data_to(std::wstring &line_str, std::vector<std::vector<Word*>> &dataset){
+		std::vector<std::wstring> word_strs;
 		split_word_by(line_str, L' ', word_strs);	// スペースで分割
 		if(word_strs.size() > 0){
-			vector<Word*> words;
+			std::vector<Word*> words;
 
 			for(auto word_str: word_strs){
 				if(word_str.size() == 0){
@@ -247,7 +247,7 @@ public:
 	}
 	void mark_low_frequency_words_as_unknown(int threshold = 1){
 		for(int data_index = 0;data_index < _dataset_train.size();data_index++){
-			vector<Word*> &data = _dataset_train[data_index];
+			std::vector<Word*> &data = _dataset_train[data_index];
 			for(auto word = data.begin(), end = data.end();word != end;word++){
 				id word_id = (*word)->_id;
 				int count = get_count_for_word(word_id);
@@ -265,9 +265,9 @@ public:
 		_ithmm->remove_all_data(_dataset_train);
 		_ithmm->delete_invalid_children();
 	}
-	bool load(string dirname){
+	bool load(std::string dirname){
 		// 辞書を読み込み
-		string dictionary_filename = dirname + "/ithmm.dict";
+		std::string dictionary_filename = dirname + "/ithmm.dict";
 		std::ifstream ifs(dictionary_filename);
 		if(ifs.good()){
 			boost::archive::binary_iarchive iarchive(ifs);
@@ -278,7 +278,7 @@ public:
 		}
 		return _ithmm->load(dirname);
 	}
-	bool save(string dirname){
+	bool save(std::string dirname){
 		// 辞書を保存
 		std::ofstream ofs(dirname + "/ithmm.dict");
 		boost::archive::binary_oarchive oarchive(ofs);
@@ -303,12 +303,12 @@ public:
 				return;
 			}
 			int data_index = _rand_indices[n];
-			vector<Word*> &data = _dataset_train[data_index];
+			std::vector<Word*> &data = _dataset_train[data_index];
 			_ithmm->perform_gibbs_sampling_data(data);
 		}
 		_ithmm->delete_invalid_children();
 	}
-	void _before_viterbi_decode(vector<Node*> &nodes){
+	void _before_viterbi_decode(std::vector<Node*> &nodes){
 		_before_compute_log_Pdataset(nodes);
 		_decode_table = new double*[_max_num_words_in_line];
 		for(int i = 0;i < _max_num_words_in_line;i++){
@@ -322,22 +322,22 @@ public:
 		}
 		delete[] _decode_table;
 	}
-	python::list viterbi_decode_test(){
-		python::list result_list;
-		vector<Node*> nodes;
+	boost::python::list viterbi_decode_test(){
+		boost::python::list result_list;
+		std::vector<Node*> nodes;
 		_before_viterbi_decode(nodes);
-		vector<Node*> series;
+		std::vector<Node*> series;
 		for(int data_index = 0;data_index < _dataset_test.size();data_index++){
 			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
 				return result_list;
 			}
-			vector<Word*> &data = _dataset_test[data_index];
-			python::list tuple_list;
+			std::vector<Word*> &data = _dataset_test[data_index];
+			boost::python::list tuple_list;
 			viterbi_decode_data(data, nodes, series);
 			for(int i = 0;i < data.size();i++){
-				python::list tuple;
-				wstring word = _dictionary[data[i]->_id];
-				wstring tag = L"[" + series[i]->_wdump_indices() + L"]";
+				boost::python::list tuple;
+				std::wstring word = _dictionary[data[i]->_id];
+				std::wstring tag = L"[" + series[i]->_wdump_indices() + L"]";
 				tuple.append(word);
 				tuple.append(tag);
 				tuple_list.append(tuple);
@@ -347,22 +347,22 @@ public:
 		_after_viterbi_decode();
 		return result_list;
 	}
-	python::list viterbi_decode_train(){
-		python::list result_list;
-		vector<Node*> nodes;
+	boost::python::list viterbi_decode_train(){
+		boost::python::list result_list;
+		std::vector<Node*> nodes;
 		_before_viterbi_decode(nodes);
-		vector<Node*> series;
+		std::vector<Node*> series;
 		for(int data_index = 0;data_index < _dataset_train.size();data_index++){
 			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
 				return result_list;
 			}
-			vector<Word*> &data = _dataset_train[data_index];
-			python::list tuple_list;
+			std::vector<Word*> &data = _dataset_train[data_index];
+			boost::python::list tuple_list;
 			viterbi_decode_data(data, nodes, series);
 			for(int i = 0;i < data.size();i++){
-				python::list tuple;
-				wstring word = _dictionary[data[i]->_id];
-				wstring tag = L"[" + series[i]->_wdump_indices() + L"]";
+				boost::python::list tuple;
+				std::wstring word = _dictionary[data[i]->_id];
+				std::wstring tag = L"[" + series[i]->_wdump_indices() + L"]";
 				tuple.append(word);
 				tuple.append(tag);
 				tuple_list.append(tuple);
@@ -374,7 +374,7 @@ public:
 	}
 	// 状態系列の復号
 	// ビタビアルゴリズム
-	void viterbi_decode_data(vector<Word*> &data, vector<Node*> &states, vector<Node*> &series){
+	void viterbi_decode_data(std::vector<Word*> &data, std::vector<Node*> &states, std::vector<Node*> &series){
 		// 初期化
 		Word* word = data[0];
 		for(int i = 0;i < states.size();i++){
@@ -410,7 +410,7 @@ public:
 			}
 		}
 		// 後ろ向きに系列を復元
-		vector<int> series_indices;
+		std::vector<int> series_indices;
 		int n = data.size() - 1;
 		int k = 0;
 		double max_value = 0;
@@ -435,7 +435,7 @@ public:
 	}
 	// データの対数尤度を計算
 	// 前向きアルゴリズム
-	double compute_Pdata(vector<Word*> &data, vector<Node*> &states){
+	double compute_Pdata(std::vector<Word*> &data, std::vector<Node*> &states){
 		// 初期化
 		Word* word = data[0];
 		for(int i = 0;i < states.size();i++){
@@ -470,7 +470,7 @@ public:
 		}
 		return Px;
 	}
-	void _before_compute_log_Pdataset(vector<Node*> &nodes){
+	void _before_compute_log_Pdataset(std::vector<Node*> &nodes){
 		// あらかじめ全HTSSBの棒の長さを計算しておく
 		_ithmm->_structure_tssb->enumerate_nodes_from_left_to_right(nodes);
 		for(auto node: nodes){
@@ -499,8 +499,8 @@ public:
 	double compute_log_Pdataset_test(){
 		return _compute_log_Pdataset(_dataset_test);
 	}
-	double _compute_log_Pdataset(vector<vector<Word*>> &dataset){
-		vector<Node*> nodes;
+	double _compute_log_Pdataset(std::vector<std::vector<Word*>> &dataset){
+		std::vector<Node*> nodes;
 		_before_compute_log_Pdataset(nodes);
 		// データごとの対数尤度を足していく
 		double log_Pdataset = 0;
@@ -508,7 +508,7 @@ public:
 			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
 				return 0;
 			}
-			vector<Word*> &data = dataset[data_index];
+			std::vector<Word*> &data = dataset[data_index];
 			double Px = compute_Pdata(data, nodes);
 			if(Px > 0){
 				log_Pdataset += log(Px);
@@ -523,8 +523,8 @@ public:
 	double compute_log2_Pdataset_test(){
 		return _compute_log2_Pdataset(_dataset_test);
 	}
-	double _compute_log2_Pdataset(vector<vector<Word*>> &dataset){
-		vector<Node*> nodes;
+	double _compute_log2_Pdataset(std::vector<std::vector<Word*>> &dataset){
+		std::vector<Node*> nodes;
 		_before_compute_log_Pdataset(nodes);
 		// データごとの対数尤度を足していく
 		double log_Pdataset = 0;
@@ -532,7 +532,7 @@ public:
 			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
 				return 0;
 			}
-			vector<Word*> &data = dataset[data_index];
+			std::vector<Word*> &data = dataset[data_index];
 			double Px = compute_Pdata(data, nodes);
 			if(Px > 0){
 				log_Pdataset += log2(Px);
@@ -547,8 +547,8 @@ public:
 	double compute_perplexity_test(){
 		return _compute_perplexity(_dataset_test);
 	}
-	double _compute_perplexity(vector<vector<Word*>> &dataset){
-		vector<Node*> nodes;
+	double _compute_perplexity(std::vector<std::vector<Word*>> &dataset){
+		std::vector<Node*> nodes;
 		_before_compute_log_Pdataset(nodes);
 		// データごとの対数尤度を足していく
 		double log_Pdataset = 0;
@@ -556,7 +556,7 @@ public:
 			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
 				return 0;
 			}
-			vector<Word*> &data = dataset[data_index];
+			std::vector<Word*> &data = dataset[data_index];
 			double Px = compute_Pdata(data, nodes);
 			if(Px > 0){
 				log_Pdataset += log2(Px) / data.size();
@@ -570,103 +570,103 @@ public:
 	}
 	void show_assigned_words_for_each_tag(int number_to_show_for_each_tag, bool show_probability = true){
 		auto pair = std::make_pair(0, 0);
-		vector<Node*> nodes;
+		std::vector<Node*> nodes;
 		_ithmm->_structure_tssb->enumerate_nodes_from_left_to_right(nodes);
 		for(const auto &node: nodes){
-			multiset<std::pair<id, double>, multiset_value_comparator> ranking;
+			std::multiset<std::pair<id, double>, multiset_value_comparator> ranking;
 			_ithmm->geneerate_word_ranking_of_node(node, ranking);
 			int n = 0;
-			string indices = node->_dump_indices();
+			std::string indices = node->_dump_indices();
 			// linuxでバグるのでstringとwstring両方作る
-			string tab = "";
+			std::string tab = "";
 			for(int i = 0;i < node->_depth_v;i++){
 				tab += "	";
 			}
-			cout << "\x1b[32;1m" << tab << "[" << indices << "]" << "\x1b[0m" << endl;
-			wstring wtab = L"";
+			std::cout << "\x1b[32;1m" << tab << "[" << indices << "]" << "\x1b[0m" << std::endl;
+			std::wstring wtab = L"";
 			for(int i = 0;i < node->_depth_v;i++){
 				wtab += L"	";
 			}
-			wcout << wtab;
+			std::wcout << wtab;
 			for(const auto &elem: ranking){
 				id word_id = elem.first;
-				wstring &word = _dictionary[word_id];
+				std::wstring &word = _dictionary[word_id];
 				double p = elem.second;
 				int count = node->_num_word_assignment[word_id];
-				wcout << "\x1b[1m" << word << "\x1b[0m" << L" (" << count;
+				std::wcout << "\x1b[1m" << word << "\x1b[0m" << L" (" << count;
 				if(show_probability){
-					wcout << L";p=" << p;
+					std::wcout << L";p=" << p;
 				} 
-				wcout << L") ";
+				std::wcout << L") ";
 				n++;
 				if(n > number_to_show_for_each_tag){
 					break;
 				}
 			}
-			wcout << endl;
+			std::wcout << std::endl;
 			ranking.clear();
 		}
 	}
 	void show_assigned_words_and_probability_for_each_tag(int number_to_show_for_each_tag){
 		auto pair = std::make_pair(0, 0);
-		vector<Node*> nodes;
+		std::vector<Node*> nodes;
 		_ithmm->_structure_tssb->enumerate_nodes_from_left_to_right(nodes);
 		for(const auto &node: nodes){
-			multiset<std::pair<id, double>, multiset_value_comparator> ranking;
+			std::multiset<std::pair<id, double>, multiset_value_comparator> ranking;
 			_ithmm->geneerate_word_ranking_of_node(node, ranking);
 			int n = 0;
-			string indices = node->_dump_indices();
-			cout << "\x1b[32;1m" << "[" << indices << "]" << "\x1b[0m" << endl;
+			std::string indices = node->_dump_indices();
+			std::cout << "\x1b[32;1m" << "[" << indices << "]" << "\x1b[0m" << std::endl;
 			for(const auto &elem: ranking){
 				id word_id = elem.first;
-				wstring &word = _dictionary[word_id];
+				std::wstring &word = _dictionary[word_id];
 				double p = elem.second;
 				int count = node->_num_word_assignment[word_id];
-				wcout << "\x1b[1m" << word << "\x1b[0m" << L"	" << count << L"	" << p << endl;
+				std::wcout << "\x1b[1m" << word << "\x1b[0m" << L"	" << count << L"	" << p << std::endl;
 				n++;
 				if(n > number_to_show_for_each_tag){
 					break;
 				}
 			}
-			wcout << endl;
+			std::wcout << std::endl;
 			ranking.clear();
 		}
 	}
 	void show_hpylm_for_each_tag(){
 		auto pair = std::make_pair(0, 0);
-		vector<Node*> nodes;
+		std::vector<Node*> nodes;
 		_ithmm->_structure_tssb->enumerate_nodes_from_left_to_right(nodes);
 		for(const auto &node: nodes){
-			multiset<std::pair<id, double>, multiset_value_comparator> ranking;
+			std::multiset<std::pair<id, double>, multiset_value_comparator> ranking;
 			_ithmm->geneerate_word_ranking_of_node(node, ranking);
 			int n = 0;
-			string indices = node->_dump_indices();
+			std::string indices = node->_dump_indices();
 			// linuxでバグるのでstringとwstring両方作る
-			string tab = "";
+			std::string tab = "";
 			for(int i = 0;i < node->_depth_v;i++){
 				tab += "	";
 			}
-			cout << "\x1b[32;1m" << tab << "[" << indices << "]" << "\x1b[0m" << endl;
-			wstring wtab = L"";
+			std::cout << "\x1b[32;1m" << tab << "[" << indices << "]" << "\x1b[0m" << std::endl;
+			std::wstring wtab = L"";
 			for(int i = 0;i < node->_depth_v;i++){
 				wtab += L"	";
 			}
-			wcout << wtab;
+			std::wcout << wtab;
 			for(const auto &table: node->_hpylm->_arrangement){
 				id word_id = table.first;
-				wstring &word = _dictionary[word_id];
+				std::wstring &word = _dictionary[word_id];
 				int num_tables = table.second.size();
 				int num_customers = std::accumulate(table.second.begin(), table.second.end(), 0);
-				wcout << "\x1b[1m" << word << "\x1b[0m" << L" (#t=" << num_tables << ";#c=" << num_customers << L") ";
+				std::wcout << "\x1b[1m" << word << "\x1b[0m" << L" (#t=" << num_tables << ";#c=" << num_customers << L") ";
 			}
-			wcout << endl;
+			std::wcout << std::endl;
 		}
 	}
 	void show_sticks(){
-		vector<Node*> nodes;
+		std::vector<Node*> nodes;
 		_ithmm->_structure_tssb->enumerate_nodes_from_left_to_right(nodes);
 		for(const auto &node: nodes){
-			string indices = node->_dump_indices();
+			std::string indices = node->_dump_indices();
 			c_printf("[*]%s\n", ((boost::format("[%s]") % indices.c_str())).str().c_str());
 			_show_stick(node);
 		}
@@ -676,21 +676,21 @@ public:
 		double p_eos = node_on_structure->compute_transition_probability_to_eos(_ithmm->_tau0, _ithmm->_tau1);
 		_ithmm->update_stick_length_of_tssb(node_on_structure->_transition_tssb, 1.0 - p_eos, true);
 
-		vector<Node*> nodes;
+		std::vector<Node*> nodes;
 		node_on_structure->_transition_tssb->enumerate_nodes_from_left_to_right(nodes);
 		for(const auto &node: nodes){
-			string indices = node->_dump_indices();
-			string tab = "";
+			std::string indices = node->_dump_indices();
+			std::string tab = "";
 			for(int i = 0;i < node->_depth_v;i++){
 				tab += "	";
 			}
-			cout << "\x1b[32;1m" << tab << "[" << indices << "]" << "\x1b[0m " << node->_probability << endl;
+			std::cout << "\x1b[32;1m" << tab << "[" << indices << "]" << "\x1b[0m " << node->_probability << std::endl;
 		}
 	}
 };
 
 BOOST_PYTHON_MODULE(model){
-	python::class_<Trainer>("ithmm")
+	boost::python::class_<Trainer>("ithmm")
 	.def("string_to_word_id", &Trainer::string_to_word_id)
 	.def("add_string", &Trainer::add_string)
 	.def("perform_gibbs_sampling", &Trainer::perform_gibbs_sampling)

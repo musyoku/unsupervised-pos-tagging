@@ -6,9 +6,9 @@
 
 namespace {
 	template<class T>
-	python::list list_from_vector(vector<T> &vec){  
-		 python::list list;
-		 typename vector<T>::const_iterator it;
+	boost::python::list list_from_vector(std::vector<T> &vec){  
+		 boost::python::list list;
+		 typename std::vector<T>::const_iterator it;
 		 for(it = vec.begin(); it != vec.end(); ++it){
 			  list.append(*it);
 		 }
@@ -16,9 +16,9 @@ namespace {
 	}
 
 	template<class T1,class T2>
-	python::dict dict_from_map(unordered_map<T1,T2> &map_){  
-		 python::dict py_dict;
-		 typename unordered_map<T1,T2>::const_iterator it;
+	boost::python::dict dict_from_map(std::unordered_map<T1,T2> &map_){  
+		 boost::python::dict py_dict;
+		 typename std::unordered_map<T1,T2>::const_iterator it;
 		 for(it = map_.begin(); it != map_.end(); ++it){
 			  py_dict[it->first]=it->second;        
 		 }
@@ -30,9 +30,9 @@ namespace {
 		}
 		return n * factorial(n - 1);
 	}
-	void split_word_by(const wstring &str, wchar_t delim, vector<wstring> &elems){
+	void split_word_by(const std::wstring &str, wchar_t delim, std::vector<std::wstring> &elems){
 		elems.clear();
-	    wstring item;
+	    std::wstring item;
 	    for(wchar_t ch: str){
 	        if (ch == delim){
 	            if (!item.empty()){
@@ -49,6 +49,8 @@ namespace {
 	    }
 	}
 	void show_progress(int step, int total){
+		using std::cout;
+		using std::endl;
 		double progress = step / (double)(total - 1);
 		int barWidth = 30;
 
@@ -65,21 +67,21 @@ namespace {
 			cout << endl;
 		}
 	}
-	double compute_sbr_probability_given_params(vector<double> &params){
+	double compute_sbr_probability_given_params(std::vector<double> &params){
 		double probability = 1;
 		for(int i = 0;i < params.size() - 1;i++){
 			probability *= 1 - params[i];
 		}
 		return probability * params.back();
 	}
-	double compute_sbr_probability_given_params_reverse(vector<double> &params_reverse){
+	double compute_sbr_probability_given_params_reverse(std::vector<double> &params_reverse){
 		double probability = 1;
 		for(int i = params_reverse.size() - 1;i > 0;i--){
 			probability *= 1 - params_reverse[i];
 		}
 		return probability * params_reverse.front();
 	}
-	void compute_sbr_probability_and_sum_given_params(vector<double> &params, double &probability, double &sum){
+	void compute_sbr_probability_and_sum_given_params(std::vector<double> &params, double &probability, double &sum){
 		double stick = 1;
 		probability = 1;
 		sum = 0;
