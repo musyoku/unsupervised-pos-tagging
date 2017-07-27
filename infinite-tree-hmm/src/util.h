@@ -1,11 +1,8 @@
-#ifndef _util_
-#define _util_
+#pragma once
 #include <boost/python.hpp>
 #include <unordered_map>
 #include <vector>
 #include <iostream>
-using namespace std;
-using namespace boost;
 
 namespace {
 	template<class T>
@@ -95,4 +92,3 @@ namespace {
 		sum += stick * params.back();
 	}
 }
-#endif

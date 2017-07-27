@@ -1,5 +1,4 @@
-#ifndef _hpylm_
-#define _hpylm_
+#pragma once
 #include <boost/serialization/serialization.hpp>
 #include <boost/serialization/base_object.hpp>
 #include <boost/archive/binary_iarchive.hpp>
@@ -9,7 +8,6 @@
 #include <vector>
 #include <unordered_map>
 #include <map>
-using namespace std;
 using id = int;
 
 class Node;
@@ -27,11 +25,11 @@ private:
 		archive & _parent;
 		archive & _state_node;
 	}
-	bool add_customer_to_table(id token_id, int table_k, double parent_Pw, vector<double> &d_m, vector<double> &theta_m);
-	bool add_customer_to_new_table(id token_id, double parent_Pw, vector<double> &d_m, vector<double> &theta_m);
-	bool remove_customer_from_table(id token_id, int table_k, vector<int> &num_customers_at_table);
+	bool add_customer_to_table(id token_id, int table_k, double parent_Pw, std::vector<double> &d_m, std::vector<double> &theta_m);
+	bool add_customer_to_new_table(id token_id, double parent_Pw, std::vector<double> &d_m, std::vector<double> &theta_m);
+	bool remove_customer_from_table(id token_id, int table_k, std::vector<int> &num_customers_at_table);
 public:
-	map<id, vector<int>> _arrangement;	// 客の配置 vector<int>のk番目の要素がテーブルkの客数を表す
+	std::map<id, std::vector<int>> _arrangement;	// 客の配置 std::vector<int>のk番目の要素がテーブルkの客数を表す
 	int _num_tables;					// 総テーブル数
 	int _num_customers;					// 客の総数
 	int _depth;
@@ -44,12 +42,12 @@ public:
 	int get_num_tables_serving_word(id token_id);
 	int get_num_customers_eating_word(id token_id);
 	HPYLM* find_child_node(id token_id, bool generate_if_not_exist = false);
-	bool add_customer(id token_id, double g0, vector<double> &d_m, vector<double> &theta_m);
+	bool add_customer(id token_id, double g0, std::vector<double> &d_m, std::vector<double> &theta_m);
 	bool remove_customer(id token_id);
-	double compute_Pw(id token_id, double g0, vector<double> &d_m, vector<double> &theta_m);
+	double compute_Pw(id token_id, double g0, std::vector<double> &d_m, std::vector<double> &theta_m);
 	bool remove_from_parent();
 	void delete_child_node(id token_id);
-	id sample_token(double g0, vector<double> &d_m, vector<double> &theta_m);
+	id sample_token(double g0, std::vector<double> &d_m, std::vector<double> &theta_m);
 	int get_max_depth(int base);
 	int get_num_tables();
 	int get_num_customers();
@@ -62,4 +60,3 @@ public:
 	double auxiliary_1_z_uwkj(double d_u);
 	void dump();
 };
-#endif

@@ -1,5 +1,4 @@
-#ifndef _hyper_
-#define _hyper_
+#pragma once
 
 // これらのハイパーパラメータは実行前に一度だけ一様分布からサンプリングしていたのでminとmaxを設定する*1
 #define iTHMM_ALPHA_MIN 10
@@ -35,4 +34,3 @@
 // *1 [Tree-Structured Stick Breaking for Hierarchical Data](https://hips.seas.harvard.edu/files/adams-tssb-nips-2010.pdf)
 // *2 [無限木構造隠れMarkovモデルによる階層的品詞の教師なし学習](http://chasen.org/~daiti-m/paper/nl226ithmm.pdf)
 // *3 [A Bayesian Interpretation of Interpolated Kneser-Ney](https://www.stats.ox.ac.uk/~teh/research/compling/hpylm.pdf)
-#endif

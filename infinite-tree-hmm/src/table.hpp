@@ -1,12 +1,10 @@
-#ifndef _table_
-#define _table_
+#pragma once
 #include <boost/serialization/serialization.hpp>
 #include <boost/serialization/base_object.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/serialization/vector.hpp>
 #include <vector>
-using namespace std;
 
 // 中華料理店過程のテーブル
 // 通常CRPではテーブルが各クラスタを表すが、TSSBでは全テーブルが同じクラスタに属する
@@ -24,7 +22,7 @@ private:
 		archive & _last_added_index;
 	}
 public:
-	vector<int> _arrangement;
+	std::vector<int> _arrangement;
 	int _num_customers;
 	int _token_id;
 	int _last_added_index;
@@ -35,4 +33,3 @@ public:
 	void remove_customer(bool &empty_table_deleted);
 	void remove_last_customer(bool &empty_table_deleted);
 };
-#endif

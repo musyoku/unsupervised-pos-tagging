@@ -15,7 +15,6 @@
 #include "src/hpylm.hpp"
 #include "src/ithmm.h"
 #include "src/util.h"
-using namespace boost;
 
 #define ID_BOS 0
 #define ID_EOS 1

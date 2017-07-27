@@ -1,5 +1,4 @@
-#ifndef _ithmm_
-#define _ithmm_
+#pragma once
 #include <boost/serialization/serialization.hpp>
 #include <boost/serialization/base_object.hpp>
 #include <boost/archive/binary_iarchive.hpp>
@@ -17,7 +16,6 @@
 #include "cprintf.h"
 #include "util.h"
 #include "hyperparameters.h"
-using namespace std;
 
 // 10以下ならなんでもいい
 #define TSSB_STRUCTURE_ID 8
@@ -1666,5 +1664,3 @@ public:
 		return success;
 	}
 };
-
-#endif

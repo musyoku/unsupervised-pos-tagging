@@ -1,5 +1,4 @@
-#ifndef _node_
-#define _node_
+#pragma once
 #include <boost/serialization/serialization.hpp>
 #include <boost/serialization/base_object.hpp>
 #include <boost/archive/binary_iarchive.hpp>
@@ -11,8 +10,6 @@
 #include <map>
 #include "table.hpp"
 #include "hpylm.hpp"
-using namespace std;
-using namespace boost;
 
 class HPYLM;
 class TSSB;
@@ -70,13 +67,13 @@ public:
 	int _num_transitions_to_other;	// EOS以外への遷移回数
 	Table* _table_v;		// 客を管理するテーブル。 縦方向のCRP
 	Table* _table_h;		// 客を管理するテーブル。 横方向のCRP
-	vector<Node*> _children;
+	std::vector<Node*> _children;
 	double _stick_length;				// 自分の棒の木全体に対する長さ
 	double _children_stick_length;		// 自分の棒の子ノードに割り当てる長さ
 	double _probability;				// このノードの確率
 	double _sum_probability;			// 自分より左側にある全ての棒の長さの合計
 	HPYLM* _hpylm;						// 出力分布
-	map<id, int> _num_word_assignment;	// 単語がこのノードに割り当てられた回数。結果表示用でiTHMMとは無関係。
+	std::map<id, int> _num_word_assignment;	// 単語がこのノードに割り当てられた回数。結果表示用でiTHMMとは無関係。
 	// 計算時に使う配列
 	Node** _nodes_from_root_to_myself;
 	double* _stop_probability_v_over_parent;
@@ -141,8 +138,7 @@ public:
 	bool delete_node_if_needed();
 	Node* delete_child_node(int node_id);
 	void dump();
-	string _dump_indices();
-	wstring _wdump_indices();
-	string _dump();
+	std::string _dump_indices();
+	std::wstring _wdump_indices();
+	std::string _dump();
 };
-#endif

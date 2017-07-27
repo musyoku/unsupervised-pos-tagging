@@ -1,12 +1,10 @@
-#ifndef _tssb_
-#define _tssb_
+#pragma once
 #include <boost/serialization/serialization.hpp>
 #include <boost/serialization/base_object.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 #include <vector>
 #include <iostream>
-using namespace std;
 
 class Node;
 class TSSB{
@@ -30,8 +28,8 @@ public:
 	TSSB(Node* root);
 	~TSSB();
 	void _delete_children(Node* node);
-	void enumerate_nodes_from_left_to_right(vector<Node*> &nodes);
-	void _enumerate_nodes_from_left_to_right(Node* node, vector<Node*> &nodes);
+	void enumerate_nodes_from_left_to_right(std::vector<Node*> &nodes);
+	void _enumerate_nodes_from_left_to_right(Node* node, std::vector<Node*> &nodes);
 	Node* find_node_by_tracing_horizontal_indices(Node* base);
 	Node* find_node_with_id(int identifier);
 	Node* _find_node_with_id(int identifier,  Node* node);
@@ -46,4 +44,3 @@ public:
 	void dump();
 	void _dump(Node* node);
 };
-#endif
