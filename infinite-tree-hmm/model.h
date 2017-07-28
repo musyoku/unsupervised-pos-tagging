@@ -1,3 +1,4 @@
+#pragma once
 #include <boost/python.hpp>
 #include <boost/python/tuple.hpp>
 #include <boost/format.hpp>
@@ -45,46 +46,6 @@ public:
 	~Model(){
 		delete _ithmm;
 	}
-};
-
-class Trainer: Model{
-public:
-	std::unordered_map<id, int> _word_count;
-	std::vector<std::vector<Word*>> _dataset_train;
-	std::vector<std::vector<Word*>> _dataset_test;
-	std::vector<int> _rand_indices;
-	int _max_num_words_in_line;
-	int _min_num_words_in_line;
-	Trainer(){
-		_ithmm = new iTHMM();
-		_dictionary[ID_BOS] = L"<bos>";
-		_dictionary[ID_EOS] = L"<eos>";
-		_dictionary[ID_UNK] = L"<unk>";
-		_autoincrement = ID_UNK + 1;
-
-		_max_num_words_in_line = -1;
-		_min_num_words_in_line = -1;
-
-		_forward_table = NULL;
-		_decode_table = NULL;
-	}
-	~Trainer(){
-		delete _ithmm;
-		for(int n = 0;n < _dataset_train.size();n++){
-			std::vector<Word*> &data = _dataset_train[n];
-			for(int m = 0;m < data.size();m++){
-				Word* word = data[m];
-				delete word;
-			}
-		}
-		for(int n = 0;n < _dataset_test.size();n++){
-			std::vector<Word*> &data = _dataset_test[n];
-			for(int m = 0;m < data.size();m++){
-				Word* word = data[m];
-				delete word;
-			}
-		}
-	}
 	double get_alpha(){
 		return _ithmm->_alpha;
 	}
@@ -108,16 +69,6 @@ public:
 	}
 	double get_metropolis_hastings_acceptance_rate(){
 		return _ithmm->_num_mh_acceptance / (double)(_ithmm->_num_mh_acceptance + _ithmm->_num_mh_rejection);
-	}
-	int get_num_words(){
-		return _word_count.size();
-	}
-	int get_count_for_word(id word_id){
-		auto itr = _word_count.find(word_id);
-		if(itr == _word_count.end()){
-			return 0;
-		}
-		return itr->second;
 	}
 	boost::python::list get_all_tags(){
 		boost::python::list tags;
@@ -155,6 +106,79 @@ public:
 	}
 	void set_metropolis_hastings_enabled(bool enabled){
 		_ithmm->_mh_enabled = enabled;
+	}
+	bool load(std::string dirname){
+		// 辞書を読み込み
+		std::string dictionary_filename = dirname + "/ithmm.dict";
+		std::ifstream ifs(dictionary_filename);
+		if(ifs.good()){
+			boost::archive::binary_iarchive iarchive(ifs);
+			iarchive >> _dictionary;
+			iarchive >> _dictionary_inv;
+			iarchive >> _autoincrement;
+			ifs.close();
+		}
+		return _ithmm->load(dirname);
+	}
+	bool save(std::string dirname){
+		// 辞書を保存
+		std::ofstream ofs(dirname + "/ithmm.dict");
+		boost::archive::binary_oarchive oarchive(ofs);
+		oarchive << _dictionary;
+		oarchive << _dictionary_inv;
+		oarchive << _autoincrement;
+		ofs.close();
+		return _ithmm->save(dirname);
+	}
+};
+
+class Trainer: public Model{
+public:
+	std::unordered_map<id, int> _word_count;
+	std::vector<std::vector<Word*>> _dataset_train;
+	std::vector<std::vector<Word*>> _dataset_test;
+	std::vector<int> _rand_indices;
+	int _max_num_words_in_line;
+	int _min_num_words_in_line;
+	Trainer(){
+		_ithmm = new iTHMM();
+		_dictionary[ID_BOS] = L"<bos>";
+		_dictionary[ID_EOS] = L"<eos>";
+		_dictionary[ID_UNK] = L"<unk>";
+		_autoincrement = ID_UNK + 1;
+
+		_max_num_words_in_line = -1;
+		_min_num_words_in_line = -1;
+
+		_forward_table = NULL;
+		_decode_table = NULL;
+	}
+	~Trainer(){
+		delete _ithmm;
+		for(int n = 0;n < _dataset_train.size();n++){
+			std::vector<Word*> &data = _dataset_train[n];
+			for(int m = 0;m < data.size();m++){
+				Word* word = data[m];
+				delete word;
+			}
+		}
+		for(int n = 0;n < _dataset_test.size();n++){
+			std::vector<Word*> &data = _dataset_test[n];
+			for(int m = 0;m < data.size();m++){
+				Word* word = data[m];
+				delete word;
+			}
+		}
+	}
+	int get_num_words(){
+		return _word_count.size();
+	}
+	int get_count_for_word(id word_id){
+		auto itr = _word_count.find(word_id);
+		if(itr == _word_count.end()){
+			return 0;
+		}
+		return itr->second;
 	}
 	id add_string(std::wstring word){
 		auto itr = _dictionary_inv.find(word);
@@ -264,29 +288,6 @@ public:
 	void remove_all_data(){
 		_ithmm->remove_all_data(_dataset_train);
 		_ithmm->delete_invalid_children();
-	}
-	bool load(std::string dirname){
-		// 辞書を読み込み
-		std::string dictionary_filename = dirname + "/ithmm.dict";
-		std::ifstream ifs(dictionary_filename);
-		if(ifs.good()){
-			boost::archive::binary_iarchive iarchive(ifs);
-			iarchive >> _dictionary;
-			iarchive >> _dictionary_inv;
-			iarchive >> _autoincrement;
-			ifs.close();
-		}
-		return _ithmm->load(dirname);
-	}
-	bool save(std::string dirname){
-		// 辞書を保存
-		std::ofstream ofs(dirname + "/ithmm.dict");
-		boost::archive::binary_oarchive oarchive(ofs);
-		oarchive << _dictionary;
-		oarchive << _dictionary_inv;
-		oarchive << _autoincrement;
-		ofs.close();
-		return _ithmm->save(dirname);
 	}
 	void perform_gibbs_sampling(){
 		if(_rand_indices.size() != _dataset_train.size()){
@@ -688,51 +689,3 @@ public:
 		}
 	}
 };
-
-BOOST_PYTHON_MODULE(model){
-	boost::python::class_<Trainer>("ithmm")
-	.def("string_to_word_id", &Trainer::string_to_word_id)
-	.def("add_string", &Trainer::add_string)
-	.def("perform_gibbs_sampling", &Trainer::perform_gibbs_sampling)
-	.def("compile", &Trainer::compile)
-	.def("load", &Trainer::load)
-	.def("save", &Trainer::save)
-	.def("load_textfile", &Trainer::load_textfile)
-	.def("add_train_data", &Trainer::add_train_data)
-	.def("add_test_data", &Trainer::add_test_data)
-	.def("mark_low_frequency_words_as_unknown", &Trainer::mark_low_frequency_words_as_unknown)
-	.def("update_hyperparameters", &Trainer::update_hyperparameters)
-	.def("get_num_words", &Trainer::get_num_words)
-	.def("get_count_for_word", &Trainer::get_count_for_word)
-	.def("get_alpha", &Trainer::get_alpha)
-	.def("get_gamma", &Trainer::get_gamma)
-	.def("get_lambda_alpha", &Trainer::get_lambda_alpha)
-	.def("get_lambda_gamma", &Trainer::get_lambda_gamma)
-	.def("get_strength", &Trainer::get_strength)
-	.def("get_tau0", &Trainer::get_tau0)
-	.def("get_tau1", &Trainer::get_tau1)
-	.def("get_metropolis_hastings_acceptance_rate", &Trainer::get_metropolis_hastings_acceptance_rate)
-	.def("get_all_tags", &Trainer::get_all_tags)
-	.def("set_alpha", &Trainer::set_alpha)
-	.def("set_gamma", &Trainer::set_gamma)
-	.def("set_lambda_alpha", &Trainer::set_lambda_alpha)
-	.def("set_lambda_gamma", &Trainer::set_lambda_gamma)
-	.def("set_strength", &Trainer::set_strength)
-	.def("set_tau0", &Trainer::set_tau0)
-	.def("set_tau1", &Trainer::set_tau1)
-	.def("set_depth_limit", &Trainer::set_depth_limit)
-	.def("set_metropolis_hastings_enabled", &Trainer::set_metropolis_hastings_enabled)
-	.def("viterbi_decode_train", &Trainer::viterbi_decode_train)
-	.def("viterbi_decode_test", &Trainer::viterbi_decode_test)
-	.def("show_assigned_words_for_each_tag", &Trainer::show_assigned_words_for_each_tag)
-	.def("show_assigned_words_and_probability_for_each_tag", &Trainer::show_assigned_words_and_probability_for_each_tag)
-	.def("show_hpylm_for_each_tag", &Trainer::show_hpylm_for_each_tag)
-	.def("show_sticks", &Trainer::show_sticks)
-	.def("compute_perplexity_test", &Trainer::compute_perplexity_test)
-	.def("compute_perplexity_train", &Trainer::compute_perplexity_train)
-	.def("compute_log2_Pdataset_test", &Trainer::compute_log2_Pdataset_test)
-	.def("compute_log2_Pdataset_train", &Trainer::compute_log2_Pdataset_train)
-	.def("compute_log_Pdataset_test", &Trainer::compute_log_Pdataset_test)
-	.def("compute_log_Pdataset_train", &Trainer::compute_log_Pdataset_train)
-	.def("remove_all_data", &Trainer::remove_all_data);
-}
