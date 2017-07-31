@@ -12,7 +12,7 @@ hpylm-hmm/core/*
 infinite-tree-hmm/*
 !infinite-tree-hmm/src
 infinite-tree-hmm/src/*
-infinite-tree-hmm/src/ithmm
+!infinite-tree-hmm/src/ithmm
 infinite-tree-hmm/src/ithmm/*
 !infinite-hmm/
 infinite-hmm/*
