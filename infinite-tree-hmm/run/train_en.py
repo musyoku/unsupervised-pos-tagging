@@ -1,4 +1,5 @@
 # coding: utf-8
+from __future__ import print_function
 import argparse, sys, os, time, re, codecs, random
 import pandas as pd
 import treetaggerwrapper
@@ -59,7 +60,34 @@ class stdout:
 	END = "\033[0m"
 	CLEAR = "\033[2K"
 
-def main(args):
+def main():
+	assert args.train_filename is not None
+	try:
+		os.mkdir(args.model)
+	except:
+		pass
+
+	# 単語辞書
+	dictionary = ithmm.dictionary()
+
+	# データセット
+	dataset = ithmm.dataset(dictionary)
+
+	# 訓練データを追加
+	if args.train_filename.endswith(".txt"):
+		dataset.add_textfile(args.train_filename, args.train_split)
+	else:
+		train_dir = args.train_filename
+		files = os.listdir(train_dir)
+		for filename in files:
+			if filename.endswith(".txt"):
+				dataset.add_textfile(os.path.join(train_dir, filename), args.train_split)
+
+	# 単語辞書を保存
+	dictionary.save(os.path.join(args.model, "ithmm.dict"))
+
+
+def _main():
 	if args.filename is None:
 		raise Exception()
 	try:
@@ -69,7 +97,7 @@ def main(args):
 
 	trainer = ithmm.trainer()
 	num_words_in_train_dataset = 0
-	print stdout.BOLD + "データを準備しています ..." + stdout.END
+	print(stdout.BOLD + "データを準備しています ..." + stdout.END)
 	word_count = set()	# 単語の種類の総数
 	dataset = []
 	with codecs.open(args.filename, "r", "utf-8") as f:
@@ -107,8 +135,8 @@ def main(args):
 			trainer.add_train_data(segmentation)	# 学習用データに追加
 			num_words_in_train_dataset += len(results)
 
-	print "\n", stdout.BOLD, "訓練データ数:", args.train_split 
-	print "テストデータ数:", len(dataset) - args.train_split, stdout.END
+	print("\n", stdout.BOLD, "訓練データ数:", args.train_split )
+	print("テストデータ数:", len(dataset) - args.train_split, stdout.END)
 
 	# ハイパーパラメータの設定
 	trainer.set_alpha(random.uniform(10, 20))
@@ -126,7 +154,7 @@ def main(args):
 	trainer.mark_low_frequency_words_as_unknown(args.unknown_threshold)	# 低頻度語を全て<unk>に置き換える
 	trainer.compile()	# 品詞をランダムに割り当てる初期化
 	trainer.show_assigned_words_for_each_tag(20, False);
-	print "alpha:", trainer.get_alpha(), "gamma:", trainer.get_gamma(), "lambda_alpha:", trainer.get_lambda_alpha(), "lambda_gamma:", trainer.get_lambda_gamma(), "strength:", trainer.get_strength(), "tau0:", trainer.get_tau0(), "tau1:", trainer.get_tau1()
+	print("alpha:", trainer.get_alpha(), "gamma:", trainer.get_gamma(), "lambda_alpha:", trainer.get_lambda_alpha(), "lambda_gamma:", trainer.get_lambda_gamma(), "strength:", trainer.get_strength(), "tau0:", trainer.get_tau0(), "tau1:", trainer.get_tau1())
 
 	# グラフプロット用
 	csv_likelihood = []
@@ -140,13 +168,13 @@ def main(args):
 		sys.stdout.write(" Epoch {} / {} - {:.3f} sec - {:.1f} gibbs/s\r".format(epoch, args.epoch, elapsed_time, num_words_in_train_dataset / elapsed_time))		
 		sys.stdout.flush()
 		if epoch % 100 == 0:
-			print "\n"
+			print("\n")
 			trainer.show_assigned_words_for_each_tag(20, False);
 			log_likelihood = trainer.compute_log_Pdataset_test() 
 			perplexity = trainer.compute_perplexity_test()
-			print "alpha:", trainer.get_alpha(), "gamma:", trainer.get_gamma(), "lambda_alpha:", trainer.get_lambda_alpha(), "lambda_gamma:", trainer.get_lambda_gamma(), "strength:", trainer.get_strength(), "tau0:", trainer.get_tau0(), "tau1:", trainer.get_tau1()
-			print "log_likelihood:", int(log_likelihood)
-			print "perplexity:", int(perplexity)
+			print("alpha:", trainer.get_alpha(), "gamma:", trainer.get_gamma(), "lambda_alpha:", trainer.get_lambda_alpha(), "lambda_gamma:", trainer.get_lambda_gamma(), "strength:", trainer.get_strength(), "tau0:", trainer.get_tau0(), "tau1:", trainer.get_tau1())
+			print("log_likelihood:", int(log_likelihood))
+			print("perplexity:", int(perplexity))
 			# print "MH:", trainer.get_metropolis_hastings_acceptance_rate() 
 			trainer.save(args.model);
 			# CSV出力
@@ -161,10 +189,11 @@ def main(args):
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
-	parser.add_argument("-f", "--filename", type=str, default=None, help="訓練用のテキストファイルのパス.")
-	parser.add_argument("-e", "--epoch", type=int, default=1000000, help="総epoch.")
-	parser.add_argument("-m", "--model", type=str, default="out", help="保存フォルダ名.")
-	parser.add_argument("-u", "--unknown-threshold", type=int, default=0, help="出現回数がこの値以下の単語は<unk>に置き換える.")
-	parser.add_argument("-d", "--depth-limit", type=int, default=-1, help="最大の深さ.")
-	parser.add_argument("-l", "--train-split", type=int, default=None, help="テキストデータの最初の何行を訓練データにするか.")
-	main(parser.parse_args())
+	parser.add_argument("-file", "--train-filename", type=str, default=None, help="訓練用のテキストファイルのパス.ディレクトリも可.")
+	parser.add_argument("-epoch", "--epoch", type=int, default=1000000, help="総epoch.")
+	parser.add_argument("-m", "--model", type=str, default="out", help="モデル保存フォルダ名.")
+	parser.add_argument("-unk", "--unknown-threshold", type=int, default=0, help="出現回数がこの値以下の単語は<unk>に置き換える.")
+	parser.add_argument("-depth", "--depth-limit", type=int, default=-1, help="最大の深さ.")
+	parser.add_argument("-split", "--train-split", type=float, default=0.9, help="テキストデータの何割を訓練データにするか.")
+	args = parser.parse_args()
+	main()

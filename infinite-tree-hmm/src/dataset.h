@@ -31,8 +31,8 @@ public:
 			}
 		}
 	}
-	void load_textfile(std::string filename, int train_split){
-		c_printf("[*]%s\n", (boost::format("%sを読み込んでいます ...") % filename.c_str()).str().c_str());
+	void add_textfile(std::string filename, double train_split_ratio){
+		// c_printf("[*]%s\n", (boost::format("%sを読み込んでいます ...") % filename.c_str()).str().c_str());
 		std::wifstream ifs(filename.c_str());
 		std::wstring line_str;
 		if (ifs.fail()){
@@ -46,7 +46,7 @@ public:
 			}
 			lines.push_back(line_str);
 		}
-		assert(lines.size() > train_split);
+		int train_split = lines.size() * train_split_ratio;
 		std::vector<int> rand_indices;
 		for(int i = 0;i < lines.size();i++){
 			rand_indices.push_back(i);
@@ -60,9 +60,9 @@ public:
 				add_test_data(line_str);
 			}
 		}
-		std::cout << "train: " << _word_sequences_train.size() << std::endl;
-		std::cout << "test:  " << _word_sequences_test.size() << std::endl;
-		c_printf("[*]%s\n", (boost::format("%sを読み込みました.") % filename.c_str()).str().c_str());
+		// std::cout << "train: " << _word_sequences_train.size() << std::endl;
+		// std::cout << "test:  " << _word_sequences_test.size() << std::endl;
+		// c_printf("[*]%s\n", (boost::format("%sを読み込みました.") % filename.c_str()).str().c_str());
 	}
 	void add_train_data(std::wstring line_str){
 		_add_data_to(line_str, _word_sequences_train);

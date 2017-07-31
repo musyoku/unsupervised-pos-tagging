@@ -3,18 +3,20 @@
 #include "dictionary.h"
 #include "trainer.h"
 
-BOOST_PYTHON_MODULE(model){
+BOOST_PYTHON_MODULE(ithmm){
 	boost::python::class_<Dictionary>("dictionary")
 	.def("string_to_word_id", &Dictionary::string_to_word_id)
+	.def("save", &Dictionary::save)
+	.def("load", &Dictionary::load)
 	.def("add_string", &Dictionary::add_string);
 
-	boost::python::class_<Dataset>("dataset")
+	boost::python::class_<Dataset>("dataset", boost::python::init<Dictionary*>())
 	.def("get_num_words", &Dataset::get_num_words)
 	.def("get_count_for_word", &Dataset::get_count_for_word)
-	.def("load_textfile", &Dataset::load_textfile)
+	.def("add_textfile", &Dataset::add_textfile)
 	.def("mark_low_frequency_words_as_unknown", &Dataset::mark_low_frequency_words_as_unknown);
 	
-	boost::python::class_<Trainer>("trainer")
+	boost::python::class_<Trainer>("trainer", boost::python::init<Dataset*, Model*, Dictionary*>())
 	.def("perform_gibbs_sampling", &Trainer::perform_gibbs_sampling)
 	.def("update_hyperparameters", &Trainer::update_hyperparameters)
 	.def("viterbi_decode_train", &Trainer::viterbi_decode_train)
