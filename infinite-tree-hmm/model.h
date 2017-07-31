@@ -23,28 +23,28 @@
 
 class Dictionary{
 public:
-	std::unordered_map<id, std::wstring> _dictionary;
-	std::unordered_map<std::wstring, id> _dictionary_inv;
+	std::unordered_map<id, std::wstring> _id_to_str;
+	std::unordered_map<std::wstring, id> _str_to_id;
 	id _autoincrement;
 	Dictionary(){
-		_dictionary[ID_BOS] = L"<bos>";
-		_dictionary[ID_EOS] = L"<eos>";
-		_dictionary[ID_UNK] = L"<unk>";
+		_id_to_str[ID_BOS] = L"<bos>";
+		_id_to_str[ID_EOS] = L"<eos>";
+		_id_to_str[ID_UNK] = L"<unk>";
 		_autoincrement = ID_UNK + 1;
 	}
 	id add_string(std::wstring word){
-		auto itr = _dictionary_inv.find(word);
-		if(itr == _dictionary_inv.end()){
-			_dictionary[_autoincrement] = word;
-			_dictionary_inv[word] = _autoincrement;
+		auto itr = _str_to_id.find(word);
+		if(itr == _str_to_id.end()){
+			_id_to_str[_autoincrement] = word;
+			_str_to_id[word] = _autoincrement;
 			_autoincrement++;
 			return _autoincrement - 1;
 		}
 		return itr->second;
 	}
 	id string_to_word_id(std::wstring word){
-		auto itr = _dictionary_inv.find(word);
-		if(itr == _dictionary_inv.end()){
+		auto itr = _str_to_id.find(word);
+		if(itr == _str_to_id.end()){
 			return ID_UNK;
 		}
 		return itr->second;
@@ -54,8 +54,8 @@ public:
 		std::ifstream ifs(dictionary_filename);
 		if(ifs.good()){
 			boost::archive::binary_iarchive iarchive(ifs);
-			iarchive >> _dictionary;
-			iarchive >> _dictionary_inv;
+			iarchive >> _id_to_str;
+			iarchive >> _str_to_id;
 			iarchive >> _autoincrement;
 			ifs.close();
 			return true;
@@ -65,8 +65,8 @@ public:
 	bool save(std::string filename){
 		std::ofstream ofs(filename);
 		boost::archive::binary_oarchive oarchive(ofs);
-		oarchive << _dictionary;
-		oarchive << _dictionary_inv;
+		oarchive << _id_to_str;
+		oarchive << _str_to_id;
 		oarchive << _autoincrement;
 		ofs.close();
 		return true;
@@ -75,8 +75,6 @@ public:
 
 class Model{
 public:
-	double** _forward_table;		// 前向き確率計算用
-	double** _decode_table;			// viterbiデコーディング用
 	iTHMM* _ithmm;
 	Model(){
 		// 日本語周り
@@ -89,8 +87,6 @@ public:
 		std::wcin.imbue(ctype_default);
 
 		_ithmm = new iTHMM();
-		_forward_table = NULL;
-		_decode_table = NULL;
 	}
 	~Model(){
 		delete _ithmm;
@@ -164,7 +160,7 @@ public:
 	}
 	// 状態系列の復号
 	// ビタビアルゴリズム
-	void viterbi_decode_data(std::vector<Word*> &data, std::vector<Node*> &states, std::vector<Node*> &series){
+	void viterbi_decode_data(std::vector<Word*> &data, std::vector<Node*> &states, std::vector<Node*> &series, double** forward_table, double** decode_table){
 		// 初期化
 		Word* word = data[0];
 		for(int i = 0;i < states.size();i++){
@@ -175,14 +171,14 @@ public:
 			double Pword_given_s = _ithmm->compute_Pw_given_s(word->_id, state);
 			assert(Ps > 0);
 			assert(Pword_given_s > 0);
-			_forward_table[0][i] = Pword_given_s * Ps;
-			_decode_table[0][i] = 0;
+			forward_table[0][i] = Pword_given_s * Ps;
+			decode_table[0][i] = 0;
 		}
 		for(int t = 1;t < data.size();t++){
 			Word* word = data[t];
 			for(int j = 0;j < states.size();j++){
 				Node* state = states[j];
-				_forward_table[t][j] = 0;
+				forward_table[t][j] = 0;
 				double max_value = 0;
 				double Pword_given_s = _ithmm->compute_Pw_given_s(word->_id, state);
 				for(int i = 0;i < states.size();i++){
@@ -190,11 +186,11 @@ public:
 					Node* state_on_prev_htssb = prev_state->_transition_tssb->find_node_by_tracing_horizontal_indices(state);
 					assert(state_on_prev_htssb != NULL);
 					double Ps_given_prev = state_on_prev_htssb->_probability;
-					double value = Ps_given_prev * _forward_table[t - 1][i];
+					double value = Ps_given_prev * forward_table[t - 1][i];
 					if(value > max_value){
 						max_value = value;
-						_forward_table[t][j] = value * Pword_given_s;
-						_decode_table[t][j] = i;
+						forward_table[t][j] = value * Pword_given_s;
+						decode_table[t][j] = i;
 					}
 				}
 			}
@@ -205,14 +201,14 @@ public:
 		int k = 0;
 		double max_value = 0;
 		for(int i = 0;i < states.size();i++){
-			if(_forward_table[n][i] > max_value){
+			if(forward_table[n][i] > max_value){
 				k = i;
-				max_value = _forward_table[n][i];
+				max_value = forward_table[n][i];
 			}
 		}
 		series_indices.push_back(k);
 		for(int t = n - 1;t >= 0;t--){
-			k = _decode_table[t + 1][series_indices[n - t - 1]];
+			k = decode_table[t + 1][series_indices[n - t - 1]];
 			series_indices.push_back(k);
 		}
 		std::reverse(series_indices.begin(), series_indices.end());
@@ -225,7 +221,7 @@ public:
 	}
 	// データの対数尤度を計算
 	// 前向きアルゴリズム
-	double compute_Pdata(std::vector<Word*> &data, std::vector<Node*> &states){
+	double compute_Pdata(std::vector<Word*> &data, std::vector<Node*> &states, double** forward_table){
 		// 初期化
 		Word* word = data[0];
 		for(int i = 0;i < states.size();i++){
@@ -236,27 +232,27 @@ public:
 			double Pword_given_s = _ithmm->compute_Pw_given_s(word->_id, state);
 			assert(Ps > 0);
 			assert(Pword_given_s > 0);
-			_forward_table[0][i] = Pword_given_s * Ps;
+			forward_table[0][i] = Pword_given_s * Ps;
 		}
 		for(int t = 1;t < data.size();t++){
 			Word* word = data[t];
 			for(int j = 0;j < states.size();j++){
 				Node* state = states[j];
-				_forward_table[t][j] = 0;
+				forward_table[t][j] = 0;
 				double Pword_given_s = _ithmm->compute_Pw_given_s(word->_id, state);
 				for(int i = 0;i < states.size();i++){
 					Node* prev_state = states[i];
 					Node* state_on_prev_htssb = prev_state->_transition_tssb->find_node_by_tracing_horizontal_indices(state);
 					assert(state_on_prev_htssb != NULL);
 					double Ps_given_prev = state_on_prev_htssb->_probability;
-					_forward_table[t][j] += Pword_given_s * Ps_given_prev * _forward_table[t - 1][i];
+					forward_table[t][j] += Pword_given_s * Ps_given_prev * forward_table[t - 1][i];
 				}
 			}
 		}
 		int t = data.size() - 1;
 		double Px = 0;
 		for(int j = 0;j < states.size();j++){
-			Px += _forward_table[t][j];
+			Px += forward_table[t][j];
 		}
 		return Px;
 	}
@@ -282,7 +278,7 @@ public:
 			std::wcout << wtab;
 			for(const auto &elem: ranking){
 				id word_id = elem.first;
-				std::wstring &word = dict->_dictionary[word_id];
+				std::wstring &word = dict->_id_to_str[word_id];
 				double p = elem.second;
 				int count = node->_num_word_assignment[word_id];
 				std::wcout << "\x1b[1m" << word << "\x1b[0m" << L" (" << count;
@@ -311,7 +307,7 @@ public:
 			std::cout << "\x1b[32;1m" << "[" << indices << "]" << "\x1b[0m" << std::endl;
 			for(const auto &elem: ranking){
 				id word_id = elem.first;
-				std::wstring &word = dict->_dictionary[word_id];
+				std::wstring &word = dict->_id_to_str[word_id];
 				double p = elem.second;
 				int count = node->_num_word_assignment[word_id];
 				std::wcout << "\x1b[1m" << word << "\x1b[0m" << L"	" << count << L"	" << p << std::endl;
@@ -346,7 +342,7 @@ public:
 			std::wcout << wtab;
 			for(const auto &table: node->_hpylm->_arrangement){
 				id word_id = table.first;
-				std::wstring &word = dict->_dictionary[word_id];
+				std::wstring &word = dict->_id_to_str[word_id];
 				int num_tables = table.second.size();
 				int num_customers = std::accumulate(table.second.begin(), table.second.end(), 0);
 				std::wcout << "\x1b[1m" << word << "\x1b[0m" << L" (#t=" << num_tables << ";#c=" << num_customers << L") ";
@@ -385,8 +381,8 @@ class Dataset{
 public:
 	Dictionary* _dict;
 	std::unordered_map<id, int> _word_count;
-	std::vector<std::vector<Word*>> _dataset_train;
-	std::vector<std::vector<Word*>> _dataset_test;
+	std::vector<std::vector<Word*>> _word_sequences_train;
+	std::vector<std::vector<Word*>> _word_sequences_test;
 	std::vector<int> _rand_indices;
 	int _max_num_words_in_line;
 	int _min_num_words_in_line;
@@ -396,17 +392,17 @@ public:
 		_min_num_words_in_line = -1;
 	}
 	~Dataset(){
-		for(int n = 0;n < _dataset_train.size();n++){
-			std::vector<Word*> &data = _dataset_train[n];
-			for(int m = 0;m < data.size();m++){
-				Word* word = data[m];
+		for(int n = 0;n < _word_sequences_train.size();n++){
+			std::vector<Word*> &words = _word_sequences_train[n];
+			for(int m = 0;m < words.size();m++){
+				Word* word = words[m];
 				delete word;
 			}
 		}
-		for(int n = 0;n < _dataset_test.size();n++){
-			std::vector<Word*> &data = _dataset_test[n];
-			for(int m = 0;m < data.size();m++){
-				Word* word = data[m];
+		for(int n = 0;n < _word_sequences_test.size();n++){
+			std::vector<Word*> &words = _word_sequences_test[n];
+			for(int m = 0;m < words.size();m++){
+				Word* word = words[m];
 				delete word;
 			}
 		}
@@ -440,15 +436,15 @@ public:
 				add_test_data(line_str);
 			}
 		}
-		std::cout << "train: " << _dataset_train.size() << std::endl;
-		std::cout << "test:  " << _dataset_test.size() << std::endl;
+		std::cout << "train: " << _word_sequences_train.size() << std::endl;
+		std::cout << "test:  " << _word_sequences_test.size() << std::endl;
 		c_printf("[*]%s\n", (boost::format("%sを読み込みました.") % filename.c_str()).str().c_str());
 	}
 	void add_train_data(std::wstring line_str){
-		_add_data_to(line_str, _dataset_train);
+		_add_data_to(line_str, _word_sequences_train);
 	}
 	void add_test_data(std::wstring line_str){
-		_add_data_to(line_str, _dataset_test);
+		_add_data_to(line_str, _word_sequences_test);
 	}
 	void _add_data_to(std::wstring &line_str, std::vector<std::vector<Word*>> &dataset){
 		std::vector<std::wstring> word_strs;
@@ -484,8 +480,8 @@ public:
 		}
 	}
 	void mark_low_frequency_words_as_unknown(int threshold = 1){
-		for(int data_index = 0;data_index < _dataset_train.size();data_index++){
-			std::vector<Word*> &data = _dataset_train[data_index];
+		for(int data_index = 0;data_index < _word_sequences_train.size();data_index++){
+			std::vector<Word*> &data = _word_sequences_train[data_index];
 			for(auto word = data.begin(), end = data.end();word != end;word++){
 				id word_id = (*word)->_id;
 				int count = get_count_for_word(word_id);
@@ -511,45 +507,51 @@ class Trainer{
 public:
 	Dataset* _dataset;
 	Model* _model;
+	Dictionary* _dict;
 	std::vector<int> _rand_indices;
 	int _max_num_words_in_line;
 	int _min_num_words_in_line;
-	Trainer(Dataset* dataset, Model* model){
+	double** _forward_table;		// 前向き確率計算用
+	double** _decode_table;			// viterbiデコーディング用
+	Trainer(Dataset* dataset, Model* model, Dictionary* dict){
 		_dataset = dataset;
 		_model = model;
+		_dict = dict;
 		_max_num_words_in_line = -1;
 		_min_num_words_in_line = -1;
+		_forward_table = NULL;
+		_decode_table = NULL;
 
 		_model->_ithmm->set_word_g0(1.0 / _dataset->_word_count.size());
-		_model->_ithmm->initialize_data(_dataset->_dataset_train);
+		_model->_ithmm->initialize_data(_dataset->_word_sequences_train);
 	}
 	~Trainer(){
 		delete[] _dataset;
 		delete[] _model;
 	}
 	void remove_all_data(){
-		_model->_ithmm->remove_all_data(_dataset->_dataset_train);
+		_model->_ithmm->remove_all_data(_dataset->_word_sequences_train);
 		_model->_ithmm->delete_invalid_children();
 	}
 	void perform_gibbs_sampling(){
-		if(_rand_indices.size() != _dataset->_dataset_train.size()){
+		if(_rand_indices.size() != _dataset->_word_sequences_train.size()){
 			_rand_indices.clear();
-			for(int data_index = 0;data_index < _dataset->_dataset_train.size();data_index++){
+			for(int data_index = 0;data_index < _dataset->_word_sequences_train.size();data_index++){
 				_rand_indices.push_back(data_index);
 			}
 		}
-		_ithmm->_num_mh_acceptance = 0;
-		_ithmm->_num_mh_rejection = 0;
+		_model->_ithmm->_num_mh_acceptance = 0;
+		_model->_ithmm->_num_mh_rejection = 0;
 		shuffle(_rand_indices.begin(), _rand_indices.end(), Sampler::mt);	// データをシャッフル
-		for(int n = 0;n < _dataset->_dataset_train.size();n++){
+		for(int n = 0;n < _dataset->_word_sequences_train.size();n++){
 			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
 				return;
 			}
 			int data_index = _rand_indices[n];
-			std::vector<Word*> &data = _dataset->_dataset_train[data_index];
-			_ithmm->perform_gibbs_sampling_data(data);
+			std::vector<Word*> &data = _dataset->_word_sequences_train[data_index];
+			_model->_ithmm->perform_gibbs_sampling_data(data);
 		}
-		_ithmm->delete_invalid_children();
+		_model->_ithmm->delete_invalid_children();
 	}
 	void _before_viterbi_decode(std::vector<Node*> &nodes){
 		_before_compute_log_Pdataset(nodes);
@@ -570,16 +572,16 @@ public:
 		std::vector<Node*> nodes;
 		_before_viterbi_decode(nodes);
 		std::vector<Node*> series;
-		for(int data_index = 0;data_index < _dataset_test.size();data_index++){
+		for(int data_index = 0;data_index < _dataset->_word_sequences_test.size();data_index++){
 			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
 				return result_list;
 			}
-			std::vector<Word*> &data = _dataset_test[data_index];
+			std::vector<Word*> &data = _dataset->_word_sequences_test[data_index];
 			boost::python::list tuple_list;
-			viterbi_decode_data(data, nodes, series);
+			_model->viterbi_decode_data(data, nodes, series, _forward_table, _decode_table);
 			for(int i = 0;i < data.size();i++){
 				boost::python::list tuple;
-				std::wstring word = _dictionary[data[i]->_id];
+				std::wstring word = _dict->_id_to_str[data[i]->_id];
 				std::wstring tag = L"[" + series[i]->_wdump_indices() + L"]";
 				tuple.append(word);
 				tuple.append(tag);
@@ -595,16 +597,16 @@ public:
 		std::vector<Node*> nodes;
 		_before_viterbi_decode(nodes);
 		std::vector<Node*> series;
-		for(int data_index = 0;data_index < _dataset->_dataset_train.size();data_index++){
+		for(int data_index = 0;data_index < _dataset->_word_sequences_train.size();data_index++){
 			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
 				return result_list;
 			}
-			std::vector<Word*> &data = _dataset->_dataset_train[data_index];
+			std::vector<Word*> &data = _dataset->_word_sequences_train[data_index];
 			boost::python::list tuple_list;
-			viterbi_decode_data(data, nodes, series);
+			_model->viterbi_decode_data(data, nodes, series, _forward_table, _decode_table);
 			for(int i = 0;i < data.size();i++){
 				boost::python::list tuple;
-				std::wstring word = _dictionary[data[i]->_id];
+				std::wstring word = _dict->_id_to_str[data[i]->_id];
 				std::wstring tag = L"[" + series[i]->_wdump_indices() + L"]";
 				tuple.append(word);
 				tuple.append(tag);
@@ -617,13 +619,13 @@ public:
 	}
 	void _before_compute_log_Pdataset(std::vector<Node*> &nodes){
 		// あらかじめ全HTSSBの棒の長さを計算しておく
-		_ithmm->_structure_tssb->enumerate_nodes_from_left_to_right(nodes);
+		_model->_ithmm->_structure_tssb->enumerate_nodes_from_left_to_right(nodes);
 		for(auto node: nodes){
-			double Peos_given_s = node->compute_transition_probability_to_eos(_ithmm->_tau0, _ithmm->_tau1);
+			double Peos_given_s = node->compute_transition_probability_to_eos(_model->_ithmm->_tau0, _model->_ithmm->_tau1);
 			double total_stick_length = 1.0 - Peos_given_s;	// <eos>以外に遷移する確率をTSSBで分配する
-			_ithmm->update_stick_length_of_tssb(node->_transition_tssb, total_stick_length, true);
+			_model->_ithmm->update_stick_length_of_tssb(node->_transition_tssb, total_stick_length, true);
 		}
-		_ithmm->update_stick_length_of_tssb(_ithmm->_bos_tssb, 1.0, false);
+		_model->_ithmm->update_stick_length_of_tssb(_model->_ithmm->_bos_tssb, 1.0, false);
 		// 計算用のテーブルを確保
 		_forward_table = new double*[_max_num_words_in_line];
 		for(int i = 0;i < _max_num_words_in_line;i++){
@@ -639,10 +641,10 @@ public:
 	}
 	// データセット全体の対数尤度を計算
 	double compute_log_Pdataset_train(){
-		return _compute_log_Pdataset(_dataset->_dataset_train);
+		return _compute_log_Pdataset(_dataset->_word_sequences_train);
 	}
 	double compute_log_Pdataset_test(){
-		return _compute_log_Pdataset(_dataset_test);
+		return _compute_log_Pdataset(_dataset->_word_sequences_test);
 	}
 	double _compute_log_Pdataset(std::vector<std::vector<Word*>> &dataset){
 		std::vector<Node*> nodes;
@@ -654,7 +656,7 @@ public:
 				return 0;
 			}
 			std::vector<Word*> &data = dataset[data_index];
-			double Px = compute_Pdata(data, nodes);
+			double Px = _model->compute_Pdata(data, nodes, _forward_table);
 			if(Px > 0){
 				log_Pdataset += log(Px);
 			}
@@ -663,10 +665,10 @@ public:
 		return log_Pdataset;
 	}
 	double compute_log2_Pdataset_train(){
-		return _compute_log2_Pdataset(_dataset->_dataset_train);
+		return _compute_log2_Pdataset(_dataset->_word_sequences_train);
 	}
 	double compute_log2_Pdataset_test(){
-		return _compute_log2_Pdataset(_dataset_test);
+		return _compute_log2_Pdataset(_dataset->_word_sequences_test);
 	}
 	double _compute_log2_Pdataset(std::vector<std::vector<Word*>> &dataset){
 		std::vector<Node*> nodes;
@@ -678,7 +680,7 @@ public:
 				return 0;
 			}
 			std::vector<Word*> &data = dataset[data_index];
-			double Px = compute_Pdata(data, nodes);
+			double Px = _model->compute_Pdata(data, nodes, _forward_table);
 			if(Px > 0){
 				log_Pdataset += log2(Px);
 			}
@@ -687,10 +689,10 @@ public:
 		return log_Pdataset;
 	}
 	double compute_perplexity_train(){
-		return _compute_perplexity(_dataset->_dataset_train);
+		return _compute_perplexity(_dataset->_word_sequences_train);
 	}
 	double compute_perplexity_test(){
-		return _compute_perplexity(_dataset_test);
+		return _compute_perplexity(_dataset->_word_sequences_test);
 	}
 	double _compute_perplexity(std::vector<std::vector<Word*>> &dataset){
 		std::vector<Node*> nodes;
@@ -702,7 +704,7 @@ public:
 				return 0;
 			}
 			std::vector<Word*> &data = dataset[data_index];
-			double Px = compute_Pdata(data, nodes);
+			double Px = _model->compute_Pdata(data, nodes, _forward_table);
 			if(Px > 0){
 				log_Pdataset += log2(Px) / data.size();
 			}
@@ -711,6 +713,6 @@ public:
 		return pow(2.0, -log_Pdataset / (double)dataset.size());
 	}
 	void update_hyperparameters(){
-		_ithmm->sample_hpylm_hyperparameters();
+		_model->_ithmm->sample_hpylm_hyperparameters();
 	}
 };
