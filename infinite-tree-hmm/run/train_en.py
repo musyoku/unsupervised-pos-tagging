@@ -144,7 +144,48 @@ def main():
 
 	# 学習の準備
 	trainer = ithmm.trainer(dataset, model, dictionary)
-	model.show_assigned_words_for_each_tag(dictionary, 20, False);
+
+	# 初期の割り当てをチェックする場合
+	trainer.show_assigned_words_for_each_tag(dictionary, 20, False);
+
+	# グラフプロット用
+	csv_likelihood = []
+	csv_perplexity = []
+
+	# 学習ループ
+	for epoch in range(1, args.epoch + 1):
+		start = time.time()
+
+		# 状態をギブスサンプリング
+		trainer.perform_gibbs_sampling()
+
+		# ログ
+		elapsed_time = time.time() - start
+		sys.stdout.write("\rEpoch {} / {} - {:.3f} sec - {:.1f} gibbs/s".format(epoch, args.epoch, elapsed_time, num_words_in_train_dataset / elapsed_time))		
+		sys.stdout.flush()
+
+		if epoch % 100 == 0:
+			print("\n")
+			trainer.show_assigned_words_for_each_tag(dictionary, 20, False);
+			log_likelihood = trainer.compute_log_Pdataset_test() 
+			perplexity = trainer.compute_perplexity_test()
+			print("alpha:", trainer.get_alpha(), "gamma:", trainer.get_gamma(), "lambda_alpha:", trainer.get_lambda_alpha(), "lambda_gamma:", trainer.get_lambda_gamma(), "strength:", trainer.get_strength(), "tau0:", trainer.get_tau0(), "tau1:", trainer.get_tau1())
+			print("log_likelihood:", int(log_likelihood))
+			print("perplexity:", int(perplexity))
+			# print "MH:", trainer.get_metropolis_hastings_acceptance_rate() 
+
+			# モデルの保存
+			model.save(args.model);
+			
+			# CSV出力
+			csv_likelihood.append([epoch, log_likelihood])
+			data = pd.DataFrame(csv_likelihood)
+			data.columns = ["epoch", "log_likelihood"]
+			data.to_csv("{}/likelihood.csv".format(args.model))
+			csv_perplexity.append([epoch, perplexity])
+			data = pd.DataFrame(csv_perplexity)
+			data.columns = ["epoch", "perplexity"]
+			data.to_csv("{}/perplexity.csv".format(args.model))
 
 def _main():
 	if args.filename is None:
@@ -219,7 +260,7 @@ def _main():
 	csv_likelihood = []
 	csv_perplexity = []
 
-	for epoch in xrange(1, args.epoch + 1):
+	for epoch in range(1, args.epoch + 1):
 		start = time.time()
 		trainer.perform_gibbs_sampling()
 

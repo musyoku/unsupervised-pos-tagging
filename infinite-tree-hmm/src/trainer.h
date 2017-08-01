@@ -207,4 +207,7 @@ public:
 	void update_hyperparameters(){
 		_model->_ithmm->sample_hpylm_hyperparameters();
 	}
+	void show_assigned_words_for_each_tag(Dictionary* dict, int number_to_show_for_each_tag, bool show_probability = true){
+		_model->show_assigned_words_for_each_tag(dict, number_to_show_for_each_tag, show_probability);
+	}
 };

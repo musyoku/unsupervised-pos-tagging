@@ -29,6 +29,7 @@ BOOST_PYTHON_MODULE(ithmm){
 	.def("compute_log2_Pdataset_train", &Trainer::compute_log2_Pdataset_train)
 	.def("compute_log_Pdataset_test", &Trainer::compute_log_Pdataset_test)
 	.def("compute_log_Pdataset_train", &Trainer::compute_log_Pdataset_train)
+	.def("show_assigned_words_for_each_tag", &Trainer::show_assigned_words_for_each_tag)
 	.def("remove_all_data", &Trainer::remove_all_data);
 
 	boost::python::class_<Model>("model")
