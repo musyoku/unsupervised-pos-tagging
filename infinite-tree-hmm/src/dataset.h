@@ -46,6 +46,7 @@ public:
 			}
 			lines.push_back(line_str);
 		}
+		train_split_ratio = std::min(1.0, std::max(0.0, train_split_ratio));
 		int train_split = lines.size() * train_split_ratio;
 		std::vector<int> rand_indices;
 		for(int i = 0;i < lines.size();i++){

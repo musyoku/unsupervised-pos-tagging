@@ -1,16 +1,17 @@
 CC = g++
 INCLUDE = -I`python -c 'from distutils.sysconfig import *; print get_python_inc()'` -I /usr/local/include
 CFLAGS = -std=c++11 -L/usr/local/lib -lboost_serialization -lboost_python -lpython2.7 -O0 -g
-CFLAGS_SO = -shared -fPIC -std=c++11 -L/usr/local/lib -lboost_serialization -lboost_python -lpython2.7 -O2
+SOFLAGS = -shared -fPIC -std=c++11 -L/usr/local/lib -lboost_serialization -lboost_python -lpython2.7 -O3
 
 install: ## Python用ライブラリをビルドします.
-	$(CC) src/python.cpp src/ithmm/tssb.cpp src/ithmm/node.cpp src/ithmm/table.cpp src/ithmm/hpylm.cpp -o run/ithmm.so $(INCLUDE) $(CFLAGS_SO)
+	$(CC) src/python.cpp src/ithmm/tssb.cpp src/ithmm/node.cpp src/ithmm/table.cpp src/ithmm/hpylm.cpp -o run/ithmm.so $(INCLUDE) $(SOFLAGS)
 
+.PHONY: debug
 debug: ## LLDB用.
-	$(CC) src/debug.cpp src/ithmm/tssb.cpp src/ithmm/node.cpp src/ithmm/table.cpp src/ithmm/hpylm.cpp $(INCLUDE) $(CFLAGS)
+	$(CC) test/debug.cpp src/ithmm/tssb.cpp src/ithmm/node.cpp src/ithmm/table.cpp src/ithmm/hpylm.cpp -o debug $(INCLUDE) $(CFLAGS)
 
 cpp: ## LLDB用.
-	$(CC) src/train.cpp src/ithmm/tssb.cpp src/ithmm/node.cpp src/ithmm/table.cpp src/ithmm/hpylm.cpp $(INCLUDE) $(CFLAGS)
+	$(CC) test/train.cpp src/ithmm/tssb.cpp src/ithmm/node.cpp src/ithmm/table.cpp src/ithmm/hpylm.cpp -o train $(INCLUDE) $(CFLAGS)
 
 .PHONY: help
 help:

@@ -156,8 +156,11 @@ def main():
 	for epoch in range(1, args.epoch + 1):
 		start = time.time()
 
-		# 状態をギブスサンプリング
+		# 新しい状態をギブスサンプリング
 		trainer.perform_gibbs_sampling()
+
+		# ハイパーパラメータをサンプリング
+		trainer.update_hyperparameters()
 
 		# ログ
 		elapsed_time = time.time() - start
@@ -176,7 +179,7 @@ def main():
 
 			# モデルの保存
 			model.save(args.model);
-			
+
 			# CSV出力
 			csv_likelihood.append([epoch, log_likelihood])
 			data = pd.DataFrame(csv_likelihood)

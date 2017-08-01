@@ -304,4 +304,7 @@ public:
 			std::cout << "\x1b[32;1m" << tab << "[" << indices << "]" << "\x1b[0m " << node->_probability << std::endl;
 		}
 	}
+	void update_hyperparameters(){
+		_ithmm->sample_hpylm_hyperparameters();
+	}
 };

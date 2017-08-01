@@ -33,6 +33,7 @@ BOOST_PYTHON_MODULE(ithmm){
 	.def("remove_all_data", &Trainer::remove_all_data);
 
 	boost::python::class_<Model>("model")
+	.def("update_hyperparameters", &Model::update_hyperparameters)
 	.def("get_alpha", &Model::get_alpha)
 	.def("get_gamma", &Model::get_gamma)
 	.def("get_lambda_alpha", &Model::get_lambda_alpha)
