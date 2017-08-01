@@ -21,10 +21,6 @@ public:
 		_model->_ithmm->set_word_g0(1.0 / _dataset->_word_count.size());
 		_model->_ithmm->initialize_data(_dataset->_word_sequences_train);
 	}
-	~Trainer(){
-		delete[] _dataset;
-		delete[] _model;
-	}
 	void remove_all_data(){
 		_model->_ithmm->remove_all_data(_dataset->_word_sequences_train);
 		_model->_ithmm->delete_invalid_children();

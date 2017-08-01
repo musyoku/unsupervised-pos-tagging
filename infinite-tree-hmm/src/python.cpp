@@ -13,6 +13,8 @@ BOOST_PYTHON_MODULE(ithmm){
 	boost::python::class_<Dataset>("dataset", boost::python::init<Dictionary*>())
 	.def("get_num_words", &Dataset::get_num_words)
 	.def("get_count_for_word", &Dataset::get_count_for_word)
+	.def("add_train_data", &Dataset::add_train_data)
+	.def("add_test_data", &Dataset::add_test_data)
 	.def("add_textfile", &Dataset::add_textfile)
 	.def("mark_low_frequency_words_as_unknown", &Dataset::mark_low_frequency_words_as_unknown);
 	
