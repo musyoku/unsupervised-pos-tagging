@@ -172,23 +172,24 @@ def main():
 			trainer.show_assigned_words_for_each_tag(dictionary, 20, False);
 			log_likelihood = trainer.compute_log_Pdataset_test() 
 			perplexity = trainer.compute_perplexity_test()
-			print("alpha:", trainer.get_alpha(), "gamma:", trainer.get_gamma(), "lambda_alpha:", trainer.get_lambda_alpha(), "lambda_gamma:", trainer.get_lambda_gamma(), "strength:", trainer.get_strength(), "tau0:", trainer.get_tau0(), "tau1:", trainer.get_tau1())
+			print("alpha:", model.get_alpha(), "gamma:", model.get_gamma(), "lambda_alpha:", model.get_lambda_alpha(), "lambda_gamma:", model.get_lambda_gamma(), "strength:", model.get_strength(), "tau0:", model.get_tau0(), "tau1:", model.get_tau1())
 			print("log_likelihood:", int(log_likelihood))
 			print("perplexity:", int(perplexity))
 			# print "MH:", trainer.get_metropolis_hastings_acceptance_rate() 
 
 			# モデルの保存
-			model.save(args.model);
+			model.save(os.path.join(args.model, "ithmm.model"));
 
 			# CSV出力
 			csv_likelihood.append([epoch, log_likelihood])
 			data = pd.DataFrame(csv_likelihood)
 			data.columns = ["epoch", "log_likelihood"]
-			data.to_csv("{}/likelihood.csv".format(args.model))
+			data.to_csv(os.path.join(args.model, "likelihood.csv"))
+			
 			csv_perplexity.append([epoch, perplexity])
 			data = pd.DataFrame(csv_perplexity)
 			data.columns = ["epoch", "perplexity"]
-			data.to_csv("{}/perplexity.csv".format(args.model))
+			data.to_csv(os.path.join(args.model, "perplexity.csv"))
 
 def _main():
 	if args.filename is None:

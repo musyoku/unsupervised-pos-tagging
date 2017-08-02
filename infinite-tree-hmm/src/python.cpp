@@ -34,6 +34,8 @@ BOOST_PYTHON_MODULE(ithmm){
 
 	boost::python::class_<Model>("model")
 	.def("update_hyperparameters", &Model::update_hyperparameters)
+	.def("save", &Model::save)
+	.def("load", &Model::load)
 	.def("get_alpha", &Model::get_alpha)
 	.def("get_gamma", &Model::get_gamma)
 	.def("get_lambda_alpha", &Model::get_lambda_alpha)
