@@ -47,7 +47,7 @@ public:
 	boost::python::list get_all_tags(){
 		boost::python::list tags;
 		std::vector<Node*> nodes;
-		_ithmm->_structure_tssb->enumerate_nodes_from_left_to_right(nodes);
+		enumerate_states(nodes);
 		for(const auto &node: nodes){
 			std::string indices = "[" + node->_dump_indices() + "]";
 			tags.append(indices);
@@ -87,13 +87,70 @@ public:
 	bool save(std::string filename){
 		return _ithmm->save(filename);
 	}
+	void enumerate_states(std::vector<Node*> &nodes){
+		assert(nodes.size() == 0);
+		_ithmm->_structure_tssb->enumerate_nodes_from_left_to_right(nodes);
+	}
+	void precompute_stick_length_of_nodes(std::vector<Node*> &nodes){
+		for(auto node: nodes){
+			double p_eos_given_s = node->compute_transition_probability_to_eos(_ithmm->_tau0, _ithmm->_tau1);
+			double total_stick_length = 1.0 - p_eos_given_s;	// <eos>以外に遷移する確率をTSSBで分配する
+			_ithmm->update_stick_length_of_tssb(node->_transition_tssb, total_stick_length, true);
+		}
+		_ithmm->update_stick_length_of_tssb(_ithmm->_bos_tssb, 1.0, false);
+	}
+	boost::python::list viterbi_decode_python_list(boost::python::list py_word_ids){
+		// あらかじめ全HTSSBの棒の長さを計算しておく
+		std::vector<Node*> nodes;
+		enumerate_states(nodes);
+		precompute_stick_length_of_nodes(nodes);
+		// デコード用のテーブルを確保
+		int num_words = boost::python::len(py_word_ids);
+		double** forward_table = new double*[num_words];
+		double** decode_table = new double*[num_words];
+		for(int i = 0;i < num_words;i++){
+			forward_table[i] = new double[nodes.size()];
+			decode_table[i] = new double[nodes.size()];
+		}
+		// Python側から渡された単語IDリストを変換
+		std::vector<Word*> words;
+		for(int i = 0;i < num_words;i++){
+			Word* word = new Word();
+			word->_id = boost::python::extract<id>(py_word_ids[i]);
+			word->_state = NULL;
+			words.push_back(word);
+		}
+		// ビタビアルゴリズム
+		std::vector<Node*> sampled_state_sequence;
+		_viterbi_decode_data(words, nodes, sampled_state_sequence, forward_table, decode_table);
+		// 結果を返す
+		boost::python::list tuple_list;
+		for(int i = 0;i < words.size();i++){
+			boost::python::list tuple;
+			id word_id = words[i]->_id;
+			std::wstring tag = L"[" + sampled_state_sequence[i]->_wdump_indices() + L"]";
+			tuple.append(word_id);
+			tuple.append(tag);
+			tuple_list.append(tuple);
+		}
+		for(int i = 0;i < num_words;i++){
+			delete[] forward_table[i];
+			delete[] decode_table[i];
+		}
+		delete[] forward_table;
+		delete[] decode_table;
+		for(int i = 0;i < words.size();i++){
+			delete words[i];
+		}
+		return tuple_list;
+	}
 	// 状態系列の復号
 	// ビタビアルゴリズム
-	void viterbi_decode_data(std::vector<Word*> &data, std::vector<Node*> &states, std::vector<Node*> &series, double** forward_table, double** decode_table){
+	void _viterbi_decode_data(std::vector<Word*> &data, std::vector<Node*> &all_states, std::vector<Node*> &sampled_state_sequence, double** forward_table, double** decode_table){
 		// 初期化
 		Word* word = data[0];
-		for(int i = 0;i < states.size();i++){
-			Node* state = states[i];
+		for(int i = 0;i < all_states.size();i++){
+			Node* state = all_states[i];
 			Node* state_on_bos = _ithmm->_bos_tssb->find_node_by_tracing_horizontal_indices(state);
 			assert(state_on_bos != NULL);
 			double Ps = state_on_bos->_probability;
@@ -105,13 +162,13 @@ public:
 		}
 		for(int t = 1;t < data.size();t++){
 			Word* word = data[t];
-			for(int j = 0;j < states.size();j++){
-				Node* state = states[j];
+			for(int j = 0;j < all_states.size();j++){
+				Node* state = all_states[j];
 				forward_table[t][j] = 0;
 				double max_value = 0;
 				double Pword_given_s = _ithmm->compute_Pw_given_s(word->_id, state);
-				for(int i = 0;i < states.size();i++){
-					Node* prev_state = states[i];
+				for(int i = 0;i < all_states.size();i++){
+					Node* prev_state = all_states[i];
 					Node* state_on_prev_htssb = prev_state->_transition_tssb->find_node_by_tracing_horizontal_indices(state);
 					assert(state_on_prev_htssb != NULL);
 					double Ps_given_prev = state_on_prev_htssb->_probability;
@@ -129,7 +186,7 @@ public:
 		int n = data.size() - 1;
 		int k = 0;
 		double max_value = 0;
-		for(int i = 0;i < states.size();i++){
+		for(int i = 0;i < all_states.size();i++){
 			if(forward_table[n][i] > max_value){
 				k = i;
 				max_value = forward_table[n][i];
@@ -142,10 +199,10 @@ public:
 		}
 		std::reverse(series_indices.begin(), series_indices.end());
 		// ノードをセット
-		series.clear();
+		sampled_state_sequence.clear();
 		for(int t = 0;t <= n;t++){
 			int k = series_indices[t];
-			series.push_back(states[k]);
+			sampled_state_sequence.push_back(all_states[k]);
 		}
 	}
 	// データの対数尤度を計算
@@ -188,7 +245,7 @@ public:
 	void show_assigned_words_for_each_tag(Dictionary* dict, int number_to_show_for_each_tag, bool show_probability = true){
 		auto pair = std::make_pair(0, 0);
 		std::vector<Node*> nodes;
-		_ithmm->_structure_tssb->enumerate_nodes_from_left_to_right(nodes);
+		enumerate_states(nodes);
 		for(const auto &node: nodes){
 			std::multiset<std::pair<id, double>, multiset_value_comparator> ranking;
 			_ithmm->geneerate_word_ranking_of_node(node, ranking);
@@ -227,7 +284,7 @@ public:
 	void show_assigned_words_and_probability_for_each_tag(Dictionary* dict, int number_to_show_for_each_tag){
 		auto pair = std::make_pair(0, 0);
 		std::vector<Node*> nodes;
-		_ithmm->_structure_tssb->enumerate_nodes_from_left_to_right(nodes);
+		enumerate_states(nodes);
 		for(const auto &node: nodes){
 			std::multiset<std::pair<id, double>, multiset_value_comparator> ranking;
 			_ithmm->geneerate_word_ranking_of_node(node, ranking);
@@ -252,7 +309,7 @@ public:
 	void show_hpylm_for_each_tag(Dictionary* dict){
 		auto pair = std::make_pair(0, 0);
 		std::vector<Node*> nodes;
-		_ithmm->_structure_tssb->enumerate_nodes_from_left_to_right(nodes);
+		enumerate_states(nodes);
 		for(const auto &node: nodes){
 			std::multiset<std::pair<id, double>, multiset_value_comparator> ranking;
 			_ithmm->geneerate_word_ranking_of_node(node, ranking);
@@ -281,7 +338,7 @@ public:
 	}
 	void show_sticks(){
 		std::vector<Node*> nodes;
-		_ithmm->_structure_tssb->enumerate_nodes_from_left_to_right(nodes);
+		enumerate_states(nodes);
 		for(const auto &node: nodes){
 			std::string indices = node->_dump_indices();
 			c_printf("[*]%s\n", ((boost::format("[%s]") % indices.c_str())).str().c_str());

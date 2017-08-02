@@ -1611,9 +1611,9 @@ public:
 			ranking.insert(pair);
 		}
 	}
-	bool save(std::string dir = "out"){
+	bool save(std::string filename){
 		bool success = false;
-		std::ofstream ofs(dir + "/ithmm.model");
+		std::ofstream ofs(filename);
 		if(ofs.good()){
 			boost::archive::binary_oarchive oarchive(ofs);
 			oarchive << static_cast<const iTHMM&>(*this);
@@ -1622,9 +1622,9 @@ public:
 		ofs.close();
 		return success;
 	}
-	bool load(std::string dir = "out"){
+	bool load(std::string filename){
 		bool success = false;
-		std::ifstream ifs(dir + "/ithmm.model");
+		std::ifstream ifs(filename);
 		if(ifs.good()){
 			boost::archive::binary_iarchive iarchive(ifs);
 			iarchive >> *this;

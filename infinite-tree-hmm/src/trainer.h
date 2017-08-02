@@ -62,18 +62,18 @@ public:
 		boost::python::list result_list;
 		std::vector<Node*> nodes;
 		_before_viterbi_decode(nodes);
-		std::vector<Node*> series;
+		std::vector<Node*> sampled_state_sequence;
 		for(int data_index = 0;data_index < _dataset->_word_sequences_test.size();data_index++){
 			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
 				return result_list;
 			}
 			std::vector<Word*> &data = _dataset->_word_sequences_test[data_index];
 			boost::python::list tuple_list;
-			_model->viterbi_decode_data(data, nodes, series, _forward_table, _decode_table);
+			_model->_viterbi_decode_data(data, nodes, sampled_state_sequence, _forward_table, _decode_table);
 			for(int i = 0;i < data.size();i++){
 				boost::python::list tuple;
 				std::wstring word = _dict->_id_to_str[data[i]->_id];
-				std::wstring tag = L"[" + series[i]->_wdump_indices() + L"]";
+				std::wstring tag = L"[" + sampled_state_sequence[i]->_wdump_indices() + L"]";
 				tuple.append(word);
 				tuple.append(tag);
 				tuple_list.append(tuple);
@@ -87,18 +87,18 @@ public:
 		boost::python::list result_list;
 		std::vector<Node*> nodes;
 		_before_viterbi_decode(nodes);
-		std::vector<Node*> series;
+		std::vector<Node*> sampled_state_sequence;
 		for(int data_index = 0;data_index < _dataset->_word_sequences_train.size();data_index++){
 			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
 				return result_list;
 			}
 			std::vector<Word*> &data = _dataset->_word_sequences_train[data_index];
 			boost::python::list tuple_list;
-			_model->viterbi_decode_data(data, nodes, series, _forward_table, _decode_table);
+			_model->_viterbi_decode_data(data, nodes, sampled_state_sequence, _forward_table, _decode_table);
 			for(int i = 0;i < data.size();i++){
 				boost::python::list tuple;
 				std::wstring word = _dict->_id_to_str[data[i]->_id];
-				std::wstring tag = L"[" + series[i]->_wdump_indices() + L"]";
+				std::wstring tag = L"[" + sampled_state_sequence[i]->_wdump_indices() + L"]";
 				tuple.append(word);
 				tuple.append(tag);
 				tuple_list.append(tuple);
@@ -110,13 +110,8 @@ public:
 	}
 	void _before_compute_log_Pdataset(std::vector<Node*> &nodes){
 		// あらかじめ全HTSSBの棒の長さを計算しておく
-		_model->_ithmm->_structure_tssb->enumerate_nodes_from_left_to_right(nodes);
-		for(auto node: nodes){
-			double Peos_given_s = node->compute_transition_probability_to_eos(_model->_ithmm->_tau0, _model->_ithmm->_tau1);
-			double total_stick_length = 1.0 - Peos_given_s;	// <eos>以外に遷移する確率をTSSBで分配する
-			_model->_ithmm->update_stick_length_of_tssb(node->_transition_tssb, total_stick_length, true);
-		}
-		_model->_ithmm->update_stick_length_of_tssb(_model->_ithmm->_bos_tssb, 1.0, false);
+		_model->enumerate_states(nodes);
+		_model->precompute_stick_length_of_nodes(nodes);
 		// 計算用のテーブルを確保
 		assert(_dataset->_max_num_words_in_line > 0);
 		_forward_table = new double*[_dataset->_max_num_words_in_line];
