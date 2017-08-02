@@ -1,4 +1,5 @@
 #pragma once
+#include <cassert>
 
 class Trainer{
 public:
@@ -6,16 +7,12 @@ public:
 	Model* _model;
 	Dictionary* _dict;
 	std::vector<int> _rand_indices;
-	int _max_num_words_in_line;
-	int _min_num_words_in_line;
 	double** _forward_table;		// 前向き確率計算用
 	double** _decode_table;			// viterbiデコーディング用
 	Trainer(Dataset* dataset, Model* model, Dictionary* dict){
 		_dataset = dataset;
 		_model = model;
 		_dict = dict;
-		_max_num_words_in_line = -1;
-		_min_num_words_in_line = -1;
 		_forward_table = NULL;
 		_decode_table = NULL;
 		_model->_ithmm->set_word_g0(1.0 / _dataset->_word_count.size());
@@ -47,14 +44,16 @@ public:
 	}
 	void _before_viterbi_decode(std::vector<Node*> &nodes){
 		_before_compute_log_Pdataset(nodes);
-		_decode_table = new double*[_max_num_words_in_line];
-		for(int i = 0;i < _max_num_words_in_line;i++){
+		assert(_dataset->_max_num_words_in_line > 0);
+		_decode_table = new double*[_dataset->_max_num_words_in_line];
+		for(int i = 0;i < _dataset->_max_num_words_in_line;i++){
 			_decode_table[i] = new double[nodes.size()];
 		}
 	}
 	void _after_viterbi_decode(){
 		_after_compute_log_Pdataset();
-		for(int i = 0;i < _max_num_words_in_line;i++){
+		assert(_dataset->_max_num_words_in_line > 0);
+		for(int i = 0;i < _dataset->_max_num_words_in_line;i++){
 			delete[] _decode_table[i];
 		}
 		delete[] _decode_table;
@@ -119,14 +118,16 @@ public:
 		}
 		_model->_ithmm->update_stick_length_of_tssb(_model->_ithmm->_bos_tssb, 1.0, false);
 		// 計算用のテーブルを確保
-		_forward_table = new double*[_max_num_words_in_line];
-		for(int i = 0;i < _max_num_words_in_line;i++){
+		assert(_dataset->_max_num_words_in_line > 0);
+		_forward_table = new double*[_dataset->_max_num_words_in_line];
+		for(int i = 0;i < _dataset->_max_num_words_in_line;i++){
 			_forward_table[i] = new double[nodes.size()];
 		}
 	}
 	void _after_compute_log_Pdataset(){
 		// 計算用のテーブルを解放
-		for(int i = 0;i < _max_num_words_in_line;i++){
+		assert(_dataset->_max_num_words_in_line > 0);
+		for(int i = 0;i < _dataset->_max_num_words_in_line;i++){
 			delete[] _forward_table[i];
 		}
 		delete[] _forward_table;
