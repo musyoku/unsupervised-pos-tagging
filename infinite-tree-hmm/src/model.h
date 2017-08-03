@@ -44,10 +44,10 @@ public:
 	double get_metropolis_hastings_acceptance_rate(){
 		return _ithmm->_num_mh_acceptance / (double)(_ithmm->_num_mh_acceptance + _ithmm->_num_mh_rejection);
 	}
-	boost::python::list get_all_tags(){
+	boost::python::list python_get_all_states(){
 		boost::python::list tags;
 		std::vector<Node*> nodes;
-		enumerate_states(nodes);
+		enumerate_all_states(nodes);
 		for(const auto &node: nodes){
 			std::string indices = "[" + node->_dump_indices() + "]";
 			tags.append(indices);
@@ -87,23 +87,26 @@ public:
 	bool save(std::string filename){
 		return _ithmm->save(filename);
 	}
-	void enumerate_states(std::vector<Node*> &nodes){
+	// 存在する全ての状態を集める
+	void enumerate_all_states(std::vector<Node*> &nodes){
 		assert(nodes.size() == 0);
 		_ithmm->_structure_tssb->enumerate_nodes_from_left_to_right(nodes);
 	}
-	void precompute_stick_length_of_nodes(std::vector<Node*> &nodes){
-		for(auto node: nodes){
+	// 全ての棒の長さを計算しておく
+	void precompute_all_stick_lengths(std::vector<Node*> &all_states){
+		assert(all_states.size() > 0);
+		for(auto node: all_states){
 			double p_eos_given_s = node->compute_transition_probability_to_eos(_ithmm->_tau0, _ithmm->_tau1);
 			double total_stick_length = 1.0 - p_eos_given_s;	// <eos>以外に遷移する確率をTSSBで分配する
 			_ithmm->update_stick_length_of_tssb(node->_transition_tssb, total_stick_length, true);
 		}
 		_ithmm->update_stick_length_of_tssb(_ithmm->_bos_tssb, 1.0, false);
 	}
-	boost::python::list viterbi_decode_python_list(boost::python::list py_word_ids){
+	boost::python::list python_viterbi_decode(boost::python::list py_word_ids){
 		// あらかじめ全HTSSBの棒の長さを計算しておく
 		std::vector<Node*> nodes;
-		enumerate_states(nodes);
-		precompute_stick_length_of_nodes(nodes);
+		enumerate_all_states(nodes);
+		precompute_all_stick_lengths(nodes);
 		// デコード用のテーブルを確保
 		int num_words = boost::python::len(py_word_ids);
 		double** forward_table = new double*[num_words];
@@ -122,7 +125,7 @@ public:
 		}
 		// ビタビアルゴリズム
 		std::vector<Node*> sampled_state_sequence;
-		_viterbi_decode_data(words, nodes, sampled_state_sequence, forward_table, decode_table);
+		_viterbi_decode(words, nodes, sampled_state_sequence, forward_table, decode_table);
 		// 結果を返す
 		boost::python::list tuple_list;
 		for(int i = 0;i < words.size();i++){
@@ -146,7 +149,7 @@ public:
 	}
 	// 状態系列の復号
 	// ビタビアルゴリズム
-	void _viterbi_decode_data(std::vector<Word*> &data, std::vector<Node*> &all_states, std::vector<Node*> &sampled_state_sequence, double** forward_table, double** decode_table){
+	void _viterbi_decode(std::vector<Word*> &data, std::vector<Node*> &all_states, std::vector<Node*> &sampled_state_sequence, double** forward_table, double** decode_table){
 		// 初期化
 		Word* word = data[0];
 		for(int i = 0;i < all_states.size();i++){
@@ -245,7 +248,7 @@ public:
 	void show_assigned_words_for_each_tag(Dictionary* dict, int number_to_show_for_each_tag, bool show_probability = true){
 		auto pair = std::make_pair(0, 0);
 		std::vector<Node*> nodes;
-		enumerate_states(nodes);
+		enumerate_all_states(nodes);
 		for(const auto &node: nodes){
 			std::multiset<std::pair<id, double>, multiset_value_comparator> ranking;
 			_ithmm->geneerate_word_ranking_of_node(node, ranking);
@@ -284,7 +287,7 @@ public:
 	void show_assigned_words_and_probability_for_each_tag(Dictionary* dict, int number_to_show_for_each_tag){
 		auto pair = std::make_pair(0, 0);
 		std::vector<Node*> nodes;
-		enumerate_states(nodes);
+		enumerate_all_states(nodes);
 		for(const auto &node: nodes){
 			std::multiset<std::pair<id, double>, multiset_value_comparator> ranking;
 			_ithmm->geneerate_word_ranking_of_node(node, ranking);
@@ -309,7 +312,7 @@ public:
 	void show_hpylm_for_each_tag(Dictionary* dict){
 		auto pair = std::make_pair(0, 0);
 		std::vector<Node*> nodes;
-		enumerate_states(nodes);
+		enumerate_all_states(nodes);
 		for(const auto &node: nodes){
 			std::multiset<std::pair<id, double>, multiset_value_comparator> ranking;
 			_ithmm->geneerate_word_ranking_of_node(node, ranking);
@@ -338,7 +341,7 @@ public:
 	}
 	void show_sticks(){
 		std::vector<Node*> nodes;
-		enumerate_states(nodes);
+		enumerate_all_states(nodes);
 		for(const auto &node: nodes){
 			std::string indices = node->_dump_indices();
 			c_printf("[*]%s\n", ((boost::format("[%s]") % indices.c_str())).str().c_str());

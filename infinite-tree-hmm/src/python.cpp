@@ -6,6 +6,7 @@
 BOOST_PYTHON_MODULE(ithmm){
 	boost::python::class_<Dictionary>("dictionary")
 	.def("string_to_word_id", &Dictionary::string_to_word_id)
+	.def("get_eos_id", &Dictionary::get_eos_id)
 	.def("save", &Dictionary::save)
 	.def("load", &Dictionary::load)
 	.def("add_string", &Dictionary::add_string);
@@ -33,6 +34,7 @@ BOOST_PYTHON_MODULE(ithmm){
 	.def("remove_all_data", &Trainer::remove_all_data);
 
 	boost::python::class_<Model>("model")
+	.def("viterbi_decode", &Model::python_viterbi_decode)
 	.def("update_hyperparameters", &Model::update_hyperparameters)
 	.def("save", &Model::save)
 	.def("load", &Model::load)
@@ -44,7 +46,7 @@ BOOST_PYTHON_MODULE(ithmm){
 	.def("get_tau0", &Model::get_tau0)
 	.def("get_tau1", &Model::get_tau1)
 	.def("get_metropolis_hastings_acceptance_rate", &Model::get_metropolis_hastings_acceptance_rate)
-	.def("get_all_tags", &Model::get_all_tags)
+	.def("get_all_states", &Model::python_get_all_states)
 	.def("set_alpha", &Model::set_alpha)
 	.def("set_gamma", &Model::set_gamma)
 	.def("set_lambda_alpha", &Model::set_lambda_alpha)

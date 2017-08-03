@@ -15,6 +15,9 @@ public:
 		_id_to_str[ID_UNK] = L"<unk>";
 		_autoincrement = ID_UNK + 1;
 	}
+	id get_eos_id(){
+		return ID_EOS;
+	}
 	id add_string(std::wstring word){
 		auto itr = _str_to_id.find(word);
 		if(itr == _str_to_id.end()){

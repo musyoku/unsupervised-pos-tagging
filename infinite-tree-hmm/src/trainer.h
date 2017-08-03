@@ -42,22 +42,6 @@ public:
 		}
 		_model->_ithmm->delete_invalid_children();
 	}
-	void _before_viterbi_decode(std::vector<Node*> &nodes){
-		_before_compute_log_Pdataset(nodes);
-		assert(_dataset->_max_num_words_in_line > 0);
-		_decode_table = new double*[_dataset->_max_num_words_in_line];
-		for(int i = 0;i < _dataset->_max_num_words_in_line;i++){
-			_decode_table[i] = new double[nodes.size()];
-		}
-	}
-	void _after_viterbi_decode(){
-		_after_compute_log_Pdataset();
-		assert(_dataset->_max_num_words_in_line > 0);
-		for(int i = 0;i < _dataset->_max_num_words_in_line;i++){
-			delete[] _decode_table[i];
-		}
-		delete[] _decode_table;
-	}
 	boost::python::list viterbi_decode_test(){
 		boost::python::list result_list;
 		std::vector<Node*> nodes;
@@ -69,7 +53,7 @@ public:
 			}
 			std::vector<Word*> &data = _dataset->_word_sequences_test[data_index];
 			boost::python::list tuple_list;
-			_model->_viterbi_decode_data(data, nodes, sampled_state_sequence, _forward_table, _decode_table);
+			_model->_viterbi_decode(data, nodes, sampled_state_sequence, _forward_table, _decode_table);
 			for(int i = 0;i < data.size();i++){
 				boost::python::list tuple;
 				std::wstring word = _dict->_id_to_str[data[i]->_id];
@@ -94,7 +78,7 @@ public:
 			}
 			std::vector<Word*> &data = _dataset->_word_sequences_train[data_index];
 			boost::python::list tuple_list;
-			_model->_viterbi_decode_data(data, nodes, sampled_state_sequence, _forward_table, _decode_table);
+			_model->_viterbi_decode(data, nodes, sampled_state_sequence, _forward_table, _decode_table);
 			for(int i = 0;i < data.size();i++){
 				boost::python::list tuple;
 				std::wstring word = _dict->_id_to_str[data[i]->_id];
@@ -108,10 +92,26 @@ public:
 		_after_viterbi_decode();
 		return result_list;
 	}
+	void _before_viterbi_decode(std::vector<Node*> &nodes){
+		_before_compute_log_Pdataset(nodes);
+		assert(_dataset->_max_num_words_in_line > 0);
+		_decode_table = new double*[_dataset->_max_num_words_in_line];
+		for(int i = 0;i < _dataset->_max_num_words_in_line;i++){
+			_decode_table[i] = new double[nodes.size()];
+		}
+	}
+	void _after_viterbi_decode(){
+		_after_compute_log_Pdataset();
+		assert(_dataset->_max_num_words_in_line > 0);
+		for(int i = 0;i < _dataset->_max_num_words_in_line;i++){
+			delete[] _decode_table[i];
+		}
+		delete[] _decode_table;
+	}
 	void _before_compute_log_Pdataset(std::vector<Node*> &nodes){
 		// あらかじめ全HTSSBの棒の長さを計算しておく
-		_model->enumerate_states(nodes);
-		_model->precompute_stick_length_of_nodes(nodes);
+		_model->enumerate_all_states(nodes);
+		_model->precompute_all_stick_lengths(nodes);
 		// 計算用のテーブルを確保
 		assert(_dataset->_max_num_words_in_line > 0);
 		_forward_table = new double*[_dataset->_max_num_words_in_line];
