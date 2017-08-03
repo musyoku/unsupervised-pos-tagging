@@ -133,6 +133,7 @@ def main():
 	model.set_gamma(random.uniform(0.5, 1))
 	model.set_lambda_alpha(random.uniform(0.1, 0.5))
 	model.set_lambda_gamma(random.uniform(0.001, 0.05))	# 1にすればオリジナルのiTHMMと同等
+	# model.set_lambda_gamma(1)	# 1にすればオリジナルのiTHMMと同等
 	model.set_strength(random.uniform(1, 10))			# HTSSBの集中度
 	model.set_tau0(1)
 	model.set_tau1(100)

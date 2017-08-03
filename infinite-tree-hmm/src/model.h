@@ -127,14 +127,10 @@ public:
 		std::vector<Node*> sampled_state_sequence;
 		_viterbi_decode(words, nodes, sampled_state_sequence, forward_table, decode_table);
 		// 結果を返す
-		boost::python::list tuple_list;
+		boost::python::list result;
 		for(int i = 0;i < words.size();i++){
-			boost::python::list tuple;
-			id word_id = words[i]->_id;
 			std::wstring tag = L"[" + sampled_state_sequence[i]->_wdump_indices() + L"]";
-			tuple.append(word_id);
-			tuple.append(tag);
-			tuple_list.append(tuple);
+			result.append(tag);
 		}
 		for(int i = 0;i < num_words;i++){
 			delete[] forward_table[i];
@@ -145,7 +141,7 @@ public:
 		for(int i = 0;i < words.size();i++){
 			delete words[i];
 		}
-		return tuple_list;
+		return result;
 	}
 	// 状態系列の復号
 	// ビタビアルゴリズム

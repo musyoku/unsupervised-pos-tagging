@@ -44,6 +44,7 @@ def main():
 			state_sequence_array_true.append(state_sequence_true)
 			state_sequence_viterbi = model.viterbi_decode(wort_ids)
 			assert len(state_sequence_viterbi) == len(state_sequence_true)
+			state_sequence_array_viterbi.append(state_sequence_viterbi)
 
 	# 読み込み
 	if args.train_filename.endswith(".txt"):
@@ -67,7 +68,7 @@ def main():
 			num_occurrence_of_pos_for_tag[tag_viterbi][pos_true] += 1
 
 	tags = model.get_all_states()
-	
+
 	# 存在しない部分を0埋め
 	for tag, occurrence in num_occurrence_of_pos_for_tag.items():
 		for pos in all_types_of_pos:
