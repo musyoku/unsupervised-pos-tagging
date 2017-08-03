@@ -150,9 +150,9 @@ public:
 		Word* word = data[0];
 		for(int i = 0;i < all_states.size();i++){
 			Node* state = all_states[i];
-			Node* state_on_bos = _ithmm->_bos_tssb->find_node_by_tracing_horizontal_indices(state);
-			assert(state_on_bos != NULL);
-			double Ps = state_on_bos->_probability;
+			Node* state_in_bos = _ithmm->_bos_tssb->find_node_by_tracing_horizontal_indices(state);
+			assert(state_in_bos != NULL);
+			double Ps = state_in_bos->_probability;
 			double Pword_given_s = _ithmm->compute_Pw_given_s(word->_id, state);
 			assert(Ps > 0);
 			assert(Pword_given_s > 0);
@@ -168,9 +168,9 @@ public:
 				double Pword_given_s = _ithmm->compute_Pw_given_s(word->_id, state);
 				for(int i = 0;i < all_states.size();i++){
 					Node* prev_state = all_states[i];
-					Node* state_on_prev_htssb = prev_state->_transition_tssb->find_node_by_tracing_horizontal_indices(state);
-					assert(state_on_prev_htssb != NULL);
-					double Ps_given_prev = state_on_prev_htssb->_probability;
+					Node* state_in_prev_htssb = prev_state->_transition_tssb->find_node_by_tracing_horizontal_indices(state);
+					assert(state_in_prev_htssb != NULL);
+					double Ps_given_prev = state_in_prev_htssb->_probability;
 					double value = Ps_given_prev * forward_table[t - 1][i];
 					if(value > max_value){
 						max_value = value;
@@ -211,9 +211,9 @@ public:
 		Word* word = data[0];
 		for(int i = 0;i < states.size();i++){
 			Node* state = states[i];
-			Node* state_on_bos = _ithmm->_bos_tssb->find_node_by_tracing_horizontal_indices(state);
-			assert(state_on_bos != NULL);
-			double Ps = state_on_bos->_probability;
+			Node* state_in_bos = _ithmm->_bos_tssb->find_node_by_tracing_horizontal_indices(state);
+			assert(state_in_bos != NULL);
+			double Ps = state_in_bos->_probability;
 			double Pword_given_s = _ithmm->compute_Pw_given_s(word->_id, state);
 			assert(Ps > 0);
 			assert(Pword_given_s > 0);
@@ -227,9 +227,9 @@ public:
 				double Pword_given_s = _ithmm->compute_Pw_given_s(word->_id, state);
 				for(int i = 0;i < states.size();i++){
 					Node* prev_state = states[i];
-					Node* state_on_prev_htssb = prev_state->_transition_tssb->find_node_by_tracing_horizontal_indices(state);
-					assert(state_on_prev_htssb != NULL);
-					double Ps_given_prev = state_on_prev_htssb->_probability;
+					Node* state_in_prev_htssb = prev_state->_transition_tssb->find_node_by_tracing_horizontal_indices(state);
+					assert(state_in_prev_htssb != NULL);
+					double Ps_given_prev = state_in_prev_htssb->_probability;
 					forward_table[t][j] += Pword_given_s * Ps_given_prev * forward_table[t - 1][i];
 				}
 			}
@@ -344,13 +344,13 @@ public:
 			_show_stick(node);
 		}
 	}
-	void _show_stick(Node* node_on_structure){
-		assert(node_on_structure != NULL);
-		double p_eos = node_on_structure->compute_transition_probability_to_eos(_ithmm->_tau0, _ithmm->_tau1);
-		_ithmm->update_stick_length_of_tssb(node_on_structure->_transition_tssb, 1.0 - p_eos, true);
+	void _show_stick(Node* node_in_structure){
+		assert(node_in_structure != NULL);
+		double p_eos = node_in_structure->compute_transition_probability_to_eos(_ithmm->_tau0, _ithmm->_tau1);
+		_ithmm->update_stick_length_of_tssb(node_in_structure->_transition_tssb, 1.0 - p_eos, true);
 
 		std::vector<Node*> nodes;
-		node_on_structure->_transition_tssb->enumerate_nodes_from_left_to_right(nodes);
+		node_in_structure->_transition_tssb->enumerate_nodes_from_left_to_right(nodes);
 		for(const auto &node: nodes){
 			std::string indices = node->_dump_indices();
 			std::string tab = "";

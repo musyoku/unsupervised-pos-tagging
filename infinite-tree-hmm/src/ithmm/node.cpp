@@ -30,7 +30,7 @@ Node::Node(Node* parent, int identifier){
 void Node::init(){
 	_depth_v = (_parent != NULL) ? _parent->_depth_v + 1 : 0;
 	_depth_h = (_parent != NULL) ? _parent->_children.size() : 0;
-	_owner_id_on_structure = (_parent != NULL) ? _parent->_owner_id_on_structure : 0;
+	_owner_id_in_structure = (_parent != NULL) ? _parent->_owner_id_in_structure : 0;
 	_stick_length = 0;
 	_children_stick_length = 0;
 	_probability = 0;
@@ -47,7 +47,7 @@ void Node::init(){
 	_parent_transition_tssb_myself = NULL;
 	_structure_tssb_myself = NULL;
 	_bos_tssb_myself = NULL;
-	_owner_on_structure = (_parent != NULL) ? _parent->_owner_on_structure : 0;
+	_owner_in_structure = (_parent != NULL) ? _parent->_owner_in_structure : 0;
 	_table_v = new Table();
 	_table_h = new Table();
 	_hpylm = NULL;
@@ -104,7 +104,7 @@ void Node::add_child(Node* node){
 	assert(node != NULL);
 	_children.push_back(node);
 }
-Node* Node::find_same_node_on_transition_tssb(){
+Node* Node::find_same_node_in_transition_tssb(){
 	return _transition_tssb->find_node_by_tracing_horizontal_indices(this);
 }
 int Node::get_vertical_stop_count(){
@@ -355,7 +355,7 @@ std::string Node::_dump(){
 	}
 	return (boost::format("$%d [vp:%d,vs:%d,hp:%d,hs:%d,ref:%d][len:%f,p:%f,ch:%f,p:%f,sp:%f][ow:$%d,dv:%d,dh:%d][%s]%s[eos:%d,other:%d]") 
 		% _identifier % _pass_count_v % _stop_count_v % _pass_count_h % _stop_count_h % _ref_count % _stick_length 
-		% (_stick_length - _children_stick_length) % _children_stick_length % _probability % _sum_probability % _owner_id_on_structure 
+		% (_stick_length - _children_stick_length) % _children_stick_length % _probability % _sum_probability % _owner_id_in_structure 
 		% _depth_v % _depth_h % indices_str.c_str() % hpylm_str.c_str() % _num_transitions_to_eos % _num_transitions_to_other).str();
 }
 
