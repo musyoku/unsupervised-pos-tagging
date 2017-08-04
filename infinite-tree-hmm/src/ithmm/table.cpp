@@ -1,4 +1,4 @@
-#include "table.hpp"
+#include "table.h"
 #include "sampler.h"
 #include <iostream>
 

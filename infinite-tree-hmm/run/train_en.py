@@ -41,6 +41,8 @@ def parse_tagger_result_str(result_str):
 		word = result[0]
 		if word == "<eos>":
 			pos = "EOS"
+		elif word == "<unk>":
+			pos = "UNK"
 		else:
 			match = re.search(r"<([^ ]+)", word)
 			word = "<" + match.group(1) + ">"
@@ -88,16 +90,15 @@ def add_file_to_dataset(filename, dataset):
 		# 英語は通常スペース区切りなので不要と思うかもしれないが、TreeTaggerを使うと$600が$ 600に分割されたりする
 		# そのためplot_en.pyで評価の際に文の単語数が[スペース区切り]と[TreeTagger]で異なる場合があり正しく評価を行えなくなる
 		# よって単語分割は全てTreeTaggerによるものに統一しておく
-		segmentation = ""
+		words = []
 		for result_str in results:
 			pos, lowercase = parse_tagger_result_str(result_str)
 			word_count.add(lowercase)
-			segmentation += lowercase + " "
-		segmentation = re.sub(r" +$", "",  segmentation)	# 行末の空白を除去
+			words.append(lowercase)
 		if i > train_split:
-			dataset.add_test_data(segmentation)	# テストデータに追加
+			dataset.add_words_dev(words)		# テストデータに追加
 		else:
-			dataset.add_train_data(segmentation)	# 学習用データに追加
+			dataset.add_words_train(words)	# 学習用データに追加
 			num_words_in_train_dataset += len(results)
 
 	sys.stdout.write("\r")
@@ -127,6 +128,7 @@ def main():
 
 	# モデル
 	model = ithmm.model()
+	model.load(os.path.join(args.model, "ithmm.model"))
 
 	# ハイパーパラメータの設定
 	model.set_alpha(random.uniform(10, 20))

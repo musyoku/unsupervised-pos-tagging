@@ -3,8 +3,8 @@
 #include <cassert>
 #include "cprintf.h"
 #include "sampler.h"
-#include "node.hpp"
-#include "hpylm.hpp"
+#include "node.h"
+#include "hpylm.h"
 
 using std::vector;
 

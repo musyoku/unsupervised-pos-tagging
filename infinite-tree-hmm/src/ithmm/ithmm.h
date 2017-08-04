@@ -9,9 +9,9 @@
 #include <vector>
 #include <set>
 #include <fstream>
-#include "tssb.hpp"
-#include "node.hpp"
-#include "hpylm.hpp"
+#include "tssb.h"
+#include "node.h"
+#include "hpylm.h"
 #include "sampler.h"
 #include "cprintf.h"
 #include "util.h"

@@ -1,4 +1,5 @@
 #pragma once
+#include <boost/python.hpp>
 #include <cassert>
 
 class Trainer{
@@ -42,56 +43,56 @@ public:
 		}
 		_model->_ithmm->delete_invalid_children();
 	}
-	boost::python::list viterbi_decode_test(){
-		boost::python::list result_list;
-		std::vector<Node*> nodes;
-		_before_viterbi_decode(nodes);
-		std::vector<Node*> sampled_state_sequence;
-		for(int data_index = 0;data_index < _dataset->_word_sequences_test.size();data_index++){
-			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
-				return result_list;
-			}
-			std::vector<Word*> &data = _dataset->_word_sequences_test[data_index];
-			boost::python::list tuple_list;
-			_model->_viterbi_decode(data, nodes, sampled_state_sequence, _forward_table, _decode_table);
-			for(int i = 0;i < data.size();i++){
-				boost::python::list tuple;
-				std::wstring word = _dict->_id_to_str[data[i]->_id];
-				std::wstring tag = L"[" + sampled_state_sequence[i]->_wdump_indices() + L"]";
-				tuple.append(word);
-				tuple.append(tag);
-				tuple_list.append(tuple);
-			}
-			result_list.append(tuple_list);
-		}
-		_after_viterbi_decode();
-		return result_list;
-	}
-	boost::python::list viterbi_decode_train(){
-		boost::python::list result_list;
-		std::vector<Node*> nodes;
-		_before_viterbi_decode(nodes);
-		std::vector<Node*> sampled_state_sequence;
-		for(int data_index = 0;data_index < _dataset->_word_sequences_train.size();data_index++){
-			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
-				return result_list;
-			}
-			std::vector<Word*> &data = _dataset->_word_sequences_train[data_index];
-			boost::python::list tuple_list;
-			_model->_viterbi_decode(data, nodes, sampled_state_sequence, _forward_table, _decode_table);
-			for(int i = 0;i < data.size();i++){
-				boost::python::list tuple;
-				std::wstring word = _dict->_id_to_str[data[i]->_id];
-				std::wstring tag = L"[" + sampled_state_sequence[i]->_wdump_indices() + L"]";
-				tuple.append(word);
-				tuple.append(tag);
-				tuple_list.append(tuple);
-			}
-			result_list.append(tuple_list);
-		}
-		_after_viterbi_decode();
-		return result_list;
-	}
+	// boost::python::list viterbi_decode_dev(){
+	// 	boost::python::list result_list;
+	// 	std::vector<Node*> nodes;
+	// 	_before_viterbi_decode(nodes);
+	// 	std::vector<Node*> sampled_state_sequence;
+	// 	for(int data_index = 0;data_index < _dataset->_word_sequences_dev.size();data_index++){
+	// 		if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
+	// 			return result_list;
+	// 		}
+	// 		std::vector<Word*> &data = _dataset->_word_sequences_dev[data_index];
+	// 		boost::python::list tuple_list;
+	// 		_model->_viterbi_decode(data, nodes, sampled_state_sequence, _forward_table, _decode_table);
+	// 		for(int i = 0;i < data.size();i++){
+	// 			boost::python::list tuple;
+	// 			std::wstring word = _dict->_id_to_str[data[i]->_id];
+	// 			std::wstring tag = L"[" + sampled_state_sequence[i]->_wdump_indices() + L"]";
+	// 			tuple.append(word);
+	// 			tuple.append(tag);
+	// 			tuple_list.append(tuple);
+	// 		}
+	// 		result_list.append(tuple_list);
+	// 	}
+	// 	_after_viterbi_decode();
+	// 	return result_list;
+	// }
+	// boost::python::list viterbi_decode_train(){
+	// 	boost::python::list result_list;
+	// 	std::vector<Node*> nodes;
+	// 	_before_viterbi_decode(nodes);
+	// 	std::vector<Node*> sampled_state_sequence;
+	// 	for(int data_index = 0;data_index < _dataset->_word_sequences_train.size();data_index++){
+	// 		if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
+	// 			return result_list;
+	// 		}
+	// 		std::vector<Word*> &data = _dataset->_word_sequences_train[data_index];
+	// 		boost::python::list tuple_list;
+	// 		_model->_viterbi_decode(data, nodes, sampled_state_sequence, _forward_table, _decode_table);
+	// 		for(int i = 0;i < data.size();i++){
+	// 			boost::python::list tuple;
+	// 			std::wstring word = _dict->_id_to_str[data[i]->_id];
+	// 			std::wstring tag = L"[" + sampled_state_sequence[i]->_wdump_indices() + L"]";
+	// 			tuple.append(word);
+	// 			tuple.append(tag);
+	// 			tuple_list.append(tuple);
+	// 		}
+	// 		result_list.append(tuple_list);
+	// 	}
+	// 	_after_viterbi_decode();
+	// 	return result_list;
+	// }
 	void _before_viterbi_decode(std::vector<Node*> &nodes){
 		_before_compute_log_Pdataset(nodes);
 		assert(_dataset->_max_num_words_in_line > 0);
@@ -131,8 +132,8 @@ public:
 	double compute_log_Pdataset_train(){
 		return _compute_log_Pdataset(_dataset->_word_sequences_train);
 	}
-	double compute_log_Pdataset_test(){
-		return _compute_log_Pdataset(_dataset->_word_sequences_test);
+	double compute_log_Pdataset_dev(){
+		return _compute_log_Pdataset(_dataset->_word_sequences_dev);
 	}
 	double _compute_log_Pdataset(std::vector<std::vector<Word*>> &dataset){
 		std::vector<Node*> nodes;
@@ -155,8 +156,8 @@ public:
 	double compute_log2_Pdataset_train(){
 		return _compute_log2_Pdataset(_dataset->_word_sequences_train);
 	}
-	double compute_log2_Pdataset_test(){
-		return _compute_log2_Pdataset(_dataset->_word_sequences_test);
+	double compute_log2_Pdataset_dev(){
+		return _compute_log2_Pdataset(_dataset->_word_sequences_dev);
 	}
 	double _compute_log2_Pdataset(std::vector<std::vector<Word*>> &dataset){
 		std::vector<Node*> nodes;
@@ -179,8 +180,8 @@ public:
 	double compute_perplexity_train(){
 		return _compute_perplexity(_dataset->_word_sequences_train);
 	}
-	double compute_perplexity_test(){
-		return _compute_perplexity(_dataset->_word_sequences_test);
+	double compute_perplexity_dev(){
+		return _compute_perplexity(_dataset->_word_sequences_dev);
 	}
 	double _compute_perplexity(std::vector<std::vector<Word*>> &dataset){
 		std::vector<Node*> nodes;

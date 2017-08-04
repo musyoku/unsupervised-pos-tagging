@@ -3,9 +3,9 @@
 #include "cprintf.h"
 #include "sampler.h"
 #include "util.h"
-#include "hpylm.hpp"
-#include "tssb.hpp"
-#include "node.hpp"
+#include "hpylm.h"
+#include "tssb.h"
+#include "node.h"
 
 using std::cout;
 using std::endl;

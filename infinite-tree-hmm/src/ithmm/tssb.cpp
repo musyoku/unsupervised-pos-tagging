@@ -1,6 +1,6 @@
 #include <boost/format.hpp>
-#include "tssb.hpp"
-#include "node.hpp"
+#include "tssb.h"
+#include "node.h"
 
 using std::cout;
 using std::endl;

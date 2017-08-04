@@ -8,14 +8,6 @@ bayesian-hmm/core/*
 hpylm-hmm/*
 !hpylm-hmm/core
 hpylm-hmm/core/*
-!infinite-tree-hmm/
-infinite-tree-hmm/*
-!infinite-tree-hmm/src
-infinite-tree-hmm/src/*
-!infinite-tree-hmm/run
-infinite-tree-hmm/run/*
-!infinite-tree-hmm/src/ithmm
-infinite-tree-hmm/src/ithmm/*
 !infinite-hmm/
 infinite-hmm/*
 !infinite-hmm/core
@@ -25,7 +17,6 @@ infinite-hmm/core/*
 !.gitignore
 !*.py
 !*.h
-!*.hpp
 !*.cpp
 !README.md
 !makefile

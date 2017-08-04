@@ -1,4 +1,5 @@
 #pragma once
+#include <boost/python.hpp>
 #include "dictionary.h"
 
 class Dataset{
@@ -6,7 +7,7 @@ public:
 	Dictionary* _dict;
 	std::unordered_map<id, int> _word_count;
 	std::vector<std::vector<Word*>> _word_sequences_train;
-	std::vector<std::vector<Word*>> _word_sequences_test;
+	std::vector<std::vector<Word*>> _word_sequences_dev;
 	std::vector<int> _rand_indices;
 	int _max_num_words_in_line;
 	int _min_num_words_in_line;
@@ -23,8 +24,8 @@ public:
 				delete word;
 			}
 		}
-		for(int n = 0;n < _word_sequences_test.size();n++){
-			std::vector<Word*> &words = _word_sequences_test[n];
+		for(int n = 0;n < _word_sequences_dev.size();n++){
+			std::vector<Word*> &words = _word_sequences_dev[n];
 			for(int m = 0;m < words.size();m++){
 				Word* word = words[m];
 				delete word;
@@ -32,19 +33,18 @@ public:
 		}
 	}
 	void add_textfile(std::string filename, double train_split_ratio){
-		// c_printf("[*]%s\n", (boost::format("%sを読み込んでいます ...") % filename.c_str()).str().c_str());
 		std::wifstream ifs(filename.c_str());
-		std::wstring line_str;
+		std::wstring sentence_str;
 		if (ifs.fail()){
 			c_printf("[R]%s [*]%s", "エラー", (boost::format("%sを開けません.") % filename.c_str()).str().c_str());
 			exit(1);
 		}
 		std::vector<std::wstring> lines;
-		while (getline(ifs, line_str) && !line_str.empty()){
+		while (getline(ifs, sentence_str) && !sentence_str.empty()){
 			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
 				return;
 			}
-			lines.push_back(line_str);
+			lines.push_back(sentence_str);
 		}
 		train_split_ratio = std::min(1.0, std::max(0.0, train_split_ratio));
 		int train_split = lines.size() * train_split_ratio;
@@ -54,54 +54,69 @@ public:
 		}
 		shuffle(rand_indices.begin(), rand_indices.end(), Sampler::mt);	// データをシャッフル
 		for(int i = 0;i < rand_indices.size();i++){
-			std::wstring &line_str = lines[rand_indices[i]];
+			std::wstring &sentence_str = lines[rand_indices[i]];
 			if(i < train_split){
-				add_train_data(line_str);
+				add_sentence_str_train(sentence_str);
 			}else{
-				add_test_data(line_str);
+				add_sentence_str_dev(sentence_str);
 			}
 		}
-		// std::cout << "train: " << _word_sequences_train.size() << std::endl;
-		// std::cout << "test:  " << _word_sequences_test.size() << std::endl;
-		// c_printf("[*]%s\n", (boost::format("%sを読み込みました.") % filename.c_str()).str().c_str());
 	}
-	void add_train_data(std::wstring line_str){
-		_add_data_to(line_str, _word_sequences_train);
+	void add_sentence_str_train(std::wstring sentence_str){
+		std::vector<std::wstring> word_str_vec;
+		split_word_by(sentence_str, L' ', word_str_vec);	// スペースで分割
+		_add_words_to_dataset(word_str_vec, _word_sequences_train);
 	}
-	void add_test_data(std::wstring line_str){
-		_add_data_to(line_str, _word_sequences_test);
+	void add_sentence_str_dev(std::wstring sentence_str){
+		std::vector<std::wstring> word_str_vec;
+		split_word_by(sentence_str, L' ', word_str_vec);	// スペースで分割
+		_add_words_to_dataset(word_str_vec, _word_sequences_dev);
 	}
-	void _add_data_to(std::wstring &line_str, std::vector<std::vector<Word*>> &dataset){
-		std::vector<std::wstring> word_strs;
-		split_word_by(line_str, L' ', word_strs);	// スペースで分割
-		if(word_strs.size() > 0){
-			std::vector<Word*> words;
+	void _before_python_add_sentence_str(boost::python::list &py_word_str_list, std::vector<std::wstring> &word_str_vec){
+		int num_words = boost::python::len(py_word_str_list);
+		for(int i = 0;i < num_words;i++){
+			std::wstring word = boost::python::extract<std::wstring>(py_word_str_list[i]);
+			word_str_vec.push_back(word);
+		}
+	}
+	void python_add_words_train(boost::python::list py_word_str_list){
+		std::vector<std::wstring> word_str_vec;
+		_before_python_add_sentence_str(py_word_str_list, word_str_vec);
+		_add_words_to_dataset(word_str_vec, _word_sequences_train);
+	}
+	void python_add_words_dev(boost::python::list py_word_str_list){
+		std::vector<std::wstring> word_str_vec;
+		_before_python_add_sentence_str(py_word_str_list, word_str_vec);
+		_add_words_to_dataset(word_str_vec, _word_sequences_dev);
+	}
+	void _add_words_to_dataset(std::vector<std::wstring> &word_str_vec, std::vector<std::vector<Word*>> &dataset){
+		assert(word_str_vec.size() > 0);
+		std::vector<Word*> words;
 
-			for(auto word_str: word_strs){
-				if(word_str.size() == 0){
-					continue;
-				}
-				Word* word = new Word();
-				word->_id = _dict->add_string(word_str);
-				word->_state = NULL;
-				words.push_back(word);
-				_word_count[word->_id] += 1;
+		for(auto word_str: word_str_vec){
+			if(word_str.size() == 0){
+				continue;
 			}
+			Word* word = new Word();
+			word->_id = _dict->add_string(word_str);
+			word->_state = NULL;
+			words.push_back(word);
+			_word_count[word->_id] += 1;
+		}
 
-			Word* eos = new Word();
-			eos->_id = ID_EOS;
-			eos->_state = NULL;
-			words.push_back(eos);
-			_word_count[ID_EOS] += 1;
+		Word* eos = new Word();
+		eos->_id = ID_EOS;
+		eos->_state = NULL;
+		words.push_back(eos);
+		_word_count[ID_EOS] += 1;
 
-			dataset.push_back(words);
+		dataset.push_back(words);
 
-			if((int)words.size() > _max_num_words_in_line){
-				_max_num_words_in_line = words.size();
-			}
-			if((int)words.size() < _min_num_words_in_line || _min_num_words_in_line == -1){
-				_min_num_words_in_line = words.size();
-			}
+		if((int)words.size() > _max_num_words_in_line){
+			_max_num_words_in_line = words.size();
+		}
+		if((int)words.size() < _min_num_words_in_line || _min_num_words_in_line == -1){
+			_min_num_words_in_line = words.size();
 		}
 	}
 	void mark_low_frequency_words_as_unknown(int threshold = 1){
