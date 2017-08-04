@@ -9,6 +9,6 @@
 !*.cpp
 !README.md
 !makefile
-!alice.txt
-!ptb.txt
-!aozora.txt
+!text/alice.txt
+!text/ptb.txt
+!text/aozora.txt

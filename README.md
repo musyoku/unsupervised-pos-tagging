@@ -20,13 +20,13 @@
 
 [http://www.gutenberg.org/files/11/11-0.txt](http://www.gutenberg.org/files/11/11-0.txt)からダウンロードできます。
 
-`alice.txt`は上記データに前処理を施したものになります。
+`text/alice.txt`は上記データに前処理を施したものになります。
 
-#### Wikicorpus
+#### Penn TreeBank
 
-[http://www.cs.upc.edu/~nlp/wikicorpus/](http://www.cs.upc.edu/~nlp/wikicorpus/)から英語版Wikipediaのテキストデータをダウンロードできます。
+[https://github.com/wojzaremba/lstm/tree/master/data](https://github.com/wojzaremba/lstm/tree/master/data)からPenn TreeBankのテキストデータをダウンロードできます。
 
-`wiki.txt`は上記データから10万行を取り出し前処理を施したものになります。
+`text/ptb.txt`は上記データの`ptb.train.txt`と`ptb.valid.txt`を結合したものになります。
 
 ### 日本語
 
