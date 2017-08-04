@@ -1,19 +1,8 @@
 # ignore all
 *
-!bayesian-hmm/
-bayesian-hmm/*
-!bayesian-hmm/core
-bayesian-hmm/core/*
-!hpylm-hmm/
-hpylm-hmm/*
-!hpylm-hmm/core
-hpylm-hmm/core/*
-!infinite-hmm/
-infinite-hmm/*
-!infinite-hmm/core
-infinite-hmm/core/*
 
 # allow any
+!*/
 !.gitignore
 !*.py
 !*.h
