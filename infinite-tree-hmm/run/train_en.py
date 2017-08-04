@@ -50,6 +50,8 @@ def parse_tagger_result_str(result_str):
 	else:
 		word, pos, orig = result
 		word = word.lower()
+		if orig == "##":
+			pos = "SYM"
 		if orig == "@card@":
 			word = "##"
 		if orig == "@ord@":
