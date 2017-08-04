@@ -284,6 +284,7 @@ public:
 		auto pair = std::make_pair(0, 0);
 		std::vector<Node*> nodes;
 		enumerate_all_states(nodes);
+		std::wcout << "word      	count	probability" << std::endl;
 		for(const auto &node: nodes){
 			std::multiset<std::pair<id, double>, multiset_value_comparator> ranking;
 			_ithmm->geneerate_word_ranking_of_node(node, ranking);
@@ -293,6 +294,9 @@ public:
 			for(const auto &elem: ranking){
 				id word_id = elem.first;
 				std::wstring &word = dict->_id_to_str[word_id];
+				for(int i = 0;i < std::max(0, 15 - (int)word.size());i++){
+					word += L" ";
+				}
 				double p = elem.second;
 				int count = node->_num_word_assignment[word_id];
 				std::wcout << "\x1b[1m" << word << "\x1b[0m" << L"	" << count << L"	" << p << std::endl;

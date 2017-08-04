@@ -18,16 +18,14 @@ make install
 
 ### 学習
 
-`alice.txt`を用いる場合
+`-split`で訓練データのうち学習に用いる割合を指定します。
 
-`-l`で訓練データのうち何行を訓練ようにするかを指定します。
+残りのデータは評価用になり、対数尤度やパープレキシティはすべて評価用データを用いて計算します。
 
-残りのデータはテスト用になり、対数尤度やパープレキシティはすべてテストデータを用いて計算します。
-
-`-d`で木の深さを固定できます。
+`-depth`で木の深さを固定できます。
 
 ```
-python train_en.py -f ../alice.txt -d 2 -l 1100
+python train_en.py  -f ../../text/ptb.txt -split 0.8  -depth 1
 ```
 
 ### 結果の可視化
@@ -35,7 +33,7 @@ python train_en.py -f ../alice.txt -d 2 -l 1100
 正解品詞と予測タグの対応関係をプロット
 
 ```
-python plot_en.py -f ../alice.txt
+python plot_en.py -f ../../text/ptb.txt
 ```
 
 それぞれの状態の出力分布から確率の高い単語のランキングを表示

@@ -177,8 +177,8 @@ def main():
 		if epoch % 100 == 0:
 			print("\n")
 			trainer.show_assigned_words_for_each_tag(dictionary, 20, False)
-			log_likelihood = trainer.compute_log_Pdataset_test() 
-			perplexity = trainer.compute_perplexity_test()
+			log_likelihood = trainer.compute_log_Pdataset_dev()
+			perplexity = trainer.compute_perplexity_dev()
 			print("alpha:", model.get_alpha(), "gamma:", model.get_gamma(), "lambda_alpha:", model.get_lambda_alpha(), "lambda_gamma:", model.get_lambda_gamma(), "strength:", model.get_strength(), "tau0:", model.get_tau0(), "tau1:", model.get_tau1())
 			print("log_likelihood:", int(log_likelihood))
 			print("perplexity:", int(perplexity))

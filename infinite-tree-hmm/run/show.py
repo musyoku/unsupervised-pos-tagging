@@ -1,16 +1,20 @@
 # coding: utf-8
-import sys, argparse
-import model
+import sys, argparse, os
+import ithmm
 
 def main(args):
-	ithmm = model.ithmm()
-	if ithmm.load(args.model) == False:
+	model = ithmm.model()
+	if model.load(os.path.join(args.model, "ithmm.model")) == False:
 		raise Exception("モデルが見つかりません.")
 
+	dictionary = ithmm.dictionary()
+	dictionary.load(os.path.join(args.model, "ithmm.dict"))
+
 	if args.words:
-		ithmm.show_assigned_words_and_probability_for_each_tag(30)
+		model.show_assigned_words_and_probability_for_each_tag(dictionary, 30)
+
 	if args.tssb:
-		ithmm.show_assigned_words_for_each_tag(30, False)
+		model.show_assigned_words_for_each_tag(dictionary, 30, False)
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
