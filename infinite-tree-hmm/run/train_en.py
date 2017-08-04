@@ -95,10 +95,12 @@ def add_file_to_dataset(filename, dataset):
 			pos, lowercase = parse_tagger_result_str(result_str)
 			word_count.add(lowercase)
 			words.append(lowercase)
+
+		# データを追加
 		if i > train_split:
-			dataset.add_words_dev(words)		# テストデータに追加
+			dataset.add_words_dev(words)		# 評価用データに追加
 		else:
-			dataset.add_words_train(words)	# 学習用データに追加
+			dataset.add_words_train(words)		# 学習用データに追加
 			num_words_in_train_dataset += len(results)
 
 	sys.stdout.write("\r")

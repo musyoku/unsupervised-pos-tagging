@@ -21,8 +21,5 @@ infinite-hmm/core/*
 !README.md
 !makefile
 !alice.txt
-!wiki.txt
+!ptb.txt
 !aozora.txt
-
-# ignore
-aozora.py
