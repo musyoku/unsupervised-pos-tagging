@@ -15,16 +15,12 @@
 #include "sampler.h"
 #include "cprintf.h"
 #include "util.h"
+#include "common.h"
 #include "hyperparameters.h"
 
 // 10以下ならなんでもいい
 #define TSSB_STRUCTURE_ID 8
 #define TSSB_BOS_ID 7
-
-typedef struct Word {
-	id _id;
-	Node* _state;
-} Word;
 	
 struct multiset_value_comparator {
 	bool operator()(const std::pair<id, double> &a, const std::pair<id, double> &b) {

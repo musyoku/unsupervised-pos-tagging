@@ -8,7 +8,7 @@
 #include <vector>
 #include <unordered_map>
 #include <map>
-using id = int;
+#include "common.h"
 
 class Node;
 class HPYLM{
