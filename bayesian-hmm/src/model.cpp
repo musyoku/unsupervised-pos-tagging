@@ -15,23 +15,21 @@
 #include <cassert>
 #include "bhmm/hmm.h"
 #include "bhmm/utils.h"
-using namespace std;
-using namespace boost;
+#include "dictionary.h"
 
 struct value_comparator {
-	bool operator()(const pair<int, int> &a, const pair<int, int> &b) {
+	bool operator()(const std::pair<int, int> &a, const std::pair<int, int> &b) {
 		return a.second > b.second;
 	}   
 };
 
-class PyBayesianHMM{
+class Trainer{
 private:
 	HMM* _hmm;
-	unordered_map<int, wstring> _dictionary;
-	unordered_map<wstring, int> _dictionary_inv;
-	unordered_map<int, int> _word_count;
-	vector<vector<Word*>> _dataset;
-	vector<int> _rand_indices;
+	Dictionary* _dict;
+	std::unordered_map<int, int> _word_count;
+	std::vector<std::vector<Word*>> _dataset;
+	std::vector<int> _rand_indices;
 	int _autoincrement;
 	int _bos_id;
 	int _eos_id;
@@ -39,7 +37,7 @@ private:
 	int _max_num_words_in_line;
 	int _min_num_words_in_line;
 public:
-	PyBayesianHMM(){
+	Trainer(Dictionary* dict){
 		// 日本語周り
 		// 日本語周り
 		setlocale(LC_CTYPE, "ja_JP.UTF-8");
@@ -51,38 +49,14 @@ public:
 		std::wcin.imbue(ctype_default);
 
 		_hmm = new HMM();
-		_bos_id = 0;
-		_dictionary[_bos_id] = L"<bos>";
-		_eos_id = 1;
-		_dictionary[_eos_id] = L"<eos>";
-		_unk_id = 2;
-		_dictionary[_unk_id] = L"<unk>";
-		_autoincrement = _unk_id + 1;
-
+		_dict = dict;
 		_max_num_words_in_line = -1;
 		_min_num_words_in_line = -1;
 	}
-	int string_to_word_id(wstring word){
-		auto itr = _dictionary_inv.find(word);
-		if(itr == _dictionary_inv.end()){
-			return _unk_id;
-		}
-		return itr->second;
-	}
-	int add_string(wstring word){
-		auto itr = _dictionary_inv.find(word);
-		if(itr == _dictionary_inv.end()){
-			_dictionary[_autoincrement] = word;
-			_dictionary_inv[word] = _autoincrement;
-			_autoincrement++;
-			return _autoincrement - 1;
-		}
-		return itr->second;
-	}
-	void load_textfile(string filename){
+	void load_textfile(std::string filename){
 		c_printf("[*]%s\n", (boost::format("%sを読み込んでいます ...") % filename.c_str()).str().c_str());
-		wifstream ifs(filename.c_str());
-		wstring line_str;
+		std::wifstream ifs(filename.c_str());
+		std::wstring line_str;
 		if (ifs.fail()){
 			c_printf("[R]%s [*]%s", "エラー", (boost::format("%sを開けません.") % filename.c_str()).str().c_str());
 			exit(1);
@@ -95,8 +69,8 @@ public:
 		}
 		c_printf("[*]%s\n", (boost::format("%sを読み込みました.") % filename.c_str()).str().c_str());
 	}
-	void add_line(wstring line_str){
-		vector<wstring> word_strs;
+	void add_line(std::wstring line_str){
+		std::vector<std::wstring> word_strs;
 		utils::split_word_by(line_str, L' ', word_strs);	// スペースで分割
 		int num_words = word_strs.size();
 		if(num_words > _max_num_words_in_line){
@@ -106,7 +80,7 @@ public:
 			_min_num_words_in_line = num_words;
 		}
 		if(word_strs.size() > 0){
-			vector<Word*> words;
+			std::vector<Word*> words;
 			// <bos>
 			for(int n = 0;n < 2;n++){
 				Word* bos = new Word();
@@ -120,7 +94,7 @@ public:
 					continue;
 				}
 				Word* word = new Word();
-				word->word_id = add_string(word_str);
+				word->word_id = _dict->add_word_string(word_str);
 				word->tag_id = 0;
 				words.push_back(word);
 				_word_count[word->word_id] += 1;
@@ -142,7 +116,7 @@ public:
 	}
 	void mark_low_frequency_words_as_unknown(int threshold = 1){
 		for(int data_index = 0;data_index < _dataset.size();data_index++){
-			vector<Word*> &line = _dataset[data_index];
+			std::vector<Word*> &line = _dataset[data_index];
 			for(auto word = line.begin(), end = line.end();word != end;word++){
 				int word_id = (*word)->word_id;
 				int count = get_count_for_word(word_id);
@@ -159,25 +133,21 @@ public:
 		}
 		return itr->second;
 	}
-	bool load(string dirname){
+	bool load(std::string dirname){
 		// 辞書を読み込み
-		string dictionary_filename = dirname + "/hmm.dict";
+		std::string dictionary_filename = dirname + "/hmm.dict";
 		std::ifstream ifs(dictionary_filename);
 		if(ifs.good()){
 			boost::archive::binary_iarchive iarchive(ifs);
-			iarchive >> _dictionary;
-			iarchive >> _dictionary_inv;
 			iarchive >> _autoincrement;
 			ifs.close();
 		}
 		return _hmm->load(dirname);
 	}
-	bool save(string dirname){
+	bool save(std::string dirname){
 		// 辞書を保存
 		std::ofstream ofs(dirname + "/hmm.dict");
 		boost::archive::binary_oarchive oarchive(ofs);
-		oarchive << _dictionary;
-		oarchive << _dictionary_inv;
 		oarchive << _autoincrement;
 		ofs.close();
 		return _hmm->save(dirname);
@@ -195,7 +165,7 @@ public:
 				return;
 			}
 			int data_index = _rand_indices[n];
-			vector<Word*> &line = _dataset[data_index];
+			std::vector<Word*> &line = _dataset[data_index];
 			_hmm->perform_gibbs_sampling_with_line(line);
 		}
 	}
@@ -209,37 +179,37 @@ public:
 		_hmm->sample_new_alpha(_dataset);
 	}
 	void show_alpha(){
-		cout << (boost::format("alpha <- %e") % _hmm->_alpha).str() << endl;
+		std::cout << (boost::format("alpha <- %e") % _hmm->_alpha).str() << std::endl;
 	}
 	void sample_new_beta(){
 		_hmm->sample_new_beta(_dataset);
 	}
 	void show_beta(){
 		for(int tag = 0;tag < _hmm->_num_tags;tag++){
-			cout << (boost::format("beta[%d] <- %e") % tag % _hmm->_beta[tag]).str() << endl;
+			std::cout << (boost::format("beta[%d] <- %e") % tag % _hmm->_beta[tag]).str() << std::endl;
 		}
 	}
 	void show_random_line(int num_to_show, bool show_most_co_occurring_tag = true){
 		for(int n = 0;n < num_to_show;n++){
 			int data_index = sampler::uniform_int(0, _dataset.size() - 1);
-			vector<Word*> &line = _dataset[data_index];
+			std::vector<Word*> &line = _dataset[data_index];
 			for(int pos = 2;pos < line.size() - 2;pos++){
 				Word* word = line[pos];
 				int tag_id = word->tag_id;
 				if(show_most_co_occurring_tag){
 					tag_id = _hmm->get_most_co_occurring_tag(word->word_id);
 				}
-				wcout << _dictionary[word->word_id] << L"/" << tag_id << L" ";
+				std::wcout << _dict->word_id_to_string(word->word_id) << L"/" << tag_id << L" ";
 			}
-			wcout << endl;
+			std::wcout << std::endl;
 		}
 	}
-	python::list get_all_words_for_each_tag(int threshold = 0){
-		vector<python::list> result;
+	boost::python::list get_all_words_for_each_tag(int threshold = 0){
+		std::vector<boost::python::list> result;
 		for(int tag = 0;tag < _hmm->_num_tags;tag++){
-			vector<python::tuple> words;
-			unordered_map<int, int> &word_counts = _hmm->_tag_word_counts[tag];
-			multiset<pair<int, int>, value_comparator> ranking;
+			std::vector<boost::python::tuple> words;
+			std::unordered_map<int, int> &word_counts = _hmm->_tag_word_counts[tag];
+			std::multiset<std::pair<int, int>, value_comparator> ranking;
 			for(auto elem: word_counts){
 				ranking.insert(std::make_pair(elem.first, elem.second));
 			}
@@ -247,8 +217,8 @@ public:
 				if(elem.second <= threshold){
 					continue;
 				}
-				wstring word = _dictionary[elem.first];
-				words.push_back(python::make_tuple(word, elem.second));
+				std::wstring word = _dict->word_id_to_string(elem.first);
+				words.push_back(boost::python::make_tuple(word, elem.second));
 			}
 			result.push_back(utils::list_from_vector(words));
 		}
@@ -256,23 +226,23 @@ public:
 	}
 	void show_typical_words_for_each_tag(int number_to_show_for_each_tag){
 		for(int tag = 0;tag < _hmm->_num_tags;tag++){
-			unordered_map<int, int> &word_counts = _hmm->_tag_word_counts[tag];
+			std::unordered_map<int, int> &word_counts = _hmm->_tag_word_counts[tag];
 			int n = 0;
 			c_printf("[*]%s\n", (boost::format("tag %d:") % tag).str().c_str());
-			wcout << L"\t";
-			multiset<pair<int, int>, value_comparator> ranking;
+			std::wcout << L"\t";
+			std::multiset<std::pair<int, int>, value_comparator> ranking;
 			for(auto elem: word_counts){
 				ranking.insert(std::make_pair(elem.first, elem.second));
 			}
 			for(auto elem: ranking){
-				wstring &word = _dictionary[elem.first];
-				wcout << word << L"/" << elem.second << L", ";
+				std::wstring word = _dict->word_id_to_string(elem.first);
+				std::wcout << word << L"/" << elem.second << L", ";
 				n++;
 				if(n > number_to_show_for_each_tag){
 					break;
 				}
 			}
-			wcout << endl;
+			std::wcout << std::endl;
 		}
 	}
 	void set_alpha(double alpha){
@@ -290,10 +260,10 @@ public:
 	void set_temperature(double temperature){
 		_hmm->_temperature = temperature;
 	}
-	void set_Wt(python::list Wt){
-		int length = python::len(Wt);
+	void set_Wt(boost::python::list Wt){
+		int length = boost::python::len(Wt);
 		for(int tag = 0;tag < length;tag++){
-			_hmm->set_Wt_for_tag(tag, python::extract<int>(Wt[tag]));
+			_hmm->set_Wt_for_tag(tag, boost::python::extract<int>(Wt[tag]));
 		}
 	}
 	void set_minimum_temperature(double temperature){
@@ -308,40 +278,34 @@ public:
 	int get_min_num_words_in_line(){
 		return _min_num_words_in_line;
 	}
-	int get_vocabrary_size(){
-		return _dictionary_inv.size();
-	}
 };
 
-BOOST_PYTHON_MODULE(model){
-	python::class_<PyBayesianHMM>("bayesian_hmm")
-	.def("string_to_word_id", &PyBayesianHMM::string_to_word_id)
-	.def("add_string", &PyBayesianHMM::add_string)
-	.def("perform_gibbs_sampling", &PyBayesianHMM::perform_gibbs_sampling)
-	.def("initialize", &PyBayesianHMM::initialize)
-	.def("mark_low_frequency_words_as_unknown", &PyBayesianHMM::mark_low_frequency_words_as_unknown)
-	.def("load", &PyBayesianHMM::load)
-	.def("save", &PyBayesianHMM::save)
-	.def("get_num_tags", &PyBayesianHMM::get_num_tags)
-	.def("get_all_words_for_each_tag", &PyBayesianHMM::get_all_words_for_each_tag)
-	.def("get_temperature", &PyBayesianHMM::get_temperature)
-	.def("get_max_num_words_in_line", &PyBayesianHMM::get_max_num_words_in_line)
-	.def("get_min_num_words_in_line", &PyBayesianHMM::get_min_num_words_in_line)
-	.def("get_vocabrary_size", &PyBayesianHMM::get_vocabrary_size)
-	.def("set_temperature", &PyBayesianHMM::set_temperature)
-	.def("set_num_tags", &PyBayesianHMM::set_num_tags)
-	.def("set_minimum_temperature", &PyBayesianHMM::set_minimum_temperature)
-	.def("set_Wt", &PyBayesianHMM::set_Wt)
-	.def("set_alpha", &PyBayesianHMM::set_alpha)
-	.def("add_line", &PyBayesianHMM::add_line)
-	.def("sample_new_alpha", &PyBayesianHMM::sample_new_alpha)
-	.def("sample_new_beta", &PyBayesianHMM::sample_new_beta)
-	.def("sample_tag_from_Pt_w", &PyBayesianHMM::sample_tag_from_Pt_w)
-	.def("argmax_tag_from_Pt_w", &PyBayesianHMM::argmax_tag_from_Pt_w)
-	.def("anneal_temperature", &PyBayesianHMM::anneal_temperature)
-	.def("show_typical_words_for_each_tag", &PyBayesianHMM::show_typical_words_for_each_tag)
-	.def("show_random_line", &PyBayesianHMM::show_random_line)
-	.def("show_alpha", &PyBayesianHMM::show_alpha)
-	.def("show_beta", &PyBayesianHMM::show_beta)
-	.def("load_textfile", &PyBayesianHMM::load_textfile);
+BOOST_PYTHON_MODULE(bhmm){
+	boost::python::class_<Trainer>("trainer", boost::python::init<Dictionary*>())
+	.def("perform_gibbs_sampling", &Trainer::perform_gibbs_sampling)
+	.def("initialize", &Trainer::initialize)
+	.def("mark_low_frequency_words_as_unknown", &Trainer::mark_low_frequency_words_as_unknown)
+	.def("load", &Trainer::load)
+	.def("save", &Trainer::save)
+	.def("get_num_tags", &Trainer::get_num_tags)
+	.def("get_all_words_for_each_tag", &Trainer::get_all_words_for_each_tag)
+	.def("get_temperature", &Trainer::get_temperature)
+	.def("get_max_num_words_in_line", &Trainer::get_max_num_words_in_line)
+	.def("get_min_num_words_in_line", &Trainer::get_min_num_words_in_line)
+	.def("set_temperature", &Trainer::set_temperature)
+	.def("set_num_tags", &Trainer::set_num_tags)
+	.def("set_minimum_temperature", &Trainer::set_minimum_temperature)
+	.def("set_Wt", &Trainer::set_Wt)
+	.def("set_alpha", &Trainer::set_alpha)
+	.def("add_line", &Trainer::add_line)
+	.def("sample_new_alpha", &Trainer::sample_new_alpha)
+	.def("sample_new_beta", &Trainer::sample_new_beta)
+	.def("sample_tag_from_Pt_w", &Trainer::sample_tag_from_Pt_w)
+	.def("argmax_tag_from_Pt_w", &Trainer::argmax_tag_from_Pt_w)
+	.def("anneal_temperature", &Trainer::anneal_temperature)
+	.def("show_typical_words_for_each_tag", &Trainer::show_typical_words_for_each_tag)
+	.def("show_random_line", &Trainer::show_random_line)
+	.def("show_alpha", &Trainer::show_alpha)
+	.def("show_beta", &Trainer::show_beta)
+	.def("load_textfile", &Trainer::load_textfile);
 }

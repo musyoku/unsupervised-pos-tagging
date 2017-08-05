@@ -14,8 +14,10 @@
 #include "sampler.h"
 #include "utils.h"
 
+using id = int;
+
 typedef struct Word {
-	int word_id;
+	id word_id;
 	int tag_id;
 } Word;
 
