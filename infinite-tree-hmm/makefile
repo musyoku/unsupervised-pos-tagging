@@ -8,10 +8,10 @@ install: ## Python用ライブラリをビルドします.
 
 .PHONY: debug
 debug: ## LLDB用.
-	$(CC) test/debug.cpp src/ithmm/tssb.cpp src/ithmm/node.cpp src/ithmm/table.cpp src/ithmm/hpylm.cpp -o debug $(INCLUDE) $(CFLAGS)
+	$(CC) test/debug.cpp src/ithmm/*.cpp -o debug $(INCLUDE) $(CFLAGS)
 
 cpp: ## LLDB用.
-	$(CC) test/train.cpp src/ithmm/tssb.cpp src/ithmm/node.cpp src/ithmm/table.cpp src/ithmm/hpylm.cpp -o train $(INCLUDE) $(CFLAGS)
+	$(CC) test/train.cpp src/ithmm/*.cpp -o train $(INCLUDE) $(CFLAGS)
 
 .PHONY: help
 help:

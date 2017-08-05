@@ -8,7 +8,7 @@ Trainer::Trainer(Dataset* dataset, Model* model, Dictionary* dict){
 	_forward_table = NULL;
 	_decode_table = NULL;
 	_model->_ithmm->set_word_g0(1.0 / _dataset->_word_count.size());
-	_model->_ithmm->initialize_data(_dataset->_word_sequences_train);
+	_model->_ithmm->initialize_with_training_dataset(_dataset->_word_sequences_train);
 }
 void Trainer::remove_all_data(){
 	_model->_ithmm->remove_all_data(_dataset->_word_sequences_train);
