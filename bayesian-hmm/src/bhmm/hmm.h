@@ -19,7 +19,7 @@ typedef struct Word {
 	int tag_id;
 } Word;
 
-class BayesianHMM{
+class HMM{
 private:
 	friend class boost::serialization::access;
 	template <class Archive>
@@ -37,8 +37,8 @@ public:
 	double* _beta;
 	double _temperature;
 	double _minimum_temperature;
-	BayesianHMM();
-	~BayesianHMM();
+	HMM();
+	~HMM();
 	void anneal_temperature(double multiplier);
 	void initialize(std::vector<std::vector<Word*>> &dataset);
 	void alloc_table();

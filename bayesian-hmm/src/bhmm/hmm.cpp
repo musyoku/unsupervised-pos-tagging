@@ -1,8 +1,8 @@
 #include <iostream>
 #include <fstream>
-#include "bhmm.h"
+#include "hmm.h"
 
-BayesianHMM::BayesianHMM(){
+HMM::HMM(){
 	_trigram_counts = NULL;
 	_bigram_counts = NULL;
 	_unigram_counts = NULL;
@@ -15,7 +15,7 @@ BayesianHMM::BayesianHMM(){
 	_temperature = 1;
 	_minimum_temperature = 1;
 }
-BayesianHMM::~BayesianHMM(){
+HMM::~HMM(){
 	if(_trigram_counts != NULL){
 		for(int tri_tag = 0;tri_tag < _num_tags;tri_tag++){
 			for(int bi_tag = 0;bi_tag < _num_tags;bi_tag++){
@@ -46,7 +46,7 @@ BayesianHMM::~BayesianHMM(){
 }
 
 template <class Archive>
-void BayesianHMM::serialize(Archive& ar, unsigned int version)
+void HMM::serialize(Archive& ar, unsigned int version)
 {
 	static_cast<void>(version);
 	ar & _num_tags;
@@ -56,18 +56,18 @@ void BayesianHMM::serialize(Archive& ar, unsigned int version)
 	ar & _minimum_temperature;
 	ar & _tag_word_counts;
 }
-void BayesianHMM::anneal_temperature(double multiplier){
+void HMM::anneal_temperature(double multiplier){
 	if(_temperature > _minimum_temperature){
 		_temperature *= multiplier;
 	}
 }
-void BayesianHMM::initialize(std::vector<std::vector<Word*>> &dataset){
+void HMM::initialize(std::vector<std::vector<Word*>> &dataset){
 	// その他
 	alloc_table();
 	// nグラムのカウントテーブル
 	init_ngram_counts(dataset);
 }
-void BayesianHMM::alloc_table(){
+void HMM::alloc_table(){
 	assert(_num_tags != -1);
 	// 各タグの可能な単語数
 	_Wt = (int*)calloc(_num_tags, sizeof(int));
@@ -93,8 +93,7 @@ void BayesianHMM::alloc_table(){
 	// 1-gram
 	_unigram_counts = (int*)calloc(_num_tags, sizeof(int));
 }
-void BayesianHMM::init_ngram_counts(std::vector<std::vector<Word*>> &dataset){
-	c_printf("[*]%s\n", "n-gramモデルを構築してます ...");
+void HMM::init_ngram_counts(std::vector<std::vector<Word*>> &dataset){
 	assert(_num_tags != -1);
 	// 最初は品詞をランダムに割り当てる
 	std::set<int> word_set;
@@ -146,19 +145,18 @@ void BayesianHMM::init_ngram_counts(std::vector<std::vector<Word*>> &dataset){
 		increment_tag_word_count(t_end_1, w_end_1);
 	}
 	_num_words = word_set.size();
-	c_printf("[*]%s\n", (boost::format("単語数: %d - 行数: %d") % _num_words % dataset.size()).str().c_str());
 }
-void BayesianHMM::set_Wt_for_tag(int tag_id, int number){
+void HMM::set_Wt_for_tag(int tag_id, int number){
 	assert(_Wt != NULL);
 	assert(tag_id < _num_tags);
 	_Wt[tag_id] = number;
 }
-void BayesianHMM::update_ngram_count(Word* tri_word, Word* bi_word, Word* uni_word){
+void HMM::update_ngram_count(Word* tri_word, Word* bi_word, Word* uni_word){
 	_trigram_counts[tri_word->tag_id][bi_word->tag_id][uni_word->tag_id] += 1;
 	_bigram_counts[bi_word->tag_id][uni_word->tag_id] += 1;
 	_unigram_counts[uni_word->tag_id] += 1;
 }
-void BayesianHMM::increment_tag_word_count(int tag_id, int word_id){
+void HMM::increment_tag_word_count(int tag_id, int word_id){
 	std::unordered_map<int, int> &word_counts = _tag_word_counts[tag_id];
 	auto itr = word_counts.find(word_id);
 	if(itr == word_counts.end()){
@@ -167,7 +165,7 @@ void BayesianHMM::increment_tag_word_count(int tag_id, int word_id){
 	}
 	itr->second += 1;
 }
-void BayesianHMM::decrement_tag_word_count(int tag_id, int word_id){
+void HMM::decrement_tag_word_count(int tag_id, int word_id){
 	std::unordered_map<int, int> &word_counts = _tag_word_counts[tag_id];
 	auto itr = word_counts.find(word_id);
 	if(itr == word_counts.end()){
@@ -179,7 +177,7 @@ void BayesianHMM::decrement_tag_word_count(int tag_id, int word_id){
 		word_counts.erase(itr);
 	}
 }
-int BayesianHMM::get_count_for_tag_word(int tag_id, int word_id){
+int HMM::get_count_for_tag_word(int tag_id, int word_id){
 	std::unordered_map<int, int> &word_counts = _tag_word_counts[tag_id];
 	auto itr = word_counts.find(word_id);
 	if(itr == word_counts.end()){
@@ -187,11 +185,11 @@ int BayesianHMM::get_count_for_tag_word(int tag_id, int word_id){
 	}
 	return itr->second;
 }
-int BayesianHMM::get_word_types_for_tag(int tag_id){
+int HMM::get_word_types_for_tag(int tag_id){
 	std::unordered_map<int, int> &word_counts = _tag_word_counts[tag_id];
 	return word_counts.size();
 }
-double BayesianHMM::compute_log_Pt_alpha(std::vector<Word*> &line, double alpha){
+double HMM::compute_log_Pt_alpha(std::vector<Word*> &line, double alpha){
 	double log_Pt_alpha = 0;
 	for(int pos = 2;pos < line.size() - 2;pos++){	// <bos>と<eos>の内側だけ考える
 		int ti_2 = line[pos - 2]->tag_id;
@@ -204,7 +202,7 @@ double BayesianHMM::compute_log_Pt_alpha(std::vector<Word*> &line, double alpha)
 	}
 	return log_Pt_alpha;
 }
-double BayesianHMM::compute_log_Pw_t_alpha(std::vector<Word*> &line, double alpha){
+double HMM::compute_log_Pw_t_alpha(std::vector<Word*> &line, double alpha){
 	double log_Pt_alpha = 0;
 	for(int pos = 2;pos < line.size() - 2;pos++){	// <bos>と<eos>の内側だけ考える
 		int ti_2 = line[pos - 2]->tag_id;
@@ -218,14 +216,14 @@ double BayesianHMM::compute_log_Pw_t_alpha(std::vector<Word*> &line, double alph
 	return log_Pt_alpha;
 }
 // 正規化定数で割る前の値
-double BayesianHMM::compute_Pti_wi_beta(int ti, int wi, double beta){
+double HMM::compute_Pti_wi_beta(int ti, int wi, double beta){
 	double n_ti_wi = get_count_for_tag_word(ti, wi);
 	double n_ti = _unigram_counts[ti];
 	double W_ti = _Wt[ti];
 	return (n_ti_wi + beta) / (n_ti + W_ti * beta);
 }
 // in:  t_{i-2},t_{i-1},ti,t_{i+1},t_{i+2},w_i
-void BayesianHMM::add_tag_to_model_parameters(int ti_2, int ti_1, int ti, int ti1, int ti2, int wi){
+void HMM::add_tag_to_model_parameters(int ti_2, int ti_1, int ti, int ti1, int ti2, int wi){
 	// 1-gram
 	_unigram_counts[ti] += 1;
 	// 2-gram
@@ -239,7 +237,7 @@ void BayesianHMM::add_tag_to_model_parameters(int ti_2, int ti_1, int ti, int ti
 	increment_tag_word_count(ti, wi);
 }
 // in:  t_{i-2},t_{i-1},ti,t_{i+1},t_{i+2},w_i
-void BayesianHMM::remove_tag_from_model_parameters(int ti_2, int ti_1, int ti, int ti1, int ti2, int wi){
+void HMM::remove_tag_from_model_parameters(int ti_2, int ti_1, int ti, int ti1, int ti2, int wi){
 	// 1-gram
 	_unigram_counts[ti] -= 1;
 	assert(_unigram_counts[ti] >= 0);
@@ -258,7 +256,7 @@ void BayesianHMM::remove_tag_from_model_parameters(int ti_2, int ti_1, int ti, i
 	// 品詞-単語ペア
 	decrement_tag_word_count(ti, wi);
 }
-void BayesianHMM::perform_gibbs_sampling_with_line(std::vector<Word*> &line){
+void HMM::perform_gibbs_sampling_with_line(std::vector<Word*> &line){
 	if(_sampling_table == NULL){
 		_sampling_table = (double*)malloc(_num_tags * sizeof(double));
 	}
@@ -315,7 +313,7 @@ void BayesianHMM::perform_gibbs_sampling_with_line(std::vector<Word*> &line){
 	}
 }
 // 論文(6)式と(7)式を掛けたものからtiをサンプリング
-int BayesianHMM::sample_tag_from_Pt_w(int ti_2, int ti_1, int wi){
+int HMM::sample_tag_from_Pt_w(int ti_2, int ti_1, int wi){
 	double sum_p = 0;
 	for(int tag = 0;tag < _num_tags;tag++){
 		double Pt_alpha = (_trigram_counts[ti_2][ti_1][tag] + _alpha) / (_bigram_counts[ti_2][ti_1] + _num_tags * _alpha);
@@ -336,7 +334,7 @@ int BayesianHMM::sample_tag_from_Pt_w(int ti_2, int ti_1, int wi){
 	return _num_tags - 1;
 }
 // 論文(6)式と(7)式を掛けたものからtiをサンプリング
-int BayesianHMM::argmax_tag_from_Pt_w(int ti_2, int ti_1, int wi){
+int HMM::argmax_tag_from_Pt_w(int ti_2, int ti_1, int wi){
 	double max_p = 0;
 	double max_tag = 0;
 	// std::cout << (boost::format("argmax(%d, %d, %d)") % ti_2 % ti_1 % wi).str() << std::endl;
@@ -353,7 +351,7 @@ int BayesianHMM::argmax_tag_from_Pt_w(int ti_2, int ti_1, int wi){
 	// std::cout << "return " << max_tag << std::endl;
 	return max_tag;
 }
-Word* BayesianHMM::_get_random_word_with_tag(int tag, std::vector<std::vector<Word*>> &dataset){
+Word* HMM::_get_random_word_with_tag(int tag, std::vector<std::vector<Word*>> &dataset){
 	int random_index = sampler::uniform_int(0, dataset.size() - 1);
 	std::vector<Word*> &line = dataset[random_index];
 	for(int pos = 0;pos < line.size();pos++){
@@ -365,7 +363,7 @@ Word* BayesianHMM::_get_random_word_with_tag(int tag, std::vector<std::vector<Wo
 	return NULL;
 }
 // 新しいAlphaをサンプリング
-void BayesianHMM::sample_new_alpha(std::vector<std::vector<Word*>> &dataset){
+void HMM::sample_new_alpha(std::vector<std::vector<Word*>> &dataset){
 	double new_alpha = sampler::normal(_alpha, 0.1 * _alpha);
 	int random_index = sampler::uniform_int(0, dataset.size() - 1);
 	std::vector<Word*> &line = dataset[random_index];
@@ -394,7 +392,7 @@ void BayesianHMM::sample_new_alpha(std::vector<std::vector<Word*>> &dataset){
 	}
 }
 // 新しいBetaをサンプリング
-void BayesianHMM::sample_new_beta(std::vector<std::vector<Word*>> &dataset){
+void HMM::sample_new_beta(std::vector<std::vector<Word*>> &dataset){
 	for(int tag = 0;tag < _num_tags;tag++){
 		double beta = _beta[tag];
 		double new_beta = sampler::normal(beta, 0.1 * beta);
@@ -435,7 +433,7 @@ void BayesianHMM::sample_new_beta(std::vector<std::vector<Word*>> &dataset){
 		}
 	}
 }
-int BayesianHMM::get_most_co_occurring_tag(int word_id){
+int HMM::get_most_co_occurring_tag(int word_id){
 	int max_count = 0;
 	int most_co_occurring_tag_id = 0;
 	for(int tag = 0;tag < _num_tags;tag++){
@@ -447,7 +445,7 @@ int BayesianHMM::get_most_co_occurring_tag(int word_id){
 	}
 	return most_co_occurring_tag_id;
 }
-void BayesianHMM::dump_trigram_counts(){
+void HMM::dump_trigram_counts(){
 	for(int tri_tag = 0;tri_tag < _num_tags;tri_tag++){
 		for(int bi_tag = 0;bi_tag < _num_tags;bi_tag++){
 			for(int uni_tag = 0;uni_tag < _num_tags;uni_tag++){
@@ -456,27 +454,27 @@ void BayesianHMM::dump_trigram_counts(){
 		}
 	}
 }
-void BayesianHMM::dump_bigram_counts(){
+void HMM::dump_bigram_counts(){
 	for(int bi_tag = 0;bi_tag < _num_tags;bi_tag++){
 		for(int uni_tag = 0;uni_tag < _num_tags;uni_tag++){
 			std::cout << (boost::format("2-gram [%d][%d] = %d") % bi_tag % uni_tag % _bigram_counts[bi_tag][uni_tag]).str() << std::endl;
 		}
 	}
 }
-void BayesianHMM::dump_unigram_counts(){
+void HMM::dump_unigram_counts(){
 	for(int uni_tag = 0;uni_tag < _num_tags;uni_tag++){
 		std::cout << (boost::format("1-gram [%d] = %d") % uni_tag % _unigram_counts[uni_tag]).str() << std::endl;
 	}
 }
-void BayesianHMM::dump_word_types(){
+void HMM::dump_word_types(){
 	for(int tag = 0;tag < _num_tags;tag++){
 		std::cout << tag << ": " << get_word_types_for_tag(tag) << std::endl;
 	}
 }
-bool BayesianHMM::save(std::string dir = "out"){
+bool HMM::save(std::string dir = "out"){
 	std::ofstream ofs(dir + "/hmm.obj");
 	boost::archive::binary_oarchive oarchive(ofs);
-	oarchive << static_cast<const BayesianHMM&>(*this);
+	oarchive << static_cast<const HMM&>(*this);
 	ofs.close();
 	std::ofstream ofs_bin;
 	// 3-gram
@@ -507,7 +505,7 @@ bool BayesianHMM::save(std::string dir = "out"){
 	ofs_bin.close();
 	return true;
 }
-bool BayesianHMM::load(std::string dir = "out"){
+bool HMM::load(std::string dir = "out"){
 	bool complete = true;
 	std::ifstream ifs(dir + "/hmm.obj");
 	if(ifs.good()){
