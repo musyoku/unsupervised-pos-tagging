@@ -4,7 +4,7 @@ CFLAGS = -std=c++11 -L/usr/local/lib -lboost_serialization -lboost_python -lpyth
 SOFLAGS = -shared -fPIC -std=c++11 -L/usr/local/lib -lboost_serialization -lboost_python -lpython2.7 -O3
 
 install: ## Python用ライブラリをビルドします.
-	$(CC) src/python.cpp src/ithmm/tssb.cpp src/ithmm/node.cpp src/ithmm/table.cpp src/ithmm/hpylm.cpp src/ithmm/sampler.cpp src/ithmm/utils.cpp -o run/ithmm.so $(INCLUDE) $(SOFLAGS)
+	$(CC) src/python.cpp src/ithmm/*.cpp src/python/*.cpp -o run/ithmm.so $(INCLUDE) $(SOFLAGS)
 
 .PHONY: debug
 debug: ## LLDB用.

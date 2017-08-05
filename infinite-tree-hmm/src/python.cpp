@@ -1,7 +1,7 @@
-#include "model.h"
-#include "dataset.h"
-#include "dictionary.h"
-#include "trainer.h"
+#include "python/model.h"
+#include "python/dataset.h"
+#include "python/dictionary.h"
+#include "python/trainer.h"
 
 BOOST_PYTHON_MODULE(ithmm){
 	boost::python::class_<Dictionary>("dictionary")
@@ -13,7 +13,7 @@ BOOST_PYTHON_MODULE(ithmm){
 
 	boost::python::class_<Dataset>("dataset", boost::python::init<Dictionary*>())
 	.def("get_num_words", &Dataset::get_num_words)
-	.def("get_count_for_word", &Dataset::get_count_for_word)
+	.def("get_count_of_word", &Dataset::get_count_of_word)
 	.def("add_words_train", &Dataset::python_add_words_train)
 	.def("add_words_dev", &Dataset::python_add_words_dev)
 	.def("add_textfile", &Dataset::add_textfile)
