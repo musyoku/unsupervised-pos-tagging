@@ -28,6 +28,40 @@ namespace ithmm {
 		_parent = parent;
 		init();
 	}
+	template <class Archive>
+	void Node::serialize(Archive & ar, unsigned int version)
+	{
+		ar & _auto_increment;;
+		ar & _identifier;
+		ar & _owner_id_in_structure;
+		ar & _owner_in_structure;
+		ar & _parent;
+		ar & _depth_v;
+		ar & _depth_h;
+		ar & _pass_count_v;
+		ar & _stop_count_v;
+		ar & _pass_count_h;
+		ar & _stop_count_h;
+		ar & _num_word_assignment;
+		ar & _num_transitions_to_eos;
+		ar & _num_transitions_to_other;
+		ar & _table_v;
+		ar & _table_h;
+		ar & _children;
+		ar & _stick_length;
+		ar & _children_stick_length;
+		ar & _probability;
+		ar & _sum_probability;
+		ar & _hpylm;
+		ar & _transition_tssb;
+		ar & _transition_tssb_myself;
+		ar & _parent_transition_tssb_myself;
+		ar & _ref_count;
+		ar & _structure_tssb_myself;
+		ar & _bos_tssb_myself;
+	}
+	template void Node::serialize(boost::archive::binary_iarchive &ar, unsigned int version);
+	template void Node::serialize(boost::archive::binary_oarchive &ar, unsigned int version);
 	void Node::init(){
 		_depth_v = (_parent != NULL) ? _parent->_depth_v + 1 : 0;
 		_depth_h = (_parent != NULL) ? _parent->_children.size() : 0;

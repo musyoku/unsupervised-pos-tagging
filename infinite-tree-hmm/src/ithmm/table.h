@@ -14,14 +14,7 @@ namespace ithmm {
 	private:
 		friend class boost::serialization::access;
 		template <class Archive>
-		void serialize(Archive & archive, unsigned int version)
-		{
-			static_cast<void>(version);
-			archive & _arrangement;
-			archive & _num_customers;
-			archive & _token_id;
-			archive & _last_added_index;
-		}
+		void serialize(Archive &ar, unsigned int version);
 	public:
 		std::vector<int> _arrangement;
 		int _num_customers;

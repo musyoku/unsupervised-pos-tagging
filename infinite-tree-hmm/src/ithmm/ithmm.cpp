@@ -2,26 +2,26 @@
 
 namespace ithmm {
 	template <class Archive>
-	void iTHMM::serialize(Archive& archive, unsigned int version)
+	void iTHMM::serialize(Archive& ar, unsigned int version)
 	{
 		static_cast<void>(version);
-		archive & _structure_tssb;
-		archive & _bos_tssb;
-		archive & _alpha;
-		archive & _gamma;
-		archive & _lambda_alpha;
-		archive & _lambda_gamma;
-		archive & _tau0;
-		archive & _tau1;
-		archive & _word_g0;
-		archive & _current_max_depth;
-		archive & _depth_limit;
-		archive & _hpylm_d_m;
-		archive & _hpylm_theta_m;
-		archive & _hpylm_a_m;
-		archive & _hpylm_b_m;
-		archive & _hpylm_alpha_m;
-		archive & _hpylm_beta_m;
+		ar & _structure_tssb;
+		ar & _bos_tssb;
+		ar & _alpha;
+		ar & _gamma;
+		ar & _lambda_alpha;
+		ar & _lambda_gamma;
+		ar & _tau0;
+		ar & _tau1;
+		ar & _word_g0;
+		ar & _current_max_depth;
+		ar & _depth_limit;
+		ar & _hpylm_d_m;
+		ar & _hpylm_theta_m;
+		ar & _hpylm_a_m;
+		ar & _hpylm_b_m;
+		ar & _hpylm_alpha_m;
+		ar & _hpylm_beta_m;
 	}
 	iTHMM::iTHMM(){
 		_alpha = sampler::uniform(iTHMM_ALPHA_MIN, iTHMM_ALPHA_MAX);

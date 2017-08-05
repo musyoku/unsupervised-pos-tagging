@@ -12,14 +12,7 @@ namespace ithmm {
 	private:
 		friend class boost::serialization::access;
 		template <class Archive>
-		void serialize(Archive & archive, unsigned int version)
-		{
-			static_cast<void>(version);
-			archive & _root;
-			archive & _owner_id;
-			archive & _owner;
-			archive & _num_customers;
-		}
+		void serialize(Archive &ar, unsigned int version);
 	public:
 		Node* _root;
 		int _owner_id;		// HTSSBの場合は木構造上でこのTSSBを持っているノードのID

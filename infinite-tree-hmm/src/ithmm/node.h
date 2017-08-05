@@ -8,8 +8,8 @@
 #include <boost/serialization/vector.hpp>
 #include <unordered_map>
 #include <map>
+#include "common.h"
 #include "table.h"
-#include "hpylm.h"
 
 namespace ithmm {
 	class HPYLM;
@@ -18,38 +18,7 @@ namespace ithmm {
 	private:
 		friend class boost::serialization::access;
 		template <class Archive>
-		void serialize(Archive & archive, unsigned int version)
-		{
-			static_cast<void>(version);
-			archive & _auto_increment;;
-			archive & _identifier;
-			archive & _owner_id_in_structure;
-			archive & _owner_in_structure;
-			archive & _parent;
-			archive & _depth_v;
-			archive & _depth_h;
-			archive & _pass_count_v;
-			archive & _stop_count_v;
-			archive & _pass_count_h;
-			archive & _stop_count_h;
-			archive & _num_word_assignment;
-			archive & _num_transitions_to_eos;
-			archive & _num_transitions_to_other;
-			archive & _table_v;
-			archive & _table_h;
-			archive & _children;
-			archive & _stick_length;
-			archive & _children_stick_length;
-			archive & _probability;
-			archive & _sum_probability;
-			archive & _hpylm;
-			archive & _transition_tssb;
-			archive & _transition_tssb_myself;
-			archive & _parent_transition_tssb_myself;
-			archive & _ref_count;
-			archive & _structure_tssb_myself;
-			archive & _bos_tssb_myself;
-		}
+		void serialize(Archive &ar, unsigned int version);
 	public:
 		static int _auto_increment;
 		int _identifier;		// ノードID

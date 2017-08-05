@@ -13,6 +13,17 @@ namespace ithmm {
 		_token_id = token_id;
 		_last_added_index = 0;
 	}
+	template <class Archive>
+	void Table::serialize(Archive & ar, unsigned int version)
+	{
+		static_cast<void>(version);
+		ar & _arrangement;
+		ar & _num_customers;
+		ar & _token_id;
+		ar & _last_added_index;
+	}
+	template void Table::serialize(boost::archive::binary_iarchive &ar, unsigned int version);
+	template void Table::serialize(boost::archive::binary_oarchive &ar, unsigned int version);
 	bool Table::is_empty(){
 		return _arrangement.size() == 0;
 	}

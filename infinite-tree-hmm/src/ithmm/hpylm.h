@@ -16,16 +16,7 @@ namespace ithmm {
 	private:
 		friend class boost::serialization::access;
 		template <class Archive>
-		void serialize(Archive & archive, unsigned int version)
-		{
-			static_cast<void>(version);
-			archive & _arrangement;
-			archive & _num_tables;
-			archive & _num_customers;
-			archive & _depth;
-			archive & _parent;
-			archive & _state_node;
-		}
+		void serialize(Archive &ar, unsigned int version);
 		bool add_customer_to_table(id token_id, int table_k, double parent_Pw, std::vector<double> &d_m, std::vector<double> &theta_m);
 		bool add_customer_to_new_table(id token_id, double parent_Pw, std::vector<double> &d_m, std::vector<double> &theta_m);
 		bool remove_customer_from_table(id token_id, int table_k, std::vector<int> &num_customers_at_table);

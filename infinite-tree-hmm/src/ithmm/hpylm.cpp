@@ -6,10 +6,9 @@
 #include "node.h"
 #include "hpylm.h"
 
-
 namespace ithmm {
 	using std::vector;
-	
+
 	HPYLM::HPYLM(){
 		_num_tables = 0;
 		_num_customers = 0;
@@ -29,6 +28,18 @@ namespace ithmm {
 			_parent = node->_parent->_hpylm;
 		}
 	}
+	template <class Archive>
+	void HPYLM::serialize(Archive &ar, unsigned int version)
+	{
+		ar & _arrangement;
+		ar & _num_tables;
+		ar & _num_customers;
+		ar & _depth;
+		ar & _parent;
+		ar & _state_node;
+	}
+	template void HPYLM::serialize(boost::archive::binary_iarchive &ar, unsigned int version);
+	template void HPYLM::serialize(boost::archive::binary_oarchive &ar, unsigned int version);
 	// 客をテーブルに追加
 	bool HPYLM::add_customer_to_table(id token_id, int table_k, double g0, vector<double> &d_m, vector<double> &theta_m){
 		auto itr = _arrangement.find(token_id);

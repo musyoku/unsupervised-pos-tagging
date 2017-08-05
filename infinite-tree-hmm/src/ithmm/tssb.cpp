@@ -26,6 +26,16 @@ namespace ithmm {
 		}
 		delete _root;
 	}
+	template <class Archive>
+	void TSSB::serialize(Archive & ar, unsigned int version)
+	{
+		ar & _root;
+		ar & _owner_id;
+		ar & _owner;
+		ar & _num_customers;
+	}
+	template void TSSB::serialize(boost::archive::binary_iarchive &ar, unsigned int version);
+	template void TSSB::serialize(boost::archive::binary_oarchive &ar, unsigned int version);
 	void TSSB::_delete_children(Node* node){
 		for(auto &child: node->_children){
 			if(child->has_child()){
