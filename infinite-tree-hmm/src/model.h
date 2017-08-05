@@ -1,4 +1,5 @@
 #pragma once
+#include <boost/python.hpp>
 #include "ithmm/ithmm.h"
 #include "dictionary.h"
 

@@ -30,7 +30,7 @@ void Table::add_customer(double concentration_parameter, double g0, int num_tota
 	sum = num_total_customers + concentration_parameter * g0;
 	// sum = num_total_customers + concentration_parameter;
 	double normalizer = 1.0 / sum;
-	double bernoulli = Sampler::uniform(0, 1);
+	double bernoulli = sampler::uniform(0, 1);
 	sum = 0;
 	for(int i = 0;i < _arrangement.size();i++){
 		sum += _arrangement[i] * scale * normalizer;
@@ -49,7 +49,7 @@ void Table::remove_customer(bool &empty_table_deleted){
 	empty_table_deleted = false;
 	_num_customers -= 1;
 	int sum = std::accumulate(_arrangement.begin(), _arrangement.end(), 0);
-	int bernoulli = Sampler::uniform_int(0, sum);
+	int bernoulli = sampler::uniform_int(0, sum);
 	sum = 0;
 	int target_index = _arrangement.size() - 1;
 	for(int i = 0;i < _arrangement.size();i++){

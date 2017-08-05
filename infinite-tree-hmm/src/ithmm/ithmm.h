@@ -81,11 +81,11 @@ public:
 	int _num_mh_acceptance;
 	int _num_mh_rejection;
 	iTHMM(){
-		_alpha = Sampler::uniform(iTHMM_ALPHA_MIN, iTHMM_ALPHA_MAX);
-		_gamma = Sampler::uniform(iTHMM_GAMMA_MIN, iTHMM_GAMMA_MAX);
-		_lambda_alpha = Sampler::uniform(iTHMM_LAMBDA_ALPHA_MIN, iTHMM_LAMBDA_ALPHA_MAX);
-		_lambda_gamma = Sampler::uniform(iTHMM_LAMBDA_GAMMA_MAX, iTHMM_LAMBDA_GAMMA_MAX);
-		_strength = Sampler::uniform(iTHMM_STRENGTH_MIN, iTHMM_STRENGTH_MAX);
+		_alpha = sampler::uniform(iTHMM_ALPHA_MIN, iTHMM_ALPHA_MAX);
+		_gamma = sampler::uniform(iTHMM_GAMMA_MIN, iTHMM_GAMMA_MAX);
+		_lambda_alpha = sampler::uniform(iTHMM_LAMBDA_ALPHA_MIN, iTHMM_LAMBDA_ALPHA_MAX);
+		_lambda_gamma = sampler::uniform(iTHMM_LAMBDA_GAMMA_MAX, iTHMM_LAMBDA_GAMMA_MAX);
+		_strength = sampler::uniform(iTHMM_STRENGTH_MIN, iTHMM_STRENGTH_MAX);
 		_tau0 = iTHMM_TAU_0;
 		_tau1 = iTHMM_TAU_1;
 		_current_max_depth = 0;
@@ -367,7 +367,7 @@ public:
 		assert(iterator != NULL);
 		double head = compute_expectation_of_vertical_sbr_ratio(iterator, htssb_mode);
 		iterator->_children_stick_length = iterator->_stick_length * (1 - head);
-		double bernoulli = Sampler::uniform(0, 1);
+		double bernoulli = sampler::uniform(0, 1);
 		if(bernoulli <= head){			// 表が出たらこのノードに降りる
 			if(is_node_root(iterator) == false || (is_node_root(iterator) && ignore_root == false)){
 				return iterator;
@@ -378,7 +378,7 @@ public:
 			Node* child = iterator->_children[i];
 			assert(child != NULL);
 			double head = compute_expectation_of_horizontal_sbr_ratio(child, htssb_mode);
-			double bernoulli = Sampler::uniform(0, 1);
+			double bernoulli = sampler::uniform(0, 1);
 			if(bernoulli <= head){		// 表が出たら次に止まるかどうかを決める
 				return _sample_node_in_tssb_by_iterating_node(child, htssb_mode, ignore_root);
 			}
@@ -387,7 +387,7 @@ public:
 		while(true){
 			Node* child = generate_and_add_new_child_to(iterator);
 			double head = compute_expectation_of_horizontal_sbr_ratio(child, htssb_mode);
-			double bernoulli = Sampler::uniform(0, 1);
+			double bernoulli = sampler::uniform(0, 1);
 			if(bernoulli <= head){		// 表が出たら次に止まるかどうかを決める
 				return _sample_node_in_tssb_by_iterating_node(child, htssb_mode, ignore_root);
 			}
@@ -772,14 +772,14 @@ public:
 		// }
 
 		// スライス
-		double slice = Pw_given_s * Pnext_given_s * Sampler::uniform(0, 1);
+		double slice = Pw_given_s * Pnext_given_s * sampler::uniform(0, 1);
 		assert(slice > 0);
 
 		double st = 0;
 		double ed = 1;
 
 		while(true){
-			double u = Sampler::uniform(st, ed);
+			double u = sampler::uniform(st, ed);
 			if( (st <= u && u < ed) == false){	// 見つからなかったら元の状態を返す
 				return state_in_structure;
 			}
@@ -847,7 +847,7 @@ public:
 				// 採択率の計算式が不明
 				double adoption = Pnew_s_given_prev / Ps_given_prev;
 				adoption = std::min(1.0, adoption);
-				double u = Sampler::uniform(0, 1);
+				double u = sampler::uniform(0, 1);
 				if(u <= adoption){
 					_num_mh_acceptance += 1;
 					return new_state_in_structure;
@@ -887,13 +887,13 @@ public:
 		Pt_given_s *= stick_length;
 		assert(0 < Pt_given_s && Pt_given_s <= 1);
 		// スライス
-		double slice = Pw_given_s * Pt_given_s * Sampler::uniform(0, 1);
+		double slice = Pw_given_s * Pt_given_s * sampler::uniform(0, 1);
 		assert(slice > 0);
 
 		double st = 0;
 		double ed = 1;
 		while(true){
-			double u = Sampler::uniform(st, ed);
+			double u = sampler::uniform(st, ed);
 			assert(st <= u && u < ed);
 			Node* new_state_in_bos = retrospective_sampling(u, _bos_tssb, 1.0, false);
 			assert(is_node_in_bos_tssb(new_state_in_bos));
@@ -940,7 +940,7 @@ public:
 		double Peos_given_s = state_in_structure->compute_transition_probability_to_eos(_tau0, _tau1);
 		assert(0 < Peos_given_s && Peos_given_s <= 1);
 		// スライス
-		double slice = Pw_given_s * Peos_given_s * Sampler::uniform(0, 1);
+		double slice = Pw_given_s * Peos_given_s * sampler::uniform(0, 1);
 		assert(slice > 0);
 		// // s_{t-1}から<eos>へ接続する確率
 		// double Peos_given_prev_s = prev_state_in_structure->compute_transition_probability_to_eos(_tau0, _tau1);
@@ -950,7 +950,7 @@ public:
 		// c_printf("[r]%s\n", "_draw_state_to_eos");
 		// state_in_structure->dump();
 		while(true){
-			double u = Sampler::uniform(st, ed);
+			double u = sampler::uniform(st, ed);
 			assert(st <= u && u < ed);
 			Node* new_state_in_htssb = retrospective_sampling(u, prev_state_in_structure->_transition_tssb, 1.0, true);
 			// prev_state_in_structure->_transition_tssb->dump();
@@ -1575,8 +1575,8 @@ public:
 
 		// サンプリング
 		for(int u = 0;u <= _current_max_depth;u++){
-			_hpylm_d_m[u] = Sampler::beta(_hpylm_a_m[u] + sum_1_y_ui_m[u], _hpylm_b_m[u] + sum_1_z_uwkj_m[u]);
-			_hpylm_theta_m[u] = Sampler::gamma(_hpylm_alpha_m[u] + sum_y_ui_m[u], _hpylm_beta_m[u] - sum_log_x_u_m[u]);
+			_hpylm_d_m[u] = sampler::beta(_hpylm_a_m[u] + sum_1_y_ui_m[u], _hpylm_b_m[u] + sum_1_z_uwkj_m[u]);
+			_hpylm_theta_m[u] = sampler::gamma(_hpylm_alpha_m[u] + sum_y_ui_m[u], _hpylm_beta_m[u] - sum_log_x_u_m[u]);
 		}
 
 		assert(_hpylm_d_m.size() == _hpylm_theta_m.size());

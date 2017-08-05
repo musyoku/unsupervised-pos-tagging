@@ -1,5 +1,6 @@
 #pragma once
 #include <boost/python.hpp>
+#include "ithmm/utils.h"
 #include "dictionary.h"
 
 class Dataset{
@@ -52,7 +53,7 @@ public:
 		for(int i = 0;i < lines.size();i++){
 			rand_indices.push_back(i);
 		}
-		shuffle(rand_indices.begin(), rand_indices.end(), Sampler::mt);	// データをシャッフル
+		shuffle(rand_indices.begin(), rand_indices.end(), sampler::mt);	// データをシャッフル
 		for(int i = 0;i < rand_indices.size();i++){
 			std::wstring &sentence_str = lines[rand_indices[i]];
 			if(i < train_split){
@@ -64,12 +65,12 @@ public:
 	}
 	void add_sentence_str_train(std::wstring sentence_str){
 		std::vector<std::wstring> word_str_vec;
-		split_word_by(sentence_str, L' ', word_str_vec);	// スペースで分割
+		utils::split_word_by(sentence_str, L' ', word_str_vec);	// スペースで分割
 		_add_words_to_dataset(word_str_vec, _word_sequences_train);
 	}
 	void add_sentence_str_dev(std::wstring sentence_str){
 		std::vector<std::wstring> word_str_vec;
-		split_word_by(sentence_str, L' ', word_str_vec);	// スペースで分割
+		utils::split_word_by(sentence_str, L' ', word_str_vec);	// スペースで分割
 		_add_words_to_dataset(word_str_vec, _word_sequences_dev);
 	}
 	void _before_python_add_sentence_str(boost::python::list &py_word_str_list, std::vector<std::wstring> &word_str_vec){

@@ -113,7 +113,7 @@ bool HPYLM::add_customer(id token_id, double g0, vector<double> &d_m, vector<dou
 	double t_u = _num_tables;
 	sum += (theta_u + d_u * t_u) * parent_Pw;
 	double normalizer = 1.0 / sum;
-	double r = Sampler::uniform(0, 1);
+	double r = sampler::uniform(0, 1);
 	sum = 0;
 	for(int k = 0;k < num_customers_at_table.size();k++){
 		sum += std::max(0.0, num_customers_at_table[k] - d_u) * normalizer;
@@ -131,7 +131,7 @@ bool HPYLM::remove_customer(id token_id){
 	vector<int> &num_customers_at_table = itr->second;
 	double sum = std::accumulate(num_customers_at_table.begin(), num_customers_at_table.end(), 0);
 	double normalizer = 1.0 / sum;
-	double r = Sampler::uniform(0, 1);
+	double r = sampler::uniform(0, 1);
 	sum = 0;
 	for(int k = 0;k < num_customers_at_table.size();k++){
 		sum += num_customers_at_table[k] * normalizer;
@@ -185,7 +185,7 @@ int HPYLM::get_num_customers(){
 }
 double HPYLM::auxiliary_log_x_u(double theta_u){
 	if(_num_customers >= 2){
-		double x_u = Sampler::beta(theta_u + 1, _num_customers - 1);
+		double x_u = sampler::beta(theta_u + 1, _num_customers - 1);
 		return log(x_u + 1e-8);
 	}
 	return 0;
@@ -196,7 +196,7 @@ double HPYLM::auxiliary_y_ui(double d_u, double theta_u){
 		for(int i = 1;i <= _num_tables - 1;i++){
 			double denominator = theta_u + d_u * i;
 			assert(denominator > 0);
-			sum_y_ui += Sampler::bernoulli(theta_u / denominator);;
+			sum_y_ui += sampler::bernoulli(theta_u / denominator);;
 		}
 		return sum_y_ui;
 	}
@@ -208,7 +208,7 @@ double HPYLM::auxiliary_1_y_ui(double d_u, double theta_u){
 		for(int i = 1;i <= _num_tables - 1;i++){
 			double denominator = theta_u + d_u * i;
 			assert(denominator > 0);
-			sum_1_y_ui += 1.0 - Sampler::bernoulli(theta_u / denominator);
+			sum_1_y_ui += 1.0 - sampler::bernoulli(theta_u / denominator);
 		}
 		return sum_1_y_ui;
 	}
@@ -226,7 +226,7 @@ double HPYLM::auxiliary_1_z_uwkj(double d_u){
 			if(c_uwk >= 2){
 				for(int j = 1;j <= c_uwk - 1;j++){
 					assert(j - d_u > 0);
-					sum_z_uwkj += 1 - Sampler::bernoulli((j - 1) / (j - d_u));
+					sum_z_uwkj += 1 - sampler::bernoulli((j - 1) / (j - d_u));
 				}
 			}
 		}
