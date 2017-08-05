@@ -9,7 +9,7 @@ BOOST_PYTHON_MODULE(ithmm){
 	.def("get_eos_id", &Dictionary::get_eos_id)
 	.def("save", &Dictionary::save)
 	.def("load", &Dictionary::load)
-	.def("add_string", &Dictionary::add_string);
+	.def("add_word", &Dictionary::add_word_string);
 
 	boost::python::class_<Dataset>("dataset", boost::python::init<Dictionary*>())
 	.def("get_num_words", &Dataset::get_num_words)

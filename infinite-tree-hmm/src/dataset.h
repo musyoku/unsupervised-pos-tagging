@@ -36,26 +36,23 @@ public:
 	void add_textfile(std::string filename, double train_split_ratio){
 		std::wifstream ifs(filename.c_str());
 		std::wstring sentence_str;
-		if (ifs.fail()){
-			c_printf("[R]%s [*]%s", "エラー", (boost::format("%sを開けません.") % filename.c_str()).str().c_str());
-			exit(1);
-		}
-		std::vector<std::wstring> lines;
+		assert(ifs.fail() == false);
+		std::vector<std::wstring> sentence_vec;
 		while (getline(ifs, sentence_str) && !sentence_str.empty()){
 			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
 				return;
 			}
-			lines.push_back(sentence_str);
+			sentence_vec.push_back(sentence_str);
 		}
 		train_split_ratio = std::min(1.0, std::max(0.0, train_split_ratio));
-		int train_split = lines.size() * train_split_ratio;
+		int train_split = sentence_vec.size() * train_split_ratio;
 		std::vector<int> rand_indices;
-		for(int i = 0;i < lines.size();i++){
+		for(int i = 0;i < sentence_vec.size();i++){
 			rand_indices.push_back(i);
 		}
 		shuffle(rand_indices.begin(), rand_indices.end(), sampler::mt);	// データをシャッフル
 		for(int i = 0;i < rand_indices.size();i++){
-			std::wstring &sentence_str = lines[rand_indices[i]];
+			std::wstring &sentence_str = sentence_vec[rand_indices[i]];
 			if(i < train_split){
 				add_sentence_str_train(sentence_str);
 			}else{
@@ -99,7 +96,7 @@ public:
 				continue;
 			}
 			Word* word = new Word();
-			word->_id = _dict->add_string(word_str);
+			word->_id = _dict->add_word_string(word_str);
 			word->_state = NULL;
 			words.push_back(word);
 			_word_count[word->_id] += 1;

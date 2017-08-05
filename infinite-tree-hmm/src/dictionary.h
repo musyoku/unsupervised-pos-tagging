@@ -18,7 +18,7 @@ public:
 	id get_eos_id(){
 		return ID_EOS;
 	}
-	id add_string(std::wstring word){
+	id add_word_string(std::wstring word){
 		auto itr = _str_to_id.find(word);
 		if(itr == _str_to_id.end()){
 			_id_to_str[_autoincrement] = word;
