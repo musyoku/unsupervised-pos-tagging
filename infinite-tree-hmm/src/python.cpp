@@ -3,6 +3,8 @@
 #include "python/dictionary.h"
 #include "python/trainer.h"
 
+using namespace ithmm;
+
 BOOST_PYTHON_MODULE(ithmm){
 	boost::python::class_<Dictionary>("dictionary")
 	.def("string_to_word_id", &Dictionary::string_to_word_id)
