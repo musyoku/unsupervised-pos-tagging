@@ -4,7 +4,7 @@ CFLAGS = -std=c++11 -L/usr/local/lib -lboost_serialization -lboost_python -lpyth
 SOFLAGS = -shared -fPIC -std=c++11 -L/usr/local/lib -lboost_serialization -lboost_python -lpython2.7 -O3
 
 install: ## Python用ライブラリをビルドします.
-	$(CC) src/model.cpp src/bhmm/hmm.cpp src/bhmm/sampler.cpp src/bhmm/utils.cpp -o model.so $(INCLUDE) $(SOFLAGS)
+	$(CC) src/python.cpp src/bhmm/*.cpp src/python/*.cpp -o model.so $(INCLUDE) $(SOFLAGS)
 
 .PHONY: help
 help:
