@@ -11,9 +11,10 @@
 #include <unordered_map>
 #include <functional>
 #include <fstream>
+#include <iostream>
 #include <cassert>
-#include "core/bhmm.h"
-#include "core/util.h"
+#include "bhmm/bhmm.h"
+#include "bhmm/utils.h"
 using namespace std;
 using namespace boost;
 
@@ -40,14 +41,14 @@ private:
 public:
 	PyBayesianHMM(){
 		// 日本語周り
-		// ただのテンプレ
+		// 日本語周り
 		setlocale(LC_CTYPE, "ja_JP.UTF-8");
-		ios_base::sync_with_stdio(false);
-		locale default_loc("ja_JP.UTF-8");
-		locale::global(default_loc);
-		locale ctype_default(locale::classic(), default_loc, locale::ctype); //※
-		wcout.imbue(ctype_default);
-		wcin.imbue(ctype_default);
+		std::ios_base::sync_with_stdio(false);
+		std::locale default_loc("ja_JP.UTF-8");
+		std::locale::global(default_loc);
+		std::locale ctype_default(std::locale::classic(), default_loc, std::locale::ctype); //※
+		std::wcout.imbue(ctype_default);
+		std::wcin.imbue(ctype_default);
 
 		_hmm = new BayesianHMM();
 		_bos_id = 0;
@@ -95,7 +96,8 @@ public:
 		c_printf("[*]%s\n", (boost::format("%sを読み込みました.") % filename.c_str()).str().c_str());
 	}
 	void add_line(wstring line_str){
-		vector<wstring> word_strs = split_word_by(line_str, L' ');	// スペースで分割
+		vector<wstring> word_strs;
+		utils::split_word_by(line_str, L' ', word_strs);	// スペースで分割
 		int num_words = word_strs.size();
 		if(num_words > _max_num_words_in_line){
 			_max_num_words_in_line = num_words;
@@ -187,7 +189,7 @@ public:
 				_rand_indices.push_back(data_index);
 			}
 		}
-		shuffle(_rand_indices.begin(), _rand_indices.end(), Sampler::mt);	// データをシャッフル
+		shuffle(_rand_indices.begin(), _rand_indices.end(), sampler::mt);	// データをシャッフル
 		for(int n = 0;n < _dataset.size();n++){
 			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
 				return;
@@ -219,7 +221,7 @@ public:
 	}
 	void show_random_line(int num_to_show, bool show_most_co_occurring_tag = true){
 		for(int n = 0;n < num_to_show;n++){
-			int data_index = Sampler::uniform_int(0, _dataset.size() - 1);
+			int data_index = sampler::uniform_int(0, _dataset.size() - 1);
 			vector<Word*> &line = _dataset[data_index];
 			for(int pos = 2;pos < line.size() - 2;pos++){
 				Word* word = line[pos];
@@ -248,9 +250,9 @@ public:
 				wstring word = _dictionary[elem.first];
 				words.push_back(python::make_tuple(word, elem.second));
 			}
-			result.push_back(list_from_vector(words));
+			result.push_back(utils::list_from_vector(words));
 		}
-		return list_from_vector(result);
+		return utils::list_from_vector(result);
 	}
 	void show_typical_words_for_each_tag(int number_to_show_for_each_tag){
 		for(int tag = 0;tag < _hmm->_num_tags;tag++){
