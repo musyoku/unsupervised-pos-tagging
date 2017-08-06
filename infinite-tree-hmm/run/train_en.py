@@ -59,33 +59,27 @@ def parse_tagger_result_str(result_str):
 	pos = collapse_pos(pos)
 	return pos, word
 
-class stdout:
-	BOLD = "\033[1m"
-	END = "\033[0m"
-	CLEAR = "\033[2K"
-
-def add_file_to_dataset(filename, dataset):
+def build_corpus(filename, dataset):
 	num_words_in_train_dataset = 0
-	print(stdout.BOLD + "データを準備しています ..." + stdout.END)
-	word_count = set()	# 単語の種類の総数
-	sentences = []
+	print("データを準備しています ...")
+	sentence_list = []
 	with codecs.open(filename, "r", "utf-8") as f:
-		for line in f:
-			sentences.append(line)
-	# データをシャッフル
-	random.shuffle(sentences)
-	train_split = int(len(sentences) * args.train_split)
+		for sentence in f:
+			sentence_list.append(sentence)
+	random.shuffle(sentence_list)	# データをシャッフル
+	train_split = int(len(sentence_list) * args.train_split)
 
 	# 形態素解析
+	word_count = set()	# 単語の種類の総数
 	tagger = treetaggerwrapper.TreeTagger(TAGLANG="en")
-	for i, data in enumerate(sentences):
-		data = re.sub(ur"\n", "", data)
-		data = re.sub(ur" +$", "",  data)	# 行末の空白を除去
-		data = re.sub(ur"^ +", "",  data)	# 行頭の空白を除去
+	for i, sentence in enumerate(sentence_list):
+		sentence = re.sub(ur"\n", "", sentence)
+		sentence = re.sub(ur" +$", "",  sentence)	# 行末の空白を除去
+		sentence = re.sub(ur"^ +", "",  sentence)	# 行頭の空白を除去
 		if i % 10 == 0:
 			sys.stdout.write("\r{}行目を処理中です ...".format(i + 1))
 			sys.stdout.flush()
-		results = tagger.tag_text(data)
+		results = tagger.tag_text(sentence)
 		if len(results) == 0:
 			continue
 		# 形態素解析を行いながら訓練データも作る
@@ -124,7 +118,7 @@ def main():
 	dataset = ithmm.dataset(dictionary)
 
 	# 訓練データを追加
-	dataset, num_words_in_train_dataset = add_file_to_dataset(args.train_filename, dataset)
+	dataset, num_words_in_train_dataset = build_corpus(args.train_filename, dataset)
 	dataset.mark_low_frequency_words_as_unknown(args.unknown_threshold)	# 低頻度語を全て<unk>に置き換える
 
 	# 単語辞書を保存
@@ -189,7 +183,7 @@ def main():
 
 			# CSV出力
 			csv_likelihood.append([epoch, log_likelihood])
-			data = pd.DataFrame(csv_likelihood)
+			sentence = pd.DataFrame(csv_likelihood)
 			data.columns = ["epoch", "log_likelihood"]
 			data.to_csv(os.path.join(args.model, "likelihood.csv"))
 			
