@@ -1,4 +1,5 @@
-# -*- coding: utf-8 -*-
+# coding: utf-8
+from __future__ import print_function
 import argparse, sys, os, time, re, codecs
 import treetaggerwrapper
 import model
@@ -14,6 +15,7 @@ class posset:
 	vv = {"VV", "VV", "VVG", "VVN", "VVZ", "VVP", "VVD"}
 
 # 品詞をまとめる
+# https://courses.washington.edu/hypertxt/csar-v02/penntable.html
 def collapse_pos(pos):
 	if pos in posset.sym:
 		return "SYM"
@@ -33,12 +35,85 @@ def collapse_pos(pos):
 		return "JJ"
 	return pos
 
-class stdout:
-	BOLD = "\033[1m"
-	END = "\033[0m"
-	CLEAR = "\033[2K"
+def build_corpus(filename, dataset):
+	# 訓練データを形態素解析して各品詞ごとにその品詞になりうる単語の総数を求めておく
+	print("データを準備しています ...")
+	sentence_list = []
+	with codecs.open(filename, "r", "utf-8") as f:
+		for sentence in f:
+			sentence_list.append(sentence)
+	random.shuffle(sentence_list)	# データをシャッフル
+	train_split = int(len(sentence_list) * args.train_split)
 
-def main(args):
+	word_count = set()	# 単語の種類の総数
+	Wt_count = {}
+	with codecs.open(filename, "r", "utf-8") as f:
+		tagger = treetaggerwrapper.TreeTagger(TAGLANG="en")
+		for i, sentence in enumerate(f):
+			sentence = re.sub(ur"\n", "", sentence)
+			sentence = re.sub(ur" +$", "",  sentence)	# 行末の空白を除去
+			sentence = re.sub(ur"^ +", "",  sentence)	# 行頭の空白を除去
+			if i % 10 == 0:
+				sys.stdout.write("\r{}行目を処理中です ...".format(i))
+				sys.stdout.flush()
+			result = tagger.tag_text(sentence)
+			if len(result) == 0:
+				continue
+			# 形態素解析を行いながら訓練データも作る
+			# 英語は通常スペース区切りなので不要と思うかもしれないが、TreeTaggerを使うと$600が$ 600に分割されたりする
+			# そのためplot_en.pyで評価の際に文の単語数が[スペース区切り]と[TreeTagger]で異なる場合があり正しく評価を行えなくなる
+			# よって単語分割は全てTreeTaggerによるものに統一しておく
+			words = []
+			for poses in result:
+				word, pos, lowercase = poses.split("\t")
+				word_count.add(lowercase)
+				words.append(lowercase)
+				pos = collapse_pos(pos)
+				if pos not in Wt_count:
+					Wt_count[pos] = {}
+				if lowercase not in Wt_count[pos]:
+					Wt_count[pos][lowercase] = 1
+				else:
+					Wt_count[pos][lowercase] += 1
+			# データを追加
+			if i > train_split:
+				dataset.add_words_dev(words)		# 評価用データに追加
+			else:
+				dataset.add_words_train(words)		# 学習用データに追加
+
+	if args.supervised:
+		# Wtは各タグについて、そのタグになりうる単語の数が入っている
+		# タグ0には<bos>と<eos>だけ含まれることにする
+		Wt = [2]
+		for tag, words in Wt_count.items():
+			print(tag, ":", len(words))
+			if len(words) < 10:
+				print(words)
+			Wt.append(len(words))
+	else:
+		# Wtに制限をかけない場合
+		Wt = [len(word_count)] * args.num_tags
+
+	return dataset, Wt
+
+def main():
+	assert args.train_filename is not None
+	try:
+		os.mkdir(args.model)
+	except:
+		pass
+
+	# 単語辞書
+	dictionary = ithmm.dictionary()
+
+	# データセット
+	dataset = ithmm.dataset(dictionary)
+
+	# 訓練データを追加
+	dataset, Wt = build_corpus(args.train_filename, dataset)
+	dataset.mark_low_frequency_words_as_unknown(args.unknown_threshold)	# 低頻度語を全て<unk>に置き換える
+
+def _main(args):
 	if args.filename is None:
 		raise Exception()
 	try:
@@ -70,11 +145,11 @@ def main(args):
 			# 英語は通常スペース区切りなので不要と思うかもしれないが、TreeTaggerを使うと$600が$ 600に分割されたりする
 			# そのためplot_en.pyで評価の際に文の単語数が[スペース区切り]と[TreeTagger]で異なる場合があり正しく評価を行えなくなる
 			# よって単語分割は全てTreeTaggerによるものに統一しておく
-			segmentation = ""
+			words = []
 			for poses in result:
 				word, pos, lowercase = poses.split("\t")
 				word_count.add(lowercase)
-				segmentation += lowercase + " "
+				words.append(lowercase)
 				pos = collapse_pos(pos)
 				if pos not in Wt_count:
 					Wt_count[pos] = {}
@@ -82,7 +157,6 @@ def main(args):
 					Wt_count[pos][lowercase] = 1
 				else:
 					Wt_count[pos][lowercase] += 1
-			segmentation = re.sub(ur" +$", "",  segmentation)	# 行末の空白を除去
 			hmm.add_line(segmentation)	# 学習用データに追加
 	if args.supervised:
 		# Wtは各タグについて、そのタグになりうる単語の数が入っている
@@ -130,15 +204,16 @@ def main(args):
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
-	parser.add_argument("-f", "--filename", type=str, default=None, help="訓練用のテキストファイルのパス.")
-	parser.add_argument("-e", "--epoch", type=int, default=20000, help="総epoch.")
+	parser.add_argument("-file", "--train-filename", type=str, default=None, help="訓練用のテキストファイルのパス.ディレクトリも可.")
+	parser.add_argument("-epoch", "--epoch", type=int, default=20000, help="総epoch.")
 	parser.add_argument("-m", "--model", type=str, default="out", help="保存フォルダ名.")
 	parser.add_argument("--supervised", dest="supervised", default=True, action="store_true", help="各タグのWtを訓練データで制限するかどうか.")
 	parser.add_argument("--unsupervised", dest="supervised", action="store_false", help="各タグのWtを訓練データで制限するかどうか.")
-	parser.add_argument("-n", "--num-tags", type=int, default=20, help="タグの種類（semi_supervisedがFalseの時のみ有効）.")
-	parser.add_argument("-l", "--train-split", type=int, default=None, help="テキストデータの最初の何行を訓練データにするか.")
-	parser.add_argument("-u", "--unknown-threshold", type=int, default=1, help="出現回数がこの値以下の単語は<unk>に置き換える.")
+	parser.add_argument("-tags", "--num-tags", type=int, default=20, help="タグの種類（semi_supervisedがFalseの時のみ有効）.")
+	parser.add_argument("-unk", "--unknown-threshold", type=int, default=0, help="出現回数がこの値以下の単語は<unk>に置き換える.")
+	parser.add_argument("-split", "--train-split", type=float, default=0.9, help="テキストデータの何割を訓練データにするか.")
 	parser.add_argument("--start-temperature", type=float, default=1.5, help="開始温度.")
 	parser.add_argument("--min-temperature", type=float, default=0.08, help="最小温度.")
 	parser.add_argument("--anneal", type=float, default=0.99989, help="温度の減少に使う係数.")
-	main(parser.parse_args())
+	args = parser.parse_args()
+	main()
