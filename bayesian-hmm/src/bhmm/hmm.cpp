@@ -1,3 +1,8 @@
+#include <boost/serialization/base_object.hpp>
+#include <boost/archive/binary_iarchive.hpp>
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/serialization/unordered_map.hpp>
+#include <boost/serialization/split_free.hpp>
 #include <iostream>
 #include <fstream>
 #include "hmm.h"
@@ -17,84 +22,80 @@ namespace bhmm {
 		_beta = NULL;
 		_temperature = 1;
 		_minimum_temperature = 1;
+		_allocated = false;
 	}
 	HMM::~HMM(){
-		if(_trigram_counts != NULL){
-			for(int tri_tag = 0;tri_tag < _num_tags;tri_tag++){
-				for(int bi_tag = 0;bi_tag < _num_tags;bi_tag++){
-					free(_trigram_counts[tri_tag][bi_tag]);
-				}
-				free(_trigram_counts[tri_tag]);
-			}
-			free(_trigram_counts);
+		if(_allocated == false){
+			return;
 		}
-		if(_bigram_counts != NULL){
+		for(int tri_tag = 0;tri_tag < _num_tags;tri_tag++){
 			for(int bi_tag = 0;bi_tag < _num_tags;bi_tag++){
-				free(_bigram_counts);
+				delete[] _trigram_counts[tri_tag][bi_tag];
 			}
-			free(_bigram_counts);
+			delete[] _trigram_counts[tri_tag];
 		}
-		if(_unigram_counts != NULL){
-			free(_unigram_counts);
+		delete[] _trigram_counts;
+		for(int bi_tag = 0;bi_tag < _num_tags;bi_tag++){
+			delete[] _bigram_counts[bi_tag];
 		}
-		if(_sampling_table != NULL){
-			free(_sampling_table);
-		}
-		if(_beta != NULL){
-			free(_beta);
-		}
-		if(_Wt != NULL){
-			free(_Wt);
-		}
-	}
-
-	template <class Archive>
-	void HMM::serialize(Archive& ar, unsigned int version)
-	{
-		static_cast<void>(version);
-		ar & _num_tags;
-		ar & _num_words;
-		ar & _alpha;
-		ar & _temperature;
-		ar & _minimum_temperature;
-		ar & _tag_word_counts;
+		delete[] _bigram_counts;
+		delete[] _unigram_counts;
+		delete[] _sampling_table;
+		delete[] _beta;
+		delete[] _Wt;
 	}
 	void HMM::anneal_temperature(double multiplier){
 		if(_temperature > _minimum_temperature){
 			_temperature *= multiplier;
 		}
 	}
-	void HMM::initialize_with_training_dataset(std::vector<std::vector<Word*>> &dataset){
-		// その他
-		alloc_table();
-		// nグラムのカウントテーブル
+	void HMM::initialize_with_training_corpus(std::vector<std::vector<Word*>> &dataset, std::vector<int> &Wt){
+		int length = Wt.size();
+		set_num_tags(length);
+		alloc_tables();
 		init_ngram_counts(dataset);
+		for(int tag = 0;tag < length;tag++){
+			set_Wt_for_tag(tag, Wt[tag]);
+		}
 	}
-	void HMM::alloc_table(){
+	void HMM::alloc_tables(){
 		assert(_num_tags != -1);
 		// 各タグの可能な単語数
-		_Wt = (int*)calloc(_num_tags, sizeof(int));
+		_Wt = new int[_num_tags];
+		for(int tag = 0;tag < _num_tags;tag++){
+			_Wt[tag] = 0;
+		}
 		// Betaの初期化
 		// 初期値は1
-		_beta = (double*)malloc(_num_tags * sizeof(double));
+		_beta = new double[_num_tags];
 		for(int tag = 0;tag < _num_tags;tag++){
 			_beta[tag] = 1;
 		}
 		// 3-gram		
-		_trigram_counts = (int***)malloc(_num_tags * sizeof(int**));
+		_trigram_counts = new int**[_num_tags];
 		for(int tri_tag = 0;tri_tag < _num_tags;tri_tag++){
-			_trigram_counts[tri_tag] = (int**)malloc(_num_tags * sizeof(int*));
+			_trigram_counts[tri_tag] = new int*[_num_tags];
 			for(int bi_tag = 0;bi_tag < _num_tags;bi_tag++){
-				_trigram_counts[tri_tag][bi_tag] = (int*)calloc(_num_tags, sizeof(int));
+				_trigram_counts[tri_tag][bi_tag] = new int[_num_tags];
+				for(int uni_tag = 0;uni_tag < _num_tags;uni_tag++){
+					_trigram_counts[tri_tag][bi_tag][uni_tag] = 0;
+				}
 			}
 		}
 		// 2-gram
-		_bigram_counts = (int**)malloc(_num_tags * sizeof(int*));
+		_bigram_counts = new int*[_num_tags];
 		for(int bi_tag = 0;bi_tag < _num_tags;bi_tag++){
-			_bigram_counts[bi_tag] = (int*)calloc(_num_tags, sizeof(int));
+			_bigram_counts[bi_tag] = new int[_num_tags];
+			for(int uni_tag = 0;uni_tag < _num_tags;uni_tag++){
+				_bigram_counts[bi_tag] = 0;
+			}
 		}
 		// 1-gram
-		_unigram_counts = (int*)calloc(_num_tags, sizeof(int));
+		_unigram_counts = new int[_num_tags];
+		for(int uni_tag = 0;uni_tag < _num_tags;uni_tag++){
+			_unigram_counts[uni_tag] = 0;
+		}
+		_allocated = true;
 	}
 	void HMM::init_ngram_counts(std::vector<std::vector<Word*>> &dataset){
 		assert(_num_tags != -1);
@@ -153,6 +154,10 @@ namespace bhmm {
 		assert(_Wt != NULL);
 		assert(tag_id < _num_tags);
 		_Wt[tag_id] = number;
+	}
+	void HMM::set_num_tags(int n){
+		assert(n > 0);
+		_num_tags = n;
 	}
 	void HMM::update_ngram_count(Word* tri_word, Word* bi_word, Word* uni_word){
 		_trigram_counts[tri_word->_state][bi_word->_state][uni_word->_state] += 1;
@@ -474,102 +479,126 @@ namespace bhmm {
 			std::cout << tag << ": " << get_word_types_for_tag(tag) << std::endl;
 		}
 	}
-	bool HMM::save(std::string dir = "out"){
-		std::ofstream ofs(dir + "/hmm.obj");
-		boost::archive::binary_oarchive oarchive(ofs);
-		oarchive << static_cast<const HMM&>(*this);
-		ofs.close();
-		std::ofstream ofs_bin;
-		// 3-gram
-		ofs_bin.open(dir + "/hmm.trigram", std::ios::binary);
-		for(int tri_tag = 0;tri_tag < _num_tags;tri_tag++){
-			for(int bi_tag = 0;bi_tag < _num_tags;bi_tag++){
-				ofs_bin.write((char*)(_trigram_counts[tri_tag][bi_tag]), _num_tags * sizeof(int));
-			}
-		}
-		ofs_bin.close();
-		// 2-gram
-		ofs_bin.open(dir + "/hmm.bigram", std::ios::binary);
-		for(int bi_tag = 0;bi_tag < _num_tags;bi_tag++){
-			ofs_bin.write((char*)(_bigram_counts[bi_tag]), _num_tags * sizeof(int));
-		}
-		ofs_bin.close();
-		// 1-gram
-		ofs_bin.open(dir + "/hmm.unigram", std::ios::binary);
-		ofs_bin.write((char*)(_unigram_counts), _num_tags * sizeof(int));
-		ofs_bin.close();
-		// beta
-		ofs_bin.open(dir + "/hmm.beta", std::ios::binary);
-		ofs_bin.write((char*)(_beta), _num_tags * sizeof(double));
-		ofs_bin.close();
-		// Wt
-		ofs_bin.open(dir + "/hmm.wt", std::ios::binary);
-		ofs_bin.write((char*)(_Wt), _num_tags * sizeof(int));
-		ofs_bin.close();
-		return true;
+	template <class Archive>
+	void HMM::serialize(Archive &ar, unsigned int version)
+	{
+		boost::serialization::split_free(ar, *this, version);
 	}
-	bool HMM::load(std::string dir = "out"){
-		bool complete = true;
-		std::ifstream ifs(dir + "/hmm.obj");
+	bool HMM::save(std::string filename){
+		bool success = false;
+		std::ofstream ofs(filename);
+		if(ofs.good()){
+			boost::archive::binary_oarchive oarchive(ofs);
+			oarchive << *this;
+			success = true;
+		}
+		ofs.close();
+		return success;
+	}
+	bool HMM::load(std::string filename){
+		bool success = false;
+		std::ifstream ifs(filename);
 		if(ifs.good()){
 			boost::archive::binary_iarchive iarchive(ifs);
 			iarchive >> *this;
-		}else{
-			complete = false;
+			success = true;
 		}
 		ifs.close();
+		return success;
+	}
+}
 
-		// ポインタの読み込み
-		if(_trigram_counts == NULL){
-			alloc_table();
-		}
-		std::ifstream ifs_bin;
-		// 3-gram
-		ifs_bin.open(dir + "/hmm.trigram", std::ios::binary);
-		if(ifs_bin.good()){
-			for(int tri_tag = 0;tri_tag < _num_tags;tri_tag++){
-				for(int bi_tag = 0;bi_tag < _num_tags;bi_tag++){
-					ifs_bin.read((char*)(_trigram_counts[tri_tag][bi_tag]), _num_tags * sizeof(int));
+namespace boost { 
+	namespace serialization {
+		template<class Archive>
+		void save(Archive &ar, const bhmm::HMM &hmm, unsigned int version) {
+			ar & hmm._num_tags;
+			ar & hmm._num_words;
+			ar & hmm._alpha;
+			ar & hmm._temperature;
+			ar & hmm._minimum_temperature;
+			ar & hmm._tag_word_counts;
+			ar & hmm._allocated;
+			if(hmm._allocated){
+				assert(hmm._num_tags > 0);
+				int num_tags = hmm._num_tags;
+				// 各タグの可能な単語数
+				for(int tag = 0;tag < num_tags;tag++){
+					ar & hmm._Wt[tag];
+				}
+				// Betaの初期化
+				// 初期値は1
+				for(int tag = 0;tag < num_tags;tag++){
+					ar & hmm._beta[tag];
+				}
+				// 3-gram		
+				for(int tri_tag = 0;tri_tag < num_tags;tri_tag++){
+					for(int bi_tag = 0;bi_tag < num_tags;bi_tag++){
+						for(int uni_tag = 0;uni_tag < num_tags;uni_tag++){
+							ar & hmm._trigram_counts[tri_tag][bi_tag][uni_tag];
+						}
+					}
+				}
+				// 2-gram
+				for(int bi_tag = 0;bi_tag < num_tags;bi_tag++){
+					for(int uni_tag = 0;uni_tag < num_tags;uni_tag++){
+						ar & hmm._bigram_counts[bi_tag][uni_tag];
+					}
+				}
+				// 1-gram
+				for(int uni_tag = 0;uni_tag < num_tags;uni_tag++){
+					ar & hmm._unigram_counts[uni_tag];
 				}
 			}
-		}else{
-			complete = false;
 		}
-		ifs_bin.close();
-		// 2-gram
-		ifs_bin.open(dir + "/hmm.bigram", std::ios::binary);
-		if(ifs_bin.good()){
-			for(int bi_tag = 0;bi_tag < _num_tags;bi_tag++){
-				ifs_bin.read((char*)(_bigram_counts[bi_tag]), _num_tags * sizeof(int));
+		template<class Archive>
+		void load(Archive &ar, bhmm::HMM &hmm, unsigned int version) {
+			ar & hmm._num_tags;
+			ar & hmm._num_words;
+			ar & hmm._alpha;
+			ar & hmm._temperature;
+			ar & hmm._minimum_temperature;
+			ar & hmm._tag_word_counts;
+			ar & hmm._allocated;
+			if(hmm._allocated){
+				assert(hmm._num_tags > 0);
+				int num_tags = hmm._num_tags;
+				// 各タグの可能な単語数
+				hmm._Wt = new int[num_tags];
+				for(int tag = 0;tag < num_tags;tag++){
+					ar & hmm._Wt[tag];
+				}
+				// Betaの初期化
+				// 初期値は1
+				hmm._beta = new double[num_tags];
+				for(int tag = 0;tag < num_tags;tag++){
+					ar & hmm._beta[tag];
+				}
+				// 3-gram		
+				hmm._trigram_counts = new int**[num_tags];
+				for(int tri_tag = 0;tri_tag < num_tags;tri_tag++){
+					hmm._trigram_counts[tri_tag] = new int*[num_tags];
+					for(int bi_tag = 0;bi_tag < num_tags;bi_tag++){
+						hmm._trigram_counts[tri_tag][bi_tag] = new int[num_tags];
+						for(int uni_tag = 0;uni_tag < num_tags;uni_tag++){
+							ar & hmm._trigram_counts[tri_tag][bi_tag][uni_tag];
+						}
+					}
+				}
+				// 2-gram
+				hmm._bigram_counts = new int*[num_tags];
+				for(int bi_tag = 0;bi_tag < num_tags;bi_tag++){
+					hmm._bigram_counts[bi_tag] = new int[num_tags];
+					for(int uni_tag = 0;uni_tag < num_tags;uni_tag++){
+						ar & hmm._bigram_counts[bi_tag][uni_tag];
+					}
+				}
+				// 1-gram
+				hmm._unigram_counts = new int[num_tags];
+				for(int uni_tag = 0;uni_tag < num_tags;uni_tag++){
+					ar & hmm._unigram_counts[uni_tag];
+				}
 			}
-		}else{
-			complete = false;
 		}
-		ifs_bin.close();
-		// 1-gram
-		ifs_bin.open(dir + "/hmm.unigram", std::ios::binary);
-		if(ifs_bin.good()){
-			ifs_bin.read((char*)(_unigram_counts), _num_tags * sizeof(int));
-		}else{
-			complete = false;
-		}
-		ifs_bin.close();
-		// beta
-		ifs_bin.open(dir + "/hmm.beta", std::ios::binary);
-		if(ifs_bin.good()){
-			ifs_bin.read((char*)(_beta), _num_tags * sizeof(double));
-		}else{
-			complete = false;
-		}
-		ifs_bin.close();
-		// Wt
-		ifs_bin.open(dir + "/hmm.wt", std::ios::binary);
-		if(ifs_bin.good()){
-			ifs_bin.read((char*)(_Wt), _num_tags * sizeof(int));
-		}else{
-			complete = false;
-		}
-		ifs_bin.close();
-		return complete;
 	}
 }

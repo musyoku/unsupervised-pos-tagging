@@ -1,8 +1,8 @@
 # coding: utf-8
 from __future__ import print_function
-import argparse, sys, os, time, re, codecs
+import argparse, sys, os, time, codecs, random
 import treetaggerwrapper
-import model
+import bhmm
 
 class posset:
 	sym = {"SYM", "SENT", ":", ",", "$", "(", ")", "'", "\""}
@@ -50,9 +50,7 @@ def build_corpus(filename, dataset):
 	with codecs.open(filename, "r", "utf-8") as f:
 		tagger = treetaggerwrapper.TreeTagger(TAGLANG="en")
 		for i, sentence in enumerate(f):
-			sentence = re.sub(ur"\n", "", sentence)
-			sentence = re.sub(ur" +$", "",  sentence)	# 行末の空白を除去
-			sentence = re.sub(ur"^ +", "",  sentence)	# 行頭の空白を除去
+			sentence = sentence.strip()
 			if i % 10 == 0:
 				sys.stdout.write("\r{}行目を処理中です ...".format(i))
 				sys.stdout.flush()
@@ -86,9 +84,6 @@ def build_corpus(filename, dataset):
 		# タグ0には<bos>と<eos>だけ含まれることにする
 		Wt = [2]
 		for tag, words in Wt_count.items():
-			print(tag, ":", len(words))
-			if len(words) < 10:
-				print(words)
 			Wt.append(len(words))
 	else:
 		# Wtに制限をかけない場合
@@ -104,14 +99,43 @@ def main():
 		pass
 
 	# 単語辞書
-	dictionary = ithmm.dictionary()
+	dictionary = bhmm.dictionary()
 
 	# データセット
-	dataset = ithmm.dataset(dictionary)
+	dataset = bhmm.dataset(dictionary)
 
 	# 訓練データを追加
 	dataset, Wt = build_corpus(args.train_filename, dataset)
 	dataset.mark_low_frequency_words_as_unknown(args.unknown_threshold)	# 低頻度語を全て<unk>に置き換える
+
+	# 単語辞書を保存
+	dictionary.save(os.path.join(args.model, "bhmm.dict"))
+
+	# モデル
+	model = bhmm.model()
+	# model.load(os.path.join(args.model, "bhmm.model"))
+
+	# ハイパーパラメータの設定
+	model.set_temperature(args.start_temperature)		# 温度の初期設定
+	model.set_minimum_temperature(args.min_temperature)	# 温度の下限
+
+	# 学習の準備
+	trainer = bhmm.trainer(dataset, model, dictionary, Wt)
+
+	# 学習ループ
+	for epoch in range(1, args.epoch + 1):
+		start = time.time()
+
+		# 新しい状態をギブスサンプリング
+		trainer.perform_gibbs_sampling()
+
+		# ハイパーパラメータをサンプリング
+		trainer.update_hyperparameters()
+
+		# ログ
+		elapsed_time = time.time() - start
+		sys.stdout.write("\rEpoch {} / {} - {:.3f} sec - {:.1f} gibbs/s".format(epoch, args.epoch, elapsed_time, 0))		
+		sys.stdout.flush()
 
 def _main(args):
 	if args.filename is None:
@@ -123,7 +147,6 @@ def _main(args):
 
 	hmm = model.bayesian_hmm()
 	# 訓練データを形態素解析して各品詞ごとにその品詞になりうる単語の総数を求めておく
-	print stdout.BOLD + "データを準備しています ..." + stdout.END
 	Wt_count = {}
 	word_count = set()	# 単語の種類の総数
 	# 似たような品詞をまとめる
@@ -163,15 +186,10 @@ def _main(args):
 		# タグ0には<bos>と<eos>だけ含まれることにする
 		Wt = [2]
 		for tag, words in Wt_count.items():
-			print tag, ":", len(words)
-			if len(words) < 10:
-				print words
 			Wt.append(len(words))
 	else:
 		# Wtに制限をかけない場合
 		Wt = [len(word_count)] * args.num_tags
-
-	print "Wt:", Wt
 
 	hmm.set_num_tags(len(Wt));	# 品詞数を設定
 	hmm.mark_low_frequency_words_as_unknown(args.unknown_threshold)	# 低頻度語を全て<unk>に置き換える
@@ -194,12 +212,11 @@ def _main(args):
 		sys.stdout.flush()
 		hmm.anneal_temperature(args.anneal)	# 温度を下げる
 		if epoch % 10 == 0:
-			print "\n"
 			hmm.show_alpha()
 			hmm.show_beta()
 			# hmm.show_random_line(20, True);	# ランダムなn個の文と推定結果のタグを表示
 			hmm.show_typical_words_for_each_tag(20);	# それぞれのタグにつき上位n個の単語を表示
-			print "temperature: ", hmm.get_temperature()
+			print("temperature: ", hmm.get_temperature())
 			hmm.save(args.model);
 
 if __name__ == "__main__":

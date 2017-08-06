@@ -14,6 +14,16 @@ namespace bhmm {
 		}
 		template boost::python::list list_from_vector(std::vector<boost::python::tuple> &vec);
 		template boost::python::list list_from_vector(std::vector<boost::python::list> &vec);
+		template<class T>
+		std::vector<T> vector_from_list(boost::python::list &list){
+			std::vector<T> vec;
+			int len = boost::python::len(list);
+			for(int i = 0;i < len;i++){
+				vec.push_back(boost::python::extract<T>(list[i]));
+			}
+			return vec;
+		}
+		template std::vector<int> vector_from_list(boost::python::list &list);
 		void split_word_by(const std::wstring &str, wchar_t delim, std::vector<std::wstring> &word_str_vec){
 			word_str_vec.clear();
 		    std::wstring word_str;
