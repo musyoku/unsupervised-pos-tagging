@@ -47,7 +47,7 @@ namespace bhmm {
 		double compute_Pti_wi_beta(int ti, int wi, double beta);
 		void add_tag_to_model_parameters(int ti_2, int ti_1, int ti, int ti1, int ti2, int wi);
 		void remove_tag_from_model_parameters(int ti_2, int ti_1, int ti, int ti1, int ti2, int wi);
-		void perform_gibbs_sampling_with_line(std::vector<Word*> &line);
+		void perform_gibbs_sampling_with_words(std::vector<Word*> &line);
 		int sample_tag_from_Pt_w(int ti_2, int ti_1, int wi);
 		int argmax_tag_from_Pt_w(int ti_2, int ti_1, int wi);
 		Word* _get_random_word_with_tag(int tag, std::vector<std::vector<Word*>> &dataset);

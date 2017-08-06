@@ -102,19 +102,19 @@ namespace bhmm {
 		std::set<int> word_set;
 		std::unordered_map<int, int> tag_for_word;
 		for(int data_index = 0;data_index < dataset.size();data_index++){
-			std::vector<Word*> &line = dataset[data_index];
+			std::vector<Word*> &word_vec = dataset[data_index];
 			// pos < 2
 			// <bos>2つ
-			_bigram_counts[line[0]->_state][line[1]->_state] += 1;
-			_unigram_counts[line[0]->_state] += 1;
-			_unigram_counts[line[1]->_state] += 1;
-			word_set.insert(line[0]->_id);
-			word_set.insert(line[1]->_id);
-			increment_tag_word_count(line[0]->_state, line[0]->_id);
-			increment_tag_word_count(line[1]->_state, line[1]->_id);
-			// line.size() - 2 > pos >= 2
-			for(int pos = 2;pos < line.size() - 2;pos++){	// 3-gramなので3番目から.
-				Word* word = line[pos];
+			_bigram_counts[word_vec[0]->_state][word_vec[1]->_state] += 1;
+			_unigram_counts[word_vec[0]->_state] += 1;
+			_unigram_counts[word_vec[1]->_state] += 1;
+			word_set.insert(word_vec[0]->_id);
+			word_set.insert(word_vec[1]->_id);
+			increment_tag_word_count(word_vec[0]->_state, word_vec[0]->_id);
+			increment_tag_word_count(word_vec[1]->_state, word_vec[1]->_id);
+			// word_vec.size() - 2 > pos >= 2
+			for(int pos = 2;pos < word_vec.size() - 2;pos++){	// 3-gramなので3番目から.
+				Word* word = word_vec[pos];
 				auto itr = tag_for_word.find(word->_id);
 				if(itr == tag_for_word.end()){
 					word->_state = sampler::uniform_int(0, _num_tags - 1);
@@ -122,26 +122,26 @@ namespace bhmm {
 				}else{
 					word->_state = itr->second;
 				}
-				update_ngram_count(line[pos - 2], line[pos - 1], line[pos]);
+				update_ngram_count(word_vec[pos - 2], word_vec[pos - 1], word_vec[pos]);
 				word_set.insert(word->_id);
 				// 同じタグの単語集合をカウント
 				increment_tag_word_count(word->_state, word->_id);
 			}
-			// pos >= line.size() - 2
+			// pos >= word_vec.size() - 2
 			// <eos>2つ
-			int end_index = line.size() - 1;
-			int t_end = line[end_index]->_state;
-			int t_end_1 = line[end_index - 1]->_state;
-			int t_end_2 = line[end_index - 2]->_state;
-			int t_end_3 = line[end_index - 3]->_state;
+			int end_index = word_vec.size() - 1;
+			int t_end = word_vec[end_index]->_state;
+			int t_end_1 = word_vec[end_index - 1]->_state;
+			int t_end_2 = word_vec[end_index - 2]->_state;
+			int t_end_3 = word_vec[end_index - 3]->_state;
 			_unigram_counts[t_end] += 1;
 			_unigram_counts[t_end_1] += 1;
 			_bigram_counts[t_end_2][t_end_1] += 1;
 			_bigram_counts[t_end_1][t_end] += 1;
 			_trigram_counts[t_end_3][t_end_2][t_end_1] += 1;
 			_trigram_counts[t_end_2][t_end_1][t_end] += 1;
-			int w_end = line[end_index]->_id;
-			int w_end_1 = line[end_index - 1]->_id;
+			int w_end = word_vec[end_index]->_id;
+			int w_end_1 = word_vec[end_index - 1]->_id;
 			word_set.insert(w_end);
 			word_set.insert(w_end_1);
 			increment_tag_word_count(t_end, w_end);
@@ -192,12 +192,12 @@ namespace bhmm {
 		std::unordered_map<int, int> &word_counts = _tag_word_counts[tag_id];
 		return word_counts.size();
 	}
-	double HMM::compute_log_Pt_alpha(std::vector<Word*> &line, double alpha){
+	double HMM::compute_log_Pt_alpha(std::vector<Word*> &word_vec, double alpha){
 		double log_Pt_alpha = 0;
-		for(int pos = 2;pos < line.size() - 2;pos++){	// <bos>と<eos>の内側だけ考える
-			int ti_2 = line[pos - 2]->_state;
-			int ti_1 = line[pos - 1]->_state;
-			int ti = line[pos]->_state;
+		for(int pos = 2;pos < word_vec.size() - 2;pos++){	// <bos>と<eos>の内側だけ考える
+			int ti_2 = word_vec[pos - 2]->_state;
+			int ti_1 = word_vec[pos - 1]->_state;
+			int ti = word_vec[pos]->_state;
 			double n_ti_2_ti_1_ti = _trigram_counts[ti_2][ti_1][ti];
 			double n_ti_2_ti_1 = _bigram_counts[ti_2][ti_1];
 			double Pt_i_alpha = (n_ti_2_ti_1_ti + alpha) / (n_ti_2_ti_1 + _num_tags * alpha);
@@ -205,12 +205,12 @@ namespace bhmm {
 		}
 		return log_Pt_alpha;
 	}
-	double HMM::compute_log_Pw_t_alpha(std::vector<Word*> &line, double alpha){
+	double HMM::compute_log_Pw_t_alpha(std::vector<Word*> &word_vec, double alpha){
 		double log_Pt_alpha = 0;
-		for(int pos = 2;pos < line.size() - 2;pos++){	// <bos>と<eos>の内側だけ考える
-			int ti_2 = line[pos - 2]->_state;
-			int ti_1 = line[pos - 1]->_state;
-			int ti = line[pos]->_state;
+		for(int pos = 2;pos < word_vec.size() - 2;pos++){	// <bos>と<eos>の内側だけ考える
+			int ti_2 = word_vec[pos - 2]->_state;
+			int ti_1 = word_vec[pos - 1]->_state;
+			int ti = word_vec[pos]->_state;
 			double n_ti_2_ti_1_ti = _trigram_counts[ti_2][ti_1][ti];
 			double n_ti_2_ti_1 = _bigram_counts[ti_2][ti_1];
 			double Pt_i_alpha = (n_ti_2_ti_1_ti + alpha) / (n_ti_2_ti_1 + _num_tags * alpha);
@@ -259,17 +259,17 @@ namespace bhmm {
 		// 品詞-単語ペア
 		decrement_tag_word_count(ti, wi);
 	}
-	void HMM::perform_gibbs_sampling_with_line(std::vector<Word*> &line){
+	void HMM::perform_gibbs_sampling_with_words(std::vector<Word*> &word_vec){
 		if(_sampling_table == NULL){
 			_sampling_table = (double*)malloc(_num_tags * sizeof(double));
 		}
-		for(int pos = 2;pos < line.size() - 2;pos++){	// <bos>と<eos>の内側だけ考える
-			int ti_2 = line[pos - 2]->_state;
-			int ti_1 = line[pos - 1]->_state;
-			int ti = line[pos]->_state;
-			int wi = line[pos]->_id;
-			int ti1 = line[pos + 1]->_state;
-			int ti2 = line[pos + 2]->_state;
+		for(int pos = 2;pos < word_vec.size() - 2;pos++){	// <bos>と<eos>の内側だけ考える
+			int ti_2 = word_vec[pos - 2]->_state;
+			int ti_1 = word_vec[pos - 1]->_state;
+			int ti = word_vec[pos]->_state;
+			int wi = word_vec[pos]->_id;
+			int ti1 = word_vec[pos + 1]->_state;
+			int ti2 = word_vec[pos + 2]->_state;
 			// t_iをモデルパラメータから除去
 			remove_tag_from_model_parameters(ti_2, ti_1, ti, ti1, ti2, wi);
 			// t_iを再サンプリング
@@ -312,7 +312,7 @@ namespace bhmm {
 			}
 			// 新しいt_iをモデルパラメータに追加
 			add_tag_to_model_parameters(ti_2, ti_1, new_ti, ti1, ti2, wi);
-			line[pos]->_state = new_ti;
+			word_vec[pos]->_state = new_ti;
 		}
 	}
 	// 論文(6)式と(7)式を掛けたものからtiをサンプリング
@@ -356,11 +356,11 @@ namespace bhmm {
 	}
 	Word* HMM::_get_random_word_with_tag(int tag, std::vector<std::vector<Word*>> &dataset){
 		int random_index = sampler::uniform_int(0, dataset.size() - 1);
-		std::vector<Word*> &line = dataset[random_index];
-		for(int pos = 0;pos < line.size();pos++){
-			int ti = line[pos]->_state;
+		std::vector<Word*> &word_vec = dataset[random_index];
+		for(int pos = 0;pos < word_vec.size();pos++){
+			int ti = word_vec[pos]->_state;
 			if(ti == tag){
-				return line[pos];
+				return word_vec[pos];
 			}
 		}
 		return NULL;
@@ -369,12 +369,12 @@ namespace bhmm {
 	void HMM::sample_new_alpha(std::vector<std::vector<Word*>> &dataset){
 		double new_alpha = sampler::normal(_alpha, 0.1 * _alpha);
 		int random_index = sampler::uniform_int(0, dataset.size() - 1);
-		std::vector<Word*> &line = dataset[random_index];
+		std::vector<Word*> &word_vec = dataset[random_index];
 		// メトロポリス・ヘイスティングス法
 		// http://ebsa.ism.ac.jp/ebooks/sites/default/files/ebook/1881/pdf/vol3_ch10.pdf
 		// 提案分布は正規分布
-		double log_Pt_alpha = compute_log_Pt_alpha(line, _alpha);
-		double log_Pt_new_alpha = compute_log_Pt_alpha(line, new_alpha);
+		double log_Pt_alpha = compute_log_Pt_alpha(word_vec, _alpha);
+		double log_Pt_new_alpha = compute_log_Pt_alpha(word_vec, new_alpha);
 		// q(alpha|new_alpha) / q(new_alpha|alpha)の計算
 		double sigma_alpha = 0.1 * _alpha;
 		double sigma_new_alpha = 0.1 * new_alpha;

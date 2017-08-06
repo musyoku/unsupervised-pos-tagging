@@ -1,8 +1,15 @@
-#pragma once
-#include <boost/python.hpp>
 #include <cassert>
+#include <iostream>
+#include "../bhmm/sampler.h"
+#include "../bhmm/utils.h"
+#include "trainer.h"
 
 namespace bhmm {
+	struct value_comparator {
+		bool operator()(const std::pair<int, int> &a, const std::pair<int, int> &b) {
+			return a.second > b.second;
+		}   
+	};
 	Trainer::Trainer(Dataset* dataset, Model* model, Dictionary* dict){
 		// 日本語周り
 		// 日本語周り
@@ -15,40 +22,39 @@ namespace bhmm {
 		std::wcin.imbue(ctype_default);
 
 		_model = model;
-		_model->initialize(_dataset);
+		_model->_hmm->initialize_with_training_dataset(dataset->_word_sequences_train);
 		_dict = dict;
 		_dataset = dataset;
 	}
-	void Trainer::initialize(){
-	}
 	void Trainer::perform_gibbs_sampling(){
-		if(_rand_indices.size() != _dataset.size()){
+		std::vector<std::vector<Word*>> &dataset = _dataset->_word_sequences_train;
+		if(_rand_indices.size() != dataset.size()){
 			_rand_indices.clear();
-			for(int data_index = 0;data_index < _dataset.size();data_index++){
+			for(int data_index = 0;data_index < dataset.size();data_index++){
 				_rand_indices.push_back(data_index);
 			}
 		}
 		shuffle(_rand_indices.begin(), _rand_indices.end(), sampler::mt);	// データをシャッフル
-		for(int n = 0;n < _dataset.size();n++){
+		for(int n = 0;n < dataset.size();n++){
 			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
 				return;
 			}
 			int data_index = _rand_indices[n];
-			std::vector<Word*> &line = _dataset[data_index];
-			_hmm->perform_gibbs_sampling_with_line(line);
+			std::vector<Word*> &word_vec = dataset[data_index];
+			_model->_hmm->perform_gibbs_sampling_with_words(word_vec);
 		}
 	}
 	void Trainer::sample_new_alpha(){
-		_hmm->sample_new_alpha(_dataset);
+		_model->_hmm->sample_new_alpha(_dataset->_word_sequences_train);
 	}
 	void Trainer::sample_new_beta(){
-		_hmm->sample_new_beta(_dataset);
+		_model->_hmm->sample_new_beta(_dataset->_word_sequences_train);
 	}
 	boost::python::list Trainer::get_all_words_for_each_tag(int threshold){
 		std::vector<boost::python::list> result;
-		for(int tag = 0;tag < _hmm->_num_tags;tag++){
+		for(int tag = 0;tag < _model->_hmm->_num_tags;tag++){
 			std::vector<boost::python::tuple> words;
-			std::unordered_map<int, int> &word_counts = _hmm->_tag_word_counts[tag];
+			std::unordered_map<int, int> &word_counts = _model->_hmm->_tag_word_counts[tag];
 			std::multiset<std::pair<int, int>, value_comparator> ranking;
 			for(auto elem: word_counts){
 				ranking.insert(std::make_pair(elem.first, elem.second));
@@ -65,8 +71,8 @@ namespace bhmm {
 		return utils::list_from_vector(result);
 	}
 	void Trainer::show_typical_words_for_each_tag(int number_to_show_for_each_tag){
-		for(int tag = 0;tag < _hmm->_num_tags;tag++){
-			std::unordered_map<int, int> &word_counts = _hmm->_tag_word_counts[tag];
+		for(int tag = 0;tag < _model->_hmm->_num_tags;tag++){
+			std::unordered_map<int, int> &word_counts = _model->_hmm->_tag_word_counts[tag];
 			int n = 0;
 			std::cout << "tag " << tag << std::endl;
 			std::wcout << L"\t";
@@ -84,11 +90,5 @@ namespace bhmm {
 			}
 			std::wcout << std::endl;
 		}
-	}
-	int Trainer::get_max_num_words_in_line(){
-		return _max_num_words_in_line;
-	}
-	int Trainer::get_min_num_words_in_line(){
-		return _min_num_words_in_line;
 	}
 }

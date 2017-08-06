@@ -12,7 +12,6 @@ namespace bhmm {
 		std::unordered_map<id, int> _word_count;		// 事前に単語数がわからないのでmapを使う
 		std::vector<std::vector<Word*>> _word_sequences_train;
 		std::vector<std::vector<Word*>> _word_sequences_dev;
-		std::vector<int> _rand_indices;
 		int _max_num_words_in_line;
 		int _min_num_words_in_line;
 		Dataset(Dictionary* dict);

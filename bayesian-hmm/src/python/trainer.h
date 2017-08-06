@@ -1,6 +1,5 @@
 #pragma once
 #include <boost/python.hpp>
-#include <cassert>
 #include "model.h"
 #include "dataset.h"
 #include "dictionary.h"
@@ -11,6 +10,7 @@ namespace bhmm {
 		Model* _model;
 		Dictionary* _dict;
 		Dataset* _dataset;
+		std::vector<int> _rand_indices;
 	public:
 		Trainer(Dataset* dataset, Model* model, Dictionary* dict);
 		void perform_gibbs_sampling();
