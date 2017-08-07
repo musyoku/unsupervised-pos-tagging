@@ -22,6 +22,7 @@ namespace bhmm {
 		_beta = NULL;
 		_temperature = 1;
 		_minimum_temperature = 1;
+		_bos_unigram_counts = 0;
 		_allocated = false;
 	}
 	HMM::~HMM(){
@@ -87,13 +88,23 @@ namespace bhmm {
 		for(int bi_tag = 0;bi_tag < _num_tags;bi_tag++){
 			_bigram_counts[bi_tag] = new int[_num_tags];
 			for(int uni_tag = 0;uni_tag < _num_tags;uni_tag++){
-				_bigram_counts[bi_tag] = 0;
+				_bigram_counts[bi_tag][uni_tag] = 0;
 			}
 		}
 		// 1-gram
 		_unigram_counts = new int[_num_tags];
-		for(int uni_tag = 0;uni_tag < _num_tags;uni_tag++){
-			_unigram_counts[uni_tag] = 0;
+		for(int tag = 0;tag < _num_tags;tag++){
+			_unigram_counts[tag] = 0;
+		}
+		// <s>
+		_bos_bigram_counts = new int[_num_tags];
+		for(int tag = 0;tag < _num_tags;tag++){
+			_bos_bigram_counts[tag] = 0;
+		}
+		// </s>
+		_eos_bigram_counts = new int[_num_tags];
+		for(int tag = 0;tag < _num_tags;tag++){
+			_eos_bigram_counts[tag] = 0;
 		}
 		_allocated = true;
 	}
@@ -104,17 +115,20 @@ namespace bhmm {
 		std::unordered_map<int, int> tag_for_word;
 		for(int data_index = 0;data_index < dataset.size();data_index++){
 			std::vector<Word*> &word_vec = dataset[data_index];
-			// pos < 2
-			// <bos>2つ
-			_bigram_counts[word_vec[0]->_state][word_vec[1]->_state] += 1;
+			// <s>
+			_bos_unigram_counts += 1;
+			_bos_bigram_counts[word_vec[0]->_state] += 1;
+			// pos == 0
 			_unigram_counts[word_vec[0]->_state] += 1;
-			_unigram_counts[word_vec[1]->_state] += 1;
 			word_set.insert(word_vec[0]->_id);
-			word_set.insert(word_vec[1]->_id);
 			increment_tag_word_count(word_vec[0]->_state, word_vec[0]->_id);
+			// pos == 1
+			_unigram_counts[word_vec[1]->_state] += 1;
+			_bigram_counts[word_vec[0]->_state][word_vec[1]->_state] += 1;
+			word_set.insert(word_vec[1]->_id);
 			increment_tag_word_count(word_vec[1]->_state, word_vec[1]->_id);
-			// word_vec.size() - 2 > pos >= 2
-			for(int pos = 2;pos < word_vec.size() - 2;pos++){	// 3-gramなので3番目から.
+			// pos >= 2
+			for(int pos = 2;pos < word_vec.size();pos++){	// 3-gramなので3番目から.
 				Word* word = word_vec[pos];
 				auto itr = tag_for_word.find(word->_id);
 				if(itr == tag_for_word.end()){
@@ -128,25 +142,8 @@ namespace bhmm {
 				// 同じタグの単語集合をカウント
 				increment_tag_word_count(word->_state, word->_id);
 			}
-			// pos >= word_vec.size() - 2
-			// <eos>2つ
-			int end_index = word_vec.size() - 1;
-			int t_end = word_vec[end_index]->_state;
-			int t_end_1 = word_vec[end_index - 1]->_state;
-			int t_end_2 = word_vec[end_index - 2]->_state;
-			int t_end_3 = word_vec[end_index - 3]->_state;
-			_unigram_counts[t_end] += 1;
-			_unigram_counts[t_end_1] += 1;
-			_bigram_counts[t_end_2][t_end_1] += 1;
-			_bigram_counts[t_end_1][t_end] += 1;
-			_trigram_counts[t_end_3][t_end_2][t_end_1] += 1;
-			_trigram_counts[t_end_2][t_end_1][t_end] += 1;
-			int w_end = word_vec[end_index]->_id;
-			int w_end_1 = word_vec[end_index - 1]->_id;
-			word_set.insert(w_end);
-			word_set.insert(w_end_1);
-			increment_tag_word_count(t_end, w_end);
-			increment_tag_word_count(t_end_1, w_end_1);
+			// </s>
+			_eos_bigram_counts[word_vec[word_vec.size() - 1]->_state] += 1;
 		}
 		_num_words = word_set.size();
 	}
@@ -224,11 +221,16 @@ namespace bhmm {
 		return log_Pt_alpha;
 	}
 	// 正規化定数で割る前の値
-	double HMM::compute_Pti_wi_beta(int ti, int wi, double beta){
+	double HMM::compute_p_wi_given_ti_beta(int ti, int wi, double beta){
 		double n_ti_wi = get_count_for_tag_word(ti, wi);
 		double n_ti = _unigram_counts[ti];
 		double W_ti = _Wt[ti];
 		return (n_ti_wi + beta) / (n_ti + W_ti * beta);
+	}
+	double HMM::compute_p_ti_given_t_alpha(int ti, int ti_1, int ti_2, double alpha){
+		double n_ti_2_ti_1_ti = _trigram_counts[ti_2][ti_1][ti];
+		double n_ti_2_ti_1 = _bigram_counts[ti_2][ti_1];
+		return (n_ti_2_ti_1_ti + alpha) / (n_ti_2_ti_1 + _num_tags * alpha);
 	}
 	// in:  t_{i-2},t_{i-1},ti,t_{i+1},t_{i+2},w_i
 	void HMM::add_tag_to_model_parameters(int ti_2, int ti_1, int ti, int ti1, int ti2, int wi){
@@ -264,7 +266,7 @@ namespace bhmm {
 		// 品詞-単語ペア
 		decrement_tag_word_count(ti, wi);
 	}
-	void HMM::perform_gibbs_sampling_with_words(std::vector<Word*> &word_vec){
+	void HMM::perform_gibbs_sampling_with_sequence(std::vector<Word*> &word_vec){
 		if(_sampling_table == NULL){
 			_sampling_table = (double*)malloc(_num_tags * sizeof(double));
 		}
@@ -422,8 +424,8 @@ namespace bhmm {
 			// メトロポリス・ヘイスティングス法
 			// http://ebsa.ism.ac.jp/ebooks/sites/default/files/ebook/1881/pdf/vol3_ch10.pdf
 			// 提案分布は正規分布
-			double Pti_wi_beta = compute_Pti_wi_beta(random_word->_state, random_word->_id, beta);
-			double Pti_wi_new_beta = compute_Pti_wi_beta(random_word->_state, random_word->_id, new_beta);
+			double Pti_wi_beta = compute_p_wi_given_ti_beta(random_word->_state, random_word->_id, beta);
+			double Pti_wi_new_beta = compute_p_wi_given_ti_beta(random_word->_state, random_word->_id, new_beta);
 			// q(beta|new_beta) / q(new_beta|beta)の計算
 			double sigma_beta = 0.1 * beta;
 			double sigma_new_beta = 0.1 * new_beta;

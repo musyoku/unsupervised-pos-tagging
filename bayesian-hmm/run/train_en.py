@@ -113,7 +113,6 @@ def main():
 
 	# モデル
 	model = bhmm.model()
-	# model.load(os.path.join(args.model, "bhmm.model"))
 
 	# ハイパーパラメータの設定
 	model.set_temperature(args.start_temperature)		# 温度の初期設定
