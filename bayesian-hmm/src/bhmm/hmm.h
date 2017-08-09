@@ -10,17 +10,14 @@
 namespace bhmm {
 	class HMM{
 	private:
-		void alloc_tables();
-		void init_ngram_counts(std::vector<std::vector<Word*>> &dataset);
+		void alloc_count_tables(int num_tags);
+		void init_ngram_counts_with_corpus(std::vector<std::vector<Word*>> &dataset);
 	public:
 		int _num_tags;			// 品詞数
 		int _num_words;			// 単語数
 		int*** _trigram_counts;	// 品詞3-gramのカウント
 		int** _bigram_counts;	// 品詞2-gramのカウント
 		int* _unigram_counts;	// 品詞1-gramのカウント
-		int _bos_unigram_counts;	// <s>のカウント
-		int* _bos_bigram_counts;	// <s>からの各品詞への遷移回数
-		int* _eos_bigram_counts;	// </s>への遷移回数
 		int* _Wt;
 		std::unordered_map<int, std::unordered_map<int, int>> _tag_word_counts;	// 品詞と単語のペアの出現頻度
 		double* _sampling_table;	// キャッシュ
@@ -33,7 +30,7 @@ namespace bhmm {
 		~HMM();
 		void anneal_temperature(double multiplier);
 		void initialize_with_training_corpus(std::vector<std::vector<Word*>> &dataset, std::vector<int> &Wt);
-		void update_ngram_count(Word* tri_word, Word* bi_word, Word* uni_word);
+		void increment_tag_ngram_count(Word* tri_word, Word* bi_word, Word* uni_word);
 		void increment_tag_word_count(int tag_id, int word_id);
 		void decrement_tag_word_count(int tag_id, int word_id);
 		int get_count_for_tag_word(int tag_id, int word_id);
@@ -47,8 +44,8 @@ namespace bhmm {
 		double compute_Pti_wi_beta(int ti, int wi, double beta);
 		double compute_p_wi_given_ti_beta(int wi, int ti, double beta);
 		double compute_p_ti_given_t_alpha(int ti, int ti_1, int ti_2, double alpha);
-		void add_tag_to_model_parameters(int ti_2, int ti_1, int ti, int ti1, int ti2, int wi);
-		void remove_tag_from_model_parameters(int ti_2, int ti_1, int ti, int ti1, int ti2, int wi);
+		void add_tags_to_model_parameters(int ti_2, int ti_1, int ti, int ti1, int ti2, int wi);
+		void remove_tags_from_model_parameters(int ti_2, int ti_1, int ti, int ti1, int ti2, int wi);
 		void perform_gibbs_sampling_with_sequence(std::vector<Word*> &word_vec);
 		int sample_tag_from_Pt_w(int ti_2, int ti_1, int wi);
 		int argmax_tag_from_Pt_w(int ti_2, int ti_1, int wi);

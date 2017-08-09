@@ -82,7 +82,13 @@ namespace bhmm {
 	void Dataset::_add_words_to_dataset(std::vector<std::wstring> &word_str_vec, std::vector<std::vector<Word*>> &dataset){
 		assert(word_str_vec.size() > 0);
 		std::vector<Word*> words;
-
+		// <s>を2つセット
+		for(int i = 0;i < 2;i++){
+			Word* eos = new Word();
+			eos->_state = 0;
+			words.push_back(eos);
+		}
+		// 単語列
 		for(auto word_str: word_str_vec){
 			if(word_str.size() == 0){
 				continue;
@@ -93,12 +99,12 @@ namespace bhmm {
 			words.push_back(word);
 			_word_count[word->_id] += 1;
 		}
-
-		Word* eos = new Word();
-		eos->_id = ID_EOS;
-		eos->_state = 0;
-		words.push_back(eos);
-		_word_count[ID_EOS] += 1;
+		// </s>を2つセット
+		for(int i = 0;i < 2;i++){
+			Word* eos = new Word();
+			eos->_state = 0;
+			words.push_back(eos);
+		}
 
 		dataset.push_back(words);
 

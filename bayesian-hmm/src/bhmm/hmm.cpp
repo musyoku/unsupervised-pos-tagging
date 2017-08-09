@@ -22,21 +22,20 @@ namespace bhmm {
 		_beta = NULL;
 		_temperature = 1;
 		_minimum_temperature = 1;
-		_bos_unigram_counts = 0;
 		_allocated = false;
 	}
 	HMM::~HMM(){
 		if(_allocated == false){
 			return;
 		}
-		for(int tri_tag = 0;tri_tag < _num_tags;tri_tag++){
-			for(int bi_tag = 0;bi_tag < _num_tags;bi_tag++){
+		for(int tri_tag = 0;tri_tag <= _num_tags;tri_tag++){
+			for(int bi_tag = 0;bi_tag <= _num_tags;bi_tag++){
 				delete[] _trigram_counts[tri_tag][bi_tag];
 			}
 			delete[] _trigram_counts[tri_tag];
 		}
 		delete[] _trigram_counts;
-		for(int bi_tag = 0;bi_tag < _num_tags;bi_tag++){
+		for(int bi_tag = 0;bi_tag <= _num_tags;bi_tag++){
 			delete[] _bigram_counts[bi_tag];
 		}
 		delete[] _bigram_counts;
@@ -52,82 +51,60 @@ namespace bhmm {
 	}
 	void HMM::initialize_with_training_corpus(std::vector<std::vector<Word*>> &dataset, std::vector<int> &Wt){
 		int length = Wt.size();
-		set_num_tags(length);
-		alloc_tables();
-		init_ngram_counts(dataset);
-		for(int tag = 0;tag < length;tag++){
+		assert(length > 0);
+		_num_tags = length;
+		alloc_count_tables(_num_tags);
+		init_ngram_counts_with_corpus(dataset);
+		for(int tag = 1;tag <= length;tag++){
 			set_Wt_for_tag(tag, Wt[tag]);
 		}
 	}
-	void HMM::alloc_tables(){
-		assert(_num_tags != -1);
+	void HMM::alloc_count_tables(int num_tags){
+		assert(num_tags > 0);
 		// 各タグの可能な単語数
-		_Wt = new int[_num_tags];
-		for(int tag = 0;tag < _num_tags;tag++){
+		_Wt = new int[num_tags + 1];
+		for(int tag = 0;tag <= num_tags;tag++){
 			_Wt[tag] = 0;
 		}
 		// Betaの初期化
 		// 初期値は1
-		_beta = new double[_num_tags];
-		for(int tag = 0;tag < _num_tags;tag++){
+		_beta = new double[num_tags + 1];
+		for(int tag = 0;tag <= num_tags;tag++){
 			_beta[tag] = 1;
 		}
 		// 3-gram		
-		_trigram_counts = new int**[_num_tags];
-		for(int tri_tag = 0;tri_tag < _num_tags;tri_tag++){
-			_trigram_counts[tri_tag] = new int*[_num_tags];
-			for(int bi_tag = 0;bi_tag < _num_tags;bi_tag++){
-				_trigram_counts[tri_tag][bi_tag] = new int[_num_tags];
-				for(int uni_tag = 0;uni_tag < _num_tags;uni_tag++){
+		_trigram_counts = new int**[num_tags + 1];
+		for(int tri_tag = 0;tri_tag <= num_tags;tri_tag++){
+			_trigram_counts[tri_tag] = new int*[num_tags + 1];
+			for(int bi_tag = 0;bi_tag <= num_tags;bi_tag++){
+				_trigram_counts[tri_tag][bi_tag] = new int[num_tags + 1];
+				for(int uni_tag = 0;uni_tag <= num_tags;uni_tag++){
 					_trigram_counts[tri_tag][bi_tag][uni_tag] = 0;
 				}
 			}
 		}
 		// 2-gram
-		_bigram_counts = new int*[_num_tags];
-		for(int bi_tag = 0;bi_tag < _num_tags;bi_tag++){
-			_bigram_counts[bi_tag] = new int[_num_tags];
-			for(int uni_tag = 0;uni_tag < _num_tags;uni_tag++){
+		_bigram_counts = new int*[num_tags + 1];
+		for(int bi_tag = 0;bi_tag <= num_tags;bi_tag++){
+			_bigram_counts[bi_tag] = new int[num_tags + 1];
+			for(int uni_tag = 0;uni_tag <= num_tags;uni_tag++){
 				_bigram_counts[bi_tag][uni_tag] = 0;
 			}
 		}
 		// 1-gram
-		_unigram_counts = new int[_num_tags];
-		for(int tag = 0;tag < _num_tags;tag++){
+		_unigram_counts = new int[num_tags + 1];
+		for(int tag = 0;tag <= num_tags;tag++){
 			_unigram_counts[tag] = 0;
-		}
-		// <s>
-		_bos_bigram_counts = new int[_num_tags];
-		for(int tag = 0;tag < _num_tags;tag++){
-			_bos_bigram_counts[tag] = 0;
-		}
-		// </s>
-		_eos_bigram_counts = new int[_num_tags];
-		for(int tag = 0;tag < _num_tags;tag++){
-			_eos_bigram_counts[tag] = 0;
 		}
 		_allocated = true;
 	}
-	void HMM::init_ngram_counts(std::vector<std::vector<Word*>> &dataset){
+	void HMM::init_ngram_counts_with_corpus(std::vector<std::vector<Word*>> &dataset){
 		assert(_num_tags != -1);
 		// 最初は品詞をランダムに割り当てる
 		std::set<int> word_set;
 		std::unordered_map<int, int> tag_for_word;
 		for(int data_index = 0;data_index < dataset.size();data_index++){
 			std::vector<Word*> &word_vec = dataset[data_index];
-			// <s>
-			_bos_unigram_counts += 1;
-			_bos_bigram_counts[word_vec[0]->_state] += 1;
-			// pos == 0
-			_unigram_counts[word_vec[0]->_state] += 1;
-			word_set.insert(word_vec[0]->_id);
-			increment_tag_word_count(word_vec[0]->_state, word_vec[0]->_id);
-			// pos == 1
-			_unigram_counts[word_vec[1]->_state] += 1;
-			_bigram_counts[word_vec[0]->_state][word_vec[1]->_state] += 1;
-			word_set.insert(word_vec[1]->_id);
-			increment_tag_word_count(word_vec[1]->_state, word_vec[1]->_id);
-			// pos >= 2
 			for(int pos = 2;pos < word_vec.size();pos++){	// 3-gramなので3番目から.
 				Word* word = word_vec[pos];
 				auto itr = tag_for_word.find(word->_id);
@@ -137,31 +114,33 @@ namespace bhmm {
 				}else{
 					word->_state = itr->second;
 				}
-				update_ngram_count(word_vec[pos - 2], word_vec[pos - 1], word_vec[pos]);
+				increment_tag_ngram_count(word_vec[pos - 2], word_vec[pos - 1], word_vec[pos]);
 				word_set.insert(word->_id);
 				// 同じタグの単語集合をカウント
 				increment_tag_word_count(word->_state, word->_id);
 			}
-			// </s>
-			_eos_bigram_counts[word_vec[word_vec.size() - 1]->_state] += 1;
 		}
 		_num_words = word_set.size();
 	}
 	void HMM::set_Wt_for_tag(int tag_id, int number){
 		assert(_Wt != NULL);
-		assert(tag_id < _num_tags);
+		assert(1 <= tag_id && tag_id <= _num_tags);
 		_Wt[tag_id] = number;
 	}
 	void HMM::set_num_tags(int n){
 		assert(n > 0);
 		_num_tags = n;
 	}
-	void HMM::update_ngram_count(Word* tri_word, Word* bi_word, Word* uni_word){
-		_trigram_counts[tri_word->_state][bi_word->_state][uni_word->_state] += 1;
-		_bigram_counts[bi_word->_state][uni_word->_state] += 1;
+	void HMM::increment_tag_ngram_count(Word* tri_word, Word* bi_word, Word* uni_word){
+		assert(uni_word != NULL);
+		assert(bi_word != NULL);
+		assert(tri_word != NULL);
 		_unigram_counts[uni_word->_state] += 1;
+		_bigram_counts[bi_word->_state][uni_word->_state] += 1;
+		_trigram_counts[tri_word->_state][bi_word->_state][uni_word->_state] += 1;
 	}
 	void HMM::increment_tag_word_count(int tag_id, int word_id){
+		assert(1 <= tag_id && tag_id <= _num_tags);
 		std::unordered_map<int, int> &word_counts = _tag_word_counts[tag_id];
 		auto itr = word_counts.find(word_id);
 		if(itr == word_counts.end()){
@@ -171,6 +150,7 @@ namespace bhmm {
 		itr->second += 1;
 	}
 	void HMM::decrement_tag_word_count(int tag_id, int word_id){
+		assert(1 <= tag_id && tag_id <= _num_tags);
 		std::unordered_map<int, int> &word_counts = _tag_word_counts[tag_id];
 		auto itr = word_counts.find(word_id);
 		if(itr == word_counts.end()){
@@ -183,6 +163,7 @@ namespace bhmm {
 		}
 	}
 	int HMM::get_count_for_tag_word(int tag_id, int word_id){
+		assert(1 <= tag_id && tag_id <= _num_tags);
 		std::unordered_map<int, int> &word_counts = _tag_word_counts[tag_id];
 		auto itr = word_counts.find(word_id);
 		if(itr == word_counts.end()){
@@ -191,6 +172,7 @@ namespace bhmm {
 		return itr->second;
 	}
 	int HMM::get_word_types_for_tag(int tag_id){
+		assert(1 <= tag_id && tag_id <= _num_tags);
 		std::unordered_map<int, int> &word_counts = _tag_word_counts[tag_id];
 		return word_counts.size();
 	}
@@ -233,7 +215,7 @@ namespace bhmm {
 		return (n_ti_2_ti_1_ti + alpha) / (n_ti_2_ti_1 + _num_tags * alpha);
 	}
 	// in:  t_{i-2},t_{i-1},ti,t_{i+1},t_{i+2},w_i
-	void HMM::add_tag_to_model_parameters(int ti_2, int ti_1, int ti, int ti1, int ti2, int wi){
+	void HMM::add_tags_to_model_parameters(int ti_2, int ti_1, int ti, int ti1, int ti2, int wi){
 		// 1-gram
 		_unigram_counts[ti] += 1;
 		// 2-gram
@@ -247,7 +229,7 @@ namespace bhmm {
 		increment_tag_word_count(ti, wi);
 	}
 	// in:  t_{i-2},t_{i-1},ti,t_{i+1},t_{i+2},w_i
-	void HMM::remove_tag_from_model_parameters(int ti_2, int ti_1, int ti, int ti1, int ti2, int wi){
+	void HMM::remove_tags_from_model_parameters(int ti_2, int ti_1, int ti, int ti1, int ti2, int wi){
 		// 1-gram
 		_unigram_counts[ti] -= 1;
 		assert(_unigram_counts[ti] >= 0);
@@ -278,7 +260,7 @@ namespace bhmm {
 			int ti1 = word_vec[pos + 1]->_state;
 			int ti2 = word_vec[pos + 2]->_state;
 			// t_iをモデルパラメータから除去
-			remove_tag_from_model_parameters(ti_2, ti_1, ti, ti1, ti2, wi);
+			remove_tags_from_model_parameters(ti_2, ti_1, ti, ti1, ti2, wi);
 			// t_iを再サンプリング
 			double sum = 0;
 			int new_ti = 0;
@@ -318,7 +300,7 @@ namespace bhmm {
 				}
 			}
 			// 新しいt_iをモデルパラメータに追加
-			add_tag_to_model_parameters(ti_2, ti_1, new_ti, ti1, ti2, wi);
+			add_tags_to_model_parameters(ti_2, ti_1, new_ti, ti1, ti2, wi);
 			word_vec[pos]->_state = new_ti;
 		}
 	}
