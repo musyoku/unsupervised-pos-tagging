@@ -84,9 +84,9 @@ namespace bhmm {
 		std::vector<Word*> words;
 		// <s>を2つセット
 		for(int i = 0;i < 2;i++){
-			Word* eos = new Word();
-			eos->_state = 0;
-			words.push_back(eos);
+			Word* bos = new Word();
+			bos->_state = 0;
+			words.push_back(bos);
 		}
 		// 単語列
 		for(auto word_str: word_str_vec){
@@ -95,7 +95,7 @@ namespace bhmm {
 			}
 			Word* word = new Word();
 			word->_id = _dict->add_word_string(word_str);
-			word->_state = 0;
+			word->_state = 1;
 			words.push_back(word);
 			_word_count[word->_id] += 1;
 		}
@@ -105,7 +105,7 @@ namespace bhmm {
 			eos->_state = 0;
 			words.push_back(eos);
 		}
-
+		// 追加
 		dataset.push_back(words);
 
 		if((int)words.size() > _max_num_words_in_line){

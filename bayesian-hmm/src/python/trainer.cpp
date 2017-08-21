@@ -11,16 +11,6 @@ namespace bhmm {
 		}   
 	};
 	Trainer::Trainer(Dataset* dataset, Model* model, Dictionary* dict, boost::python::list py_Wt){
-		// 日本語周り
-		// 日本語周り
-		setlocale(LC_CTYPE, "ja_JP.UTF-8");
-		std::ios_base::sync_with_stdio(false);
-		std::locale default_loc("ja_JP.UTF-8");
-		std::locale::global(default_loc);
-		std::locale ctype_default(std::locale::classic(), default_loc, std::locale::ctype);
-		std::wcout.imbue(ctype_default);
-		std::wcin.imbue(ctype_default);
-
 		_model = model;
 		std::vector<int> Wt = utils::vector_from_list<int>(py_Wt);
 		_model->_hmm->initialize_with_training_corpus(dataset->_word_sequences_train, Wt);
@@ -42,7 +32,7 @@ namespace bhmm {
 			}
 			int data_index = _rand_indices[n];
 			std::vector<Word*> &word_vec = dataset[data_index];
-			_model->_hmm->perform_gibbs_sampling_with_words(word_vec);
+			_model->_hmm->perform_gibbs_sampling_with_sequence(word_vec);
 		}
 	}
 	void Trainer::update_hyperparameters(){

@@ -60,6 +60,7 @@ namespace bhmm {
 		}
 	}
 	void HMM::alloc_count_tables(int num_tags){
+		assert(_allocated == false);
 		assert(num_tags > 0);
 		// 各タグの可能な単語数
 		_Wt = new int[num_tags + 1];
@@ -107,13 +108,15 @@ namespace bhmm {
 			std::vector<Word*> &word_vec = dataset[data_index];
 			for(int pos = 2;pos < word_vec.size();pos++){	// 3-gramなので3番目から.
 				Word* word = word_vec[pos];
-				auto itr = tag_for_word.find(word->_id);
-				if(itr == tag_for_word.end()){
-					word->_state = sampler::uniform_int(0, _num_tags - 1);
-					tag_for_word[word->_id] = word->_state;
-				}else{
-					word->_state = itr->second;
-				}
+				// auto itr = tag_for_word.find(word->_id);
+				// if(itr == tag_for_word.end()){
+					int state = sampler::uniform_int(1, _num_tags);
+					assert(1 <= state && state <= _num_tags);
+					word->_state = state;
+					tag_for_word[word->_id] = state;
+				// }else{
+				// 	word->_state = itr->second;
+				// }
 				increment_tag_ngram_count(word_vec[pos - 2], word_vec[pos - 1], word_vec[pos]);
 				word_set.insert(word->_id);
 				// 同じタグの単語集合をカウント
@@ -250,7 +253,7 @@ namespace bhmm {
 	}
 	void HMM::perform_gibbs_sampling_with_sequence(std::vector<Word*> &word_vec){
 		if(_sampling_table == NULL){
-			_sampling_table = (double*)malloc(_num_tags * sizeof(double));
+			_sampling_table = new double[_num_tags + 1];
 		}
 		for(int pos = 2;pos < word_vec.size() - 2;pos++){	// <bos>と<eos>の内側だけ考える
 			int ti_2 = word_vec[pos - 2]->_state;
