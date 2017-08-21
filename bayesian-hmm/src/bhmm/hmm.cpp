@@ -218,7 +218,8 @@ namespace bhmm {
 		return (n_ti_2_ti_1_ti + alpha) / (n_ti_2_ti_1 + _num_tags * alpha);
 	}
 	// in:  t_{i-2},t_{i-1},ti,t_{i+1},t_{i+2},w_i
-	void HMM::add_tags_to_model_parameters(int ti_2, int ti_1, int ti, int ti1, int ti2, int wi){
+	void HMM::add_tag_trigram_to_model(int ti_2, int ti_1, int ti, int ti1, int ti2, int wi){
+		assert(1 <= ti && ti <= _num_tags);
 		// 1-gram
 		_unigram_counts[ti] += 1;
 		// 2-gram
@@ -232,7 +233,8 @@ namespace bhmm {
 		increment_tag_word_count(ti, wi);
 	}
 	// in:  t_{i-2},t_{i-1},ti,t_{i+1},t_{i+2},w_i
-	void HMM::remove_tags_from_model_parameters(int ti_2, int ti_1, int ti, int ti1, int ti2, int wi){
+	void HMM::remove_tag_trigram_from_model(int ti_2, int ti_1, int ti, int ti1, int ti2, int wi){
+		assert(1 <= ti && ti <= _num_tags);
 		// 1-gram
 		_unigram_counts[ti] -= 1;
 		assert(_unigram_counts[ti] >= 0);
@@ -255,56 +257,61 @@ namespace bhmm {
 		if(_sampling_table == NULL){
 			_sampling_table = new double[_num_tags + 1];
 		}
-		for(int pos = 2;pos < word_vec.size() - 2;pos++){	// <bos>と<eos>の内側だけ考える
-			int ti_2 = word_vec[pos - 2]->_state;
-			int ti_1 = word_vec[pos - 1]->_state;
-			int ti = word_vec[pos]->_state;
-			int wi = word_vec[pos]->_id;
-			int ti1 = word_vec[pos + 1]->_state;
-			int ti2 = word_vec[pos + 2]->_state;
+		for(int i = 2;i < word_vec.size() - 2;i++){	// <s>と</s>の内側だけ考える
+			int ti_2 = word_vec[i - 2]->_state;
+			int ti_1 = word_vec[i - 1]->_state;
+			int ti = word_vec[i]->_state;
+			int wi = word_vec[i]->_id;
+			int ti1 = word_vec[i + 1]->_state;
+			int ti2 = word_vec[i + 2]->_state;
 			// t_iをモデルパラメータから除去
-			remove_tags_from_model_parameters(ti_2, ti_1, ti, ti1, ti2, wi);
+			remove_tag_trigram_from_model(ti_2, ti_1, ti, ti1, ti2, wi);
 			// t_iを再サンプリング
-			double sum = 0;
+			double sum_prob = 0;
 			int new_ti = 0;
-			for(int tag = 0;tag < _num_tags;tag++){
+			for(int tag = 1;tag <= _num_tags;tag++){
 				_sampling_table[tag] = 1;
 				double n_ti_wi = get_count_for_tag_word(tag, wi);
-				double n_ti = _unigram_counts[tag];
 				double W_ti = _Wt[tag];
-				double n_ti_2_ti_1_ti = _trigram_counts[ti_2][ti_1][tag];
-				double n_ti_2_ti_1 = _bigram_counts[ti_2][ti_1];
-				double n_ti_1_ti_ti1 = _trigram_counts[ti_1][tag][ti1];
-				double n_ti_1_ti = _bigram_counts[ti_1][tag];
-				double I_ti_2_ti_1_ti_ti1 = (ti_2 == ti_1 == tag == ti1) ? 1 : 0;
-				double I_ti_2_ti_1_ti = (ti_2 == ti_1 == tag) ? 1 : 0;
-				double n_ti_ti1_ti2 = _trigram_counts[tag][ti1][ti2];
-				double n_ti_ti1 = _bigram_counts[tag][ti1];
-				double I_ti_2_ti_ti2_and_ti_1_ti1 = (ti_2 == tag == ti2 && ti_1 == ti1) ? 1 : 0;
-				double I_ti_1_ti_ti1_ti2 = (ti_1 == tag == ti1 == ti2) ? 1 : 0;
-				double I_ti_2_ti_and_ti_1_ti1 = (ti_2 == tag && ti_1 == ti1) ? 1 : 0;
-				double I_ti_1_ti_ti1 = (ti_1 == tag == ti1) ? 1 : 0;
+				// n.
+				double n_ti_2_ti_1_ti 	= _trigram_counts[ti_2][ti_1][tag];
+				double n_ti_2_ti_1 		= _bigram_counts[ti_2][ti_1];
+				double n_ti_1_ti_ti1 	= _trigram_counts[ti_1][tag][ti1];
+				double n_ti_1_ti 		= _bigram_counts[ti_1][tag];
+				double n_ti 			= _unigram_counts[tag];
+				double n_ti_ti1_ti2 	= _trigram_counts[tag][ti1][ti2];
+				double n_ti_ti1 		= _bigram_counts[tag][ti1];
+				// I(.)
+				double I_ti_2_ti_1_ti_ti1 			= (ti_2 == ti_1 == tag == ti1) ? 1 : 0;
+				double I_ti_2_ti_1_ti 				= (ti_2 == ti_1 == tag) ? 1 : 0;
+				double I_ti_2_ti_ti2_and_ti_1_ti1 	= (ti_2 == tag == ti2 && ti_1 == ti1) ? 1 : 0;
+				double I_ti_1_ti_ti1_ti2 			= (ti_1 == tag == ti1 == ti2) ? 1 : 0;
+				double I_ti_2_ti_and_ti_1_ti1 		= (ti_2 == tag && ti_1 == ti1) ? 1 : 0;
+				double I_ti_1_ti_ti1 				= (ti_1 == tag == ti1) ? 1 : 0;
+				// 確率を計算
 				_sampling_table[tag] *= (n_ti_wi + _beta[tag]) / (n_ti + W_ti * _beta[tag]);
 				_sampling_table[tag] *= (n_ti_2_ti_1_ti + _alpha) / (n_ti_2_ti_1 + _num_tags * _alpha);
 				_sampling_table[tag] *= (n_ti_1_ti_ti1 + I_ti_2_ti_1_ti_ti1 + _alpha) / (n_ti_1_ti + I_ti_2_ti_1_ti + _num_tags * _alpha);
 				_sampling_table[tag] *= (n_ti_ti1_ti2 + I_ti_2_ti_ti2_and_ti_1_ti1 + I_ti_1_ti_ti1_ti2 + _alpha) / (n_ti_ti1 + I_ti_2_ti_and_ti_1_ti1 + I_ti_1_ti_ti1 + _num_tags * _alpha);
+				// アニーリング
 				_sampling_table[tag] = pow(_sampling_table[tag], 1.0 / _temperature);
-				sum += _sampling_table[tag];
+				sum_prob += _sampling_table[tag];
 			}
-			assert(sum > 0);
-			double normalizer = 1.0 / sum;
+			assert(sum_prob > 0);
+			double normalizer = 1.0 / sum_prob;
 			double bernoulli = sampler::uniform(0, 1);
-			sum = 0;
-			for(int tag = 0;tag < _num_tags;tag++){
-				sum += _sampling_table[tag] * normalizer;
-				if(sum >= bernoulli){
+			double stack = 0;
+			for(int tag = 1;tag <= _num_tags;tag++){
+				stack += _sampling_table[tag] * normalizer;
+				if(stack >= bernoulli){
 					new_ti = tag;
 					break;
 				}
 			}
+			assert(1 <= new_ti && new_ti <= _num_tags);
 			// 新しいt_iをモデルパラメータに追加
-			add_tags_to_model_parameters(ti_2, ti_1, new_ti, ti1, ti2, wi);
-			word_vec[pos]->_state = new_ti;
+			add_tag_trigram_to_model(ti_2, ti_1, new_ti, ti1, ti2, wi);
+			word_vec[i]->_state = new_ti;
 		}
 	}
 	// 論文(6)式と(7)式を掛けたものからtiをサンプリング

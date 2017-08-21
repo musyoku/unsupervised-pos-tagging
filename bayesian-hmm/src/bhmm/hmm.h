@@ -12,6 +12,8 @@ namespace bhmm {
 	private:
 		void alloc_count_tables(int num_tags);
 		void init_ngram_counts_with_corpus(std::vector<std::vector<Word*>> &dataset);
+		void add_tag_trigram_to_model(int ti_2, int ti_1, int ti, int ti1, int ti2, int wi);
+		void remove_tag_trigram_from_model(int ti_2, int ti_1, int ti, int ti1, int ti2, int wi);
 	public:
 		int _num_tags;			// 品詞数
 		int _num_words;			// 単語数
@@ -44,8 +46,6 @@ namespace bhmm {
 		double compute_Pti_wi_beta(int ti, int wi, double beta);
 		double compute_p_wi_given_ti_beta(int wi, int ti, double beta);
 		double compute_p_ti_given_t_alpha(int ti, int ti_1, int ti_2, double alpha);
-		void add_tags_to_model_parameters(int ti_2, int ti_1, int ti, int ti1, int ti2, int wi);
-		void remove_tags_from_model_parameters(int ti_2, int ti_1, int ti, int ti1, int ti2, int wi);
 		void perform_gibbs_sampling_with_sequence(std::vector<Word*> &word_vec);
 		int sample_tag_from_Pt_w(int ti_2, int ti_1, int wi);
 		int argmax_tag_from_Pt_w(int ti_2, int ti_1, int wi);
