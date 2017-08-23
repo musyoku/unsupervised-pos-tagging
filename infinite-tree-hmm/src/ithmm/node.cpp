@@ -2,7 +2,7 @@
 #include <cassert>
 #include "cprintf.h"
 #include "sampler.h"
-#include "util.h"
+#include "utils.h"
 #include "hpylm.h"
 #include "tssb.h"
 #include "node.h"
