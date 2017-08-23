@@ -4,8 +4,8 @@
 #include "../ithmm/sampler.h"
 
 namespace ithmm {
-	Dataset::Dataset(Dictionary* dict){
-		_dict = dict;
+	Dataset::Dataset(){
+		_dict = new Dictionary();
 		_max_num_words_in_line = -1;
 		_min_num_words_in_line = -1;
 	}
@@ -24,6 +24,7 @@ namespace ithmm {
 				delete word;
 			}
 		}
+		delete _dict;
 	}
 	void Dataset::add_textfile(std::string filename, double train_split_ratio){
 		std::wifstream ifs(filename.c_str());
@@ -134,5 +135,8 @@ namespace ithmm {
 			return 0;
 		}
 		return itr->second;
+	}
+	Dictionary* Dataset::get_dict(){
+		return _dict;
 	}
 }

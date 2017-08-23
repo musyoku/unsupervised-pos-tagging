@@ -36,7 +36,7 @@ namespace ithmm {
 		_model->_ithmm->delete_invalid_children();
 	}
 	void Trainer::_before_viterbi_decode(std::vector<Node*> &nodes){
-		_before_compute_log_Pdataset(nodes);
+		_before_compute_log_p_dataset(nodes);
 		assert(_dataset->_max_num_words_in_line > 0);
 		_decode_table = new double*[_dataset->_max_num_words_in_line];
 		for(int i = 0;i < _dataset->_max_num_words_in_line;i++){
@@ -44,14 +44,14 @@ namespace ithmm {
 		}
 	}
 	void Trainer::_after_viterbi_decode(){
-		_after_compute_log_Pdataset();
+		_after_compute_log_p_dataset();
 		assert(_dataset->_max_num_words_in_line > 0);
 		for(int i = 0;i < _dataset->_max_num_words_in_line;i++){
 			delete[] _decode_table[i];
 		}
 		delete[] _decode_table;
 	}
-	void Trainer::_before_compute_log_Pdataset(std::vector<Node*> &nodes){
+	void Trainer::_before_compute_log_p_dataset(std::vector<Node*> &nodes){
 		// あらかじめ全HTSSBの棒の長さを計算しておく
 		_model->enumerate_all_states(nodes);
 		_model->precompute_all_stick_lengths(nodes);
@@ -62,7 +62,7 @@ namespace ithmm {
 			_forward_table[i] = new double[nodes.size()];
 		}
 	}
-	void Trainer::_after_compute_log_Pdataset(){
+	void Trainer::_after_compute_log_p_dataset(){
 		// 計算用のテーブルを解放
 		assert(_dataset->_max_num_words_in_line > 0);
 		for(int i = 0;i < _dataset->_max_num_words_in_line;i++){
@@ -71,17 +71,17 @@ namespace ithmm {
 		delete[] _forward_table;
 	}
 	// データセット全体の対数尤度を計算
-	double Trainer::compute_log_Pdataset_train(){
-		return _compute_log_Pdataset(_dataset->_word_sequences_train);
+	double Trainer::compute_log_p_dataset_train(){
+		return _compute_log_p_dataset(_dataset->_word_sequences_train);
 	}
-	double Trainer::compute_log_Pdataset_dev(){
-		return _compute_log_Pdataset(_dataset->_word_sequences_dev);
+	double Trainer::compute_log_p_dataset_dev(){
+		return _compute_log_p_dataset(_dataset->_word_sequences_dev);
 	}
-	double Trainer::_compute_log_Pdataset(std::vector<std::vector<Word*>> &dataset){
+	double Trainer::_compute_log_p_dataset(std::vector<std::vector<Word*>> &dataset){
 		std::vector<Node*> nodes;
-		_before_compute_log_Pdataset(nodes);
+		_before_compute_log_p_dataset(nodes);
 		// データごとの対数尤度を足していく
-		double log_Pdataset = 0;
+		double log_p_dataset = 0;
 		for(int data_index = 0;data_index < dataset.size();data_index++){
 			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
 				return 0;
@@ -89,23 +89,23 @@ namespace ithmm {
 			std::vector<Word*> &data = dataset[data_index];
 			double Px = _model->compute_Pdata(data, nodes, _forward_table);
 			if(Px > 0){
-				log_Pdataset += log(Px);
+				log_p_dataset += log(Px);
 			}
 		}
-		_after_compute_log_Pdataset();
-		return log_Pdataset;
+		_after_compute_log_p_dataset();
+		return log_p_dataset;
 	}
-	double Trainer::compute_log2_Pdataset_train(){
-		return _compute_log2_Pdataset(_dataset->_word_sequences_train);
+	double Trainer::compute_log2_p_dataset_train(){
+		return _compute_log2_p_dataset(_dataset->_word_sequences_train);
 	}
-	double Trainer::compute_log2_Pdataset_dev(){
-		return _compute_log2_Pdataset(_dataset->_word_sequences_dev);
+	double Trainer::compute_log2_p_dataset_dev(){
+		return _compute_log2_p_dataset(_dataset->_word_sequences_dev);
 	}
-	double Trainer::_compute_log2_Pdataset(std::vector<std::vector<Word*>> &dataset){
+	double Trainer::_compute_log2_p_dataset(std::vector<std::vector<Word*>> &dataset){
 		std::vector<Node*> nodes;
-		_before_compute_log_Pdataset(nodes);
+		_before_compute_log_p_dataset(nodes);
 		// データごとの対数尤度を足していく
-		double log_Pdataset = 0;
+		double log_p_dataset = 0;
 		for(int data_index = 0;data_index < dataset.size();data_index++){
 			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
 				return 0;
@@ -113,11 +113,11 @@ namespace ithmm {
 			std::vector<Word*> &data = dataset[data_index];
 			double Px = _model->compute_Pdata(data, nodes, _forward_table);
 			if(Px > 0){
-				log_Pdataset += log2(Px);
+				log_p_dataset += log2(Px);
 			}
 		}
-		_after_compute_log_Pdataset();
-		return log_Pdataset;
+		_after_compute_log_p_dataset();
+		return log_p_dataset;
 	}
 	double Trainer::compute_perplexity_train(){
 		return _compute_perplexity(_dataset->_word_sequences_train);
@@ -127,9 +127,9 @@ namespace ithmm {
 	}
 	double Trainer::_compute_perplexity(std::vector<std::vector<Word*>> &dataset){
 		std::vector<Node*> nodes;
-		_before_compute_log_Pdataset(nodes);
+		_before_compute_log_p_dataset(nodes);
 		// データごとの対数尤度を足していく
-		double log_Pdataset = 0;
+		double log_p_dataset = 0;
 		for(int data_index = 0;data_index < dataset.size();data_index++){
 			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
 				return 0;
@@ -137,11 +137,11 @@ namespace ithmm {
 			std::vector<Word*> &data = dataset[data_index];
 			double Px = _model->compute_Pdata(data, nodes, _forward_table);
 			if(Px > 0){
-				log_Pdataset += log2(Px) / data.size();
+				log_p_dataset += log2(Px) / data.size();
 			}
 		}
-		_after_compute_log_Pdataset();
-		return pow(2.0, -log_Pdataset / (double)dataset.size());
+		_after_compute_log_p_dataset();
+		return pow(2.0, -log_p_dataset / (double)dataset.size());
 	}
 	void Trainer::update_hyperparameters(){
 		_model->update_hyperparameters();

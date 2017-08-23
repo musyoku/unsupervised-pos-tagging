@@ -1559,7 +1559,7 @@ namespace ithmm {
 		std::ofstream ofs(filename);
 		if(ofs.good()){
 			boost::archive::binary_oarchive oarchive(ofs);
-			oarchive << static_cast<const iTHMM&>(*this);
+			oarchive << *this;
 			success = true;
 		}
 		ofs.close();

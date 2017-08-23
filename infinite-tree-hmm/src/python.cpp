@@ -16,6 +16,7 @@ BOOST_PYTHON_MODULE(ithmm){
 	boost::python::class_<Dataset>("dataset", boost::python::init<Dictionary*>())
 	.def("get_num_words", &Dataset::get_num_words)
 	.def("get_count_of_word", &Dataset::get_count_of_word)
+	.def("get_dict", &Dataset::get_dict)
 	.def("add_words_train", &Dataset::python_add_words_train)
 	.def("add_words_dev", &Dataset::python_add_words_dev)
 	.def("add_textfile", &Dataset::add_textfile)
