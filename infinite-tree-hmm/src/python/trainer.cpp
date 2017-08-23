@@ -30,8 +30,8 @@ namespace ithmm {
 				return;
 			}
 			int data_index = _rand_indices[n];
-			std::vector<Word*> &data = _dataset->_word_sequences_train[data_index];
-			_model->_ithmm->perform_gibbs_sampling_data(data);
+			std::vector<Word*> &sentence = _dataset->_word_sequences_train[data_index];
+			_model->_ithmm->perform_gibbs_sampling_with_sentence(sentence);
 		}
 		_model->_ithmm->delete_invalid_children();
 	}
@@ -86,8 +86,8 @@ namespace ithmm {
 			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
 				return 0;
 			}
-			std::vector<Word*> &data = dataset[data_index];
-			double Px = _model->compute_Pdata(data, nodes, _forward_table);
+			std::vector<Word*> &sentence = dataset[data_index];
+			double Px = _model->compute_p_sentence(sentence, nodes, _forward_table);
 			if(Px > 0){
 				log_p_dataset += log(Px);
 			}
@@ -110,8 +110,8 @@ namespace ithmm {
 			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
 				return 0;
 			}
-			std::vector<Word*> &data = dataset[data_index];
-			double Px = _model->compute_Pdata(data, nodes, _forward_table);
+			std::vector<Word*> &sentence = dataset[data_index];
+			double Px = _model->compute_p_sentence(sentence, nodes, _forward_table);
 			if(Px > 0){
 				log_p_dataset += log2(Px);
 			}
@@ -134,10 +134,10 @@ namespace ithmm {
 			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
 				return 0;
 			}
-			std::vector<Word*> &data = dataset[data_index];
-			double Px = _model->compute_Pdata(data, nodes, _forward_table);
+			std::vector<Word*> &sentence = dataset[data_index];
+			double Px = _model->compute_p_sentence(sentence, nodes, _forward_table);
 			if(Px > 0){
-				log_p_dataset += log2(Px) / data.size();
+				log_p_dataset += log2(Px) / sentence.size();
 			}
 		}
 		_after_compute_log_p_dataset();

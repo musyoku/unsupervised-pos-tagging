@@ -141,27 +141,27 @@ namespace ithmm {
 	}
 	// 状態系列の復号
 	// ビタビアルゴリズム
-	void Model::_viterbi_decode(std::vector<Word*> &data, std::vector<Node*> &all_states, std::vector<Node*> &sampled_state_sequence, double** forward_table, double** decode_table){
+	void Model::_viterbi_decode(std::vector<Word*> &sentence, std::vector<Node*> &all_states, std::vector<Node*> &sampled_state_sequence, double** forward_table, double** decode_table){
 		// 初期化
-		Word* word = data[0];
+		Word* word = sentence[0];
 		for(int i = 0;i < all_states.size();i++){
 			Node* state = all_states[i];
 			Node* state_in_bos = _ithmm->_bos_tssb->find_node_by_tracing_horizontal_indices(state);
 			assert(state_in_bos != NULL);
 			double Ps = state_in_bos->_probability;
-			double Pword_given_s = _ithmm->compute_Pw_given_s(word->_id, state);
+			double Pword_given_s = _ithmm->compute_p_w_given_s(word->_id, state);
 			assert(Ps > 0);
 			assert(Pword_given_s > 0);
 			forward_table[0][i] = Pword_given_s * Ps;
 			decode_table[0][i] = 0;
 		}
-		for(int t = 1;t < data.size();t++){
-			Word* word = data[t];
+		for(int t = 1;t < sentence.size();t++){
+			Word* word = sentence[t];
 			for(int j = 0;j < all_states.size();j++){
 				Node* state = all_states[j];
 				forward_table[t][j] = 0;
 				double max_value = 0;
-				double Pword_given_s = _ithmm->compute_Pw_given_s(word->_id, state);
+				double Pword_given_s = _ithmm->compute_p_w_given_s(word->_id, state);
 				for(int i = 0;i < all_states.size();i++){
 					Node* prev_state = all_states[i];
 					Node* state_in_prev_htssb = prev_state->_transition_tssb->find_node_by_tracing_horizontal_indices(state);
@@ -178,7 +178,7 @@ namespace ithmm {
 		}
 		// 後ろ向きに系列を復元
 		std::vector<int> series_indices;
-		int n = data.size() - 1;
+		int n = sentence.size() - 1;
 		int k = 0;
 		double max_value = 0;
 		for(int i = 0;i < all_states.size();i++){
@@ -202,25 +202,25 @@ namespace ithmm {
 	}
 	// データの対数尤度を計算
 	// 前向きアルゴリズム
-	double Model::compute_Pdata(std::vector<Word*> &data, std::vector<Node*> &states, double** forward_table){
+	double Model::compute_p_sentence(std::vector<Word*> &sentence, std::vector<Node*> &states, double** forward_table){
 		// 初期化
-		Word* word = data[0];
+		Word* word = sentence[0];
 		for(int i = 0;i < states.size();i++){
 			Node* state = states[i];
 			Node* state_in_bos = _ithmm->_bos_tssb->find_node_by_tracing_horizontal_indices(state);
 			assert(state_in_bos != NULL);
 			double Ps = state_in_bos->_probability;
-			double Pword_given_s = _ithmm->compute_Pw_given_s(word->_id, state);
+			double Pword_given_s = _ithmm->compute_p_w_given_s(word->_id, state);
 			assert(Ps > 0);
 			assert(Pword_given_s > 0);
 			forward_table[0][i] = Pword_given_s * Ps;
 		}
-		for(int t = 1;t < data.size();t++){
-			Word* word = data[t];
+		for(int t = 1;t < sentence.size();t++){
+			Word* word = sentence[t];
 			for(int j = 0;j < states.size();j++){
 				Node* state = states[j];
 				forward_table[t][j] = 0;
-				double Pword_given_s = _ithmm->compute_Pw_given_s(word->_id, state);
+				double Pword_given_s = _ithmm->compute_p_w_given_s(word->_id, state);
 				for(int i = 0;i < states.size();i++){
 					Node* prev_state = states[i];
 					Node* state_in_prev_htssb = prev_state->_transition_tssb->find_node_by_tracing_horizontal_indices(state);
@@ -230,7 +230,7 @@ namespace ithmm {
 				}
 			}
 		}
-		int t = data.size() - 1;
+		int t = sentence.size() - 1;
 		double Px = 0;
 		for(int j = 0;j < states.size();j++){
 			Px += forward_table[t][j];

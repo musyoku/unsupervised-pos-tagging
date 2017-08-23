@@ -82,14 +82,14 @@ namespace ithmm {
 				assert(state != NULL);
 				word->_state = state;
 			}
-			Node* prev_state = NULL;						// <bos>
+			Node* prev_state = NULL;						// <s>
 			for(int i = 0;i < data.size();i++){
 				Word* word = data[i];
 				Node* state = word->_state;
 				add_initial_parameters(prev_state, state, word->_id);
 				prev_state = state;
 			}
-			add_initial_parameters(prev_state, NULL, 0);	// <eos>
+			add_initial_parameters(prev_state, NULL, 0);	// </s>
 		}
 	}
 	// デバッグ用
@@ -173,7 +173,7 @@ namespace ithmm {
 		generated_child_in_structure->init_hpylm();
 
 		Node* return_child = generated_child_in_structure;	// 実際に返すノード
-		// <bos>TSSB上で子ノードを作成
+		// <s>TSSB上で子ノードを作成
 		Node* generated_child_in_bos = _generate_and_add_new_child_to_bos_tssb(generated_child_in_structure);
 		if(is_node_in_bos_tssb(parent)){
 			return_child = generated_child_in_bos;
@@ -249,7 +249,7 @@ namespace ithmm {
 		}
 	}
 	Node* iTHMM::_generate_and_add_new_child_to_bos_tssb(Node* generated_child_in_structure){
-		// 木構造上での親ノードが<bos>TSSBのどのノードに対応するかを調べる
+		// 木構造上での親ノードが<s>TSSBのどのノードに対応するかを調べる
 		Node* parent = _bos_tssb->find_node_by_tracing_horizontal_indices(generated_child_in_structure->_parent);
 		assert(parent != NULL);
 		Node* child = new Node(parent, generated_child_in_structure->_identifier);
@@ -409,24 +409,24 @@ namespace ithmm {
 			rest_stick_length *= 1.0 - ratio_h;
 		}
 	}
-	void iTHMM::perform_gibbs_sampling_data(std::vector<Word*> &data){
-		assert(data.size() > 0);
+	void iTHMM::perform_gibbs_sampling_with_sentence(std::vector<Word*> &sentence){
+		assert(sentence.size() > 1);
 		Node* prev_state = NULL;
-		Node* next_state = data.size() == 1 ? NULL : data[1]->_state;
-		for(int i = 0;i < data.size();i++){
-			Word* word = data[i];
+		Node* next_state = sentence.size() == 1 ? NULL : sentence[1]->_state;
+		for(int i = 0;i < sentence.size();i++){
+			Word* word = sentence[i];
 			Node* state = word->_state;
 			remove_parameters(prev_state, state, next_state, word->_id);
 			state = draw_state(prev_state, state, next_state, word->_id);
 			add_parameters(prev_state, state, next_state, word->_id);
 			prev_state = state;
-			next_state = i < data.size() - 2 ? data[i + 2]->_state : NULL;
+			next_state = i < sentence.size() - 2 ? sentence[i + 2]->_state : NULL;
 			word->_state = state;
 		}
 	}
 	// データ読み込み時の状態初期化時にのみ使う
 	void iTHMM::add_initial_parameters(Node* prev_state_in_structure, Node* state_in_structure, id word_id){
-		// <bos>からの遷移を含む場合
+		// <s>からの遷移を含む場合
 		if(prev_state_in_structure == NULL){
 			assert(state_in_structure != NULL);
 			assert(state_in_structure->_transition_tssb != NULL);
@@ -438,7 +438,7 @@ namespace ithmm {
 			add_customer_to_hpylm(state_in_structure, word_id);
 			return;
 		}
-		// <eos>への遷移を含む場合
+		// </s>への遷移を含む場合
 		if(state_in_structure == NULL){
 			assert(prev_state_in_structure != NULL);
 			assert(prev_state_in_structure->_transition_tssb != NULL);
@@ -477,7 +477,7 @@ namespace ithmm {
 		prev_state_in_structure->increment_transition_count_to_other();
 	}
 	void iTHMM::add_parameters(Node* prev_state_in_structure, Node* state_in_structure, Node* next_state_in_structure, id word_id){
-		// <bos>からの遷移を含む場合
+		// <s>からの遷移を含む場合
 		if(prev_state_in_structure == NULL){
 			assert(state_in_structure != NULL);
 			assert(state_in_structure->_transition_tssb != NULL);
@@ -497,7 +497,7 @@ namespace ithmm {
 			state_in_structure->increment_transition_count_to_other();
 			return;
 		}
-		// <eos>への遷移を含む場合
+		// </s>への遷移を含む場合
 		if(next_state_in_structure == NULL){
 			assert(prev_state_in_structure != NULL);
 			assert(prev_state_in_structure->_transition_tssb != NULL);
@@ -514,7 +514,7 @@ namespace ithmm {
 			state_in_structure->increment_transition_count_to_eos();
 			return;
 		}
-		// <bos>と<eos>両方を含む場合
+		// <s>と</s>両方を含む場合
 		if(prev_state_in_structure == NULL && next_state_in_structure == NULL){
 			assert(state_in_structure != NULL);
 			assert(is_node_in_structure_tssb(state_in_structure));
@@ -553,7 +553,7 @@ namespace ithmm {
 	}
 	// データをモデルから全部消す時はこれを使う
 	void iTHMM::remove_initial_parameters(Node* prev_state_in_structure, Node* state_in_structure, id word_id){
-		// <bos>からの遷移を含む場合
+		// <s>からの遷移を含む場合
 		if(prev_state_in_structure == NULL){
 			assert(state_in_structure != NULL);
 			assert(state_in_structure->_transition_tssb != NULL);
@@ -565,7 +565,7 @@ namespace ithmm {
 			remove_customer_from_hpylm(state_in_structure, word_id);
 			return;
 		}
-		// <eos>への遷移を含む場合
+		// </s>への遷移を含む場合
 		if(state_in_structure == NULL){
 			assert(prev_state_in_structure != NULL);
 			assert(prev_state_in_structure->_transition_tssb != NULL);
@@ -603,7 +603,19 @@ namespace ithmm {
 		prev_state_in_structure->decrement_transition_count_to_other();
 	}
 	void iTHMM::remove_parameters(Node* prev_state_in_structure, Node* state_in_structure, Node* next_state_in_structure, id word_id){
-		// <bos>からの遷移を含む場合
+		// <s>と</s>両方を含む場合
+		if(prev_state_in_structure == NULL && next_state_in_structure == NULL){
+			assert(state_in_structure != NULL);
+			assert(is_node_in_structure_tssb(state_in_structure));
+			Node* state_in_bos = _bos_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
+			assert(state_in_bos);
+			remove_customer_from_tssb_node(state_in_bos);
+			remove_customer_from_tssb_node(state_in_structure);			// 参照カウント用
+			remove_customer_from_hpylm(state_in_structure, word_id);
+			state_in_structure->decrement_transition_count_to_eos();
+			return;
+		}
+		// <s>からの遷移を含む場合
 		if(prev_state_in_structure == NULL){
 			assert(state_in_structure != NULL);
 			assert(state_in_structure->_transition_tssb != NULL);
@@ -622,7 +634,7 @@ namespace ithmm {
 			state_in_structure->decrement_transition_count_to_other();
 			return;
 		}
-		// <eos>への遷移を含む場合
+		// </s>への遷移を含む場合
 		if(next_state_in_structure == NULL){
 			assert(prev_state_in_structure != NULL);
 			assert(prev_state_in_structure->_transition_tssb != NULL);
@@ -635,18 +647,6 @@ namespace ithmm {
 			remove_customer_from_tssb_node(state_in_structure);		// 参照カウント用
 			remove_customer_from_hpylm(state_in_structure, word_id);
 			prev_state_in_structure->decrement_transition_count_to_other();
-			state_in_structure->decrement_transition_count_to_eos();
-			return;
-		}
-		// <bos>と<eos>両方を含む場合
-		if(prev_state_in_structure == NULL && next_state_in_structure == NULL){
-			assert(state_in_structure != NULL);
-			assert(is_node_in_structure_tssb(state_in_structure));
-			Node* state_in_bos = _bos_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
-			assert(state_in_bos);
-			remove_customer_from_tssb_node(state_in_bos);
-			remove_customer_from_tssb_node(state_in_structure);			// 参照カウント用
-			remove_customer_from_hpylm(state_in_structure, word_id);
 			state_in_structure->decrement_transition_count_to_eos();
 			return;
 		}
@@ -692,30 +692,30 @@ namespace ithmm {
 		assert(is_node_in_structure_tssb(prev_state_in_structure));
 		assert(is_node_in_structure_tssb(next_state_in_structure));
 		// 出力確率
-		double Pw_given_s = compute_Pw_given_s(word_id, state_in_structure);
-		assert(0 < Pw_given_s && Pw_given_s <= 1);
+		double p_w_given_s = compute_p_w_given_s(word_id, state_in_structure);
+		assert(0 < p_w_given_s && p_w_given_s <= 1);
 		// 遷移確率
-		// s_tから<eos>へ接続する確率
+		// s_tから</s>へ接続する確率
 		assert(state_in_structure->_transition_tssb != NULL);
 		Node* next_state_in_htssb = state_in_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(next_state_in_structure);
 		assert(next_state_in_htssb != NULL);
 		assert(next_state_in_htssb->_identifier == next_state_in_structure->_identifier);
-		// <eos>以外に接続する確率を棒全体の長さとする
+		// </s>以外に接続する確率を棒全体の長さとする
 		// if(state_in_structure->_identifier == next_state_in_structure->_identifier){
 			// s_t == s_{t+1}の場合は正しい確率を求めるためにp(s_t|s_{t-1})に客を追加
 			// word_idは使わないので何を指定しても良い
 			add_temporal_parameters(prev_state_in_structure, state_in_structure);
 		// }
-		double Peos_given_s = state_in_structure->compute_transition_probability_to_eos(_tau0, _tau1);
-		double Pnext_given_s = (1.0 - Peos_given_s) * compute_node_probability_in_tssb(state_in_structure->_transition_tssb, next_state_in_htssb, 1.0);
-		assert(0 < Pnext_given_s && Pnext_given_s <= 1);
+		double p_eos_given_s = state_in_structure->compute_transition_probability_to_eos(_tau0, _tau1);
+		double p_next_given_s = (1.0 - p_eos_given_s) * compute_node_probability_in_tssb(state_in_structure->_transition_tssb, next_state_in_htssb, 1.0);
+		assert(0 < p_next_given_s && p_next_given_s <= 1);
 
 		// if(state_in_structure->_identifier == next_state_in_structure->_identifier){
 			remove_temporal_parameters(prev_state_in_structure, state_in_structure);
 		// }
 
 		// スライス
-		double slice = Pw_given_s * Pnext_given_s * sampler::uniform(0, 1);
+		double slice = p_w_given_s * p_next_given_s * sampler::uniform(0, 1);
 		assert(slice > 0);
 
 		double st = 0;
@@ -734,30 +734,30 @@ namespace ithmm {
 			assert(new_state_in_structure->_transition_tssb != NULL);
 
 			// 出力確率
-			double new_Pw_given_s = compute_Pw_given_s(word_id, new_state_in_structure);
-			assert(0 < new_Pw_given_s && new_Pw_given_s <= 1);
+			double new_p_w_given_s = compute_p_w_given_s(word_id, new_state_in_structure);
+			assert(0 < new_p_w_given_s && new_p_w_given_s <= 1);
 			if(new_state_in_structure->_identifier == state_in_structure->_identifier){
-				assert(new_Pw_given_s == Pw_given_s);	// 一致しないならバグ
+				assert(new_p_w_given_s == p_w_given_s);	// 一致しないならバグ
 			}
 			// 遷移確率
 			//// s_{new}からs_{t+1}へ接続する確率
 			Node* next_state_in_new_state_htssb = new_state_in_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(next_state_in_structure);
-			//// <eos>以外に接続する確率を棒全体の長さとし、TSSBで分配
-			double new_Pnext_given_s;
-			double new_Peos_given_s;
+			//// </s>以外に接続する確率を棒全体の長さとし、TSSBで分配
+			double new_p_next_given_s;
+			double new_p_eos_given_s;
 			if(new_state_in_structure->_identifier == state_in_structure->_identifier){
-				new_Pnext_given_s = Pnext_given_s;
-				new_Peos_given_s = Peos_given_s;
+				new_p_next_given_s = p_next_given_s;
+				new_p_eos_given_s = p_eos_given_s;
 			}else{
 				add_temporal_parameters(prev_state_in_structure, new_state_in_structure);
-				new_Peos_given_s = new_state_in_structure->compute_transition_probability_to_eos(_tau0, _tau1);
-				new_Pnext_given_s = (1.0 - new_Peos_given_s) * compute_node_probability_in_tssb(new_state_in_structure->_transition_tssb, next_state_in_new_state_htssb, 1.0);
+				new_p_eos_given_s = new_state_in_structure->compute_transition_probability_to_eos(_tau0, _tau1);
+				new_p_next_given_s = (1.0 - new_p_eos_given_s) * compute_node_probability_in_tssb(new_state_in_structure->_transition_tssb, next_state_in_new_state_htssb, 1.0);
 				remove_temporal_parameters(prev_state_in_structure, new_state_in_structure);
 			}
-			assert(0 < new_Pnext_given_s && new_Pnext_given_s <= 1);
+			assert(0 < new_p_next_given_s && new_p_next_given_s <= 1);
 
 			// 尤度を計算
-			double likelihoood = new_Pw_given_s * new_Pnext_given_s;
+			double likelihoood = new_p_w_given_s * new_p_next_given_s;
 
 			if(likelihoood > slice){
 				if(_mh_enabled == false){
@@ -772,7 +772,7 @@ namespace ithmm {
 				assert(state_in_prev_htssb != NULL);
 				assert(state_in_prev_htssb->_identifier == state_in_structure->_identifier);
 				double Peos_given_prev = prev_state_in_structure->compute_transition_probability_to_eos(_tau0, _tau1);
-				double Ps_given_prev = (1.0 - Peos_given_prev) * compute_node_probability_in_tssb(prev_state_in_structure->_transition_tssb, state_in_prev_htssb, 1.0);
+				double p_s_given_prev = (1.0 - Peos_given_prev) * compute_node_probability_in_tssb(prev_state_in_structure->_transition_tssb, state_in_prev_htssb, 1.0);
 				double Pnew_s_given_prev = (1.0 - Peos_given_prev) * compute_node_probability_in_tssb(prev_state_in_structure->_transition_tssb, new_state_in_prev_htssb, 1.0);
 
 				Node* state_in_root_htssb = _structure_tssb->_root->_transition_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
@@ -783,12 +783,12 @@ namespace ithmm {
 				assert(new_state_in_root_htssb->_identifier == new_state_in_structure->_identifier);
 				compute_node_probability_in_tssb(_structure_tssb->_root->_transition_tssb, state_in_root_htssb, 1.0);
 				compute_node_probability_in_tssb(_structure_tssb->_root->_transition_tssb, new_state_in_root_htssb, 1.0);
-				double Ps = state_in_root_htssb->_probability;
-				double Pnew_s = new_state_in_root_htssb->_probability;
-				double Pw_given_new_s = compute_Pw_given_s(word_id, new_state_in_structure);
-				assert(Ps_given_prev * Pw_given_new_s > 0);
+				double p_s = state_in_root_htssb->_probability;
+				double p_new_s = new_state_in_root_htssb->_probability;
+				double p_w_given_new_s = compute_p_w_given_s(word_id, new_state_in_structure);
+				assert(p_s_given_prev * p_w_given_new_s > 0);
 				// 採択率の計算式が不明
-				double adoption = Pnew_s_given_prev / Ps_given_prev;
+				double adoption = Pnew_s_given_prev / p_s_given_prev;
 				adoption = std::min(1.0, adoption);
 				double u = sampler::uniform(0, 1);
 				if(u <= adoption){
@@ -816,21 +816,21 @@ namespace ithmm {
 		assert(is_node_in_structure_tssb(state_in_structure));
 		assert(is_node_in_structure_tssb(next_state_in_structure));
 		// 出力確率
-		double Pw_given_s = compute_Pw_given_s(word_id, state_in_structure);
-		assert(0 < Pw_given_s && Pw_given_s <= 1);
+		double p_w_given_s = compute_p_w_given_s(word_id, state_in_structure);
+		assert(0 < p_w_given_s && p_w_given_s <= 1);
 		// 遷移確率
-		//// s_tから<eos>へ接続する確率
-		double Peos_given_s = state_in_structure->compute_transition_probability_to_eos(_tau0, _tau1);
+		//// s_tから</s>へ接続する確率
+		double p_eos_given_s = state_in_structure->compute_transition_probability_to_eos(_tau0, _tau1);
 		assert(state_in_structure->_transition_tssb != NULL);
 		Node* next_state_in_htssb = state_in_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(next_state_in_structure);
 		assert(next_state_in_htssb != NULL);
-		//// <eos>以外に接続する確率を棒全体の長さとし、TSSBで分配
-		double stick_length = 1.0 - Peos_given_s;
-		double Pt_given_s = compute_node_probability_in_tssb(state_in_structure->_transition_tssb, next_state_in_htssb, 1.0);
-		Pt_given_s *= stick_length;
-		assert(0 < Pt_given_s && Pt_given_s <= 1);
+		//// </s>以外に接続する確率を棒全体の長さとし、TSSBで分配
+		double stick_length = 1.0 - p_eos_given_s;
+		double p_t_given_s = compute_node_probability_in_tssb(state_in_structure->_transition_tssb, next_state_in_htssb, 1.0);
+		p_t_given_s *= stick_length;
+		assert(0 < p_t_given_s && p_t_given_s <= 1);
 		// スライス
-		double slice = Pw_given_s * Pt_given_s * sampler::uniform(0, 1);
+		double slice = p_w_given_s * p_t_given_s * sampler::uniform(0, 1);
 		assert(slice > 0);
 
 		double st = 0;
@@ -846,19 +846,19 @@ namespace ithmm {
 			assert(new_state_in_structure->_transition_tssb != NULL);
 
 			// 出力確率
-			double new_Pw_given_s = compute_Pw_given_s(word_id, new_state_in_structure);
-			assert(0 < new_Pw_given_s && new_Pw_given_s <= 1);
+			double new_p_w_given_s = compute_p_w_given_s(word_id, new_state_in_structure);
+			assert(0 < new_p_w_given_s && new_p_w_given_s <= 1);
 			// 遷移確率
 			//// s_{new}からs_{t+1}へ接続する確率
 			Node* next_state_in_new_state_htssb = new_state_in_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(next_state_in_structure);
-			double Peos_given_new_s = new_state_in_structure->compute_transition_probability_to_eos(_tau0, _tau1);
-			double new_Pnext_given_s = compute_node_probability_in_tssb(new_state_in_structure->_transition_tssb, next_state_in_new_state_htssb, 1.0);
-			//// <eos>以外に接続する確率を棒全体の長さとし、TSSBで分配
-			double total_stick_length_of_new_tssb = 1.0 - Peos_given_new_s;
-			new_Pnext_given_s *= total_stick_length_of_new_tssb;
-			assert(0 < new_Pnext_given_s && new_Pnext_given_s <= 1);
+			double p_eos_given_new_s = new_state_in_structure->compute_transition_probability_to_eos(_tau0, _tau1);
+			double new_p_next_given_s = compute_node_probability_in_tssb(new_state_in_structure->_transition_tssb, next_state_in_new_state_htssb, 1.0);
+			//// </s>以外に接続する確率を棒全体の長さとし、TSSBで分配
+			double total_stick_length_of_new_tssb = 1.0 - p_eos_given_new_s;
+			new_p_next_given_s *= total_stick_length_of_new_tssb;
+			assert(0 < new_p_next_given_s && new_p_next_given_s <= 1);
 			// 尤度を計算
-			double likelihoood = new_Pw_given_s * new_Pnext_given_s;
+			double likelihoood = new_p_w_given_s * new_p_next_given_s;
 			if(likelihoood > slice){
 				return new_state_in_structure;
 			}
@@ -876,18 +876,18 @@ namespace ithmm {
 		assert(is_node_in_structure_tssb(prev_state_in_structure));
 		assert(is_node_in_structure_tssb(state_in_structure));
 		// 出力確率
-		double Pw_given_s = compute_Pw_given_s(word_id, state_in_structure);
-		assert(0 < Pw_given_s && Pw_given_s <= 1);
+		double p_w_given_s = compute_p_w_given_s(word_id, state_in_structure);
+		assert(0 < p_w_given_s && p_w_given_s <= 1);
 		// 遷移確率
-		//// s_tから<eos>へ接続する確率
-		double Peos_given_s = state_in_structure->compute_transition_probability_to_eos(_tau0, _tau1);
-		assert(0 < Peos_given_s && Peos_given_s <= 1);
+		//// s_tから</s>へ接続する確率
+		double p_eos_given_s = state_in_structure->compute_transition_probability_to_eos(_tau0, _tau1);
+		assert(0 < p_eos_given_s && p_eos_given_s <= 1);
 		// スライス
-		double slice = Pw_given_s * Peos_given_s * sampler::uniform(0, 1);
+		double slice = p_w_given_s * p_eos_given_s * sampler::uniform(0, 1);
 		assert(slice > 0);
-		// // s_{t-1}から<eos>へ接続する確率
+		// // s_{t-1}から</s>へ接続する確率
 		// double Peos_given_prev_s = prev_state_in_structure->compute_transition_probability_to_eos(_tau0, _tau1);
-		// <eos>以外に接続する確率を棒全体の長さとし、TSSBで分配
+		// </s>以外に接続する確率を棒全体の長さとし、TSSBで分配
 		double st = 0;
 		double ed = 1;
 		// c_printf("[r]%s\n", "_draw_state_to_eos");
@@ -905,14 +905,14 @@ namespace ithmm {
 			assert(new_state_in_structure->_transition_tssb != NULL);
 
 			// 出力確率
-			double new_Pw_given_s = compute_Pw_given_s(word_id, new_state_in_structure);
-			assert(0 < new_Pw_given_s && new_Pw_given_s <= 1);
+			double new_p_w_given_s = compute_p_w_given_s(word_id, new_state_in_structure);
+			assert(0 < new_p_w_given_s && new_p_w_given_s <= 1);
 			// 遷移確率
-			//// s_{new}から<eos>へ接続する確率
-			double Peos_given_new_s = new_state_in_structure->compute_transition_probability_to_eos(_tau0, _tau1);
-			assert(0 < Peos_given_new_s && Peos_given_new_s <= 1);
+			//// s_{new}から</s>へ接続する確率
+			double p_eos_given_new_s = new_state_in_structure->compute_transition_probability_to_eos(_tau0, _tau1);
+			assert(0 < p_eos_given_new_s && p_eos_given_new_s <= 1);
 			// 尤度を計算
-			double likelihoood = new_Pw_given_s * Peos_given_new_s;
+			double likelihoood = new_p_w_given_s * p_eos_given_new_s;
 			if(likelihoood > slice){
 				return new_state_in_structure;
 			}
@@ -951,7 +951,7 @@ namespace ithmm {
 			_bos_tssb->increment_num_customers();
 		}
 		// 参照カウントのインクリメント
-		//// <bos>からの接続のカウント
+		//// <s>からの接続のカウント
 		if(is_node_in_bos_tssb(target_in_tssb)){
 			Node* target_in_structure = target_in_tssb->_structure_tssb_myself;
 			assert(target_in_structure != NULL);
@@ -1038,7 +1038,7 @@ namespace ithmm {
 			_bos_tssb->decrement_num_customers();
 		}
 		// 参照カウントのインクリメント
-		//// <bos>からの接続のカウント
+		//// <s>からの接続のカウント
 		if(is_node_in_bos_tssb(target_in_tssb)){
 			Node* target_in_structure = target_in_tssb->_structure_tssb_myself;
 			assert(target_in_structure != NULL);
@@ -1345,7 +1345,7 @@ namespace ithmm {
 		}
 		return sbr_ratio;
 	}
-	double iTHMM::compute_Pw_given_s(id token_id, Node* node_in_structure){
+	double iTHMM::compute_p_w_given_s(id token_id, Node* node_in_structure){
 		assert(node_in_structure != NULL);
 		assert(node_in_structure->_hpylm != NULL);
 		assert(is_node_in_structure_tssb(node_in_structure));
@@ -1444,7 +1444,7 @@ namespace ithmm {
 		}
 		// 全てのHTSSBから削除
 		_delete_node_in_all_htssb(delete_id, _structure_tssb->_root, parent_in_structure);
-		// <bos>から削除
+		// <s>から削除
 		Node* parent_in_bos = _bos_tssb->find_node_by_tracing_horizontal_indices(parent_in_structure);
 		assert(parent_in_bos != NULL);
 		assert(is_node_in_bos_tssb(parent_in_bos));

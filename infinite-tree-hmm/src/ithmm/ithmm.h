@@ -81,7 +81,7 @@ namespace ithmm {
 		Node* _sample_node_in_tssb_by_iterating_node(Node* iterator, bool htssb_mode, bool ignore_root = false);
 		Node* retrospective_sampling(double uniform, TSSB* tssb, double total_stick_length, bool htssb_mode);
 		Node* _retrospective_sampling_by_iterating_node(double uniform, double &sum_probability, Node* iterator, bool htssb_mode);
-		void perform_gibbs_sampling_data(std::vector<Word*> &data);
+		void perform_gibbs_sampling_with_sentence(std::vector<Word*> &sentence);
 		void add_initial_parameters(Node* prev_state_in_structure, Node* state_in_structure, id word_id);
 		void add_temporal_parameters(Node* prev_state_in_structure, Node* state_in_structure);
 		void add_parameters(Node* prev_state_in_structure, Node* state_in_structure, Node* next_state_in_structure, id word_id);
@@ -109,7 +109,7 @@ namespace ithmm {
 		double compute_expectation_of_horizontal_tssb_sbr_ratio(Node* target_in_tssb);
 		double compute_expectation_of_vertical_htssb_sbr_ratio(Node* target_in_htssb);
 		double compute_expectation_of_horizontal_htssb_sbr_ratio(Node* target_in_htssb);
-		double compute_Pw_given_s(id token_id, Node* node_in_structure);
+		double compute_p_w_given_s(id token_id, Node* node_in_structure);
 		void update_stick_length_of_tssb(TSSB* tssb, double total_stick_length, bool htssb_mode);
 		void _update_stick_length_of_parent_node(double &sum_probability, Node* parent, bool htssb_mode);
 		void delete_invalid_children();
