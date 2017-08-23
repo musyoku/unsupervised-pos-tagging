@@ -100,10 +100,10 @@ namespace bhmm {
 		_allocated = true;
 	}
 	void HMM::init_ngram_counts_with_corpus(std::vector<std::vector<Word*>> &dataset){
-		assert(_num_tags != -1);
 		// 最初は品詞をランダムに割り当てる
+		assert(_num_tags != -1);
 		std::set<int> word_set;
-		std::unordered_map<int, int> tag_for_word;
+		// std::unordered_map<int, int> tag_for_word;
 		for(int data_index = 0;data_index < dataset.size();data_index++){
 			std::vector<Word*> &word_vec = dataset[data_index];
 			for(int pos = 2;pos < word_vec.size();pos++){	// 3-gramなので3番目から.
@@ -113,11 +113,11 @@ namespace bhmm {
 					int state = sampler::uniform_int(1, _num_tags);
 					assert(1 <= state && state <= _num_tags);
 					word->_state = state;
-					tag_for_word[word->_id] = state;
+					// tag_for_word[word->_id] = state;
 				// }else{
 				// 	word->_state = itr->second;
 				// }
-				increment_tag_ngram_count(word_vec[pos - 2], word_vec[pos - 1], word_vec[pos]);
+				increment_tag_trigram_count_by_words(word_vec[pos - 2], word_vec[pos - 1], word_vec[pos]);
 				word_set.insert(word->_id);
 				// 同じタグの単語集合をカウント
 				increment_tag_word_count(word->_state, word->_id);
@@ -134,7 +134,7 @@ namespace bhmm {
 		assert(n > 0);
 		_num_tags = n;
 	}
-	void HMM::increment_tag_ngram_count(Word* tri_word, Word* bi_word, Word* uni_word){
+	void HMM::increment_tag_trigram_count_by_words(Word* tri_word, Word* bi_word, Word* uni_word){
 		assert(uni_word != NULL);
 		assert(bi_word != NULL);
 		assert(tri_word != NULL);
@@ -165,7 +165,7 @@ namespace bhmm {
 			word_counts.erase(itr);
 		}
 	}
-	int HMM::get_count_for_tag_word(int tag_id, int word_id){
+	int HMM::get_count_of_tag_word(int tag_id, int word_id){
 		assert(1 <= tag_id && tag_id <= _num_tags);
 		std::unordered_map<int, int> &word_counts = _tag_word_counts[tag_id];
 		auto itr = word_counts.find(word_id);
@@ -174,30 +174,17 @@ namespace bhmm {
 		}
 		return itr->second;
 	}
-	int HMM::get_word_types_for_tag(int tag_id){
+	int HMM::get_word_types_of_tag(int tag_id){
 		assert(1 <= tag_id && tag_id <= _num_tags);
 		std::unordered_map<int, int> &word_counts = _tag_word_counts[tag_id];
 		return word_counts.size();
 	}
-	double HMM::compute_log_Pt_alpha(std::vector<Word*> &word_vec, double alpha){
+	double HMM::compute_log_p_t_given_alpha(std::vector<Word*> &word_vec, double alpha){
 		double log_Pt_alpha = 0;
-		for(int pos = 2;pos < word_vec.size() - 2;pos++){	// <bos>と<eos>の内側だけ考える
-			int ti_2 = word_vec[pos - 2]->_state;
-			int ti_1 = word_vec[pos - 1]->_state;
-			int ti = word_vec[pos]->_state;
-			double n_ti_2_ti_1_ti = _trigram_counts[ti_2][ti_1][ti];
-			double n_ti_2_ti_1 = _bigram_counts[ti_2][ti_1];
-			double Pt_i_alpha = (n_ti_2_ti_1_ti + alpha) / (n_ti_2_ti_1 + _num_tags * alpha);
-			log_Pt_alpha += log(Pt_i_alpha);
-		}
-		return log_Pt_alpha;
-	}
-	double HMM::compute_log_Pw_t_alpha(std::vector<Word*> &word_vec, double alpha){
-		double log_Pt_alpha = 0;
-		for(int pos = 2;pos < word_vec.size() - 2;pos++){	// <bos>と<eos>の内側だけ考える
-			int ti_2 = word_vec[pos - 2]->_state;
-			int ti_1 = word_vec[pos - 1]->_state;
-			int ti = word_vec[pos]->_state;
+		for(int i = 2;i < word_vec.size() - 2;i++){	// <bos>と<eos>の内側だけ考える
+			int ti_2 = word_vec[i - 2]->_state;
+			int ti_1 = word_vec[i - 1]->_state;
+			int ti = word_vec[i]->_state;
 			double n_ti_2_ti_1_ti = _trigram_counts[ti_2][ti_1][ti];
 			double n_ti_2_ti_1 = _bigram_counts[ti_2][ti_1];
 			double Pt_i_alpha = (n_ti_2_ti_1_ti + alpha) / (n_ti_2_ti_1 + _num_tags * alpha);
@@ -207,7 +194,7 @@ namespace bhmm {
 	}
 	// 正規化定数で割る前の値
 	double HMM::compute_p_wi_given_ti_beta(int ti, int wi, double beta){
-		double n_ti_wi = get_count_for_tag_word(ti, wi);
+		double n_ti_wi = get_count_of_tag_word(ti, wi);
 		double n_ti = _unigram_counts[ti];
 		double W_ti = _Wt[ti];
 		return (n_ti_wi + beta) / (n_ti + W_ti * beta);
@@ -271,7 +258,7 @@ namespace bhmm {
 			int new_ti = 0;
 			for(int tag = 1;tag <= _num_tags;tag++){
 				_sampling_table[tag] = 1;
-				double n_ti_wi = get_count_for_tag_word(tag, wi);
+				double n_ti_wi = get_count_of_tag_word(tag, wi);
 				double W_ti = _Wt[tag];
 				// n.
 				double n_ti_2_ti_1_ti 	= _trigram_counts[ti_2][ti_1][tag];
@@ -314,52 +301,13 @@ namespace bhmm {
 			word_vec[i]->_state = new_ti;
 		}
 	}
-	// 論文(6)式と(7)式を掛けたものからtiをサンプリング
-	int HMM::sample_tag_from_Pt_w(int ti_2, int ti_1, int wi){
-		double sum_p = 0;
-		for(int tag = 0;tag < _num_tags;tag++){
-			double Pt_alpha = (_trigram_counts[ti_2][ti_1][tag] + _alpha) / (_bigram_counts[ti_2][ti_1] + _num_tags * _alpha);
-			double Pw_t_beta = (get_count_for_tag_word(tag, wi) + _beta[tag]) / (_unigram_counts[tag] + _Wt[tag] * _beta[tag]);
-			double Ptw_alpha_beta = Pw_t_beta * Pt_alpha;
-			_sampling_table[tag] = Ptw_alpha_beta;
-			sum_p += Ptw_alpha_beta;
-		}
-		double normalizer = 1.0 / sum_p;
-		double bernoulli = sampler::uniform(0, 1);
-		sum_p = 0;
-		for(int tag = 0;tag < _num_tags;tag++){
-			sum_p += _sampling_table[tag] * normalizer;
-			if(sum_p > bernoulli){
-				return tag;
-			}
-		}
-		return _num_tags - 1;
-	}
-	// 論文(6)式と(7)式を掛けたものからtiをサンプリング
-	int HMM::argmax_tag_from_Pt_w(int ti_2, int ti_1, int wi){
-		double max_p = 0;
-		double max_tag = 0;
-		// std::cout << (boost::format("argmax(%d, %d, %d)") % ti_2 % ti_1 % wi).str() << std::endl;
-		for(int tag = 0;tag < _num_tags;tag++){
-			double Pt_alpha = (_trigram_counts[ti_2][ti_1][tag] + _alpha) / (_bigram_counts[ti_2][ti_1] + _num_tags * _alpha);
-			double Pw_t_beta = (get_count_for_tag_word(tag, wi) + _beta[tag]) / (_unigram_counts[tag] + _Wt[tag] * _beta[tag]);
-			double Ptw_alpha_beta = Pw_t_beta * Pt_alpha;
-			// std::cout << (boost::format("%f = %f * %f") % Ptw_alpha_beta % Pw_t_beta % Pt_alpha).str() << std::endl;
-			if(Ptw_alpha_beta > max_p){
-				max_p = Ptw_alpha_beta;
-				max_tag = tag;
-			}
-		}
-		// std::cout << "return " << max_tag << std::endl;
-		return max_tag;
-	}
-	Word* HMM::_get_random_word_with_tag(int tag, std::vector<std::vector<Word*>> &dataset){
+	Word* HMM::get_random_word_with_tag_from_corpus(int tag, std::vector<std::vector<Word*>> &dataset){
 		int random_index = sampler::uniform_int(0, dataset.size() - 1);
 		std::vector<Word*> &word_vec = dataset[random_index];
-		for(int pos = 0;pos < word_vec.size();pos++){
-			int ti = word_vec[pos]->_state;
+		for(int t = 0;t < word_vec.size();t++){
+			int ti = word_vec[t]->_state;
 			if(ti == tag){
-				return word_vec[pos];
+				return word_vec[t];
 			}
 		}
 		return NULL;
@@ -372,8 +320,8 @@ namespace bhmm {
 		// メトロポリス・ヘイスティングス法
 		// http://ebsa.ism.ac.jp/ebooks/sites/default/files/ebook/1881/pdf/vol3_ch10.pdf
 		// 提案分布は正規分布
-		double log_Pt_alpha = compute_log_Pt_alpha(word_vec, _alpha);
-		double log_Pt_new_alpha = compute_log_Pt_alpha(word_vec, new_alpha);
+		double log_Pt_alpha = compute_log_p_t_given_alpha(word_vec, _alpha);
+		double log_Pt_new_alpha = compute_log_p_t_given_alpha(word_vec, new_alpha);
 		// q(alpha|new_alpha) / q(new_alpha|alpha)の計算
 		double sigma_alpha = 0.1 * _alpha;
 		double sigma_new_alpha = 0.1 * new_alpha;
@@ -404,7 +352,7 @@ namespace bhmm {
 				if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
 					return;
 				}
-				random_word = _get_random_word_with_tag(tag, dataset);
+				random_word = get_random_word_with_tag_from_corpus(tag, dataset);
 				limit--;
 				if(limit < 0){
 					break;
@@ -439,7 +387,7 @@ namespace bhmm {
 		int max_count = 0;
 		int most_co_occurring_tag_id = 0;
 		for(int tag = 0;tag < _num_tags;tag++){
-			int count = get_count_for_tag_word(tag, word_id);
+			int count = get_count_of_tag_word(tag, word_id);
 			if(count > max_count){
 				max_count = count;
 				most_co_occurring_tag_id = tag;
@@ -470,12 +418,11 @@ namespace bhmm {
 	}
 	void HMM::dump_word_types(){
 		for(int tag = 0;tag < _num_tags;tag++){
-			std::cout << tag << ": " << get_word_types_for_tag(tag) << std::endl;
+			std::cout << tag << ": " << get_word_types_of_tag(tag) << std::endl;
 		}
 	}
 	template <class Archive>
-	void HMM::serialize(Archive &ar, unsigned int version)
-	{
+	void HMM::serialize(Archive &ar, unsigned int version){
 		boost::serialization::split_free(ar, *this, version);
 	}
 	bool HMM::save(std::string filename){
