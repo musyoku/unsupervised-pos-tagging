@@ -92,10 +92,6 @@ def build_corpus(filename, dataset):
 			word_count.add(lowercase)
 			words.append(lowercase)
 
-		if len(words) < 2:
-			print(sentence)
-			raise Exception()
-
 		# データを追加
 		if i > train_split:
 			dataset.add_words_dev(words)		# 評価用データに追加
