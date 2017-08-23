@@ -17,6 +17,6 @@ namespace bhmm {
 		void set_temperature(double temperature);
 		void set_minimum_temperature(double temperature);
 		void anneal_temperature(double temperature);
-		void _viterbi_decode(std::vector<Word*> &data, std::vector<int> &sampled_state_sequence, double** forward_table, double** decode_table);
+		void viterbi_decode(std::vector<Word*> &data, std::vector<int> &sampled_state_sequence, double** forward_table, double** decode_table);
 	};
 }

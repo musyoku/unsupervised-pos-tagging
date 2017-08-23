@@ -43,7 +43,7 @@ namespace bhmm {
 	}
 	// 状態系列の復号
 	// ビタビアルゴリズム
-	void Model::_viterbi_decode(std::vector<Word*> &data, std::vector<int> &sampled_state_sequence, double** forward_table, double** decode_table){
+	void Model::viterbi_decode(std::vector<Word*> &data, std::vector<int> &sampled_state_sequence, double** forward_table, double** decode_table){
 		// 初期化
 		// int num_tags = _hmm->_num_tags;
 		// int seq_length = data.size();

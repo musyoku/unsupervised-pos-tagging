@@ -56,7 +56,7 @@ namespace bhmm {
 		alloc_count_tables(_num_tags);
 		init_ngram_counts_with_corpus(dataset);
 		for(int tag = 1;tag <= length;tag++){
-			set_Wt_for_tag(tag, Wt[tag]);
+			set_Wt_for_tag(tag, Wt[tag - 1]);
 		}
 	}
 	void HMM::alloc_count_tables(int num_tags){
