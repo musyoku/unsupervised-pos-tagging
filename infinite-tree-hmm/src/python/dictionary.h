@@ -15,9 +15,9 @@ namespace ithmm {
 		std::unordered_map<std::wstring, id> _str_to_id;
 		id _autoincrement;
 		Dictionary();
-		id get_eos_id();
 		id add_word_string(std::wstring word);
 		id string_to_word_id(std::wstring word);
+		int get_vocab_size();
 		bool load(std::string filename);
 		bool save(std::string filename);
 	};

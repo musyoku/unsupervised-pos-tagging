@@ -95,12 +95,6 @@ namespace ithmm {
 			_word_count[word->_id] += 1;
 		}
 
-		Word* eos = new Word();
-		eos->_id = ID_EOS;
-		eos->_state = NULL;
-		words.push_back(eos);
-		_word_count[ID_EOS] += 1;
-
 		dataset.push_back(words);
 
 		if((int)words.size() > _max_num_words_in_line){
@@ -136,7 +130,7 @@ namespace ithmm {
 		}
 		return itr->second;
 	}
-	Dictionary* Dataset::get_dict(){
-		return _dict;
+	Dictionary &Dataset::get_dict(){
+		return *_dict;
 	}
 }

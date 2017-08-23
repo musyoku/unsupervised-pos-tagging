@@ -111,22 +111,20 @@ def main():
 	except:
 		pass
 
-	# 単語辞書
-	dictionary = ithmm.dictionary()
-
 	# データセット
-	dataset = ithmm.dataset(dictionary)
+	dataset = ithmm.dataset()
 
 	# 訓練データを追加
 	dataset, num_words_in_train_dataset = build_corpus(args.train_filename, dataset)
 	dataset.mark_low_frequency_words_as_unknown(args.unknown_threshold)	# 低頻度語を全て<unk>に置き換える
 
 	# 単語辞書を保存
+	dictionary = dataset.get_dict()
 	dictionary.save(os.path.join(args.model, "ithmm.dict"))
 
 	# モデル
 	model = ithmm.model()
-	model.load(os.path.join(args.model, "ithmm.model"))
+	model.load(os.path.join(args.model, "ithmm.model"))	# 未保存の場合は無視される
 
 	# ハイパーパラメータの設定
 	model.set_alpha(random.uniform(10, 20))
@@ -171,7 +169,7 @@ def main():
 		if epoch % 100 == 0:
 			print("\n")
 			trainer.show_assigned_words_for_each_tag(dictionary, 20, False)
-			log_likelihood = trainer.compute_log_Pdataset_dev()
+			log_likelihood = trainer.compute_log_p_dataset_dev()
 			perplexity = trainer.compute_perplexity_dev()
 			print("alpha:", model.get_alpha(), "gamma:", model.get_gamma(), "lambda_alpha:", model.get_lambda_alpha(), "lambda_gamma:", model.get_lambda_gamma(), "strength:", model.get_strength(), "tau0:", model.get_tau0(), "tau1:", model.get_tau1())
 			print("log_likelihood:", int(log_likelihood))
@@ -183,7 +181,7 @@ def main():
 
 			# CSV出力
 			csv_likelihood.append([epoch, log_likelihood])
-			sentence = pd.DataFrame(csv_likelihood)
+			data = pd.DataFrame(csv_likelihood)
 			data.columns = ["epoch", "log_likelihood"]
 			data.to_csv(os.path.join(args.model, "likelihood.csv"))
 			

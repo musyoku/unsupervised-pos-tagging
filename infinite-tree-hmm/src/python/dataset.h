@@ -28,6 +28,6 @@ namespace ithmm {
 		void _mark_low_frequency_words_as_unknown(int threshold, std::vector<std::vector<Word*>> &word_sequence_vec);
 		int get_num_words();
 		int get_count_of_word(id word_id);
-		Dictionary* get_dict();
+		Dictionary &get_dict();
 	};
 }

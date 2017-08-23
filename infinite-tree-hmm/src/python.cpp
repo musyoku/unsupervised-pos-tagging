@@ -8,15 +8,15 @@ using namespace ithmm;
 BOOST_PYTHON_MODULE(ithmm){
 	boost::python::class_<Dictionary>("dictionary")
 	.def("string_to_word_id", &Dictionary::string_to_word_id)
-	.def("get_eos_id", &Dictionary::get_eos_id)
+	.def("get_vocab_size", &Dictionary::get_vocab_size)
 	.def("save", &Dictionary::save)
 	.def("load", &Dictionary::load)
 	.def("add_word", &Dictionary::add_word_string);
 
-	boost::python::class_<Dataset>("dataset", boost::python::init<Dictionary*>())
+	boost::python::class_<Dataset>("dataset")
 	.def("get_num_words", &Dataset::get_num_words)
 	.def("get_count_of_word", &Dataset::get_count_of_word)
-	.def("get_dict", &Dataset::get_dict)
+	.def("get_dict", &Dataset::get_dict, boost::python::return_internal_reference<>())
 	.def("add_words_train", &Dataset::python_add_words_train)
 	.def("add_words_dev", &Dataset::python_add_words_dev)
 	.def("add_textfile", &Dataset::add_textfile)
@@ -27,10 +27,10 @@ BOOST_PYTHON_MODULE(ithmm){
 	.def("update_hyperparameters", &Trainer::update_hyperparameters)
 	.def("compute_perplexity_dev", &Trainer::compute_perplexity_dev)
 	.def("compute_perplexity_train", &Trainer::compute_perplexity_train)
-	.def("compute_log2_Pdataset_dev", &Trainer::compute_log2_Pdataset_dev)
-	.def("compute_log2_Pdataset_train", &Trainer::compute_log2_Pdataset_train)
-	.def("compute_log_Pdataset_dev", &Trainer::compute_log_Pdataset_dev)
-	.def("compute_log_Pdataset_train", &Trainer::compute_log_Pdataset_train)
+	.def("compute_log2_p_dataset_dev", &Trainer::compute_log2_p_dataset_dev)
+	.def("compute_log2_p_dataset_train", &Trainer::compute_log2_p_dataset_train)
+	.def("compute_log_p_dataset_dev", &Trainer::compute_log_p_dataset_dev)
+	.def("compute_log_p_dataset_train", &Trainer::compute_log_p_dataset_train)
 	.def("show_assigned_words_for_each_tag", &Trainer::show_assigned_words_for_each_tag)
 	.def("remove_all_data", &Trainer::remove_all_data);
 

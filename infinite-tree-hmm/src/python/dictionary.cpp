@@ -13,9 +13,6 @@ namespace ithmm {
 		_id_to_str[ID_UNK] = L"<unk>";
 		_autoincrement = ID_UNK + 1;
 	}
-	id Dictionary::get_eos_id(){
-		return ID_EOS;
-	}
 	id Dictionary::add_word_string(std::wstring word){
 		auto itr = _str_to_id.find(word);
 		if(itr == _str_to_id.end()){
@@ -32,6 +29,9 @@ namespace ithmm {
 			return ID_UNK;
 		}
 		return itr->second;
+	}
+	int Dictionary::get_vocab_size(){
+		return _id_to_str.size();
 	}
 	bool Dictionary::load(std::string filename){
 		std::ifstream ifs(filename);

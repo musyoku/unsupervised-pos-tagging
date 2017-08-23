@@ -6,13 +6,15 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import ithmm
-from train_en import collapse_pos, posset, stdout, parse_tagger_result_str
+from train_en import collapse_pos, posset, parse_tagger_result_str
 
 # フォントをセット
 # UbuntuならTakaoGothicなどが標準で入っている
 sns.set(font=["MS Gothic"], font_scale=3)
 
 def main():
+	assert args.train_filename is not None
+
 	# モデル
 	model = ithmm.model()
 	if model.load(os.path.join(args.model, "ithmm.model")) == False:
@@ -32,17 +34,15 @@ def main():
 		for i, line in enumerate(f):
 			line = line.strip()				# 改行を消す
 			results = tagger.tag_text(line)	# 形態素解析
-			wort_ids = []
+			word_ids = []
 			state_sequence_true = []
 			for result_str in results:
 				pos, word = parse_tagger_result_str(result_str)
 				all_types_of_pos.add(pos)
-				wort_ids.append(dictionary.string_to_word_id(word))
+				word_ids.append(dictionary.string_to_word_id(word))
 				state_sequence_true.append(pos)
-			wort_ids.append(dictionary.get_eos_id())
-			state_sequence_true.append("EOS")		# <eos>
 			state_sequence_array_true.append(state_sequence_true)
-			state_sequence_viterbi = model.viterbi_decode(wort_ids)
+			state_sequence_viterbi = model.viterbi_decode(word_ids)
 			assert len(state_sequence_viterbi) == len(state_sequence_true)
 			state_sequence_array_viterbi.append(state_sequence_viterbi)
 
