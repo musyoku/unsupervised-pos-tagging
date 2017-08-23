@@ -26,7 +26,6 @@ def main():
 
 	tagger = treetaggerwrapper.TreeTagger(TAGLANG="en")
 	all_types_of_pos = set()
-	all_types_of_pos.add("EOS")
 	state_sequence_array_true = []		# 真の品詞列
 	state_sequence_array_viterbi = []	# ビタビアルゴリズムによる推定
 	

@@ -14,7 +14,7 @@
 #include "hpylm.h"
 #include "sampler.h"
 #include "cprintf.h"
-#include "util.h"
+#include "utils.h"
 #include "common.h"
 #include "hyperparameters.h"
 
