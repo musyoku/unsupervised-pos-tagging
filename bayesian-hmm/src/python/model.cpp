@@ -2,7 +2,7 @@
 #include "model.h"
 
 namespace bhmm {
-	Model::Model(){
+	Model::Model(int num_tags){
 		// 日本語周り
 		setlocale(LC_CTYPE, "ja_JP.UTF-8");
 		std::ios_base::sync_with_stdio(false);
@@ -12,7 +12,7 @@ namespace bhmm {
 		std::wcout.imbue(ctype_default);
 		std::wcin.imbue(ctype_default);
 
-		_hmm = new HMM();
+		_hmm = new HMM(num_tags);
 	}
 	Model::~Model(){
 		delete _hmm;

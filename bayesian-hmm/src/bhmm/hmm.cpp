@@ -10,24 +10,21 @@
 #include "utils.h"
 
 namespace bhmm {
-	HMM::HMM(){
+	HMM::HMM(int num_tags){
 		_trigram_counts = NULL;
 		_bigram_counts = NULL;
 		_unigram_counts = NULL;
 		_sampling_table = NULL;
 		_Wt = NULL;
-		_num_tags = -1;
+		_num_tags = num_tags;
 		_num_words = -1;
 		_alpha = 1;
 		_beta = NULL;
 		_temperature = 1;
 		_minimum_temperature = 1;
-		_allocated = false;
+		alloc_count_tables(_num_tags);
 	}
 	HMM::~HMM(){
-		if(_allocated == false){
-			return;
-		}
 		for(int tri_tag = 0;tri_tag <= _num_tags;tri_tag++){
 			for(int bi_tag = 0;bi_tag <= _num_tags;bi_tag++){
 				delete[] _trigram_counts[tri_tag][bi_tag];
@@ -51,16 +48,13 @@ namespace bhmm {
 	}
 	void HMM::initialize_with_training_corpus(std::vector<std::vector<Word*>> &dataset, std::vector<int> &Wt){
 		int length = Wt.size();
-		assert(length > 0);
-		_num_tags = length;
-		alloc_count_tables(_num_tags);
+		assert(length == _num_tags);
 		init_ngram_counts_with_corpus(dataset);
 		for(int tag = 1;tag <= length;tag++){
 			set_Wt_for_tag(tag, Wt[tag - 1]);
 		}
 	}
 	void HMM::alloc_count_tables(int num_tags){
-		assert(_allocated == false);
 		assert(num_tags > 0);
 		// 各タグの可能な単語数
 		_Wt = new int[num_tags + 1];
@@ -97,7 +91,6 @@ namespace bhmm {
 		for(int tag = 0;tag <= num_tags;tag++){
 			_unigram_counts[tag] = 0;
 		}
-		_allocated = true;
 	}
 	void HMM::init_ngram_counts_with_corpus(std::vector<std::vector<Word*>> &dataset){
 		// 最初は品詞をランダムに割り当てる
@@ -459,37 +452,35 @@ namespace boost {
 			ar & hmm._temperature;
 			ar & hmm._minimum_temperature;
 			ar & hmm._tag_word_counts;
-			ar & hmm._allocated;
-			if(hmm._allocated){
-				assert(hmm._num_tags > 0);
-				int num_tags = hmm._num_tags;
-				// 各タグの可能な単語数
-				for(int tag = 0;tag < num_tags;tag++){
-					ar & hmm._Wt[tag];
-				}
-				// Betaの初期化
-				// 初期値は1
-				for(int tag = 0;tag < num_tags;tag++){
-					ar & hmm._beta[tag];
-				}
-				// 3-gram		
-				for(int tri_tag = 0;tri_tag < num_tags;tri_tag++){
-					for(int bi_tag = 0;bi_tag < num_tags;bi_tag++){
-						for(int uni_tag = 0;uni_tag < num_tags;uni_tag++){
-							ar & hmm._trigram_counts[tri_tag][bi_tag][uni_tag];
-						}
-					}
-				}
-				// 2-gram
+
+			assert(hmm._num_tags > 0);
+			int num_tags = hmm._num_tags;
+			// 各タグの可能な単語数
+			for(int tag = 0;tag < num_tags;tag++){
+				ar & hmm._Wt[tag];
+			}
+			// Betaの初期化
+			// 初期値は1
+			for(int tag = 0;tag < num_tags;tag++){
+				ar & hmm._beta[tag];
+			}
+			// 3-gram		
+			for(int tri_tag = 0;tri_tag < num_tags;tri_tag++){
 				for(int bi_tag = 0;bi_tag < num_tags;bi_tag++){
 					for(int uni_tag = 0;uni_tag < num_tags;uni_tag++){
-						ar & hmm._bigram_counts[bi_tag][uni_tag];
+						ar & hmm._trigram_counts[tri_tag][bi_tag][uni_tag];
 					}
 				}
-				// 1-gram
+			}
+			// 2-gram
+			for(int bi_tag = 0;bi_tag < num_tags;bi_tag++){
 				for(int uni_tag = 0;uni_tag < num_tags;uni_tag++){
-					ar & hmm._unigram_counts[uni_tag];
+					ar & hmm._bigram_counts[bi_tag][uni_tag];
 				}
+			}
+			// 1-gram
+			for(int uni_tag = 0;uni_tag < num_tags;uni_tag++){
+				ar & hmm._unigram_counts[uni_tag];
 			}
 		}
 		template<class Archive>
@@ -500,45 +491,43 @@ namespace boost {
 			ar & hmm._temperature;
 			ar & hmm._minimum_temperature;
 			ar & hmm._tag_word_counts;
-			ar & hmm._allocated;
-			if(hmm._allocated){
-				assert(hmm._num_tags > 0);
-				int num_tags = hmm._num_tags;
-				// 各タグの可能な単語数
-				hmm._Wt = new int[num_tags];
-				for(int tag = 0;tag < num_tags;tag++){
-					ar & hmm._Wt[tag];
-				}
-				// Betaの初期化
-				// 初期値は1
-				hmm._beta = new double[num_tags];
-				for(int tag = 0;tag < num_tags;tag++){
-					ar & hmm._beta[tag];
-				}
-				// 3-gram		
-				hmm._trigram_counts = new int**[num_tags];
-				for(int tri_tag = 0;tri_tag < num_tags;tri_tag++){
-					hmm._trigram_counts[tri_tag] = new int*[num_tags];
-					for(int bi_tag = 0;bi_tag < num_tags;bi_tag++){
-						hmm._trigram_counts[tri_tag][bi_tag] = new int[num_tags];
-						for(int uni_tag = 0;uni_tag < num_tags;uni_tag++){
-							ar & hmm._trigram_counts[tri_tag][bi_tag][uni_tag];
-						}
-					}
-				}
-				// 2-gram
-				hmm._bigram_counts = new int*[num_tags];
+			
+			assert(hmm._num_tags > 0);
+			int num_tags = hmm._num_tags;
+			// 各タグの可能な単語数
+			hmm._Wt = new int[num_tags];
+			for(int tag = 0;tag < num_tags;tag++){
+				ar & hmm._Wt[tag];
+			}
+			// Betaの初期化
+			// 初期値は1
+			hmm._beta = new double[num_tags];
+			for(int tag = 0;tag < num_tags;tag++){
+				ar & hmm._beta[tag];
+			}
+			// 3-gram		
+			hmm._trigram_counts = new int**[num_tags];
+			for(int tri_tag = 0;tri_tag < num_tags;tri_tag++){
+				hmm._trigram_counts[tri_tag] = new int*[num_tags];
 				for(int bi_tag = 0;bi_tag < num_tags;bi_tag++){
-					hmm._bigram_counts[bi_tag] = new int[num_tags];
+					hmm._trigram_counts[tri_tag][bi_tag] = new int[num_tags];
 					for(int uni_tag = 0;uni_tag < num_tags;uni_tag++){
-						ar & hmm._bigram_counts[bi_tag][uni_tag];
+						ar & hmm._trigram_counts[tri_tag][bi_tag][uni_tag];
 					}
 				}
-				// 1-gram
-				hmm._unigram_counts = new int[num_tags];
+			}
+			// 2-gram
+			hmm._bigram_counts = new int*[num_tags];
+			for(int bi_tag = 0;bi_tag < num_tags;bi_tag++){
+				hmm._bigram_counts[bi_tag] = new int[num_tags];
 				for(int uni_tag = 0;uni_tag < num_tags;uni_tag++){
-					ar & hmm._unigram_counts[uni_tag];
+					ar & hmm._bigram_counts[bi_tag][uni_tag];
 				}
+			}
+			// 1-gram
+			hmm._unigram_counts = new int[num_tags];
+			for(int uni_tag = 0;uni_tag < num_tags;uni_tag++){
+				ar & hmm._unigram_counts[uni_tag];
 			}
 		}
 	}

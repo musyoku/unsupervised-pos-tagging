@@ -17,6 +17,12 @@ namespace bhmm {
 		_dict = dict;
 		_dataset = dataset;
 	}
+	Trainer::Trainer(Dataset* dataset, Model* model, Dictionary* dict, std::vector<int> &Wt){
+		_model = model;
+		_model->_hmm->initialize_with_training_corpus(dataset->_word_sequences_train, Wt);
+		_dict = dict;
+		_dataset = dataset;
+	}
 	void Trainer::perform_gibbs_sampling(){
 		std::vector<std::vector<Word*>> &dataset = _dataset->_word_sequences_train;
 		if(_rand_indices.size() != dataset.size()){

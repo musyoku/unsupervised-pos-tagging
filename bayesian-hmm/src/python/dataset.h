@@ -14,7 +14,7 @@ namespace bhmm {
 		std::vector<std::vector<Word*>> _word_sequences_dev;
 		int _max_num_words_in_line;
 		int _min_num_words_in_line;
-		Dataset(Dictionary* dict);
+		Dataset();
 		~Dataset();
 		void add_textfile(std::string filename, double train_split_ratio);
 		void add_sentence_str_train(std::wstring sentence_str);
@@ -27,5 +27,6 @@ namespace bhmm {
 		void _mark_low_frequency_words_as_unknown(int threshold, std::vector<std::vector<Word*>> &word_sequence_vec);
 		int get_num_words();
 		int get_count_of_word(id word_id);
+		Dictionary &get_dict_obj();
 	};
 }

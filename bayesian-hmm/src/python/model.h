@@ -7,7 +7,7 @@ namespace bhmm {
 	class Model{
 	public:
 		HMM* _hmm;
-		Model();
+		Model(int num_tags);
 		~Model();
 		bool load(std::string filename);
 		bool save(std::string filename);

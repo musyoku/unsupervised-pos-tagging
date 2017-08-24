@@ -15,6 +15,7 @@ BOOST_PYTHON_MODULE(bhmm){
 	boost::python::class_<Dataset>("dataset", boost::python::init<Dictionary*>())
 	.def("get_num_words", &Dataset::get_num_words)
 	.def("get_count_of_word", &Dataset::get_count_of_word)
+	.def("get_dict", &Dataset::get_dict_obj, boost::python::return_internal_reference<>())
 	.def("add_words_train", &Dataset::python_add_words_train)
 	.def("add_words_dev", &Dataset::python_add_words_dev)
 	.def("add_textfile", &Dataset::add_textfile)
@@ -24,7 +25,7 @@ BOOST_PYTHON_MODULE(bhmm){
 	.def("update_hyperparameters", &Trainer::update_hyperparameters)
 	.def("perform_gibbs_sampling", &Trainer::perform_gibbs_sampling);
 
-	boost::python::class_<Model>("model")
+	boost::python::class_<Model>("model", boost::python::init<int>())
 	.def("set_temperature", &Model::set_temperature)
 	.def("set_minimum_temperature", &Model::set_minimum_temperature)
 	.def("save", &Model::save)

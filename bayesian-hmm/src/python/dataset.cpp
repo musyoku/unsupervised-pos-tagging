@@ -4,8 +4,8 @@
 #include "../bhmm/sampler.h"
 
 namespace bhmm {
-	Dataset::Dataset(Dictionary* dict){
-		_dict = dict;
+	Dataset::Dataset(){
+		_dict = new Dictionary();
 		_max_num_words_in_line = -1;
 		_min_num_words_in_line = -1;
 	}
@@ -140,5 +140,8 @@ namespace bhmm {
 			return 0;
 		}
 		return itr->second;
+	}
+	Dictionary &Dataset::get_dict_obj(){
+		return *_dict;
 	}
 }

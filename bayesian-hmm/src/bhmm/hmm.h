@@ -31,8 +31,7 @@ namespace bhmm {
 		double* _beta;
 		double _temperature;
 		double _minimum_temperature;
-		bool _allocated;
-		HMM();
+		HMM(int num_tags);
 		~HMM();
 		void anneal_temperature(double multiplier);
 		void initialize_with_training_corpus(std::vector<std::vector<Word*>> &dataset, std::vector<int> &Wt);

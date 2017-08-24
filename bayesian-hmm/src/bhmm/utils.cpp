@@ -12,6 +12,7 @@ namespace bhmm {
 			 }
 			 return list;
 		}
+		template boost::python::list list_from_vector(std::vector<int> &vec);
 		template boost::python::list list_from_vector(std::vector<boost::python::tuple> &vec);
 		template boost::python::list list_from_vector(std::vector<boost::python::list> &vec);
 		template<class T>

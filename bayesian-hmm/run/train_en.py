@@ -80,9 +80,7 @@ def build_corpus(filename, dataset):
 				dataset.add_words_train(words)		# 学習用データに追加
 
 	if args.supervised:
-		# Wtは各タグについて、そのタグになりうる単語の数が入っている
-		# タグ0には<bos>と<eos>だけ含まれることにする
-		Wt = [2]
+		# Wtは各品詞について、その品詞になりうる単語の数が入っている
 		for tag, words in Wt_count.items():
 			Wt.append(len(words))
 	else:
@@ -112,7 +110,7 @@ def main():
 	dictionary.save(os.path.join(args.model, "bhmm.dict"))
 
 	# モデル
-	model = bhmm.model()
+	model = bhmm.model(args.num_tags)
 
 	# ハイパーパラメータの設定
 	model.set_temperature(args.start_temperature)		# 温度の初期設定

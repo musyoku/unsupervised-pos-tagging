@@ -13,6 +13,7 @@ namespace bhmm {
 		std::vector<int> _rand_indices;
 	public:
 		Trainer(Dataset* dataset, Model* model, Dictionary* dict, boost::python::list py_Wt);
+		Trainer(Dataset* dataset, Model* model, Dictionary* dict, std::vector<int> &Wt);
 		void perform_gibbs_sampling();
 		void update_hyperparameters();
 		boost::python::list get_all_words_for_each_tag(int threshold = 0);
