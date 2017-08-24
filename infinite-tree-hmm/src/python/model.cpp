@@ -148,11 +148,11 @@ namespace ithmm {
 			Node* state = all_states[i];
 			Node* state_in_bos = _ithmm->_bos_tssb->find_node_by_tracing_horizontal_indices(state);
 			assert(state_in_bos != NULL);
-			double Ps = state_in_bos->_probability;
-			double Pword_given_s = _ithmm->compute_p_w_given_s(word->_id, state);
-			assert(Ps > 0);
-			assert(Pword_given_s > 0);
-			forward_table[0][i] = Pword_given_s * Ps;
+			double p_s = state_in_bos->_probability;
+			double p_w_given_s = _ithmm->compute_p_w_given_s(word->_id, state);
+			assert(p_s > 0);
+			assert(p_w_given_s > 0);
+			forward_table[0][i] = p_w_given_s * p_s;
 			decode_table[0][i] = 0;
 		}
 		for(int t = 1;t < sentence.size();t++){
@@ -161,16 +161,16 @@ namespace ithmm {
 				Node* state = all_states[j];
 				forward_table[t][j] = 0;
 				double max_value = 0;
-				double Pword_given_s = _ithmm->compute_p_w_given_s(word->_id, state);
+				double p_w_given_s = _ithmm->compute_p_w_given_s(word->_id, state);
 				for(int i = 0;i < all_states.size();i++){
 					Node* prev_state = all_states[i];
 					Node* state_in_prev_htssb = prev_state->_transition_tssb->find_node_by_tracing_horizontal_indices(state);
 					assert(state_in_prev_htssb != NULL);
-					double Ps_given_prev = state_in_prev_htssb->_probability;
-					double value = Ps_given_prev * forward_table[t - 1][i];
+					double p_s_given_prev = state_in_prev_htssb->_probability;
+					double value = p_s_given_prev * forward_table[t - 1][i];
 					if(value > max_value){
 						max_value = value;
-						forward_table[t][j] = value * Pword_given_s;
+						forward_table[t][j] = value * p_w_given_s;
 						decode_table[t][j] = i;
 					}
 				}
@@ -209,35 +209,37 @@ namespace ithmm {
 			Node* state = states[i];
 			Node* state_in_bos = _ithmm->_bos_tssb->find_node_by_tracing_horizontal_indices(state);
 			assert(state_in_bos != NULL);
-			double Ps = state_in_bos->_probability;
-			double Pword_given_s = _ithmm->compute_p_w_given_s(word->_id, state);
-			assert(Ps > 0);
-			assert(Pword_given_s > 0);
-			forward_table[0][i] = Pword_given_s * Ps;
+			double p_s = state_in_bos->_probability;
+			double p_w_given_s = _ithmm->compute_p_w_given_s(word->_id, state);
+			assert(p_s > 0);
+			assert(p_w_given_s > 0);
+			forward_table[0][i] = p_w_given_s * p_s;
 		}
 		for(int t = 1;t < sentence.size();t++){
 			Word* word = sentence[t];
 			for(int j = 0;j < states.size();j++){
 				Node* state = states[j];
 				forward_table[t][j] = 0;
-				double Pword_given_s = _ithmm->compute_p_w_given_s(word->_id, state);
+				double p_w_given_s = _ithmm->compute_p_w_given_s(word->_id, state);
 				for(int i = 0;i < states.size();i++){
 					Node* prev_state = states[i];
 					Node* state_in_prev_htssb = prev_state->_transition_tssb->find_node_by_tracing_horizontal_indices(state);
 					assert(state_in_prev_htssb != NULL);
-					double Ps_given_prev = state_in_prev_htssb->_probability;
-					forward_table[t][j] += Pword_given_s * Ps_given_prev * forward_table[t - 1][i];
+					double p_s_given_prev = state_in_prev_htssb->_probability;
+					forward_table[t][j] += p_w_given_s * p_s_given_prev * forward_table[t - 1][i];
 				}
 			}
 		}
 		int t = sentence.size() - 1;
-		double Px = 0;
+		double p_x = 0;
 		for(int j = 0;j < states.size();j++){
-			Px += forward_table[t][j];
+			p_x += forward_table[t][j];
 		}
-		return Px;
+		return p_x;
 	}
 	void Model::show_assigned_words_for_each_tag(Dictionary* dict, int number_to_show_for_each_tag, bool show_probability){
+		using std::wcout;
+		using std::endl;
 		auto pair = std::make_pair(0, 0);
 		std::vector<Node*> nodes;
 		enumerate_all_states(nodes);
@@ -251,28 +253,28 @@ namespace ithmm {
 			for(int i = 0;i < node->_depth_v;i++){
 				tab += "	";
 			}
-			std::cout << "\x1b[32;1m" << tab << "[" << indices << "]" << "\x1b[0m" << std::endl;
+			wcout << "\x1b[32;1m" << tab << "[" << indices << "]" << "\x1b[0m" << endl;
 			std::wstring wtab = L"";
 			for(int i = 0;i < node->_depth_v;i++){
 				wtab += L"	";
 			}
-			std::wcout << wtab;
+			wcout << wtab;
 			for(const auto &elem: ranking){
 				id word_id = elem.first;
 				std::wstring &word = dict->_id_to_str[word_id];
 				double p = elem.second;
 				int count = node->_num_word_assignment[word_id];
-				std::wcout << "\x1b[1m" << word << "\x1b[0m" << L" (" << count;
+				wcout << "\x1b[1m" << word << "\x1b[0m" << L" (" << count;
 				if(show_probability){
-					std::wcout << L";p=" << p;
+					wcout << L";p=" << p;
 				} 
-				std::wcout << L") ";
+				wcout << L") ";
 				n++;
 				if(n > number_to_show_for_each_tag){
 					break;
 				}
 			}
-			std::wcout << std::endl;
+			wcout << endl;
 			ranking.clear();
 		}
 	}

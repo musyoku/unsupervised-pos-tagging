@@ -87,9 +87,9 @@ namespace ithmm {
 				return 0;
 			}
 			std::vector<Word*> &sentence = dataset[data_index];
-			double Px = _model->compute_p_sentence(sentence, nodes, _forward_table);
-			if(Px > 0){
-				log_p_dataset += log(Px);
+			double p_x = _model->compute_p_sentence(sentence, nodes, _forward_table);
+			if(p_x > 0){
+				log_p_dataset += log(p_x);
 			}
 		}
 		_after_compute_log_p_dataset();
@@ -111,9 +111,9 @@ namespace ithmm {
 				return 0;
 			}
 			std::vector<Word*> &sentence = dataset[data_index];
-			double Px = _model->compute_p_sentence(sentence, nodes, _forward_table);
-			if(Px > 0){
-				log_p_dataset += log2(Px);
+			double p_x = _model->compute_p_sentence(sentence, nodes, _forward_table);
+			if(p_x > 0){
+				log_p_dataset += log2(p_x);
 			}
 		}
 		_after_compute_log_p_dataset();
@@ -135,9 +135,9 @@ namespace ithmm {
 				return 0;
 			}
 			std::vector<Word*> &sentence = dataset[data_index];
-			double Px = _model->compute_p_sentence(sentence, nodes, _forward_table);
-			if(Px > 0){
-				log_p_dataset += log2(Px) / sentence.size();
+			double p_x = _model->compute_p_sentence(sentence, nodes, _forward_table);
+			if(p_x > 0){
+				log_p_dataset += log2(p_x) / sentence.size();
 			}
 		}
 		_after_compute_log_p_dataset();
