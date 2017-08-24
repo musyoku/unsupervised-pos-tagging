@@ -45,7 +45,7 @@ namespace bhmm {
 		_model->_hmm->sample_new_alpha(_dataset->_word_sequences_train);
 		_model->_hmm->sample_new_beta(_dataset->_word_sequences_train);
 	}
-	boost::python::list Trainer::get_all_words_for_each_tag(int threshold){
+	boost::python::list Trainer::python_get_all_words_of_each_tag(int threshold){
 		std::vector<boost::python::list> result;
 		for(int tag = 0;tag < _model->_hmm->_num_tags;tag++){
 			std::vector<boost::python::tuple> words;
@@ -65,25 +65,27 @@ namespace bhmm {
 		}
 		return utils::list_from_vector(result);
 	}
-	void Trainer::show_typical_words_for_each_tag(int number_to_show_for_each_tag){
-		for(int tag = 0;tag < _model->_hmm->_num_tags;tag++){
+	void Trainer::show_typical_words_of_each_tag(int number_to_show){
+		using std::wcout;
+		using std::endl;
+		for(int tag = 1;tag <= _model->_hmm->_num_tags;tag++){
 			std::unordered_map<int, int> &word_counts = _model->_hmm->_tag_word_counts[tag];
 			int n = 0;
-			std::cout << "tag " << tag << std::endl;
-			std::wcout << L"\t";
+			wcout << "tag " << tag << endl;
+			wcout << L"\t";
 			std::multiset<std::pair<int, int>, value_comparator> ranking;
 			for(auto elem: word_counts){
 				ranking.insert(std::make_pair(elem.first, elem.second));
 			}
 			for(auto elem: ranking){
 				std::wstring word = _dict->word_id_to_string(elem.first);
-				std::wcout << word << L"/" << elem.second << L", ";
+				wcout << word << L"/" << elem.second << L", ";
 				n++;
-				if(n > number_to_show_for_each_tag){
+				if(n > number_to_show){
 					break;
 				}
 			}
-			std::wcout << std::endl;
+			wcout << endl;
 		}
 	}
 }

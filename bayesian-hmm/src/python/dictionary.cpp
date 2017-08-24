@@ -10,13 +10,8 @@
 
 namespace bhmm {
 	Dictionary::Dictionary(){
-		_id_to_str[ID_BOS] = L"<bos>";
-		_id_to_str[ID_EOS] = L"<eos>";
 		_id_to_str[ID_UNK] = L"<unk>";
 		_autoincrement = ID_UNK + 1;
-	}
-	id Dictionary::get_eos_id(){
-		return ID_EOS;
 	}
 	id Dictionary::add_word_string(std::wstring word){
 		auto itr = _str_to_id.find(word);

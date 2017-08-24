@@ -3,9 +3,7 @@
 #include <string>
 #include "../bhmm/common.h"
 
-#define ID_BOS 0
-#define ID_EOS 1
-#define ID_UNK 2
+#define ID_UNK 0
 
 namespace bhmm {
 	class Dictionary{
@@ -14,7 +12,6 @@ namespace bhmm {
 		std::unordered_map<std::wstring, id> _str_to_id;
 		id _autoincrement;
 		Dictionary();
-		id get_eos_id();
 		id add_word_string(std::wstring word);
 		id string_to_word_id(std::wstring word);
 		std::wstring word_id_to_string(id word_id);

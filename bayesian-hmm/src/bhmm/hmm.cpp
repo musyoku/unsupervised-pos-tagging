@@ -297,10 +297,10 @@ namespace bhmm {
 	Word* HMM::get_random_word_with_tag_from_corpus(int tag, std::vector<std::vector<Word*>> &dataset){
 		int random_index = sampler::uniform_int(0, dataset.size() - 1);
 		std::vector<Word*> &word_vec = dataset[random_index];
-		for(int t = 0;t < word_vec.size();t++){
-			int ti = word_vec[t]->_state;
+		for(int i = 0;i < word_vec.size();i++){
+			int ti = word_vec[i]->_state;
 			if(ti == tag){
-				return word_vec[t];
+				return word_vec[i];
 			}
 		}
 		return NULL;
@@ -336,7 +336,7 @@ namespace bhmm {
 	}
 	// 新しいBetaをサンプリング
 	void HMM::sample_new_beta(std::vector<std::vector<Word*>> &dataset){
-		for(int tag = 0;tag < _num_tags;tag++){
+		for(int tag = 1;tag <= _num_tags;tag++){
 			double beta = _beta[tag];
 			double new_beta = sampler::normal(beta, 0.1 * beta);
 			Word* random_word = NULL;
@@ -357,8 +357,8 @@ namespace bhmm {
 			// メトロポリス・ヘイスティングス法
 			// http://ebsa.ism.ac.jp/ebooks/sites/default/files/ebook/1881/pdf/vol3_ch10.pdf
 			// 提案分布は正規分布
-			double Pti_wi_beta = compute_p_wi_given_ti_beta(random_word->_state, random_word->_id, beta);
-			double Pti_wi_new_beta = compute_p_wi_given_ti_beta(random_word->_state, random_word->_id, new_beta);
+			double p_ti_wi_beta = compute_p_wi_given_ti_beta(random_word->_state, random_word->_id, beta);
+			double p_ti_wi_new_beta = compute_p_wi_given_ti_beta(random_word->_state, random_word->_id, new_beta);
 			// q(beta|new_beta) / q(new_beta|beta)の計算
 			double sigma_beta = 0.1 * beta;
 			double sigma_new_beta = 0.1 * new_beta;
@@ -369,7 +369,7 @@ namespace bhmm {
 				+ 0.5 * (beta - new_beta) * (beta - new_beta) / var_new_beta
 			);
 			// 採択率
-			double adoption_rate = std::min(1.0, Pti_wi_new_beta * correcting_term / Pti_wi_beta);
+			double adoption_rate = std::min(1.0, p_ti_wi_new_beta * correcting_term / p_ti_wi_beta);
 			double bernoulli = sampler::uniform(0, 1);
 			if(bernoulli < adoption_rate){
 				_beta[tag] = new_beta;
@@ -379,7 +379,7 @@ namespace bhmm {
 	int HMM::get_most_co_occurring_tag(int word_id){
 		int max_count = 0;
 		int most_co_occurring_tag_id = 0;
-		for(int tag = 0;tag < _num_tags;tag++){
+		for(int tag = 1;tag <= _num_tags;tag++){
 			int count = get_count_of_tag_word(tag, word_id);
 			if(count > max_count){
 				max_count = count;
@@ -389,28 +389,28 @@ namespace bhmm {
 		return most_co_occurring_tag_id;
 	}
 	void HMM::dump_trigram_counts(){
-		for(int tri_tag = 0;tri_tag < _num_tags;tri_tag++){
-			for(int bi_tag = 0;bi_tag < _num_tags;bi_tag++){
-				for(int uni_tag = 0;uni_tag < _num_tags;uni_tag++){
+		for(int tri_tag = 1;tri_tag <= _num_tags;tri_tag++){
+			for(int bi_tag = 1;bi_tag <= _num_tags;bi_tag++){
+				for(int uni_tag = 1;uni_tag <= _num_tags;uni_tag++){
 					std::cout << (boost::format("3-gram [%d][%d][%d] = %d") % tri_tag % bi_tag % uni_tag % _trigram_counts[tri_tag][bi_tag][uni_tag]).str() << std::endl;
 				}
 			}
 		}
 	}
 	void HMM::dump_bigram_counts(){
-		for(int bi_tag = 0;bi_tag < _num_tags;bi_tag++){
-			for(int uni_tag = 0;uni_tag < _num_tags;uni_tag++){
+		for(int bi_tag = 1;bi_tag <= _num_tags;bi_tag++){
+			for(int uni_tag = 1;uni_tag <= _num_tags;uni_tag++){
 				std::cout << (boost::format("2-gram [%d][%d] = %d") % bi_tag % uni_tag % _bigram_counts[bi_tag][uni_tag]).str() << std::endl;
 			}
 		}
 	}
 	void HMM::dump_unigram_counts(){
-		for(int uni_tag = 0;uni_tag < _num_tags;uni_tag++){
+		for(int uni_tag = 1;uni_tag <= _num_tags;uni_tag++){
 			std::cout << (boost::format("1-gram [%d] = %d") % uni_tag % _unigram_counts[uni_tag]).str() << std::endl;
 		}
 	}
 	void HMM::dump_word_types(){
-		for(int tag = 0;tag < _num_tags;tag++){
+		for(int tag = 1;tag <= _num_tags;tag++){
 			std::cout << tag << ": " << get_word_types_of_tag(tag) << std::endl;
 		}
 	}
@@ -491,7 +491,7 @@ namespace boost {
 			ar & hmm._temperature;
 			ar & hmm._minimum_temperature;
 			ar & hmm._tag_word_counts;
-			
+
 			assert(hmm._num_tags > 0);
 			int num_tags = hmm._num_tags;
 			// 各タグの可能な単語数

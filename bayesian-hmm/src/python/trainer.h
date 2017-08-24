@@ -16,7 +16,7 @@ namespace bhmm {
 		Trainer(Dataset* dataset, Model* model, Dictionary* dict, std::vector<int> &Wt);
 		void perform_gibbs_sampling();
 		void update_hyperparameters();
-		boost::python::list get_all_words_for_each_tag(int threshold = 0);
-		void show_typical_words_for_each_tag(int number_to_show_for_each_tag);
+		boost::python::list python_get_all_words_of_each_tag(int threshold = 0);
+		void show_typical_words_of_each_tag(int number_to_show);
 	};
 }

@@ -24,9 +24,14 @@ int main(){
 	}
 	Trainer* trainer = new Trainer(dataset, model, dictionary, Wt);
 
-	for(int i = 0;i < 100;i++){
+	for(int i = 1;i <= 1000;i++){
 		trainer->perform_gibbs_sampling();
 		trainer->update_hyperparameters();
+		if(i % 10 == 0){
+			trainer->show_typical_words_of_each_tag(10);
+			model->save("bhmm.model");
+		}
+
 	}
 	return 0;
 }
