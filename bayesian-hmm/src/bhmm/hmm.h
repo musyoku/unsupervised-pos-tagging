@@ -12,8 +12,8 @@ namespace bhmm {
 	private:
 		void alloc_count_tables(int num_tags);
 		void init_ngram_counts_with_corpus(std::vector<std::vector<Word*>> &dataset);
-		void add_tag_trigram_to_model(int ti_2, int ti_1, int ti, int ti1, int ti2, int wi);
-		void remove_tag_trigram_from_model(int ti_2, int ti_1, int ti, int ti1, int ti2, int wi);
+		void add_tag_trigram_to_model(int ti_2, int ti_1, int ti, int ti1, int ti2, id wi);
+		void remove_tag_trigram_from_model(int ti_2, int ti_1, int ti, int ti1, int ti2, id wi);
 		void increment_tag_trigram_count_by_words(Word* tri_word, Word* bi_word, Word* uni_word);
 		void increment_tag_word_count(int tag_id, int word_id);
 		void decrement_tag_word_count(int tag_id, int word_id);
@@ -41,8 +41,8 @@ namespace bhmm {
 		void set_Wt_for_tag(int tag_id, int number);
 		void set_num_tags(int n);
 		double compute_log_p_t_given_alpha(std::vector<Word*> &word_vec, double alpha);
-		double compute_p_wi_given_ti_beta(int wi, int ti, double beta);
-		double compute_p_wi_given_ti(int wi, int ti);
+		double compute_p_wi_given_ti_beta(int ti, id wi, double beta);
+		double compute_p_wi_given_ti(int ti, id wi);
 		double compute_p_ti_given_t_alpha(int ti, int ti_1, int ti_2, double alpha);
 		double compute_p_ti_given_t(int ti, int ti_1, int ti_2);
 		void perform_gibbs_sampling_with_sequence(std::vector<Word*> &word_vec);

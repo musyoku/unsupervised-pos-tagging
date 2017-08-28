@@ -92,7 +92,7 @@ namespace bhmm {
 		assert(_dataset->_max_num_words_in_line > 0);
 		_decode_table = new double*[_dataset->_max_num_words_in_line];
 		for(int i = 0;i < _dataset->_max_num_words_in_line;i++){
-			_decode_table[i] = new double[_model->_hmm->_num_tags];
+			_decode_table[i] = new double[_model->_hmm->_num_tags + 1];
 		}
 	}
 	void Trainer::_after_viterbi_decode(){
@@ -107,7 +107,7 @@ namespace bhmm {
 		assert(_dataset->_max_num_words_in_line > 0);
 		_forward_table = new double*[_dataset->_max_num_words_in_line];
 		for(int i = 0;i < _dataset->_max_num_words_in_line;i++){
-			_forward_table[i] = new double[_model->_hmm->_num_tags];
+			_forward_table[i] = new double[_model->_hmm->_num_tags + 1];
 		}
 	}
 	void Trainer::_after_compute_log_p_dataset(){
@@ -134,10 +134,10 @@ namespace bhmm {
 				return 0;
 			}
 			std::vector<Word*> &sentence = dataset[data_index];
-			// double p_x = _model->compute_p_sentence(sentence, nodes, _forward_table);
-			// if(p_x > 0){
-			// 	log_p_dataset += log(p_x);
-			// }
+			double p_x = _model->compute_p_sentence(sentence, _forward_table);
+			if(p_x > 0){
+				log_p_dataset += log(p_x);
+			}
 		}
 		_after_compute_log_p_dataset();
 		return log_p_dataset;

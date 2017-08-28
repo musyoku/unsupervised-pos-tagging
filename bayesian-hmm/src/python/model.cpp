@@ -41,20 +41,40 @@ namespace bhmm {
 	void Model::anneal_temperature(double temperature){
 		_hmm->anneal_temperature(temperature);
 	}
-	double Model::compute_p_sentence(std::vector<Word*> &sentence, std::vector<int> &state_sequence, double** forward_table){
+	double Model::compute_p_sentence(std::vector<Word*> &sentence, double** forward_table){
 		assert(sentence.size() > 4);	// <s>と</s>それぞれ2つづつ
 		for(int tag = 1;tag <= _hmm->_num_tags;tag++){
 			int ti_2 = sentence[0]->_state;
 			int ti_1 = sentence[1]->_state;
 			int ti = sentence[2]->_state;
 			id wi = sentence[2]->_id;
-			double p_s = _hmm->compute_p_ti_given_t(ti, ti_1, ti_2);
-			double p_w_given_s = _hmm->compute_p_wi_given_ti(ti, wi);
-			assert(p_s > 0);
+			double p_s_given_prev = _hmm->compute_p_ti_given_t(ti, ti_1, ti_2);
+			double p_w_given_s = _hmm->compute_p_wi_given_ti(wi, ti);
+			assert(p_s_given_prev > 0);
 			assert(p_w_given_s > 0);
-			forward_table[0][tag] = p_w_given_s * p_s;
+			forward_table[2][tag] = p_w_given_s * p_s_given_prev;
 		}
-		return 0;
+		for(int i = 3;i < sentence.size() - 2;i++){
+			int ti_2 = sentence[i - 2]->_state;
+			int ti_1 = sentence[i - 1]->_state;
+			id wi = sentence[i]->_id;
+			for(int target_tag = 1;target_tag <= _hmm->_num_tags;target_tag++){
+				forward_table[i][target_tag] = 0;
+				for(int tag = 1;tag <= _hmm->_num_tags;tag++){
+					double p_s_given_prev = _hmm->compute_p_ti_given_t(tag, ti_1, ti_2);
+					double p_w_given_s = _hmm->compute_p_wi_given_ti(wi, tag);
+					assert(p_s_given_prev > 0);
+					assert(p_w_given_s > 0);
+					forward_table[i][target_tag] += p_w_given_s * p_s_given_prev * forward_table[i - 1][tag];
+				}
+			}
+		}
+		int i = sentence.size() - 2;
+		double p_x = 0;
+		for(int tag = 1;tag <= _hmm->_num_tags;tag++){
+			p_x += forward_table[i][tag];
+		}
+		return p_x;
 	}
 	// 状態系列の復号
 	// ビタビアルゴリズム

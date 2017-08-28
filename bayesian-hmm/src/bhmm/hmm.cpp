@@ -158,7 +158,7 @@ namespace bhmm {
 			word_counts.erase(itr);
 		}
 	}
-	int HMM::get_count_of_tag_word(int tag_id, int word_id){
+	int HMM::get_count_of_tag_word(int tag_id, id word_id){
 		assert(1 <= tag_id && tag_id <= _num_tags);
 		std::unordered_map<int, int> &word_counts = _tag_word_counts[tag_id];
 		auto itr = word_counts.find(word_id);
@@ -185,11 +185,11 @@ namespace bhmm {
 		}
 		return log_Pt_alpha;
 	}
-	double HMM::compute_p_wi_given_ti(int ti, int wi){
-		return compute_p_wi_given_ti_beta(ti, wi, _beta[ti]);
+	double HMM::compute_p_wi_given_ti(int wi, int ti){
+		return compute_p_wi_given_ti_beta(wi, ti, _beta[ti]);
 	}
-	double HMM::compute_p_wi_given_ti_beta(int ti, int wi, double beta){
-		assert(1 <= ti && ti < _num_tags);
+	double HMM::compute_p_wi_given_ti_beta(int wi, int ti, double beta){
+		assert(1 <= ti && ti <= _num_tags);
 		double n_ti_wi = get_count_of_tag_word(ti, wi);
 		double n_ti = _unigram_counts[ti];
 		double W_ti = _Wt[ti];
@@ -363,8 +363,8 @@ namespace bhmm {
 			// メトロポリス・ヘイスティングス法
 			// http://ebsa.ism.ac.jp/ebooks/sites/default/files/ebook/1881/pdf/vol3_ch10.pdf
 			// 提案分布は正規分布
-			double p_ti_wi_beta = compute_p_wi_given_ti_beta(random_word->_state, random_word->_id, beta);
-			double p_ti_wi_new_beta = compute_p_wi_given_ti_beta(random_word->_state, random_word->_id, new_beta);
+			double p_ti_wi_beta = compute_p_wi_given_ti_beta(random_word->_id, random_word->_state, beta);
+			double p_ti_wi_new_beta = compute_p_wi_given_ti_beta(random_word->_id, random_word->_state, new_beta);
 			// q(beta|new_beta) / q(new_beta|beta)の計算
 			double sigma_beta = 0.1 * beta;
 			double sigma_new_beta = 0.1 * new_beta;
