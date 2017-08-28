@@ -41,16 +41,31 @@ namespace bhmm {
 	void Model::anneal_temperature(double temperature){
 		_hmm->anneal_temperature(temperature);
 	}
+	double Model::compute_p_sentence(std::vector<Word*> &sentence, std::vector<int> &state_sequence, double** forward_table){
+		assert(sentence.size() > 4);	// <s>と</s>それぞれ2つづつ
+		for(int tag = 1;tag <= _hmm->_num_tags;tag++){
+			int ti_2 = sentence[0]->_state;
+			int ti_1 = sentence[1]->_state;
+			int ti = sentence[2]->_state;
+			id wi = sentence[2]->_id;
+			double p_s = _hmm->compute_p_ti_given_t(ti, ti_1, ti_2);
+			double p_w_given_s = _hmm->compute_p_wi_given_ti(ti, wi);
+			assert(p_s > 0);
+			assert(p_w_given_s > 0);
+			forward_table[0][tag] = p_w_given_s * p_s;
+		}
+		return 0;
+	}
 	// 状態系列の復号
 	// ビタビアルゴリズム
-	void Model::viterbi_decode(std::vector<Word*> &data, std::vector<int> &sampled_state_sequence, double** forward_table, double** decode_table){
+	void Model::viterbi_decode(std::vector<Word*> &sentence, std::vector<int> &sampled_state_sequence, double** forward_table, double** decode_table){
 		// 初期化
 		// int num_tags = _hmm->_num_tags;
-		// int seq_length = data.size();
+		// int seq_length = sentence.size();
 		// assert(seq_length > 4);	// <s><s></s></s>
-		// Word* word = data[0];
+		// Word* word = sentence[0];
 		// for(int t = 1;t < seq_length;t++){
-		// 	Word* word = data[t];
+		// 	Word* word = sentence[t];
 		// 	for(int tag = 0;tag < get_num_tags();tag++){
 		// 		forward_table[t][tag] = 0;
 		// 		double max_value = 0;
@@ -71,7 +86,7 @@ namespace bhmm {
 		// }
 		// // 後ろ向きに系列を復元
 		// std::vector<int> series_indices;
-		// int n = data.size() - 1;
+		// int n = sentence.size() - 1;
 		// int k = 0;
 		// double max_value = 0;
 		// for(int i = 0;i < all_states.size();i++){

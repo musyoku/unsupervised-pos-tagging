@@ -185,12 +185,18 @@ namespace bhmm {
 		}
 		return log_Pt_alpha;
 	}
-	// 正規化定数で割る前の値
+	double HMM::compute_p_wi_given_ti(int ti, int wi){
+		return compute_p_wi_given_ti_beta(ti, wi, _beta[ti]);
+	}
 	double HMM::compute_p_wi_given_ti_beta(int ti, int wi, double beta){
+		assert(1 <= ti && ti < _num_tags);
 		double n_ti_wi = get_count_of_tag_word(ti, wi);
 		double n_ti = _unigram_counts[ti];
 		double W_ti = _Wt[ti];
 		return (n_ti_wi + beta) / (n_ti + W_ti * beta);
+	}
+	double HMM::compute_p_ti_given_t(int ti, int ti_1, int ti_2){
+		return compute_p_ti_given_t_alpha(ti, ti_1, ti_2, _alpha);
 	}
 	double HMM::compute_p_ti_given_t_alpha(int ti, int ti_1, int ti_2, double alpha){
 		double n_ti_2_ti_1_ti = _trigram_counts[ti_2][ti_1][ti];

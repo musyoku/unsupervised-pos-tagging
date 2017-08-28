@@ -22,7 +22,7 @@ int main(){
 	for(int p = 0;p < num_tags;p++){
 		Wt.push_back(1000);
 	}
-	Trainer* trainer = new Trainer(dataset, model, dictionary, Wt);
+	Trainer* trainer = new Trainer(dataset, model, Wt);
 
 	for(int i = 1;i <= 1000;i++){
 		trainer->perform_gibbs_sampling();
