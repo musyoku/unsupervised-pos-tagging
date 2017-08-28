@@ -26,11 +26,13 @@ int main(){
 
 	for(int i = 1;i <= 10000;i++){
 		trainer->perform_gibbs_sampling();
-		trainer->update_hyperparameters();
+		// trainer->update_hyperparameters();
 		if(i % 100 == 0){
-			trainer->show_typical_words_of_each_tag(10);
-			cout << "log_p_data: " << trainer->compute_log_p_dataset_dev() << ", " << trainer->compute_log_p_dataset_train() << endl;
+			cout << trainer->compute_log_p_dataset_train() << endl;
 			model->save("bhmm.model");
+		}
+		if(i % 1000 == 0){
+			trainer->show_typical_words_of_each_tag(10);
 		}
 
 	}

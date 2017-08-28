@@ -60,16 +60,16 @@ namespace bhmm {
 			id wi = sentence[i]->_id;
 			for(int target_tag = 1;target_tag <= _hmm->_num_tags;target_tag++){
 				forward_table[i][target_tag] = 0;
+				double p_w_given_s = _hmm->compute_p_wi_given_ti(wi, target_tag);
+				assert(p_w_given_s > 0);
 				for(int tag = 1;tag <= _hmm->_num_tags;tag++){
-					double p_s_given_prev = _hmm->compute_p_ti_given_t(tag, ti_1, ti_2);
-					double p_w_given_s = _hmm->compute_p_wi_given_ti(wi, tag);
+					double p_s_given_prev = _hmm->compute_p_ti_given_t(target_tag, tag, ti_2);
 					assert(p_s_given_prev > 0);
-					assert(p_w_given_s > 0);
 					forward_table[i][target_tag] += p_w_given_s * p_s_given_prev * forward_table[i - 1][tag];
 				}
 			}
 		}
-		int i = sentence.size() - 2;
+		int i = sentence.size() - 3;
 		double p_x = 0;
 		for(int tag = 1;tag <= _hmm->_num_tags;tag++){
 			p_x += forward_table[i][tag];
