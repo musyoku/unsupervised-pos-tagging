@@ -56,7 +56,6 @@ namespace bhmm {
 		}
 		for(int i = 3;i < sentence.size() - 2;i++){
 			int ti_2 = sentence[i - 2]->_state;
-			int ti_1 = sentence[i - 1]->_state;
 			id wi = sentence[i]->_id;
 			for(int target_tag = 1;target_tag <= _hmm->_num_tags;target_tag++){
 				forward_table[i][target_tag] = 0;

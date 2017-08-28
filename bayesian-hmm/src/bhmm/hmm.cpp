@@ -99,8 +99,8 @@ namespace bhmm {
 		// std::unordered_map<int, int> tag_for_word;
 		for(int data_index = 0;data_index < dataset.size();data_index++){
 			std::vector<Word*> &word_vec = dataset[data_index];
-			for(int pos = 2;pos < word_vec.size();pos++){	// 3-gramなので3番目から.
-				Word* word = word_vec[pos];
+			for(int i = 2;i < word_vec.size();i++){	// 3-gramなので3番目から.
+				Word* word = word_vec[i];
 				// auto itr = tag_for_word.find(word->_id);
 				// if(itr == tag_for_word.end()){
 					int state = sampler::uniform_int(1, _num_tags);
@@ -110,10 +110,12 @@ namespace bhmm {
 				// }else{
 				// 	word->_state = itr->second;
 				// }
-				increment_tag_trigram_count_by_words(word_vec[pos - 2], word_vec[pos - 1], word_vec[pos]);
-				word_set.insert(word->_id);
-				// 同じタグの単語集合をカウント
-				increment_tag_word_count(word->_state, word->_id);
+				increment_tag_trigram_count_by_words(word_vec[i - 2], word_vec[i - 1], word_vec[i]);
+				if(i < word_vec.size() - 2){
+					word_set.insert(word->_id);
+					// 同じタグの単語集合をカウント
+					increment_tag_word_count(word->_state, word->_id);
+				}
 			}
 		}
 		_num_words = word_set.size();
