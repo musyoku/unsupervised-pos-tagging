@@ -78,16 +78,21 @@ def build_corpus(filename):
 			# よって単語分割は全てTreeTaggerによるものに統一しておく
 			words = []
 			for poses in result:
-				word, pos, lowercase = poses.split("\t")
+				poses = poses.split("\t")
+				if len(poses) == 3:
+					word, pos, lowercase = poses
+					pos = collapse_pos(pos)
+					if pos not in Wt_count:
+						Wt_count[pos] = {}
+					if lowercase not in Wt_count[pos]:
+						Wt_count[pos][lowercase] = 1
+					else:
+						Wt_count[pos][lowercase] += 1
+				else:
+					word = poses[0]
+					lowercase = word
 				word_count.add(lowercase)
 				words.append(lowercase)
-				pos = collapse_pos(pos)
-				if pos not in Wt_count:
-					Wt_count[pos] = {}
-				if lowercase not in Wt_count[pos]:
-					Wt_count[pos][lowercase] = 1
-				else:
-					Wt_count[pos][lowercase] += 1
 			# データを追加
 			if i > train_split:
 				dataset.add_words_dev(words)		# 評価用データに追加
@@ -136,12 +141,9 @@ def main():
 	# 学習ループ
 	for epoch in range(1, args.epoch + 1):
 		start = time.time()
-
-		# 新しい状態系列をギブスサンプリング
-		trainer.perform_gibbs_sampling()
-
-		# ハイパーパラメータをサンプリング
-		trainer.update_hyperparameters()
+		trainer.perform_gibbs_sampling()	# 新しい状態系列をギブスサンプリング
+		trainer.update_hyperparameters()	# ハイパーパラメータをサンプリング
+		model.anneal_temperature(args.anneal)	# 温度を下げる
 
 		# ログ
 		elapsed_time = time.time() - start
@@ -150,6 +152,7 @@ def main():
 			log_likelihood = trainer.compute_log_p_dataset_dev()
 			printr("")
 			print("log_likelihood:", log_likelihood)
+			trainer.show_typical_words_of_each_tag(20)
 
 def _main(args):
 	if args.filename is None:

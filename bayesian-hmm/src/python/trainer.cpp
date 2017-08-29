@@ -71,15 +71,14 @@ namespace bhmm {
 		for(int tag = 1;tag <= _model->_hmm->_num_tags;tag++){
 			std::unordered_map<int, int> &word_counts = _model->_hmm->_tag_word_counts[tag];
 			int n = 0;
-			wcout << "tag " << tag << endl;
-			wcout << L"\t";
+			wcout << "\x1b[32;1m" << "[" << tag << "]" << "\x1b[0m" << std::endl;
 			std::multiset<std::pair<int, int>, value_comparator> ranking;
 			for(auto elem: word_counts){
 				ranking.insert(std::make_pair(elem.first, elem.second));
 			}
 			for(auto elem: ranking){
 				std::wstring word = _dict->word_id_to_string(elem.first);
-				wcout << word << L"/" << elem.second << L", ";
+				wcout << "\x1b[1m" << word << "\x1b[0m" << L"(" << elem.second << L") ";
 				n++;
 				if(n > number_to_show){
 					break;
