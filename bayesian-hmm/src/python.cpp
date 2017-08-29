@@ -8,11 +8,10 @@ using namespace bhmm;
 BOOST_PYTHON_MODULE(bhmm){
 	boost::python::class_<Dictionary>("dictionary")
 	.def("string_to_word_id", &Dictionary::string_to_word_id)
-	.def("get_eos_id", &Dictionary::get_eos_id)
 	.def("save", &Dictionary::save)
 	.def("load", &Dictionary::load);
 
-	boost::python::class_<Dataset>("dataset", boost::python::init<Dictionary*>())
+	boost::python::class_<Dataset>("dataset")
 	.def("get_num_words", &Dataset::get_num_words)
 	.def("get_count_of_word", &Dataset::get_count_of_word)
 	.def("get_dict", &Dataset::get_dict_obj, boost::python::return_internal_reference<>())
@@ -21,7 +20,8 @@ BOOST_PYTHON_MODULE(bhmm){
 	.def("add_textfile", &Dataset::add_textfile)
 	.def("mark_low_frequency_words_as_unknown", &Dataset::mark_low_frequency_words_as_unknown);
 	
-	boost::python::class_<Trainer>("trainer", boost::python::init<Dataset*, Model*, Dictionary*, boost::python::list>())
+	boost::python::class_<Trainer>("trainer", boost::python::init<Dataset*, Model*, boost::python::list>())
+	.def("compute_log_p_dataset_dev", &Trainer::compute_log_p_dataset_dev)
 	.def("update_hyperparameters", &Trainer::update_hyperparameters)
 	.def("perform_gibbs_sampling", &Trainer::perform_gibbs_sampling);
 

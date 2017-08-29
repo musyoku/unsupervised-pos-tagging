@@ -4,6 +4,21 @@ import argparse, sys, os, time, codecs, random
 import treetaggerwrapper
 import bhmm
 
+class stdout:
+	BOLD = "\033[1m"
+	END = "\033[0m"
+	CLEAR = "\033[2K"
+	MOVE = "\033[1A"
+	LEFT = "\033[G"
+
+def printb(string):
+	print(stdout.BOLD + string + stdout.END)
+
+def printr(string):
+	sys.stdout.write("\r" + stdout.CLEAR)
+	sys.stdout.write(string)
+	sys.stdout.flush()
+
 class posset:
 	sym = {"SYM", "SENT", ":", ",", "$", "(", ")", "'", "\""}
 	nn = {"NN", "NNS", "NP", "NPS"}
@@ -35,7 +50,8 @@ def collapse_pos(pos):
 		return "JJ"
 	return pos
 
-def build_corpus(filename, dataset):
+def build_corpus(filename):
+	dataset = bhmm.dataset()
 	# 訓練データを形態素解析して各品詞ごとにその品詞になりうる単語の総数を求めておく
 	print("データを準備しています ...")
 	sentence_list = []
@@ -52,8 +68,7 @@ def build_corpus(filename, dataset):
 		for i, sentence in enumerate(f):
 			sentence = sentence.strip()
 			if i % 10 == 0:
-				sys.stdout.write("\r{}行目を処理中です ...".format(i))
-				sys.stdout.flush()
+				printr("{}行目を処理中です ...".format(i))
 			result = tagger.tag_text(sentence)
 			if len(result) == 0:
 				continue
@@ -81,8 +96,12 @@ def build_corpus(filename, dataset):
 
 	if args.supervised:
 		# Wtは各品詞について、その品詞になりうる単語の数が入っている
+		Wt = []
 		for tag, words in Wt_count.items():
 			Wt.append(len(words))
+		assert len(Wt) >= args.num_tags
+		if args.num_tags != len(Wt):
+			Wt = Wt[:args.num_tags]
 	else:
 		# Wtに制限をかけない場合
 		Wt = [len(word_count)] * args.num_tags
@@ -96,17 +115,12 @@ def main():
 	except:
 		pass
 
-	# 単語辞書
-	dictionary = bhmm.dictionary()
-
-	# データセット
-	dataset = bhmm.dataset(dictionary)
-
 	# 訓練データを追加
-	dataset, Wt = build_corpus(args.train_filename, dataset)
+	dataset, Wt = build_corpus(args.train_filename)
 	dataset.mark_low_frequency_words_as_unknown(args.unknown_threshold)	# 低頻度語を全て<unk>に置き換える
 
 	# 単語辞書を保存
+	dictionary = dataset.get_dict()
 	dictionary.save(os.path.join(args.model, "bhmm.dict"))
 
 	# モデル
@@ -117,13 +131,13 @@ def main():
 	model.set_minimum_temperature(args.min_temperature)	# 温度の下限
 
 	# 学習の準備
-	trainer = bhmm.trainer(dataset, model, dictionary, Wt)
+	trainer = bhmm.trainer(dataset, model, Wt)
 
 	# 学習ループ
 	for epoch in range(1, args.epoch + 1):
 		start = time.time()
 
-		# 新しい状態をギブスサンプリング
+		# 新しい状態系列をギブスサンプリング
 		trainer.perform_gibbs_sampling()
 
 		# ハイパーパラメータをサンプリング
@@ -131,8 +145,11 @@ def main():
 
 		# ログ
 		elapsed_time = time.time() - start
-		sys.stdout.write("\rEpoch {} / {} - {:.3f} sec - {:.1f} gibbs/s".format(epoch, args.epoch, elapsed_time, 0))		
-		sys.stdout.flush()
+		printr("Epoch {} / {} - {:.3f} sec".format(epoch, args.epoch, elapsed_time))
+		if epoch % 100 == 0:
+			log_likelihood = trainer.compute_log_p_dataset_dev()
+			printr("")
+			print("log_likelihood:", log_likelihood)
 
 def _main(args):
 	if args.filename is None:

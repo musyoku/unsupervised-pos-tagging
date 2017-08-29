@@ -131,6 +131,6 @@ namespace bhmm {
 			sampled_state_sequence.push_back(k);
 		}
 		std::reverse(sampled_state_sequence.begin(), sampled_state_sequence.end());
-		assert(sampled_state_sequence.size == sentence.size() - 4);
+		assert(sampled_state_sequence.size() == sentence.size() - 4);
 	}
 }
