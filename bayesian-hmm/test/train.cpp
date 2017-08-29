@@ -12,7 +12,7 @@ using std::endl;
 
 int main(){
 	int num_tags = 10;
-	std::string filename = "../../text/alice.txt";
+	std::string filename = "../../text/ptb.txt";
 	Dataset* dataset = new Dataset();
 	dataset->add_textfile(filename, 0.8);
 	Dictionary* dictionary = dataset->_dict;

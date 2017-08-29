@@ -101,15 +101,9 @@ namespace bhmm {
 			std::vector<Word*> &word_vec = dataset[data_index];
 			for(int i = 2;i < word_vec.size();i++){	// 3-gramなので3番目から.
 				Word* word = word_vec[i];
-				// auto itr = tag_for_word.find(word->_id);
-				// if(itr == tag_for_word.end()){
-					int state = sampler::uniform_int(1, _num_tags);
-					assert(1 <= state && state <= _num_tags);
-					word->_state = state;
-					// tag_for_word[word->_id] = state;
-				// }else{
-				// 	word->_state = itr->second;
-				// }
+				int state = sampler::uniform_int(1, _num_tags);
+				assert(1 <= state && state <= _num_tags);
+				word->_state = state;
 				increment_tag_trigram_count_by_words(word_vec[i - 2], word_vec[i - 1], word_vec[i]);
 				if(i < word_vec.size() - 2){
 					word_set.insert(word->_id);
