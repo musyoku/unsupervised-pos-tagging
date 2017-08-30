@@ -42,7 +42,7 @@ namespace bhmm {
 		_hmm->anneal_temperature(temperature);
 	}
 	// 文の確率
-	// 前向き後向きアルゴリズム
+	// 前向きアルゴリズム
 	double Model::compute_p_sentence(std::vector<Word*> &sentence, double** forward_table){
 		assert(sentence.size() > 4);	// <s>と</s>それぞれ2つづつ
 		for(int tag = 1;tag <= _hmm->_num_tags;tag++){

@@ -142,17 +142,20 @@ def main():
 	for epoch in range(1, args.epoch + 1):
 		start = time.time()
 		trainer.perform_gibbs_sampling()	# 新しい状態系列をギブスサンプリング
-		trainer.update_hyperparameters()	# ハイパーパラメータをサンプリング
+		# trainer.update_hyperparameters()	# ハイパーパラメータをサンプリング
 		model.anneal_temperature(args.anneal)	# 温度を下げる
 
 		# ログ
 		elapsed_time = time.time() - start
-		printr("Epoch {} / {} - {:.3f} sec".format(epoch, args.epoch, elapsed_time))
+		printr("Epoch {} / {} - temp {:.3f} - {:.3f} sec".format(epoch, args.epoch, model.get_temperature(), elapsed_time))
+		if epoch % 1000 == 0:
+			printr("")
+			trainer.show_typical_words_of_each_tag(20)
 		if epoch % 100 == 0:
 			log_likelihood = trainer.compute_log_p_dataset_dev()
 			printr("")
 			print("log_likelihood:", log_likelihood)
-			trainer.show_typical_words_of_each_tag(20)
+			model.save(os.path.join(args.model, "bhmm.model"))
 
 def _main(args):
 	if args.filename is None:
@@ -239,7 +242,7 @@ def _main(args):
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument("-file", "--train-filename", type=str, default=None, help="訓練用のテキストファイルのパス.ディレクトリも可.")
-	parser.add_argument("-epoch", "--epoch", type=int, default=20000, help="総epoch.")
+	parser.add_argument("-epoch", "--epoch", type=int, default=100000, help="総epoch.")
 	parser.add_argument("-m", "--model", type=str, default="out", help="保存フォルダ名.")
 	parser.add_argument("--supervised", dest="supervised", default=True, action="store_true", help="各タグのWtを訓練データで制限するかどうか.")
 	parser.add_argument("--unsupervised", dest="supervised", action="store_false", help="各タグのWtを訓練データで制限するかどうか.")
