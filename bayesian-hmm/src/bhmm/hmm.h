@@ -45,6 +45,7 @@ namespace bhmm {
 		double compute_p_wi_given_ti(int ti, id wi);
 		double compute_p_ti_given_t_alpha(int ti, int ti_1, int ti_2, double alpha);
 		double compute_p_ti_given_t(int ti, int ti_1, int ti_2);
+		double compute_p_ti(int ti);
 		void perform_gibbs_sampling_with_sequence(std::vector<Word*> &word_vec);
 		void sample_new_alpha(std::vector<std::vector<Word*>> &dataset);
 		void sample_new_beta(std::vector<std::vector<Word*>> &dataset);

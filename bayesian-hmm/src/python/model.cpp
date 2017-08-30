@@ -57,14 +57,17 @@ namespace bhmm {
 			forward_table[2][tag] = p_w_given_s * p_s_given_prev;
 		}
 		for(int i = 3;i < sentence.size() - 2;i++){
-			int ti_2 = sentence[i - 2]->_state;
+			// int ti_2 = sentence[i - 2]->_state;
 			id wi = sentence[i]->_id;
 			for(int target_tag = 1;target_tag <= _hmm->_num_tags;target_tag++){
 				forward_table[i][target_tag] = 0;
 				double p_w_given_s = _hmm->compute_p_wi_given_ti(wi, target_tag);
 				assert(p_w_given_s > 0);
 				for(int tag = 1;tag <= _hmm->_num_tags;tag++){
-					double p_s_given_prev = _hmm->compute_p_ti_given_t(target_tag, tag, ti_2);
+					double p_s_given_prev = 0;
+					for(int ti_2 = 1;ti_2 <= _hmm->_num_tags;ti_2++){
+						p_s_given_prev += _hmm->compute_p_ti_given_t(target_tag, tag, ti_2) * _hmm->compute_p_ti(ti_2);
+					}
 					assert(p_s_given_prev > 0);
 					forward_table[i][target_tag] += p_w_given_s * p_s_given_prev * forward_table[i - 1][tag];
 				}
