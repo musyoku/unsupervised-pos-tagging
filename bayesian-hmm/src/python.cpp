@@ -30,6 +30,8 @@ BOOST_PYTHON_MODULE(bhmm){
 	.def("get_temperature", &Model::get_temperature)
 	.def("set_temperature", &Model::set_temperature)
 	.def("set_minimum_temperature", &Model::set_minimum_temperature)
+	.def("set_initial_alpha", &Model::set_initial_alpha)
+	.def("set_initial_beta", &Model::set_initial_beta)
 	.def("anneal_temperature", &Model::anneal_temperature)
 	.def("save", &Model::save)
 	.def("load", &Model::load);

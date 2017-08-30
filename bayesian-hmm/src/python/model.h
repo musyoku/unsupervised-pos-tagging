@@ -11,7 +11,8 @@ namespace bhmm {
 		~Model();
 		bool load(std::string filename);
 		bool save(std::string filename);
-		void set_alpha(double alpha);
+		void set_initial_alpha(double alpha);
+		void set_initial_beta(double beta);
 		int get_num_tags();
 		double get_temperature();
 		void set_temperature(double temperature);

@@ -18,7 +18,7 @@ namespace bhmm {
 		_Wt = NULL;
 		_num_tags = num_tags;
 		_num_words = -1;
-		_alpha = 1;
+		_alpha = 0.003;
 		_beta = NULL;
 		_temperature = 1;
 		_minimum_temperature = 1;
@@ -122,6 +122,14 @@ namespace bhmm {
 	void HMM::set_num_tags(int n){
 		assert(n > 0);
 		_num_tags = n;
+	}
+	void HMM::set_alpha(double alpha){
+		_alpha = alpha;
+	}
+	void HMM::set_beta(double beta){
+		for(int tag = 1;tag <= _num_tags;tag++){
+			_beta[tag] = beta;
+		}
 	}
 	void HMM::increment_tag_trigram_count_by_words(Word* tri_word, Word* bi_word, Word* uni_word){
 		assert(uni_word != NULL);

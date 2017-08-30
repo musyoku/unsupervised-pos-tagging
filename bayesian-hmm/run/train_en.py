@@ -134,6 +134,8 @@ def main():
 	# ハイパーパラメータの設定
 	model.set_temperature(args.start_temperature)		# 温度の初期設定
 	model.set_minimum_temperature(args.min_temperature)	# 温度の下限
+	model.set_initial_alpha(args.initial_alpha)
+	model.set_initial_beta(args.initial_beta)
 
 	# 学習の準備
 	trainer = bhmm.trainer(dataset, model, Wt)
@@ -252,5 +254,7 @@ if __name__ == "__main__":
 	parser.add_argument("--start-temperature", type=float, default=1.5, help="開始温度.")
 	parser.add_argument("--min-temperature", type=float, default=0.08, help="最小温度.")
 	parser.add_argument("--anneal", type=float, default=0.99989, help="温度の減少に使う係数.")
+	parser.add_argument("--initial-alpha", "-alpha", type=float, default=0.003, help="alphaの初期値.")
+	parser.add_argument("--initial-beta", "-beta", type=float, default=1.0, help="betaの初期値.")
 	args = parser.parse_args()
 	main()

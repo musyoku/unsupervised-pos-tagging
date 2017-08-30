@@ -23,8 +23,11 @@ namespace bhmm {
 	bool Model::save(std::string filename){
 		return _hmm->save(filename);
 	}
-	void Model::set_alpha(double alpha){
-		_hmm->_alpha = alpha;
+	void Model::set_initial_alpha(double alpha){
+		_hmm->set_alpha(alpha);
+	}
+	void Model::set_initial_beta(double beta){
+		_hmm->set_beta(beta);
 	}
 	int Model::get_num_tags(){
 		return _hmm->_num_tags;

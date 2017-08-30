@@ -40,6 +40,8 @@ namespace bhmm {
 		int get_most_co_occurring_tag(int word_id);
 		void set_Wt_for_tag(int tag_id, int number);
 		void set_num_tags(int n);
+		void set_alpha(double alpha);
+		void set_beta(double beta);
 		double compute_log_p_t_given_alpha(std::vector<Word*> &word_vec, double alpha);
 		double compute_p_wi_given_ti_beta(int ti, id wi, double beta);
 		double compute_p_wi_given_ti(int ti, id wi);
