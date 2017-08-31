@@ -21,6 +21,7 @@ BOOST_PYTHON_MODULE(bhmm){
 	.def("mark_low_frequency_words_as_unknown", &Dataset::mark_low_frequency_words_as_unknown);
 	
 	boost::python::class_<Trainer>("trainer", boost::python::init<Dataset*, Model*, boost::python::list>())
+	.def("compute_log_p_dataset_train", &Trainer::compute_log_p_dataset_train)
 	.def("compute_log_p_dataset_dev", &Trainer::compute_log_p_dataset_dev)
 	.def("update_hyperparameters", &Trainer::update_hyperparameters)
 	.def("show_typical_words_of_each_tag", &Trainer::show_typical_words_of_each_tag)

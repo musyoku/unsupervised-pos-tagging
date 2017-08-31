@@ -207,14 +207,6 @@ namespace bhmm {
 		double n_ti_2_ti_1 = _bigram_counts[ti_2][ti_1];
 		return (n_ti_2_ti_1_ti + alpha) / (n_ti_2_ti_1 + _num_tags * alpha);
 	}
-	double HMM::compute_p_ti(int ti){
-		double sum_counts = 0;
-		for(int tag = 1;tag <= _num_tags;tag++){
-			sum_counts += _unigram_counts[tag];
-		}
-		assert(sum_counts > 0);
-		return _unigram_counts[ti] / sum_counts;
-	}
 	// in:  t_{i-2},t_{i-1},ti,t_{i+1},t_{i+2},w_i
 	void HMM::add_tag_trigram_to_model(int ti_2, int ti_1, int ti, int ti1, int ti2, int wi){
 		assert(1 <= ti && ti <= _num_tags);

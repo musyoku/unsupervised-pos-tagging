@@ -154,9 +154,8 @@ def main():
 			printr("")
 			trainer.show_typical_words_of_each_tag(20)
 		if epoch % 100 == 0:
-			log_likelihood = trainer.compute_log_p_dataset_dev()
 			printr("")
-			print("log_likelihood:", log_likelihood)
+			print("log_likelihood: train {} - dev {}".format(trainer.compute_log_p_dataset_train(), trainer.compute_log_p_dataset_dev()))
 			model.save(os.path.join(args.model, "bhmm.model"))
 
 def _main(args):

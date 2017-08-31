@@ -89,14 +89,20 @@ namespace bhmm {
 	}
 	void Trainer::_before_viterbi_decode(){
 		assert(_dataset->_max_num_words_in_line > 0);
-		_decode_table = new double*[_dataset->_max_num_words_in_line];
+		_decode_table = new double**[_dataset->_max_num_words_in_line];
 		for(int i = 0;i < _dataset->_max_num_words_in_line;i++){
-			_decode_table[i] = new double[_model->_hmm->_num_tags + 1];
+			_decode_table[i] = new double*[_model->_hmm->_num_tags + 1];
+			for(int k = 0;k <=_model->_hmm->_num_tags;k++){
+				_decode_table[i][k] = new double[_model->_hmm->_num_tags + 1];
+			}
 		}
 	}
 	void Trainer::_after_viterbi_decode(){
 		assert(_dataset->_max_num_words_in_line > 0);
 		for(int i = 0;i < _dataset->_max_num_words_in_line;i++){
+			for(int k = 0;k <= _model->_hmm->_num_tags;k++){
+				delete[] _decode_table[i][k];
+			}
 			delete[] _decode_table[i];
 		}
 		delete[] _decode_table;
@@ -104,15 +110,21 @@ namespace bhmm {
 	void Trainer::_before_compute_log_p_dataset(){
 		// 計算用のテーブルを確保
 		assert(_dataset->_max_num_words_in_line > 0);
-		_forward_table = new double*[_dataset->_max_num_words_in_line];
+		_forward_table = new double**[_dataset->_max_num_words_in_line];
 		for(int i = 0;i < _dataset->_max_num_words_in_line;i++){
-			_forward_table[i] = new double[_model->_hmm->_num_tags + 1];
+			_forward_table[i] = new double*[_model->_hmm->_num_tags + 1];
+			for(int k = 0;k <= _model->_hmm->_num_tags;k++){
+				_forward_table[i][k] = new double[_model->_hmm->_num_tags + 1];
+			}
 		}
 	}
 	void Trainer::_after_compute_log_p_dataset(){
 		// 計算用のテーブルを解放
 		assert(_dataset->_max_num_words_in_line > 0);
 		for(int i = 0;i < _dataset->_max_num_words_in_line;i++){
+			for(int k = 0;k <= _model->_hmm->_num_tags;k++){
+				delete[] _forward_table[i][k];
+			}
 			delete[] _forward_table[i];
 		}
 		delete[] _forward_table;

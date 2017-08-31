@@ -18,8 +18,8 @@ namespace bhmm {
 		Dictionary* _dict;
 		Dataset* _dataset;
 		std::vector<int> _rand_indices;
-		double** _forward_table;		// 前向き確率計算用
-		double** _decode_table;			// viterbiデコーディング用
+		double*** _forward_table;		// 前向き確率計算用
+		double*** _decode_table;			// viterbiデコーディング用
 	public:
 		Trainer(Dataset* dataset, Model* model, boost::python::list py_Wt);
 		Trainer(Dataset* dataset, Model* model, std::vector<int> &Wt);
