@@ -29,6 +29,7 @@ BOOST_PYTHON_MODULE(bhmm){
 
 	boost::python::class_<Model>("model", boost::python::init<int>())
 	.def(boost::python::init<std::string>())
+	.def("get_num_tags", &Model::get_num_tags)
 	.def("get_temperature", &Model::get_temperature)
 	.def("set_temperature", &Model::set_temperature)
 	.def("set_minimum_temperature", &Model::set_minimum_temperature)

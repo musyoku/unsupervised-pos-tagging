@@ -1,5 +1,6 @@
 # coding: utf-8
 from __future__ import print_function
+from __future__ import division
 import argparse, sys, re, pylab, codecs, os
 import treetaggerwrapper
 import pandas as pd
@@ -12,10 +13,10 @@ from train_en import collapse_pos, posset, printr, printb
 # UbuntuならTakaoGothicなどが標準で入っている
 sns.set(font=["MS Gothic"], font_scale=3)
 
-def main(args):
+def main():
 	# 辞書
 	dictionary = bhmm.dictionary()
-	dictionary.save(os.path.join(args.model, "bhmm.dict"))
+	dictionary.load(os.path.join(args.model, "bhmm.dict"))
 
 	# モデル
 	model = bhmm.model(os.path.join(args.model, "bhmm.model"))
@@ -53,7 +54,7 @@ def main(args):
 		for pos in all_types_of_pos:
 			if pos not in occurrence:
 				occurrence[pos] = 0
-	for tag in xrange(hmm.get_num_tags()):
+	for tag in range(model.get_num_tags()):
 		if tag not in num_true_tags_for_found_tag:
 			num_true_tags_for_found_tag[tag] = {}
 			for pos in all_types_of_pos:
@@ -69,7 +70,7 @@ def main(args):
 				occurrence[pos] = float(occurrence[pos]) / float(z)
 
 	fig = pylab.gcf()
-	fig.set_size_inches(hmm.get_num_tags() + 3, len(all_types_of_pos))
+	fig.set_size_inches(model.get_num_tags() + 3, len(all_types_of_pos))
 	pylab.clf()
 	dataframe = pd.DataFrame(num_true_tags_for_found_tag)
 	ax = sns.heatmap(dataframe, annot=False, fmt="f", linewidths=0)
@@ -85,4 +86,4 @@ if __name__ == "__main__":
 	parser.add_argument("-f", "--filename", type=str, default=None, help="学習に使ったテキストファイルのパス.")
 	parser.add_argument("-m", "--model", type=str, default="out", help="モデルファイル.")
 	args = parser.parse_args()
-	main(args)
+	main()

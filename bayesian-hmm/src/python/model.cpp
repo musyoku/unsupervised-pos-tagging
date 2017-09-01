@@ -133,7 +133,7 @@ namespace bhmm {
 		int num_words = boost::python::len(py_word_ids);
 		double*** forward_table = NULL;
 		double*** decode_table = NULL;
-		_alloc_viterbi_tables(num_words, forward_table, decode_table);
+		_alloc_viterbi_tables(num_words + 4, forward_table, decode_table);
 		// Python側から渡された単語IDリストを変換
 		std::vector<Word*> sentence;
 		// <s>を2つセット
@@ -162,7 +162,7 @@ namespace bhmm {
 		for(int i = 0;i < sampled_state_sequence.size();i++){
 			result.append(sampled_state_sequence[i]);
 		}
-		_free_viterbi_tables(num_words, forward_table, decode_table);
+		_free_viterbi_tables(num_words + 4, forward_table, decode_table);
 		for(int i = 0;i < sentence.size();i++){
 			delete sentence[i];
 		}

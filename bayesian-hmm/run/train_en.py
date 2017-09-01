@@ -102,12 +102,7 @@ def build_corpus(filename):
 
 	if args.supervised:
 		# Wtは各品詞について、その品詞になりうる単語の数が入っている
-		Wt = []
-		for tag, words in Wt_count.items():
-			Wt.append(len(words))
-		assert len(Wt) >= args.num_tags
-		if args.num_tags != len(Wt):
-			Wt = Wt[:args.num_tags]
+		Wt = [len(words) for tag, words in Wt_count.items()]
 	else:
 		# Wtに制限をかけない場合
 		Wt = [int(len(word_count) / args.num_tags)] * args.num_tags
@@ -130,7 +125,7 @@ def main():
 	dictionary.save(os.path.join(args.model, "bhmm.dict"))
 
 	# モデル
-	model = bhmm.model(args.num_tags)
+	model = bhmm.model(len(Wt) if args.supervised else args.num_tags)
 
 	# ハイパーパラメータの設定
 	model.set_temperature(args.start_temperature)		# 温度の初期設定
@@ -246,7 +241,7 @@ if __name__ == "__main__":
 	parser.add_argument("-file", "--train-filename", type=str, default=None, help="訓練用のテキストファイルのパス.ディレクトリも可.")
 	parser.add_argument("-epoch", "--epoch", type=int, default=100000, help="総epoch.")
 	parser.add_argument("-m", "--model", type=str, default="out", help="保存フォルダ名.")
-	parser.add_argument("--supervised", dest="supervised", default=True, action="store_true", help="各タグのWtを訓練データで制限するかどうか.")
+	parser.add_argument("--supervised", dest="supervised", default=True, action="store_true", help="各タグのWtを訓練データで制限するかどうか.指定した場合num_tagsは無視される.")
 	parser.add_argument("--unsupervised", dest="supervised", action="store_false", help="各タグのWtを訓練データで制限するかどうか.")
 	parser.add_argument("-tags", "--num-tags", type=int, default=20, help="タグの種類（semi_supervisedがFalseの時のみ有効）.")
 	parser.add_argument("-unk", "--unknown-threshold", type=int, default=0, help="出現回数がこの値以下の単語は<unk>に置き換える.")

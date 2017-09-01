@@ -18,6 +18,7 @@ int main(){
 	Model* model = new Model("bhmm.model");
 	std::vector<int> sampled_state_sequence;
 	for(auto sentence: dataset->_word_sequences_train){
+		model->python_viterbi_decode();
 		model->viterbi_decode(sentence, sampled_state_sequence);
 		for(int i = 0;i < sentence.size();i++){
 			wcout << dictionary->word_id_to_string(sentence[i]->_id) << ", " << sampled_state_sequence[i] << endl;

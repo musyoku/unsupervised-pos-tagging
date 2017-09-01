@@ -1,7 +1,7 @@
 CC = g++
 INCLUDE = -I`python -c 'from distutils.sysconfig import *; print get_python_inc()'` -I /usr/local/include
 CFLAGS = -std=c++11 -L/usr/local/lib -lboost_serialization -lboost_python -lpython2.7
-SOFLAGS = -shared -fPIC -std=c++11 -L/usr/local/lib -lboost_serialization -lboost_python -lpython2.7 -O3
+SOFLAGS = -shared -fPIC -std=c++11 -L/usr/local/lib -lboost_serialization -lboost_python -lpython2.7 -O0 -g
 
 install: ## Python用ライブラリをビルドします.
 	$(CC) src/python.cpp src/bhmm/*.cpp src/python/*.cpp -o run/bhmm.so $(INCLUDE) $(SOFLAGS)
