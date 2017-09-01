@@ -1,6 +1,6 @@
 ## [WIP]Python tools for unsupervised POS tagging
 
-** コード修正中です **
+**コード修正中です**
 
 教師なし品詞推定の論文4本の実装・解説を目標にしています。
 
