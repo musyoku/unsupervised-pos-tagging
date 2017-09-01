@@ -23,8 +23,9 @@ def main():
 
 	# 訓練データを形態素解析して集計
 	printb("データを集計しています ...")
-	num_true_tags_for_found_tag = {}
-	all_types_of_pos = set()
+	num_true_tags_of_found_tag = {}
+	words_of_true_tag = {}
+	all_types_of_true_tag = set()
 	tagger = treetaggerwrapper.TreeTagger(TAGLANG="en")
 	with codecs.open(args.filename, "r", "utf-8") as f:
 		for i, sentence_str in enumerate(f):
@@ -35,44 +36,47 @@ def main():
 			sentence_str = sentence_str.strip()	# 開業を消す
 			results = tagger.tag_text(sentence_str)	# 形態素解析
 			for metadata in results:
-				pos = collapse_true_tag(metadata.split("\t")[1])
+				true_tag = collapse_true_tag(metadata.split("\t")[1])
 				lowercase = collapse_true_tag(metadata.split("\t")[2])
-				all_types_of_pos.add(pos)
-				true_tag_seq.append(pos)
+				all_types_of_true_tag.add(true_tag)
+				true_tag_seq.append(true_tag)
 				word_id_seq.append(dictionary.string_to_word_id(lowercase))
+				if true_tag not in words_of_true_tag:
+					words_of_true_tag[true_tag] = set()
+				words_of_true_tag[true_tag].add(lowercase)
 
 			found_tag_seq = model.viterbi_decode(word_id_seq)
 			for true_tag, found_tag in zip(true_tag_seq, found_tag_seq):
-				if found_tag not in num_true_tags_for_found_tag:
-					num_true_tags_for_found_tag[found_tag] = {}
-				if true_tag not in num_true_tags_for_found_tag[found_tag]:
-					num_true_tags_for_found_tag[found_tag][true_tag] = 0
-				num_true_tags_for_found_tag[found_tag][true_tag] += 1
+				if found_tag not in num_true_tags_of_found_tag:
+					num_true_tags_of_found_tag[found_tag] = {}
+				if true_tag not in num_true_tags_of_found_tag[found_tag]:
+					num_true_tags_of_found_tag[found_tag][true_tag] = 0
+				num_true_tags_of_found_tag[found_tag][true_tag] += 1
 
 	# 存在しない部分を0埋め
-	for tag, occurrence in num_true_tags_for_found_tag.items():
-		for pos in all_types_of_pos:
-			if pos not in occurrence:
-				occurrence[pos] = 0
-	for tag in range(model.get_num_tags()):
-		if tag not in num_true_tags_for_found_tag:
-			num_true_tags_for_found_tag[tag] = {}
-			for pos in all_types_of_pos:
-				num_true_tags_for_found_tag[tag][pos] = 0
+	for tag, occurrence in num_true_tags_of_found_tag.items():
+		for true_tag in all_types_of_true_tag:
+			if true_tag not in occurrence:
+				occurrence[true_tag] = 0
+	for tag in range(1, model.get_num_tags() + 1):
+		if tag not in num_true_tags_of_found_tag:
+			num_true_tags_of_found_tag[tag] = {}
+			for true_tag in all_types_of_true_tag:
+				num_true_tags_of_found_tag[tag][true_tag] = 0
 
 	# 正解品詞ごとに正規化
-	for pos in all_types_of_pos:
+	for true_tag in all_types_of_true_tag:
 		z = 0
-		for tag, occurrence in num_true_tags_for_found_tag.items():
-			z += occurrence[pos]
+		for tag, occurrence in num_true_tags_of_found_tag.items():
+			z += occurrence[true_tag]
 		if z > 0:
-			for tag, occurrence in num_true_tags_for_found_tag.items():
-				occurrence[pos] = float(occurrence[pos]) / float(z)
+			for tag, occurrence in num_true_tags_of_found_tag.items():
+				occurrence[true_tag] = float(occurrence[true_tag]) / float(z)
 
 	fig = pylab.gcf()
-	fig.set_size_inches(model.get_num_tags() + 3, len(all_types_of_pos))
+	fig.set_size_inches(model.get_num_tags() + 3, len(all_types_of_true_tag))
 	pylab.clf()
-	dataframe = pd.DataFrame(num_true_tags_for_found_tag)
+	dataframe = pd.DataFrame(num_true_tags_of_found_tag)
 	ax = sns.heatmap(dataframe, annot=False, fmt="f", linewidths=0)
 	ax.tick_params(labelsize=20) 
 	plt.yticks(rotation=0)
@@ -80,6 +84,18 @@ def main():
 	plt.ylabel(u"正解品詞")
 	heatmap = ax.get_figure()
 	heatmap.savefig("pos.png")
+
+	for true_tag in words_of_true_tag:
+		print("[{}]".format(true_tag))
+		words = []
+		sys.stdout.write("	")
+		for i, word in enumerate(words_of_true_tag[true_tag]):
+			sys.stdout.write(word)
+			sys.stdout.write(" ")
+			if i >= 100:
+				break
+		sys.stdout.write("\n")
+
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
