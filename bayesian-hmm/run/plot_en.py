@@ -7,7 +7,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 import bhmm
-from train_en import collapse_pos, posset, printr, printb
+from train_en import collapse_true_tag, printr, printb
 
 # フォントをセット
 # UbuntuならTakaoGothicなどが標準で入っている
@@ -27,16 +27,16 @@ def main():
 	all_types_of_pos = set()
 	tagger = treetaggerwrapper.TreeTagger(TAGLANG="en")
 	with codecs.open(args.filename, "r", "utf-8") as f:
-		for i, line in enumerate(f):
+		for i, sentence_str in enumerate(f):
 			if i % 500 == 0:
 				printr("{}行目を処理中です ...".format(i))
 			word_id_seq = []
 			true_tag_seq = []
-			line = re.sub(ur"\n", "", line)	# 開業を消す
-			poses = tagger.tag_text(line)	# 形態素解析
-			for i, word_pos_lowercase in enumerate(poses):
-				pos = collapse_pos(word_pos_lowercase.split("\t")[1])
-				lowercase = collapse_pos(word_pos_lowercase.split("\t")[2])
+			sentence_str = re.sub(ur"\n", "", sentence_str)	# 開業を消す
+			results = tagger.tag_text(sentence_str)	# 形態素解析
+			for metadata in results:
+				pos = collapse_true_tag(metadata.split("\t")[1])
+				lowercase = collapse_true_tag(metadata.split("\t")[2])
 				all_types_of_pos.add(pos)
 				true_tag_seq.append(pos)
 				word_id_seq.append(dictionary.string_to_word_id(lowercase))
