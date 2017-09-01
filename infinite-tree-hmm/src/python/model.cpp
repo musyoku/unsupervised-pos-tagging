@@ -121,7 +121,7 @@ namespace ithmm {
 		}
 		// ビタビアルゴリズム
 		std::vector<Node*> sampled_state_sequence;
-		_viterbi_decode(words, nodes, sampled_state_sequence, forward_table, decode_table);
+		viterbi_decode(words, nodes, sampled_state_sequence, forward_table, decode_table);
 		// 結果を返す
 		boost::python::list result;
 		for(int i = 0;i < words.size();i++){
@@ -141,7 +141,7 @@ namespace ithmm {
 	}
 	// 状態系列の復号
 	// ビタビアルゴリズム
-	void Model::_viterbi_decode(std::vector<Word*> &sentence, std::vector<Node*> &all_states, std::vector<Node*> &sampled_state_sequence, double** forward_table, double** decode_table){
+	void Model::viterbi_decode(std::vector<Word*> &sentence, std::vector<Node*> &all_states, std::vector<Node*> &sampled_state_sequence, double** forward_table, double** decode_table){
 		// 初期化
 		Word* word = sentence[0];
 		for(int i = 0;i < all_states.size();i++){

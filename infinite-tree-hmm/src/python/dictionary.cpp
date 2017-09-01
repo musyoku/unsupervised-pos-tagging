@@ -8,8 +8,6 @@
 
 namespace ithmm {
 	Dictionary::Dictionary(){
-		_id_to_str[ID_BOS] = L"<bos>";
-		_id_to_str[ID_EOS] = L"<eos>";
 		_id_to_str[ID_UNK] = L"<unk>";
 		_autoincrement = ID_UNK + 1;
 	}

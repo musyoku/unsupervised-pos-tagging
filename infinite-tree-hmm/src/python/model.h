@@ -32,7 +32,7 @@ namespace ithmm {
 		void enumerate_all_states(std::vector<Node*> &nodes);
 		void precompute_all_stick_lengths(std::vector<Node*> &all_states);
 		boost::python::list python_viterbi_decode(boost::python::list py_word_ids);
-		void _viterbi_decode(std::vector<Word*> &data, std::vector<Node*> &all_states, std::vector<Node*> &sampled_state_sequence, double** forward_table, double** decode_table);
+		void viterbi_decode(std::vector<Word*> &data, std::vector<Node*> &all_states, std::vector<Node*> &sampled_state_sequence, double** forward_table, double** decode_table);
 		double compute_p_sentence(std::vector<Word*> &data, std::vector<Node*> &states, double** forward_table);
 		void show_assigned_words_for_each_tag(Dictionary* dict, int number_to_show_for_each_tag, bool show_probability = true);
 		void show_assigned_words_and_probability_for_each_tag(Dictionary* dict, int number_to_show_for_each_tag);

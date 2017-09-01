@@ -4,9 +4,7 @@
 #include <vector>
 #include "../ithmm/common.h"
 
-#define ID_BOS 0
-#define ID_EOS 1
-#define ID_UNK 2
+#define ID_UNK 0
 
 namespace ithmm {
 	class Dictionary{

@@ -7,14 +7,15 @@
 
 namespace ithmm {
 	class Dataset{
+	private:
+		std::vector<int> _rand_indices;
+		int _max_num_words_in_line;
+		int _min_num_words_in_line;
 	public:
 		Dictionary* _dict;
 		std::unordered_map<id, int> _word_count;
 		std::vector<std::vector<Word*>> _word_sequences_train;
 		std::vector<std::vector<Word*>> _word_sequences_dev;
-		std::vector<int> _rand_indices;
-		int _max_num_words_in_line;
-		int _min_num_words_in_line;
 		Dataset();
 		~Dataset();
 		void add_textfile(std::string filename, double train_split_ratio);

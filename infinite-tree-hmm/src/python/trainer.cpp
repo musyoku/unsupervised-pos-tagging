@@ -2,10 +2,10 @@
 #include "trainer.h"
 
 namespace ithmm {
-	Trainer::Trainer(Dataset* dataset, Model* model, Dictionary* dict){
+	Trainer::Trainer(Dataset* dataset, Model* model){
 		_dataset = dataset;
 		_model = model;
-		_dict = dict;
+		_dict = dataset->_dict;
 		_forward_table = NULL;
 		_decode_table = NULL;
 		_model->_ithmm->set_word_g0(1.0 / _dataset->_word_count.size());

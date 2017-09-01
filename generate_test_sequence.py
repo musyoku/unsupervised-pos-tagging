@@ -20,7 +20,7 @@ def main(args):
 	B[2] = 0.0, 0.0, 0.0, 1.0, 0.0, 0.0
 	B[3] = 0.0, 0.0, 0.0, 0.0, 0.7, 0.3
 
-	with codecs.open("test.txt", "w", "utf-8") as f:
+	with codecs.open("text/test.txt", "w", "utf-8") as f:
 		for n in xrange(args.num_seq):
 			state = 0
 			sequence = ""
