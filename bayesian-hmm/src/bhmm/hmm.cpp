@@ -10,6 +10,9 @@
 #include "utils.h"
 
 namespace bhmm {
+	HMM::HMM(){
+
+	}
 	HMM::HMM(int num_tags){
 		_trigram_counts = NULL;
 		_bigram_counts = NULL;
@@ -466,30 +469,30 @@ namespace boost {
 			assert(hmm._num_tags > 0);
 			int num_tags = hmm._num_tags;
 			// 各タグの可能な単語数
-			for(int tag = 0;tag < num_tags;tag++){
+			for(int tag = 0;tag <= num_tags;tag++){
 				ar & hmm._Wt[tag];
 			}
 			// Betaの初期化
 			// 初期値は1
-			for(int tag = 0;tag < num_tags;tag++){
+			for(int tag = 0;tag <= num_tags;tag++){
 				ar & hmm._beta[tag];
 			}
 			// 3-gram		
-			for(int tri_tag = 0;tri_tag < num_tags;tri_tag++){
-				for(int bi_tag = 0;bi_tag < num_tags;bi_tag++){
-					for(int uni_tag = 0;uni_tag < num_tags;uni_tag++){
+			for(int tri_tag = 0;tri_tag <= num_tags;tri_tag++){
+				for(int bi_tag = 0;bi_tag <= num_tags;bi_tag++){
+					for(int uni_tag = 0;uni_tag <= num_tags;uni_tag++){
 						ar & hmm._trigram_counts[tri_tag][bi_tag][uni_tag];
 					}
 				}
 			}
 			// 2-gram
-			for(int bi_tag = 0;bi_tag < num_tags;bi_tag++){
-				for(int uni_tag = 0;uni_tag < num_tags;uni_tag++){
+			for(int bi_tag = 0;bi_tag <= num_tags;bi_tag++){
+				for(int uni_tag = 0;uni_tag <= num_tags;uni_tag++){
 					ar & hmm._bigram_counts[bi_tag][uni_tag];
 				}
 			}
 			// 1-gram
-			for(int uni_tag = 0;uni_tag < num_tags;uni_tag++){
+			for(int uni_tag = 0;uni_tag <= num_tags;uni_tag++){
 				ar & hmm._unigram_counts[uni_tag];
 			}
 		}
@@ -505,38 +508,38 @@ namespace boost {
 			assert(hmm._num_tags > 0);
 			int num_tags = hmm._num_tags;
 			// 各タグの可能な単語数
-			hmm._Wt = new int[num_tags];
-			for(int tag = 0;tag < num_tags;tag++){
+			hmm._Wt = new int[num_tags + 1];
+			for(int tag = 0;tag <= num_tags;tag++){
 				ar & hmm._Wt[tag];
 			}
 			// Betaの初期化
 			// 初期値は1
-			hmm._beta = new double[num_tags];
-			for(int tag = 0;tag < num_tags;tag++){
+			hmm._beta = new double[num_tags + 1];
+			for(int tag = 0;tag <= num_tags;tag++){
 				ar & hmm._beta[tag];
 			}
 			// 3-gram		
-			hmm._trigram_counts = new int**[num_tags];
-			for(int tri_tag = 0;tri_tag < num_tags;tri_tag++){
-				hmm._trigram_counts[tri_tag] = new int*[num_tags];
-				for(int bi_tag = 0;bi_tag < num_tags;bi_tag++){
-					hmm._trigram_counts[tri_tag][bi_tag] = new int[num_tags];
-					for(int uni_tag = 0;uni_tag < num_tags;uni_tag++){
+			hmm._trigram_counts = new int**[num_tags + 1];
+			for(int tri_tag = 0;tri_tag <= num_tags;tri_tag++){
+				hmm._trigram_counts[tri_tag] = new int*[num_tags + 1];
+				for(int bi_tag = 0;bi_tag <= num_tags;bi_tag++){
+					hmm._trigram_counts[tri_tag][bi_tag] = new int[num_tags + 1];
+					for(int uni_tag = 0;uni_tag <= num_tags;uni_tag++){
 						ar & hmm._trigram_counts[tri_tag][bi_tag][uni_tag];
 					}
 				}
 			}
 			// 2-gram
-			hmm._bigram_counts = new int*[num_tags];
-			for(int bi_tag = 0;bi_tag < num_tags;bi_tag++){
-				hmm._bigram_counts[bi_tag] = new int[num_tags];
-				for(int uni_tag = 0;uni_tag < num_tags;uni_tag++){
+			hmm._bigram_counts = new int*[num_tags + 1];
+			for(int bi_tag = 0;bi_tag <= num_tags;bi_tag++){
+				hmm._bigram_counts[bi_tag] = new int[num_tags + 1];
+				for(int uni_tag = 0;uni_tag <= num_tags;uni_tag++){
 					ar & hmm._bigram_counts[bi_tag][uni_tag];
 				}
 			}
 			// 1-gram
-			hmm._unigram_counts = new int[num_tags];
-			for(int uni_tag = 0;uni_tag < num_tags;uni_tag++){
+			hmm._unigram_counts = new int[num_tags + 1];
+			for(int uni_tag = 0;uni_tag <= num_tags;uni_tag++){
 				ar & hmm._unigram_counts[uni_tag];
 			}
 		}

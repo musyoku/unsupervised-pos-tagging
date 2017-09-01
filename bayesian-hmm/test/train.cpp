@@ -26,7 +26,7 @@ int main(){
 	}
 	Trainer* trainer = new Trainer(dataset, model, Wt);
 
-	for(int i = 1;i <= 100000;i++){
+	for(int i = 1;i <= 10000;i++){
 		trainer->perform_gibbs_sampling();
 		model->anneal_temperature(0.99989);
 		// trainer->update_hyperparameters();

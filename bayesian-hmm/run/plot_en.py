@@ -1,6 +1,6 @@
 # coding: utf-8
 from __future__ import print_function
-import argparse, sys, re, pylab, codecs
+import argparse, sys, re, pylab, codecs, os
 import treetaggerwrapper
 import pandas as pd
 import seaborn as sns
@@ -22,53 +22,56 @@ def main(args):
 
 	# 訓練データを形態素解析して集計
 	printb("データを集計しています ...")
-	num_occurrence_of_pos_for_tag = {}
+	num_true_tags_for_found_tag = {}
 	all_types_of_pos = set()
 	tagger = treetaggerwrapper.TreeTagger(TAGLANG="en")
 	with codecs.open(args.filename, "r", "utf-8") as f:
 		for i, line in enumerate(f):
 			if i % 500 == 0:
 				printr("{}行目を処理中です ...".format(i))
-			tag_ids = [0, 0]	# <bos>の品詞IDは0. 3-gramなので文脈は2つ
+			word_id_seq = []
+			true_tag_seq = []
 			line = re.sub(ur"\n", "", line)	# 開業を消す
 			poses = tagger.tag_text(line)	# 形態素解析
 			for i, word_pos_lowercase in enumerate(poses):
 				pos = collapse_pos(word_pos_lowercase.split("\t")[1])
 				lowercase = collapse_pos(word_pos_lowercase.split("\t")[2])
 				all_types_of_pos.add(pos)
-				word_id = hmm.string_to_word_id(lowercase)
-				tag_id = hmm.argmax_tag_from_Pt_w(tag_ids[-2], tag_ids[-1], word_id)
-				tag_ids.append(tag_id)
-				if tag_id not in num_occurrence_of_pos_for_tag:
-					num_occurrence_of_pos_for_tag[tag_id] = {}
-				if pos not in num_occurrence_of_pos_for_tag[tag_id]:
-					num_occurrence_of_pos_for_tag[tag_id][pos] = 0
-				num_occurrence_of_pos_for_tag[tag_id][pos] += 1
+				true_tag_seq.append(pos)
+				word_id_seq.append(dictionary.string_to_word_id(lowercase))
+
+			found_tag_seq = model.viterbi_decode(word_id_seq)
+			for true_tag, found_tag in zip(true_tag_seq, found_tag_seq):
+				if found_tag not in num_true_tags_for_found_tag:
+					num_true_tags_for_found_tag[found_tag] = {}
+				if true_tag not in num_true_tags_for_found_tag[found_tag]:
+					num_true_tags_for_found_tag[found_tag][true_tag] = 0
+				num_true_tags_for_found_tag[found_tag][true_tag] += 1
 
 	# 存在しない部分を0埋め
-	for tag, occurrence in num_occurrence_of_pos_for_tag.items():
+	for tag, occurrence in num_true_tags_for_found_tag.items():
 		for pos in all_types_of_pos:
 			if pos not in occurrence:
 				occurrence[pos] = 0
 	for tag in xrange(hmm.get_num_tags()):
-		if tag not in num_occurrence_of_pos_for_tag:
-			num_occurrence_of_pos_for_tag[tag] = {}
+		if tag not in num_true_tags_for_found_tag:
+			num_true_tags_for_found_tag[tag] = {}
 			for pos in all_types_of_pos:
-				num_occurrence_of_pos_for_tag[tag][pos] = 0
+				num_true_tags_for_found_tag[tag][pos] = 0
 
 	# 正解品詞ごとに正規化
 	for pos in all_types_of_pos:
 		z = 0
-		for tag, occurrence in num_occurrence_of_pos_for_tag.items():
+		for tag, occurrence in num_true_tags_for_found_tag.items():
 			z += occurrence[pos]
 		if z > 0:
-			for tag, occurrence in num_occurrence_of_pos_for_tag.items():
+			for tag, occurrence in num_true_tags_for_found_tag.items():
 				occurrence[pos] = float(occurrence[pos]) / float(z)
 
 	fig = pylab.gcf()
 	fig.set_size_inches(hmm.get_num_tags() + 3, len(all_types_of_pos))
 	pylab.clf()
-	dataframe = pd.DataFrame(num_occurrence_of_pos_for_tag)
+	dataframe = pd.DataFrame(num_true_tags_for_found_tag)
 	ax = sns.heatmap(dataframe, annot=False, fmt="f", linewidths=0)
 	ax.tick_params(labelsize=20) 
 	plt.yticks(rotation=0)

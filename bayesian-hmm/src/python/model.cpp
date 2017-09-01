@@ -15,7 +15,16 @@ namespace bhmm {
 		_hmm = new HMM(num_tags);
 	}
 	Model::Model(std::string filename){
-		Model(0);
+		// 日本語周り
+		setlocale(LC_CTYPE, "ja_JP.UTF-8");
+		std::ios_base::sync_with_stdio(false);
+		std::locale default_loc("ja_JP.UTF-8");
+		std::locale::global(default_loc);
+		std::locale ctype_default(std::locale::classic(), default_loc, std::locale::ctype); //※
+		std::wcout.imbue(ctype_default);
+		std::wcin.imbue(ctype_default);
+
+		_hmm = new HMM();
 		assert(load(filename) == true);
 	}
 	Model::~Model(){
@@ -95,7 +104,9 @@ namespace bhmm {
 		}
 		return p_x;
 	}
-	void Model::_alloc_viterbi_tables(int sentence_length, double*** forward_table, double*** decode_table){
+	void Model::_alloc_viterbi_tables(int sentence_length, double*** &forward_table, double*** &decode_table){
+		forward_table = new double**[sentence_length];
+		decode_table = new double**[sentence_length];
 		for(int i = 0;i < sentence_length;i++){
 			forward_table[i] = new double*[_hmm->_num_tags + 1];
 			decode_table[i] = new double*[_hmm->_num_tags + 1];
@@ -105,7 +116,7 @@ namespace bhmm {
 			}
 		}
 	}
-	void Model::_free_viterbi_tables(int sentence_length, double*** forward_table, double*** decode_table){
+	void Model::_free_viterbi_tables(int sentence_length, double*** &forward_table, double*** &decode_table){
 		for(int i = 0;i < sentence_length;i++){
 			for(int k = 0;k <= _hmm->_num_tags;k++){
 				delete[] forward_table[i][k];
@@ -125,11 +136,23 @@ namespace bhmm {
 		_alloc_viterbi_tables(num_words, forward_table, decode_table);
 		// Python側から渡された単語IDリストを変換
 		std::vector<Word*> sentence;
+		// <s>を2つセット
+		for(int i = 0;i < 2;i++){
+			Word* bos = new Word();
+			bos->_state = 0;
+			sentence.push_back(bos);
+		}
 		for(int i = 0;i < num_words;i++){
 			Word* word = new Word();
 			word->_id = boost::python::extract<id>(py_word_ids[i]);
 			word->_state = 0;
 			sentence.push_back(word);
+		}
+		// </s>を2つセット
+		for(int i = 0;i < 2;i++){
+			Word* eos = new Word();
+			eos->_state = 0;
+			sentence.push_back(eos);
 		}
 		// ビタビアルゴリズム
 		std::vector<int> sampled_state_sequence;
@@ -165,9 +188,9 @@ namespace bhmm {
 			double p_w_given_s = _hmm->compute_p_wi_given_ti(wi, ti);
 			assert(p_s_given_prev > 0);
 			assert(p_w_given_s > 0);
-			forward_table[2][tag_bos][ti] = p_w_given_s * p_s_given_prev;
+			forward_table[2][tag_bos][ti] = log(p_w_given_s) + log(p_s_given_prev);
 			for(int ti_1 = 1;ti_1 <= _hmm->_num_tags;ti_1++){
-				forward_table[2][ti_1][ti] = 0;
+				forward_table[2][ti_1][ti] = -10000000;
 			}
 		}
 		for(int i = 3;i < sentence.size() - 2;i++){
@@ -177,19 +200,18 @@ namespace bhmm {
 					id wi = sentence[i]->_id;
 					double p_w_given_s = _hmm->compute_p_wi_given_ti(wi, ti);
 					assert(p_w_given_s > 0);
-					forward_table[i][ti_1][ti] = 0;
 					if(i == 3){
 						double p_s_given_prev = _hmm->compute_p_ti_given_t(ti, ti_1, tag_bos);
-						forward_table[i][ti_1][ti] = forward_table[i - 1][tag_bos][ti_1] * p_s_given_prev * p_w_given_s;
+						forward_table[i][ti_1][ti] = forward_table[i - 1][tag_bos][ti_1] + log(p_s_given_prev) + log(p_w_given_s);
 						decode_table[i][ti_1][ti] = tag_bos;
 					}else{
 						double max_value = 0;
 						for(int ti_2 = 1;ti_2 <= _hmm->_num_tags;ti_2++){
 							double p_s_given_prev = _hmm->compute_p_ti_given_t(ti, ti_1, ti_2);
-							double value = p_s_given_prev * forward_table[i - 1][ti_2][ti_1];
-							if(value > max_value){
+							double value = log(p_s_given_prev) + forward_table[i - 1][ti_2][ti_1];
+							if(max_value == 0 || value > max_value){
 								max_value = value;
-								forward_table[i][ti_1][ti] = value * p_w_given_s;
+								forward_table[i][ti_1][ti] = value + log(p_w_given_s);
 								decode_table[i][ti_1][ti] = ti_2;
 							}
 						}
@@ -203,9 +225,9 @@ namespace bhmm {
 		double argmax_ti = 0;
 		for(int ti_1 = 1;ti_1 <= _hmm->_num_tags;ti_1++){
 			for(int ti = 1;ti <= _hmm->_num_tags;ti++){
-				double p_x_s = forward_table[i][ti_1][ti];
-				if(p_x_s > max_p_x_s){
-					max_p_x_s = p_x_s;
+				double log_p_x_s = forward_table[i][ti_1][ti];
+				if(max_p_x_s == 0 || log_p_x_s > max_p_x_s){
+					max_p_x_s = log_p_x_s;
 					argmax_ti_1 = ti_1;
 					argmax_ti = ti;
 				}
@@ -218,7 +240,7 @@ namespace bhmm {
 		sampled_state_sequence.push_back(argmax_ti);
 		int ti_1 = argmax_ti_1;
 		int ti = argmax_ti;
-		for(int i = sentence.size() - 3;i >= 3;i--){
+		for(int i = sentence.size() - 3;i >= 4;i--){
 			int ti_2 = decode_table[i][ti_1][ti];
 			sampled_state_sequence.push_back(ti_2);
 			ti = ti_1;

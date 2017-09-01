@@ -31,6 +31,7 @@ namespace bhmm {
 		double* _beta;
 		double _temperature;
 		double _minimum_temperature;
+		HMM();
 		HMM(int num_tags);
 		~HMM();
 		void anneal_temperature(double multiplier);

@@ -1,16 +1,16 @@
 CC = g++
 INCLUDE = -I`python -c 'from distutils.sysconfig import *; print get_python_inc()'` -I /usr/local/include
-CFLAGS = -std=c++11 -L/usr/local/lib -lboost_serialization -lboost_python -lpython2.7 -O3
+CFLAGS = -std=c++11 -L/usr/local/lib -lboost_serialization -lboost_python -lpython2.7
 SOFLAGS = -shared -fPIC -std=c++11 -L/usr/local/lib -lboost_serialization -lboost_python -lpython2.7 -O3
 
 install: ## Python用ライブラリをビルドします.
 	$(CC) src/python.cpp src/bhmm/*.cpp src/python/*.cpp -o run/bhmm.so $(INCLUDE) $(SOFLAGS)
 
 cpp_train: ## LLDB用.
-	$(CC) test/train.cpp src/bhmm/*.cpp src/python/*.cpp -o test/train $(INCLUDE) $(CFLAGS)
+	$(CC) test/train.cpp src/bhmm/*.cpp src/python/*.cpp -o test/train $(INCLUDE) $(CFLAGS) -O3
 
 cpp_viterbi: ## LLDB用.
-	$(CC) test/viterbi.cpp src/bhmm/*.cpp src/python/*.cpp -o test/viterbi $(INCLUDE) $(CFLAGS)
+	$(CC) test/viterbi.cpp src/bhmm/*.cpp src/python/*.cpp -o test/viterbi $(INCLUDE) $(CFLAGS) -O0 -g
 
 .PHONY: help
 help:

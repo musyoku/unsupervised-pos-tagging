@@ -6,8 +6,8 @@
 namespace bhmm {
 	class Model{
 	private:
-		void _alloc_viterbi_tables(int sentence_length, double*** forward_table, double*** decode_table);
-		void _free_viterbi_tables(int sentence_length, double*** forward_table, double*** decode_table);
+		void _alloc_viterbi_tables(int sentence_length, double*** &forward_table, double*** &decode_table);
+		void _free_viterbi_tables(int sentence_length, double*** &forward_table, double*** &decode_table);
 	public:
 		HMM* _hmm;
 		Model(int num_tags);

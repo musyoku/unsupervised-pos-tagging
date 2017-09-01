@@ -110,7 +110,7 @@ def build_corpus(filename):
 			Wt = Wt[:args.num_tags]
 	else:
 		# Wtに制限をかけない場合
-		Wt = [len(word_count) / args.num_tags] * args.num_tags
+		Wt = [int(len(word_count) / args.num_tags)] * args.num_tags
 
 	return dataset, Wt
 

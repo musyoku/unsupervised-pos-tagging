@@ -6,20 +6,22 @@
 #include "../src/python/dictionary.h"
 #include "../src/python/trainer.h"
 using namespace bhmm;
-using std::cout;
-using std::flush;
+using std::wcout;
 using std::endl;
 
 int main(){
 	std::string filename = "../../text/alice.txt";
 	Dataset* dataset = new Dataset();
-	dataset->add_textfile(filename, 0.9);
+	dataset->add_textfile(filename, 1);
 	Dictionary* dictionary = new Dictionary();
 	dictionary->load("bhmm.dict");
 	Model* model = new Model("bhmm.model");
 	std::vector<int> sampled_state_sequence;
-	for(auto sentence: dataset->_word_sequences_dev){
+	for(auto sentence: dataset->_word_sequences_train){
 		model->viterbi_decode(sentence, sampled_state_sequence);
+		for(int i = 0;i < sentence.size();i++){
+			wcout << dictionary->word_id_to_string(sentence[i]->_id) << ", " << sampled_state_sequence[i] << endl;
+		}
 	}
 	return 0;
 }
