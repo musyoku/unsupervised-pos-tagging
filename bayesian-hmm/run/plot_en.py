@@ -1,32 +1,34 @@
-# -*- coding: utf-8 -*-
+# coding: utf-8
+from __future__ import print_function
 import argparse, sys, re, pylab, codecs
 import treetaggerwrapper
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-import model
-from train_en import collapse_pos, posset
-from train_ja import stdout
+import bhmm
+from train_en import collapse_pos, posset, printr, printb
 
 # フォントをセット
 # UbuntuならTakaoGothicなどが標準で入っている
 sns.set(font=["MS Gothic"], font_scale=3)
 
 def main(args):
-	hmm = model.bayesian_hmm()
-	if hmm.load(args.model) == False:
-		raise Exception("モデルが見つかりません.")
+	# 辞書
+	dictionary = bhmm.dictionary()
+	dictionary.save(os.path.join(args.model, "bhmm.dict"))
+
+	# モデル
+	model = bhmm.model(os.path.join(args.model, "bhmm.model"))
 
 	# 訓練データを形態素解析して集計
-	print stdout.BOLD + "データを集計しています ..." + stdout.END
+	printb("データを集計しています ...")
 	num_occurrence_of_pos_for_tag = {}
 	all_types_of_pos = set()
 	tagger = treetaggerwrapper.TreeTagger(TAGLANG="en")
 	with codecs.open(args.filename, "r", "utf-8") as f:
 		for i, line in enumerate(f):
 			if i % 500 == 0:
-				sys.stdout.write("\r{}行目を処理中です ...".format(i))
-				sys.stdout.flush()
+				printr("{}行目を処理中です ...".format(i))
 			tag_ids = [0, 0]	# <bos>の品詞IDは0. 3-gramなので文脈は2つ
 			line = re.sub(ur"\n", "", line)	# 開業を消す
 			poses = tagger.tag_text(line)	# 形態素解析

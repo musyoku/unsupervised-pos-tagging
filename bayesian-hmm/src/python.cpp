@@ -28,6 +28,7 @@ BOOST_PYTHON_MODULE(bhmm){
 	.def("perform_gibbs_sampling", &Trainer::perform_gibbs_sampling);
 
 	boost::python::class_<Model>("model", boost::python::init<int>())
+	.def(boost::python::init<std::string>())
 	.def("get_temperature", &Model::get_temperature)
 	.def("set_temperature", &Model::set_temperature)
 	.def("set_minimum_temperature", &Model::set_minimum_temperature)

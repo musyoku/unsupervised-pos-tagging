@@ -12,7 +12,7 @@ using std::endl;
 
 int main(){
 	int num_tags = 10;
-	std::string filename = "../../text/test.txt";
+	std::string filename = "../../text/alice.txt";
 	Dataset* dataset = new Dataset();
 	dataset->add_textfile(filename, 0.9);
 	Dictionary* dictionary = dataset->_dict;
@@ -22,11 +22,11 @@ int main(){
 	model->set_minimum_temperature(0.08);
 	std::vector<int> Wt;
 	for(int p = 0;p < num_tags;p++){
-		Wt.push_back(6);
+		Wt.push_back(dataset->get_num_words() / num_tags);
 	}
 	Trainer* trainer = new Trainer(dataset, model, Wt);
 
-	for(int i = 1;i <= 10000;i++){
+	for(int i = 1;i <= 100000;i++){
 		trainer->perform_gibbs_sampling();
 		model->anneal_temperature(0.99989);
 		// trainer->update_hyperparameters();

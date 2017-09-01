@@ -6,8 +6,11 @@ SOFLAGS = -shared -fPIC -std=c++11 -L/usr/local/lib -lboost_serialization -lboos
 install: ## Python用ライブラリをビルドします.
 	$(CC) src/python.cpp src/bhmm/*.cpp src/python/*.cpp -o run/bhmm.so $(INCLUDE) $(SOFLAGS)
 
-cpp: ## LLDB用.
+cpp_train: ## LLDB用.
 	$(CC) test/train.cpp src/bhmm/*.cpp src/python/*.cpp -o test/train $(INCLUDE) $(CFLAGS)
+
+cpp_viterbi: ## LLDB用.
+	$(CC) test/viterbi.cpp src/bhmm/*.cpp src/python/*.cpp -o test/viterbi $(INCLUDE) $(CFLAGS)
 
 .PHONY: help
 help:

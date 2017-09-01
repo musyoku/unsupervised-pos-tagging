@@ -14,6 +14,10 @@ namespace bhmm {
 
 		_hmm = new HMM(num_tags);
 	}
+	Model::Model(std::string filename){
+		Model(0);
+		assert(load(filename) == true);
+	}
 	Model::~Model(){
 		delete _hmm;
 	}
@@ -45,7 +49,7 @@ namespace bhmm {
 		_hmm->anneal_temperature(temperature);
 	}
 	// 文の確率
-	// 前向きアルゴリズム
+	// 前向きアルゴリズムの拡張
 	double Model::compute_p_sentence(std::vector<Word*> &sentence, double*** forward_table){
 		assert(sentence.size() > 4);	// <s>と</s>それぞれ2つづつ
 		int tag_bos = 0;	// <s>
@@ -79,7 +83,6 @@ namespace bhmm {
 					}
 					forward_table[i][ti_1][ti] *= p_w_given_s;
 
-
 				}
 			}
 		}
@@ -92,60 +95,136 @@ namespace bhmm {
 		}
 		return p_x;
 	}
+	void Model::_alloc_viterbi_tables(int sentence_length, double*** forward_table, double*** decode_table){
+		for(int i = 0;i < sentence_length;i++){
+			forward_table[i] = new double*[_hmm->_num_tags + 1];
+			decode_table[i] = new double*[_hmm->_num_tags + 1];
+			for(int k = 0;k <= _hmm->_num_tags;k++){
+				forward_table[i][k] = new double[_hmm->_num_tags + 1];
+				decode_table[i][k] = new double[_hmm->_num_tags + 1];
+			}
+		}
+	}
+	void Model::_free_viterbi_tables(int sentence_length, double*** forward_table, double*** decode_table){
+		for(int i = 0;i < sentence_length;i++){
+			for(int k = 0;k <= _hmm->_num_tags;k++){
+				delete[] forward_table[i][k];
+				delete[] decode_table[i][k];
+			}
+			delete[] forward_table[i];
+			delete[] decode_table[i];
+		}
+		delete[] forward_table;
+		delete[] decode_table;
+	}
+	boost::python::list Model::python_viterbi_decode(boost::python::list py_word_ids){
+		// デコード用のテーブルを確保
+		int num_words = boost::python::len(py_word_ids);
+		double*** forward_table = NULL;
+		double*** decode_table = NULL;
+		_alloc_viterbi_tables(num_words, forward_table, decode_table);
+		// Python側から渡された単語IDリストを変換
+		std::vector<Word*> sentence;
+		for(int i = 0;i < num_words;i++){
+			Word* word = new Word();
+			word->_id = boost::python::extract<id>(py_word_ids[i]);
+			word->_state = 0;
+			sentence.push_back(word);
+		}
+		// ビタビアルゴリズム
+		std::vector<int> sampled_state_sequence;
+		viterbi_decode(sentence, sampled_state_sequence, forward_table, decode_table);
+		// 結果を返す
+		boost::python::list result;
+		for(int i = 0;i < sampled_state_sequence.size();i++){
+			result.append(sampled_state_sequence[i]);
+		}
+		_free_viterbi_tables(num_words, forward_table, decode_table);
+		for(int i = 0;i < sentence.size();i++){
+			delete sentence[i];
+		}
+		return result;
+	}
 	// 状態系列の復号
-	// ビタビアルゴリズム
+	// ビタビアルゴリズムの拡張
+	void Model::viterbi_decode(std::vector<Word*> &sentence, std::vector<int> &sampled_state_sequence){
+		double*** forward_table = NULL;
+		double*** decode_table = NULL;
+		_alloc_viterbi_tables(sentence.size(), forward_table, decode_table);
+		viterbi_decode(sentence, sampled_state_sequence, forward_table, decode_table);
+		_free_viterbi_tables(sentence.size(), forward_table, decode_table);
+	}
 	void Model::viterbi_decode(std::vector<Word*> &sentence, std::vector<int> &sampled_state_sequence, double*** forward_table, double*** decode_table){
-		// assert(sentence.size() > 4);	// <s>と</s>それぞれ2つづつ
-		// for(int tag = 1;tag <= _hmm->_num_tags;tag++){
-		// 	int ti_2 = sentence[0]->_state;
-		// 	int ti_1 = sentence[1]->_state;
-		// 	int ti = sentence[2]->_state;
-		// 	id wi = sentence[2]->_id;
-		// 	double p_s_given_prev = _hmm->compute_p_ti_given_t(ti, ti_1, ti_2);
-		// 	double p_w_given_s = _hmm->compute_p_wi_given_ti(wi, ti);
-		// 	assert(p_s_given_prev > 0);
-		// 	assert(p_w_given_s > 0);
-		// 	forward_table[2][tag] = p_w_given_s * p_s_given_prev;
-		// }
-		// for(int i = 3;i < sentence.size() - 2;i++){
-		// 	int ti_2 = sentence[i - 2]->_state;
-		// 	id wi = sentence[i]->_id;
-		// 	for(int target_tag = 1;target_tag <= _hmm->_num_tags;target_tag++){
-		// 		forward_table[i][target_tag] = 0;
-		// 		double max_value = 0;
-		// 		double p_w_given_s = _hmm->compute_p_wi_given_ti(wi, target_tag);
-		// 		assert(p_w_given_s > 0);
-		// 		for(int tag = 1;tag <= _hmm->_num_tags;tag++){
-		// 			double p_s_given_prev = _hmm->compute_p_ti_given_t(target_tag, tag, ti_2);
-		// 			assert(p_s_given_prev > 0);
-		// 			double value = p_s_given_prev * forward_table[i - 1][tag];
-		// 			if(value > max_value){
-		// 				max_value = value;
-		// 				forward_table[i][target_tag] = value * p_w_given_s;
-		// 				decode_table[i][target_tag] = tag;
-		// 			}
+		assert(sentence.size() > 4);	// <s>と</s>それぞれ2つづつ
+		int tag_bos = 0;	// <s>
+		for(int ti = 1;ti <= _hmm->_num_tags;ti++){
+			int ti_2 = tag_bos;	// <s>
+			int ti_1 = tag_bos;	// <s>
+			id wi = sentence[2]->_id;
+			double p_s_given_prev = _hmm->compute_p_ti_given_t(ti, ti_1, ti_2);
+			double p_w_given_s = _hmm->compute_p_wi_given_ti(wi, ti);
+			assert(p_s_given_prev > 0);
+			assert(p_w_given_s > 0);
+			forward_table[2][tag_bos][ti] = p_w_given_s * p_s_given_prev;
+			for(int ti_1 = 1;ti_1 <= _hmm->_num_tags;ti_1++){
+				forward_table[2][ti_1][ti] = 0;
+			}
+		}
+		for(int i = 3;i < sentence.size() - 2;i++){
+			for(int ti_1 = 1;ti_1 <= _hmm->_num_tags;ti_1++){
+				for(int ti = 1;ti <= _hmm->_num_tags;ti++){
 
-		// 		}
-		// 	}
-		// }
-		// // 後ろ向きに系列を復元
-		// sampled_state_sequence.clear();
-		// int n = sentence.size() - 3;
-		// int i = n;
-		// int k = 0;
-		// double max_value = 0;
-		// for(int tag = 1;tag <= _hmm->_num_tags;tag++){
-		// 	if(forward_table[i][tag] > max_value){
-		// 		k = tag;
-		// 		max_value = forward_table[i][tag];
-		// 	}
-		// }
-		// sampled_state_sequence.push_back(k);
-		// for(int i = n - 1;i >= 0;i--){
-		// 	k = decode_table[i + 1][sampled_state_sequence[n - i - 1]];
-		// 	sampled_state_sequence.push_back(k);
-		// }
-		// std::reverse(sampled_state_sequence.begin(), sampled_state_sequence.end());
-		// assert(sampled_state_sequence.size() == sentence.size() - 4);
+					id wi = sentence[i]->_id;
+					double p_w_given_s = _hmm->compute_p_wi_given_ti(wi, ti);
+					assert(p_w_given_s > 0);
+					forward_table[i][ti_1][ti] = 0;
+					if(i == 3){
+						double p_s_given_prev = _hmm->compute_p_ti_given_t(ti, ti_1, tag_bos);
+						forward_table[i][ti_1][ti] = forward_table[i - 1][tag_bos][ti_1] * p_s_given_prev * p_w_given_s;
+						decode_table[i][ti_1][ti] = tag_bos;
+					}else{
+						double max_value = 0;
+						for(int ti_2 = 1;ti_2 <= _hmm->_num_tags;ti_2++){
+							double p_s_given_prev = _hmm->compute_p_ti_given_t(ti, ti_1, ti_2);
+							double value = p_s_given_prev * forward_table[i - 1][ti_2][ti_1];
+							if(value > max_value){
+								max_value = value;
+								forward_table[i][ti_1][ti] = value * p_w_given_s;
+								decode_table[i][ti_1][ti] = ti_2;
+							}
+						}
+					}
+				}
+			}
+		}
+		int i = sentence.size() - 3;
+		double max_p_x_s = 0;
+		double argmax_ti_1 = 0;
+		double argmax_ti = 0;
+		for(int ti_1 = 1;ti_1 <= _hmm->_num_tags;ti_1++){
+			for(int ti = 1;ti <= _hmm->_num_tags;ti++){
+				double p_x_s = forward_table[i][ti_1][ti];
+				if(p_x_s > max_p_x_s){
+					max_p_x_s = p_x_s;
+					argmax_ti_1 = ti_1;
+					argmax_ti = ti;
+				}
+			}
+		}
+		assert(1 <= argmax_ti_1 && argmax_ti_1 <= _hmm->_num_tags);
+		assert(1 <= argmax_ti && argmax_ti <= _hmm->_num_tags);
+		sampled_state_sequence.clear();
+		sampled_state_sequence.push_back(argmax_ti_1);
+		sampled_state_sequence.push_back(argmax_ti);
+		int ti_1 = argmax_ti_1;
+		int ti = argmax_ti;
+		for(int i = sentence.size() - 3;i >= 3;i--){
+			int ti_2 = decode_table[i][ti_1][ti];
+			sampled_state_sequence.push_back(ti_2);
+			ti = ti_1;
+			ti_1 = ti_2;
+		}
+		std::reverse(sampled_state_sequence.begin(), sampled_state_sequence.end());
+		assert(sampled_state_sequence.size() == sentence.size() - 4);
 	}
 }

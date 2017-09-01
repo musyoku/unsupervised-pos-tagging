@@ -1,5 +1,6 @@
 # coding: utf-8
 from __future__ import print_function
+from __future__ import division
 import argparse, sys, os, time, codecs, random
 import treetaggerwrapper
 import bhmm
@@ -109,7 +110,7 @@ def build_corpus(filename):
 			Wt = Wt[:args.num_tags]
 	else:
 		# Wtに制限をかけない場合
-		Wt = [len(word_count)] * args.num_tags
+		Wt = [len(word_count) / args.num_tags] * args.num_tags
 
 	return dataset, Wt
 
