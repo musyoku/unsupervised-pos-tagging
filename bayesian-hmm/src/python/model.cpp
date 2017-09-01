@@ -249,4 +249,31 @@ namespace bhmm {
 		std::reverse(sampled_state_sequence.begin(), sampled_state_sequence.end());
 		assert(sampled_state_sequence.size() == sentence.size() - 4);
 	}
+	struct value_comparator {
+		bool operator()(const std::pair<int, int> &a, const std::pair<int, int> &b) {
+			return a.second > b.second;
+		}   
+	};
+	void Model::show_typical_words_of_each_tag(int number_to_show, Dictionary* dict){
+		using std::wcout;
+		using std::endl;
+		for(int tag = 1;tag <= _hmm->_num_tags;tag++){
+			std::unordered_map<int, int> &word_counts = _hmm->_tag_word_counts[tag];
+			int n = 0;
+			wcout << "\x1b[32;1m" << "[" << tag << "]" << "\x1b[0m" << std::endl;
+			std::multiset<std::pair<int, int>, value_comparator> ranking;
+			for(auto elem: word_counts){
+				ranking.insert(std::make_pair(elem.first, elem.second));
+			}
+			for(auto elem: ranking){
+				std::wstring word = dict->word_id_to_string(elem.first);
+				wcout << "\x1b[1m" << word << "\x1b[0m" << L"(" << elem.second << L") ";
+				n++;
+				if(n > number_to_show){
+					break;
+				}
+			}
+			wcout << endl;
+		}
+	}
 }

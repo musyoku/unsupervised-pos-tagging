@@ -32,7 +32,7 @@ def main():
 				printr("{}行目を処理中です ...".format(i))
 			word_id_seq = []
 			true_tag_seq = []
-			sentence_str = re.sub(ur"\n", "", sentence_str)	# 開業を消す
+			sentence_str = sentence_str.strip()	# 開業を消す
 			results = tagger.tag_text(sentence_str)	# 形態素解析
 			for metadata in results:
 				pos = collapse_true_tag(metadata.split("\t")[1])

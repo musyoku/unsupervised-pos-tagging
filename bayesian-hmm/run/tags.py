@@ -1,13 +1,12 @@
-# -*- coding: utf-8 -*-
-import argparse, sys, os, time, re, codecs
-import model
+# coding: utf-8
+import argparse, os
+import bhmm
 
 def main(args):
-	hmm = model.bayesian_hmm()
-	if hmm.load(args.model) == False:
-		raise Exception("モデルが見つかりません.")
-
-	hmm.show_typical_words_for_each_tag(args.num_words_to_show);	# それぞれのタグにつき上位n個の単語を表示
+	dictionary = bhmm.dictionary()
+	dictionary.load(os.path.join(args.model, "bhmm.dict"))
+	model = bhmm.model(os.path.join(args.model, "bhmm.model"))
+	model.show_typical_words_of_each_tag(args.num_words_to_show, dictionary);
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()

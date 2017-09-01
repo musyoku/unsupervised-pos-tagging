@@ -2,6 +2,7 @@
 #include <boost/python.hpp>
 #include <string>
 #include "../bhmm/hmm.h"
+#include "dictionary.h"
 
 namespace bhmm {
 	class Model{
@@ -26,6 +27,6 @@ namespace bhmm {
 		void viterbi_decode(std::vector<Word*> &sentence, std::vector<int> &sampled_state_sequence, double*** forward_table, double*** decode_table);
 		boost::python::list python_viterbi_decode(boost::python::list py_word_ids);
 		double compute_p_sentence(std::vector<Word*> &sentence, double*** forward_table);
-		
+		void show_typical_words_of_each_tag(int number_to_show, Dictionary* dict);
 	};
 }

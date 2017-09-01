@@ -5,11 +5,6 @@
 #include "trainer.h"
 
 namespace bhmm {
-	struct value_comparator {
-		bool operator()(const std::pair<int, int> &a, const std::pair<int, int> &b) {
-			return a.second > b.second;
-		}   
-	};
 	Trainer::Trainer(Dataset* dataset, Model* model, boost::python::list py_Wt){
 		_model = model;
 		std::vector<int> Wt = utils::vector_from_list<int>(py_Wt);
@@ -45,6 +40,11 @@ namespace bhmm {
 		_model->_hmm->sample_new_alpha(_dataset->_word_sequences_train);
 		_model->_hmm->sample_new_beta(_dataset->_word_sequences_train);
 	}
+	struct value_comparator {
+		bool operator()(const std::pair<int, int> &a, const std::pair<int, int> &b) {
+			return a.second > b.second;
+		}   
+	};
 	boost::python::list Trainer::python_get_all_words_of_each_tag(int threshold){
 		std::vector<boost::python::list> result;
 		for(int tag = 1;tag <= _model->_hmm->_num_tags;tag++){
@@ -66,26 +66,7 @@ namespace bhmm {
 		return utils::list_from_vector(result);
 	}
 	void Trainer::show_typical_words_of_each_tag(int number_to_show){
-		using std::wcout;
-		using std::endl;
-		for(int tag = 1;tag <= _model->_hmm->_num_tags;tag++){
-			std::unordered_map<int, int> &word_counts = _model->_hmm->_tag_word_counts[tag];
-			int n = 0;
-			wcout << "\x1b[32;1m" << "[" << tag << "]" << "\x1b[0m" << std::endl;
-			std::multiset<std::pair<int, int>, value_comparator> ranking;
-			for(auto elem: word_counts){
-				ranking.insert(std::make_pair(elem.first, elem.second));
-			}
-			for(auto elem: ranking){
-				std::wstring word = _dict->word_id_to_string(elem.first);
-				wcout << "\x1b[1m" << word << "\x1b[0m" << L"(" << elem.second << L") ";
-				n++;
-				if(n > number_to_show){
-					break;
-				}
-			}
-			wcout << endl;
-		}
+		_model->show_typical_words_of_each_tag(number_to_show, _dict);
 	}
 	void Trainer::_before_viterbi_decode(){
 		assert(_dataset->_max_num_words_in_line > 0);

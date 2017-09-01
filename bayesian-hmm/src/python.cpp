@@ -37,6 +37,7 @@ BOOST_PYTHON_MODULE(bhmm){
 	.def("set_initial_beta", &Model::set_initial_beta)
 	.def("anneal_temperature", &Model::anneal_temperature)
 	.def("viterbi_decode", &Model::python_viterbi_decode)
+	.def("show_typical_words_of_each_tag", &Model::show_typical_words_of_each_tag)
 	.def("save", &Model::save)
 	.def("load", &Model::load);
 }
