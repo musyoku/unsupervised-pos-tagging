@@ -6,7 +6,8 @@ def main(args):
 	dictionary = bhmm.dictionary()
 	dictionary.load(os.path.join(args.model, "bhmm.dict"))
 	model = bhmm.model(os.path.join(args.model, "bhmm.model"))
-	model.show_typical_words_of_each_tag(args.num_words_to_show, dictionary);
+	model.print_typical_words_of_each_tag(args.num_words_to_show, dictionary);
+	model.print_alpha_and_beta()
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()

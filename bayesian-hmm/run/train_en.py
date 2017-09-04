@@ -147,7 +147,7 @@ def main():
 		printr("Iteration {} / {} - temp {:.3f} - {:.3f} sec".format(epoch, args.epoch, model.get_temperature(), elapsed_time))
 		if epoch % 1000 == 0:
 			printr("")
-			trainer.show_typical_words_of_each_tag(20)
+			model.print_typical_words_of_each_tag(20)
 		if epoch % 100 == 0:
 			printr("ハイパーパラメータのサンプリング ...")
 			trainer.update_hyperparameters()	# ハイパーパラメータをサンプリング

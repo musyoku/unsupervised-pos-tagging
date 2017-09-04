@@ -189,8 +189,11 @@ namespace bhmm {
 			double p_s_given_prev = _hmm->compute_p_ti_given_t(ti, ti_1, ti_2);
 			double p_w_given_s = _hmm->compute_p_wi_given_ti(wi, ti);
 			assert(p_s_given_prev > 0);
-			assert(p_w_given_s > 0);
-			forward_table[2][tag_bos][ti] = log(p_w_given_s) + log(p_s_given_prev);
+			double log_p_w_given_s = -1000000;
+			if(p_w_given_s > 0){
+				log_p_w_given_s = log(p_w_given_s);
+			}
+			forward_table[2][tag_bos][ti] = log_p_w_given_s + log(p_s_given_prev);
 			for(int ti_1 = 1;ti_1 <= _hmm->_num_tags;ti_1++){
 				forward_table[2][ti_1][ti] = -10000000;
 			}
@@ -201,10 +204,13 @@ namespace bhmm {
 
 					id wi = sentence[i]->_id;
 					double p_w_given_s = _hmm->compute_p_wi_given_ti(wi, ti);
-					assert(p_w_given_s > 0);
+					double log_p_w_given_s = -1000000;
+					if(p_w_given_s > 0){
+						log_p_w_given_s = log(p_w_given_s);
+					}
 					if(i == 3){
 						double p_s_given_prev = _hmm->compute_p_ti_given_t(ti, ti_1, tag_bos);
-						forward_table[i][ti_1][ti] = forward_table[i - 1][tag_bos][ti_1] + log(p_s_given_prev) + log(p_w_given_s);
+						forward_table[i][ti_1][ti] = forward_table[i - 1][tag_bos][ti_1] + log(p_s_given_prev) + log_p_w_given_s;
 						decode_table[i][ti_1][ti] = tag_bos;
 					}else{
 						double max_value = 0;
@@ -213,7 +219,7 @@ namespace bhmm {
 							double value = log(p_s_given_prev) + forward_table[i - 1][ti_2][ti_1];
 							if(max_value == 0 || value > max_value){
 								max_value = value;
-								forward_table[i][ti_1][ti] = value + log(p_w_given_s);
+								forward_table[i][ti_1][ti] = value + log_p_w_given_s;
 								decode_table[i][ti_1][ti] = ti_2;
 							}
 						}
@@ -256,7 +262,7 @@ namespace bhmm {
 			return a.second > b.second;
 		}   
 	};
-	void Model::show_typical_words_of_each_tag(int number_to_show, Dictionary* dict){
+	void Model::print_typical_words_of_each_tag(int number_to_show, Dictionary* dict){
 		using std::wcout;
 		using std::endl;
 		for(int tag = 1;tag <= _hmm->_num_tags;tag++){
@@ -278,6 +284,14 @@ namespace bhmm {
 				}
 			}
 			wcout << endl;
+		}
+	}
+	void Model::print_alpha_and_beta(){
+		using std::cout;
+		using std::endl;
+		cout << "\x1b[1m" << "alpha" << "\x1b[0m" << _hmm->_alpha << std::endl;
+		for(int tag = 1;tag <= _hmm->_num_tags;tag++){
+			cout << "\x1b[1m" << "beta[" << tag << "]" << "\x1b[0m" << _hmm->_beta[tag] << std::endl;
 		}
 	}
 }

@@ -22,7 +22,6 @@ def main():
 	model = bhmm.model(os.path.join(args.model, "bhmm.model"))
 
 	# 訓練データを形態素解析して集計
-	print("データを集計しています ...")
 	num_true_tags_of_found_tag = {}
 	words_of_true_tag = {}
 	all_types_of_true_tag = set()
@@ -30,7 +29,7 @@ def main():
 	with codecs.open(args.filename, "r", "utf-8") as f:
 		for i, sentence_str in enumerate(f):
 			if i % 500 == 0:
-				printr("{}行目を処理中です ...".format(i))
+				printr("データを集計しています ... {}".format(i + 1))
 			word_id_seq = []
 			true_tag_seq = []
 			sentence_str = sentence_str.strip()	# 開業を消す

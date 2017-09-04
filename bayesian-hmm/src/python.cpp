@@ -25,7 +25,6 @@ BOOST_PYTHON_MODULE(bhmm){
 	.def("compute_log_p_dataset_dev", &Trainer::compute_log_p_dataset_dev)
 	.def("update_hyperparameters", &Trainer::update_hyperparameters)
 	.def("anneal_temperature", &Trainer::anneal_temperature)
-	.def("show_typical_words_of_each_tag", &Trainer::show_typical_words_of_each_tag)
 	.def("perform_gibbs_sampling", &Trainer::perform_gibbs_sampling);
 
 	boost::python::class_<Model>("model", boost::python::init<int, Dataset*, boost::python::list>())
@@ -38,7 +37,8 @@ BOOST_PYTHON_MODULE(bhmm){
 	.def("set_initial_beta", &Model::set_initial_beta)
 	.def("anneal_temperature", &Model::anneal_temperature)
 	.def("viterbi_decode", &Model::python_viterbi_decode)
-	.def("show_typical_words_of_each_tag", &Model::show_typical_words_of_each_tag)
+	.def("print_typical_words_of_each_tag", &Model::print_typical_words_of_each_tag)
+	.def("print_alpha_and_beta", &Model::print_alpha_and_beta)
 	.def("save", &Model::save)
 	.def("load", &Model::load);
 }

@@ -118,9 +118,6 @@ namespace bhmm {
 		}
 		return utils::list_from_vector(result);
 	}
-	void Trainer::show_typical_words_of_each_tag(int number_to_show){
-		_model->show_typical_words_of_each_tag(number_to_show, _dict);
-	}
 	void Trainer::_before_viterbi_decode(){
 		assert(_dataset->_max_num_words_in_line > 0);
 		_decode_table = new double**[_dataset->_max_num_words_in_line];
