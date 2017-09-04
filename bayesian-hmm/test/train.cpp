@@ -35,6 +35,10 @@ void train(int num_iterations){
 			cout << trainer->compute_log_p_dataset_train() << ", " << trainer->compute_log_p_dataset_dev() << endl;
 			model->save("bhmm.model");
 			trainer->update_hyperparameters();
+			cout << "alpha <-" << model->_hmm->_alpha << endl;
+			for(int tag = 1;tag <= num_tags;tag++){
+				cout << "beta[" << tag << "] <-" << model->_hmm->_beta[tag] << endl;
+			}
 		}
 		if(i % 1000 == 0){
 			trainer->show_typical_words_of_each_tag(10);
