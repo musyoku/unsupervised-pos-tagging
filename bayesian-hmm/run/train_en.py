@@ -54,7 +54,6 @@ def collapse_true_tag(pos):
 def build_corpus(filename):
 	dataset = bhmm.dataset()
 	# 訓練データを形態素解析して各品詞ごとにその品詞になりうる単語の総数を求めておく
-	print("データを準備しています ...")
 	sentence_list = []
 	with codecs.open(filename, "r", "utf-8") as f:
 		for sentence_str in f:
@@ -69,7 +68,7 @@ def build_corpus(filename):
 		for i, sentence_str in enumerate(f):
 			sentence_str = sentence_str.strip()
 			if i % 10 == 0:
-				printr("{}行目を処理中です ...".format(i))
+				printr("データを準備しています ... {}".format(i + 1))
 			result = tagger.tag_text(sentence_str)
 			if len(result) == 0:
 				continue
