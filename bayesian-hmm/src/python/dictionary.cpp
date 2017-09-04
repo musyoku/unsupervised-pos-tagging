@@ -7,10 +7,10 @@
 #include <cassert>
 #include "dictionary.h"
 
-
 namespace bhmm {
 	Dictionary::Dictionary(){
 		_id_to_str[ID_UNK] = L"<unk>";
+		_str_to_id[L"<unk>"] = ID_UNK;
 		_autoincrement = ID_UNK + 1;
 	}
 	id Dictionary::add_word_string(std::wstring word){

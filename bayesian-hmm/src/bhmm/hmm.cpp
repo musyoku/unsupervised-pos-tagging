@@ -156,7 +156,6 @@ namespace bhmm {
 		_trigram_counts[wi_2->_state][wi_1->_state][wi->_state] += 1;
 	}
 	void HMM::_increment_tag_word_count(int tag, id word_id){
-		std::cout << tag << ", " << word_id << ", " << _num_words << std::endl;
 		assert(1 <= tag && tag <= _num_tags);
 		assert(0 <= word_id && word_id < _num_words);
 		_tag_word_counts[tag][word_id] += 1;
