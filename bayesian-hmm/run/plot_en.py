@@ -22,7 +22,7 @@ def main():
 	model = bhmm.model(os.path.join(args.model, "bhmm.model"))
 
 	# 訓練データを形態素解析して集計
-	printb("データを集計しています ...")
+	print("データを集計しています ...")
 	num_true_tags_of_found_tag = {}
 	words_of_true_tag = {}
 	all_types_of_true_tag = set()
@@ -65,13 +65,21 @@ def main():
 				num_true_tags_of_found_tag[tag][true_tag] = 0
 
 	# 正解品詞ごとに正規化
-	for true_tag in all_types_of_true_tag:
+	# for true_tag in all_types_of_true_tag:
+	# 	z = 0
+	# 	for tag, occurrence in num_true_tags_of_found_tag.items():
+	# 		z += occurrence[true_tag]
+	# 	if z > 0:
+	# 		for tag, occurrence in num_true_tags_of_found_tag.items():
+	# 			occurrence[true_tag] = float(occurrence[true_tag]) / float(z)
+
+	for tag, occurrence in num_true_tags_of_found_tag.items():
 		z = 0
-		for tag, occurrence in num_true_tags_of_found_tag.items():
+		for true_tag in all_types_of_true_tag:
 			z += occurrence[true_tag]
 		if z > 0:
-			for tag, occurrence in num_true_tags_of_found_tag.items():
-				occurrence[true_tag] = float(occurrence[true_tag]) / float(z)
+			for true_tag in all_types_of_true_tag:
+				occurrence[true_tag] = occurrence[true_tag] / z
 
 	fig = pylab.gcf()
 	fig.set_size_inches(model.get_num_tags() + 3, len(all_types_of_true_tag))
@@ -85,8 +93,9 @@ def main():
 	heatmap = ax.get_figure()
 	heatmap.savefig("pos.png")
 
+	printr("")
 	for true_tag in words_of_true_tag:
-		print("[{}]".format(true_tag))
+		printb("[{}]".format(true_tag))
 		words = []
 		sys.stdout.write("	")
 		for i, word in enumerate(words_of_true_tag[true_tag]):
