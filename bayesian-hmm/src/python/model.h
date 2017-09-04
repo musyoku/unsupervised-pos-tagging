@@ -2,6 +2,7 @@
 #include <boost/python.hpp>
 #include <string>
 #include "../bhmm/hmm.h"
+#include "dataset.h"
 #include "dictionary.h"
 
 namespace bhmm {
@@ -9,9 +10,11 @@ namespace bhmm {
 	private:
 		void _alloc_viterbi_tables(int sentence_length, double*** &forward_table, double*** &decode_table);
 		void _free_viterbi_tables(int sentence_length, double*** &forward_table, double*** &decode_table);
+		void _set_locale();
 	public:
 		HMM* _hmm;
-		Model(int num_tags);
+		Model(int num_tags, Dataset* dataset, boost::python::list py_Wt);
+		Model(int num_tags, Dataset* dataset, std::vector<int> &Wt);
 		Model(std::string filename);
 		~Model();
 		bool load(std::string filename);

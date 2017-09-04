@@ -5,16 +5,8 @@
 #include "trainer.h"
 
 namespace bhmm {
-	Trainer::Trainer(Dataset* dataset, Model* model, boost::python::list py_Wt){
+	Trainer::Trainer(Dataset* dataset, Model* model){
 		_model = model;
-		std::vector<int> Wt = utils::vector_from_list<int>(py_Wt);
-		_model->_hmm->initialize_with_training_corpus(dataset->_word_sequences_train, Wt);
-		_dict = dataset->_dict;
-		_dataset = dataset;
-	}
-	Trainer::Trainer(Dataset* dataset, Model* model, std::vector<int> &Wt){
-		_model = model;
-		_model->_hmm->initialize_with_training_corpus(dataset->_word_sequences_train, Wt);
 		_dict = dataset->_dict;
 		_dataset = dataset;
 	}
@@ -47,12 +39,15 @@ namespace bhmm {
 	};
 	boost::python::list Trainer::python_get_all_words_of_each_tag(int threshold){
 		std::vector<boost::python::list> result;
-		for(int tag = 1;tag <= _model->_hmm->_num_tags;tag++){
+		HMM* hmm = _model->_hmm;
+		for(int tag = 1;tag <= hmm->_num_tags;tag++){
 			std::vector<boost::python::tuple> words;
-			std::unordered_map<int, int> &word_counts = _model->_hmm->_tag_word_counts[tag];
 			std::multiset<std::pair<int, int>, value_comparator> ranking;
-			for(auto elem: word_counts){
-				ranking.insert(std::make_pair(elem.first, elem.second));
+			for(id word_id = 0;word_id < hmm->_num_words;word_id++){
+				int count = hmm->_tag_word_counts[tag][word_id];
+				if(count > 0){
+					ranking.insert(std::make_pair(word_id, count));
+				}
 			}
 			for(auto elem: ranking){
 				if(elem.second <= threshold){
@@ -133,5 +128,8 @@ namespace bhmm {
 		}
 		_after_compute_log_p_dataset();
 		return log_p_dataset;
+	}
+	void Trainer::anneal_temperature(double temperature){
+		_model->_hmm->anneal_temperature(temperature);
 	}
 }

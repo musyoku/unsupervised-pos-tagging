@@ -21,13 +21,13 @@ namespace bhmm {
 		double*** _forward_table;		// 前向き確率計算用
 		double*** _decode_table;			// viterbiデコーディング用
 	public:
-		Trainer(Dataset* dataset, Model* model, boost::python::list py_Wt);
-		Trainer(Dataset* dataset, Model* model, std::vector<int> &Wt);
+		Trainer(Dataset* dataset, Model* model);
 		void perform_gibbs_sampling();
 		void update_hyperparameters();
 		boost::python::list python_get_all_words_of_each_tag(int threshold = 0);
 		void show_typical_words_of_each_tag(int number_to_show);
 		double compute_log_p_dataset_train();
 		double compute_log_p_dataset_dev();
+		void anneal_temperature(double temperature);
 	};
 }

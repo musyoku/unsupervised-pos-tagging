@@ -20,10 +20,11 @@ BOOST_PYTHON_MODULE(bhmm){
 	.def("add_textfile", &Dataset::add_textfile)
 	.def("mark_low_frequency_words_as_unknown", &Dataset::mark_low_frequency_words_as_unknown);
 	
-	boost::python::class_<Trainer>("trainer", boost::python::init<Dataset*, Model*, boost::python::list>())
+	boost::python::class_<Trainer>("trainer", boost::python::init<Dataset*, Model*>())
 	.def("compute_log_p_dataset_train", &Trainer::compute_log_p_dataset_train)
 	.def("compute_log_p_dataset_dev", &Trainer::compute_log_p_dataset_dev)
 	.def("update_hyperparameters", &Trainer::update_hyperparameters)
+	.def("anneal_temperature", &Trainer::anneal_temperature)
 	.def("show_typical_words_of_each_tag", &Trainer::show_typical_words_of_each_tag)
 	.def("perform_gibbs_sampling", &Trainer::perform_gibbs_sampling);
 

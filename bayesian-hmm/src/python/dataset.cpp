@@ -132,7 +132,7 @@ namespace bhmm {
 		}
 	}
 	int Dataset::get_num_words(){
-		return _word_count.size();
+		return _dict->get_vocabrary_size();
 	}
 	int Dataset::get_count_of_word(id word_id){
 		auto itr = _word_count.find(word_id);

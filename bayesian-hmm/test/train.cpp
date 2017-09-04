@@ -10,23 +10,23 @@ using std::cout;
 using std::flush;
 using std::endl;
 
-int main(){
+void train(int num_iterations){
 	int num_tags = 10;
-	std::string filename = "../../text/alice.txt";
+	std::string filename = "../../text/ptb.txt";
 	Dataset* dataset = new Dataset();
 	dataset->add_textfile(filename, 0.9);
 	Dictionary* dictionary = dataset->_dict;
 	dictionary->save("bhmm.dict");
-	Model* model = new Model(num_tags);
-	model->set_temperature(2.0);
-	model->set_minimum_temperature(0.08);
 	std::vector<int> Wt;
 	for(int p = 0;p < num_tags;p++){
 		Wt.push_back(dataset->get_num_words() / num_tags);
 	}
-	Trainer* trainer = new Trainer(dataset, model, Wt);
+	Model* model = new Model(num_tags, dataset, Wt);
+	model->set_temperature(2.0);
+	model->set_minimum_temperature(0.08);
+	Trainer* trainer = new Trainer(dataset, model);
 
-	for(int i = 1;i <= 10000;i++){
+	for(int i = 1;i <= num_iterations;i++){
 		trainer->perform_gibbs_sampling();
 		model->anneal_temperature(0.99989);
 		// trainer->update_hyperparameters();
@@ -37,7 +37,16 @@ int main(){
 		if(i % 1000 == 0){
 			trainer->show_typical_words_of_each_tag(10);
 		}
+	}
+	delete dataset;
+	delete dictionary;
+	delete model;
+	delete trainer;
+}
 
+int main(){
+	for(int i = 0;i < 1;i++){
+		train(100);
 	}
 	return 0;
 }

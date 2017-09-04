@@ -64,15 +64,7 @@ def main():
 			for true_tag in all_types_of_true_tag:
 				num_true_tags_of_found_tag[tag][true_tag] = 0
 
-	# 正解品詞ごとに正規化
-	# for true_tag in all_types_of_true_tag:
-	# 	z = 0
-	# 	for tag, occurrence in num_true_tags_of_found_tag.items():
-	# 		z += occurrence[true_tag]
-	# 	if z > 0:
-	# 		for tag, occurrence in num_true_tags_of_found_tag.items():
-	# 			occurrence[true_tag] = float(occurrence[true_tag]) / float(z)
-
+	# 予測品詞ごとに正規化
 	for tag, occurrence in num_true_tags_of_found_tag.items():
 		z = 0
 		for true_tag in all_types_of_true_tag:

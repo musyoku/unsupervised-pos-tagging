@@ -1,34 +1,36 @@
 #include <iostream>
+#include "../bhmm/utils.h"
 #include "model.h"
 
 namespace bhmm {
-	Model::Model(int num_tags){
-		// 日本語周り
-		setlocale(LC_CTYPE, "ja_JP.UTF-8");
-		std::ios_base::sync_with_stdio(false);
-		std::locale default_loc("ja_JP.UTF-8");
-		std::locale::global(default_loc);
-		std::locale ctype_default(std::locale::classic(), default_loc, std::locale::ctype); //※
-		std::wcout.imbue(ctype_default);
-		std::wcin.imbue(ctype_default);
-
-		_hmm = new HMM(num_tags);
+	Model::Model(int num_tags, Dataset* dataset, boost::python::list py_Wt){
+		_set_locale();
+		_hmm = new HMM(num_tags, dataset->get_num_words());
+		std::vector<int> Wt = utils::vector_from_list<int>(py_Wt);
+		_hmm->initialize_with_training_corpus(dataset->_word_sequences_train, Wt);
+	}
+	Model::Model(int num_tags, Dataset* dataset, std::vector<int> &Wt){
+		_set_locale();
+		_hmm = new HMM(num_tags, dataset->get_num_words());
+		_hmm->initialize_with_training_corpus(dataset->_word_sequences_train, Wt);
 	}
 	Model::Model(std::string filename){
-		// 日本語周り
-		setlocale(LC_CTYPE, "ja_JP.UTF-8");
-		std::ios_base::sync_with_stdio(false);
-		std::locale default_loc("ja_JP.UTF-8");
-		std::locale::global(default_loc);
-		std::locale ctype_default(std::locale::classic(), default_loc, std::locale::ctype); //※
-		std::wcout.imbue(ctype_default);
-		std::wcin.imbue(ctype_default);
-
+		_set_locale();
 		_hmm = new HMM();
 		assert(load(filename) == true);
 	}
 	Model::~Model(){
 		delete _hmm;
+	}
+	// 日本語周り
+	void Model::_set_locale(){
+		setlocale(LC_CTYPE, "ja_JP.UTF-8");
+		std::ios_base::sync_with_stdio(false);
+		std::locale default_loc("ja_JP.UTF-8");
+		std::locale::global(default_loc);
+		std::locale ctype_default(std::locale::classic(), default_loc, std::locale::ctype); //※
+		std::wcout.imbue(ctype_default);
+		std::wcin.imbue(ctype_default);
 	}
 	bool Model::load(std::string filename){
 		return _hmm->load(filename);
@@ -258,12 +260,14 @@ namespace bhmm {
 		using std::wcout;
 		using std::endl;
 		for(int tag = 1;tag <= _hmm->_num_tags;tag++){
-			std::unordered_map<int, int> &word_counts = _hmm->_tag_word_counts[tag];
 			int n = 0;
 			wcout << "\x1b[32;1m" << "[" << tag << "]" << "\x1b[0m" << std::endl;
 			std::multiset<std::pair<int, int>, value_comparator> ranking;
-			for(auto elem: word_counts){
-				ranking.insert(std::make_pair(elem.first, elem.second));
+			for(id word_id = 0;word_id < _hmm->_num_words;word_id++){
+				int count = _hmm->_tag_word_counts[tag][word_id];
+				if(count > 0){
+					ranking.insert(std::make_pair(word_id, count));
+				}
 			}
 			for(auto elem: ranking){
 				std::wstring word = dict->word_id_to_string(elem.first);

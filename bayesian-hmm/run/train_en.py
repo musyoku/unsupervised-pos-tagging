@@ -145,13 +145,14 @@ def main():
 
 		# ログ
 		elapsed_time = time.time() - start
-		printr("Epoch {} / {} - temp {:.3f} - {:.3f} sec".format(epoch, args.epoch, model.get_temperature(), elapsed_time))
+		printr("Iteration {} / {} - temp {:.3f} - {:.3f} sec".format(epoch, args.epoch, model.get_temperature(), elapsed_time))
 		if epoch % 1000 == 0:
 			printr("")
 			trainer.show_typical_words_of_each_tag(20)
 		if epoch % 100 == 0:
 			printr("")
-			print("log_likelihood: train {} - dev {}".format(trainer.compute_log_p_dataset_train(), trainer.compute_log_p_dataset_dev()))
+			# print("log_likelihood: train {} - dev {}".format(trainer.compute_log_p_dataset_train(), trainer.compute_log_p_dataset_dev()))
+			print("log_likelihood: train {} - dev {}".format(0, trainer.compute_log_p_dataset_dev()))
 			model.save(os.path.join(args.model, "bhmm.model"))
 
 if __name__ == "__main__":
