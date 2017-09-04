@@ -125,7 +125,8 @@ def main():
 	dictionary.save(os.path.join(args.model, "bhmm.dict"))
 
 	# モデル
-	model = bhmm.model(len(Wt) if args.supervised else args.num_tags)
+	num_tags = len(Wt) if args.supervised else args.num_tags
+	model = bhmm.model(num_tags, dataset, Wt)
 
 	# ハイパーパラメータの設定
 	model.set_temperature(args.start_temperature)		# 温度の初期設定
@@ -134,14 +135,13 @@ def main():
 	model.set_initial_beta(args.initial_beta)
 
 	# 学習の準備
-	trainer = bhmm.trainer(dataset, model, Wt)
+	trainer = bhmm.trainer(dataset, model)
 
 	# 学習ループ
 	for epoch in range(1, args.epoch + 1):
 		start = time.time()
 		trainer.perform_gibbs_sampling()	# 新しい状態系列をギブスサンプリング
-		# trainer.update_hyperparameters()	# ハイパーパラメータをサンプリング
-		model.anneal_temperature(args.anneal)	# 温度を下げる
+		trainer.anneal_temperature(args.anneal)	# 温度を下げる
 
 		# ログ
 		elapsed_time = time.time() - start
@@ -150,9 +150,10 @@ def main():
 			printr("")
 			trainer.show_typical_words_of_each_tag(20)
 		if epoch % 100 == 0:
+			printr("ハイパーパラメータのサンプリング ...")
+			trainer.update_hyperparameters()	# ハイパーパラメータをサンプリング
 			printr("")
-			# print("log_likelihood: train {} - dev {}".format(trainer.compute_log_p_dataset_train(), trainer.compute_log_p_dataset_dev()))
-			print("log_likelihood: train {} - dev {}".format(0, trainer.compute_log_p_dataset_dev()))
+			print("log_likelihood: train {} - dev {}".format(trainer.compute_log_p_dataset_train(), trainer.compute_log_p_dataset_dev()))
 			model.save(os.path.join(args.model, "bhmm.model"))
 
 if __name__ == "__main__":

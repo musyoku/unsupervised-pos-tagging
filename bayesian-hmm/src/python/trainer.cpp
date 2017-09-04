@@ -29,8 +29,38 @@ namespace bhmm {
 		}
 	}
 	void Trainer::update_hyperparameters(){
-		_model->_hmm->sample_new_alpha(_dataset->_word_sequences_train);
-		_model->_hmm->sample_new_beta(_dataset->_word_sequences_train);
+		sample_new_alpha();
+		sample_new_beta();
+	}
+	void Trainer::sample_new_alpha(){
+		double old_alpha = _model->_hmm->_alpha;
+		double old_log_p_x = compute_log_p_dataset_train();
+
+		double new_alpha = sampler::normal(old_alpha, 0.1 * old_alpha);
+		_model->_hmm->_alpha = new_alpha;
+		double new_log_p_x = compute_log_p_dataset_train();
+		
+		double sigma_old_alpha = 0.1 * old_alpha;
+		double sigma_new_alpha = 0.1 * new_alpha;
+		double var_old_alpha = sigma_old_alpha * sigma_old_alpha;
+		double var_new_alpha = sigma_new_alpha * sigma_new_alpha;
+
+		double correcting_term = (old_alpha / new_alpha) * exp(
+			  0.5 * (new_alpha - old_alpha) * (new_alpha - old_alpha) / var_old_alpha
+			+ 0.5 * (old_alpha - new_alpha) * (old_alpha - new_alpha) / var_new_alpha
+		);
+
+		// 採択率
+		double adoption_rate = std::min(1.0, exp(new_log_p_x - old_log_p_x) * correcting_term);
+		double bernoulli = sampler::uniform(0, 1);
+		if(bernoulli <= adoption_rate){
+			_model->_hmm->_alpha = new_alpha;
+		}else{
+			_model->_hmm->_alpha = old_alpha;
+		}
+	}
+	void Trainer::sample_new_beta(){
+
 	}
 	struct value_comparator {
 		bool operator()(const std::pair<int, int> &a, const std::pair<int, int> &b) {

@@ -28,7 +28,7 @@ BOOST_PYTHON_MODULE(bhmm){
 	.def("show_typical_words_of_each_tag", &Trainer::show_typical_words_of_each_tag)
 	.def("perform_gibbs_sampling", &Trainer::perform_gibbs_sampling);
 
-	boost::python::class_<Model>("model", boost::python::init<int>())
+	boost::python::class_<Model>("model", boost::python::init<int, Dataset*, boost::python::list>())
 	.def(boost::python::init<std::string>())
 	.def("get_num_tags", &Model::get_num_tags)
 	.def("get_temperature", &Model::get_temperature)

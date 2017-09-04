@@ -29,5 +29,7 @@ namespace bhmm {
 		double compute_log_p_dataset_train();
 		double compute_log_p_dataset_dev();
 		void anneal_temperature(double temperature);
+		void sample_new_alpha();
+		void sample_new_beta();
 	};
 }

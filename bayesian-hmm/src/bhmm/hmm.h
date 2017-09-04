@@ -47,8 +47,6 @@ namespace bhmm {
 		double compute_p_ti_given_t_alpha(int ti, int ti_1, int ti_2, double alpha);
 		double compute_p_ti_given_t(int ti, int ti_1, int ti_2);
 		void perform_gibbs_sampling_with_sequence(std::vector<Word*> &word_vec);
-		void sample_new_alpha(std::vector<std::vector<Word*>> &dataset);
-		void sample_new_beta(std::vector<std::vector<Word*>> &dataset);
 		void dump_trigram_counts();
 		void dump_bigram_counts();
 		void dump_unigram_counts();
