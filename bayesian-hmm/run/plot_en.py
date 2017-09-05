@@ -28,8 +28,7 @@ def main():
 	tagger = treetaggerwrapper.TreeTagger(TAGLANG="en")
 	with codecs.open(args.filename, "r", "utf-8") as f:
 		for i, sentence_str in enumerate(f):
-			if i % 500 == 0:
-				printr("データを集計しています ... {}".format(i + 1))
+			printr("データを集計しています ... {}".format(i + 1))
 			word_id_seq = []
 			true_tag_seq = []
 			sentence_str = sentence_str.strip()	# 開業を消す

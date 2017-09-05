@@ -14,6 +14,8 @@ namespace bhmm {
 		double _compute_log_p_dataset(std::vector<std::vector<Word*>> &dataset);
 		double _compute_log2_p_dataset(std::vector<std::vector<Word*>> &dataset);
 		double _compute_perplexity(std::vector<std::vector<Word*>> &dataset);
+		double _sample_new_alpha();
+		void _sample_new_beta(double old_log_p_x);
 		Model* _model;
 		Dictionary* _dict;
 		Dataset* _dataset;
@@ -28,7 +30,5 @@ namespace bhmm {
 		double compute_log_p_dataset_train();
 		double compute_log_p_dataset_dev();
 		void anneal_temperature(double temperature);
-		void sample_new_alpha();
-		void sample_new_beta();
 	};
 }

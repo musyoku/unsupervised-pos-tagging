@@ -29,20 +29,21 @@ namespace bhmm {
 		}
 	}
 	void Trainer::update_hyperparameters(){
-		sample_new_alpha();
-		sample_new_beta();
+		double old_log_p_x = _sample_new_alpha();
+		_sample_new_beta(old_log_p_x);
 	}
-	void Trainer::sample_new_alpha(){
+	// 一度計算した対数尤度を再利用するために返す
+	double Trainer::_sample_new_alpha(){
 		HMM* hmm = _model->_hmm;
 		double old_alpha = hmm->_alpha;
 		double old_log_p_x = compute_log_p_dataset_train();
 
-		double new_alpha = sampler::normal(old_alpha, 0.1 * old_alpha);
+		double new_alpha = sampler::normal(old_alpha, std::min(0.1, 0.1 * old_alpha));
 		hmm->_alpha = new_alpha;
 		double new_log_p_x = compute_log_p_dataset_train();
-		
-		double sigma_old_alpha = 0.1 * old_alpha;
-		double sigma_new_alpha = 0.1 * new_alpha;
+
+		double sigma_old_alpha = std::min(0.1, 0.1 * old_alpha);
+		double sigma_new_alpha = std::min(0.1, 0.1 * new_alpha);
 		double var_old_alpha = sigma_old_alpha * sigma_old_alpha;
 		double var_new_alpha = sigma_new_alpha * sigma_new_alpha;
 
@@ -54,41 +55,47 @@ namespace bhmm {
 		// 採択率
 		double adoption_rate = std::min(1.0, exp(new_log_p_x - old_log_p_x) * correcting_term);
 		double bernoulli = sampler::uniform(0, 1);
+		double ret = 0;
 		if(bernoulli <= adoption_rate){
 			hmm->_alpha = new_alpha;
+			ret = new_log_p_x;
 		}else{
 			hmm->_alpha = old_alpha;
+			ret = old_log_p_x;
 		}
+		return ret;
 	}
-	void Trainer::sample_new_beta(){
+	void Trainer::_sample_new_beta(double old_log_p_x){
 		HMM* hmm = _model->_hmm;
+		double correcting_term = 1;
+		double* old_beta = new double[hmm->_num_tags + 1];
 		for(int tag = 1;tag <= hmm->_num_tags;tag++){
-			double old_beta = _model->_hmm->_beta[tag];
-			double old_log_p_x = compute_log_p_dataset_train();
+			double old_beta_value = hmm->_beta[tag];
+			old_beta[tag] = old_beta_value;
+			double new_beta_value = sampler::normal(old_beta_value, std::min(0.1, 0.1 * old_beta_value));
+			hmm->_beta[tag] = new_beta_value;
 
-			double new_beta = sampler::normal(old_beta, 0.1 * old_beta);
-			_model->_hmm->_beta[tag] = new_beta;
-			double new_log_p_x = compute_log_p_dataset_train();
-			
-			double sigma_old_beta = 0.1 * old_beta;
-			double sigma_new_beta = 0.1 * new_beta;
+			double sigma_old_beta = std::min(0.1, 0.1 * old_beta_value);
+			double sigma_new_beta = std::min(0.1, 0.1 * new_beta_value);
 			double var_old_beta = sigma_old_beta * sigma_old_beta;
 			double var_new_beta = sigma_new_beta * sigma_new_beta;
 
-			double correcting_term = (old_beta / new_beta) * exp(
-				  0.5 * (new_beta - old_beta) * (new_beta - old_beta) / var_old_beta
-				+ 0.5 * (old_beta - new_beta) * (old_beta - new_beta) / var_new_beta
+			correcting_term *= (old_beta_value / new_beta_value) * exp(
+				  0.5 * (new_beta_value - old_beta_value) * (new_beta_value - old_beta_value) / var_old_beta
+				+ 0.5 * (old_beta_value - new_beta_value) * (old_beta_value - new_beta_value) / var_new_beta
 			);
+		}
+		double new_log_p_x = compute_log_p_dataset_train();
 
-			// 採択率
-			double adoption_rate = std::min(1.0, exp(new_log_p_x - old_log_p_x) * correcting_term);
-			double bernoulli = sampler::uniform(0, 1);
-			if(bernoulli <= adoption_rate){
-				_model->_hmm->_beta[tag] = new_beta;
-			}else{
-				_model->_hmm->_beta[tag] = old_beta;
+		// 採択率
+		double adoption_rate = std::min(1.0, exp(new_log_p_x - old_log_p_x) * correcting_term);
+		double bernoulli = sampler::uniform(0, 1);
+		if(bernoulli > adoption_rate){
+			for(int tag = 1;tag <= hmm->_num_tags;tag++){
+				hmm->_beta[tag] = old_beta[tag];	// 元に戻す
 			}
 		}
+		delete[] old_beta;
 	}
 	struct value_comparator {
 		bool operator()(const std::pair<int, int> &a, const std::pair<int, int> &b) {

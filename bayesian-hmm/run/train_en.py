@@ -150,8 +150,9 @@ def main():
 			printr("")
 			model.print_typical_words_of_each_tag(20, dictionary)
 		if epoch % 100 == 0:
-			# printr("ハイパーパラメータのサンプリング ...")
-			# trainer.update_hyperparameters()	# ハイパーパラメータをサンプリング
+			printr("ハイパーパラメータのサンプリング ...")
+			trainer.update_hyperparameters()	# ハイパーパラメータをサンプリング
+			model.print_alpha_and_beta()
 			printr("")
 			print("log_likelihood: train {} - dev {}".format(trainer.compute_log_p_dataset_train(), trainer.compute_log_p_dataset_dev()))
 			model.save(os.path.join(args.model, "bhmm.model"))
