@@ -403,7 +403,7 @@ namespace boost {
 			}
 			// 単語-品詞ペアのカウント
 			for(int tag = 0;tag <= num_tags;tag++){
-				for(id word = 0;word <= num_tags;word++){
+				for(id word = 0;word < num_words;word++){
 					ar & hmm._tag_word_counts[tag][word];
 				}
 			}
@@ -459,7 +459,7 @@ namespace boost {
 			hmm._tag_word_counts = new int*[num_tags + 1];
 			for(int tag = 0;tag <= num_tags;tag++){
 				hmm._tag_word_counts[tag] = new int[num_words];
-				for(id word = 0;word <= num_tags;word++){
+				for(id word = 0;word < num_words;word++){
 					ar & hmm._tag_word_counts[tag][word];
 				}
 			}
