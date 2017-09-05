@@ -56,8 +56,8 @@ namespace bhmm {
 	void Model::set_minimum_temperature(double temperature){
 		_hmm->_minimum_temperature = temperature;
 	}
-	void Model::anneal_temperature(double temperature){
-		_hmm->anneal_temperature(temperature);
+	void Model::anneal_temperature(double decay){
+		_hmm->anneal_temperature(decay);
 	}
 	// 文の確率
 	// 前向きアルゴリズムの拡張

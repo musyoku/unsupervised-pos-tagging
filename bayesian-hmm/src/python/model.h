@@ -25,7 +25,7 @@ namespace bhmm {
 		double get_temperature();
 		void set_temperature(double temperature);
 		void set_minimum_temperature(double temperature);
-		void anneal_temperature(double temperature);
+		void anneal_temperature(double decay);
 		void viterbi_decode(std::vector<Word*> &sentence, std::vector<int> &sampled_state_sequence);
 		void viterbi_decode(std::vector<Word*> &sentence, std::vector<int> &sampled_state_sequence, double*** forward_table, double*** decode_table);
 		boost::python::list python_viterbi_decode(boost::python::list py_word_ids);

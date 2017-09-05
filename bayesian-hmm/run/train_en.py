@@ -137,14 +137,15 @@ def main():
 	trainer = bhmm.trainer(dataset, model)
 
 	# 学習ループ
-	for epoch in range(1, args.epoch + 1):
+	decay = (args.start_temperature - args.min_temperature) / args.epochs 
+	for epoch in range(1, args.epochs + 1):
 		start = time.time()
 		trainer.perform_gibbs_sampling()	# 新しい状態系列をギブスサンプリング
-		trainer.anneal_temperature(args.anneal)	# 温度を下げる
+		trainer.anneal_temperature(decay)	# 温度を下げる
 
 		# ログ
 		elapsed_time = time.time() - start
-		printr("Iteration {} / {} - temp {:.3f} - {:.3f} sec".format(epoch, args.epoch, model.get_temperature(), elapsed_time))
+		printr("Iteration {} / {} - temp {:.3f} - {:.3f} sec".format(epoch, args.epochs, model.get_temperature(), elapsed_time))
 		if epoch % 1000 == 0:
 			printr("")
 			model.print_typical_words_of_each_tag(20, dictionary)
@@ -158,7 +159,7 @@ def main():
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument("-file", "--train-filename", type=str, default=None, help="訓練用のテキストファイルのパス.ディレクトリも可.")
-	parser.add_argument("-epoch", "--epoch", type=int, default=100000, help="総epoch.")
+	parser.add_argument("-epochs", "--epochs", type=int, default=100000, help="総epoch.")
 	parser.add_argument("-m", "--model", type=str, default="out", help="保存フォルダ名.")
 	parser.add_argument("--supervised", dest="supervised", default=False, action="store_true", help="各タグのWtを訓練データで制限するかどうか.指定した場合num_tagsは無視される.")
 	parser.add_argument("--unsupervised", dest="supervised", action="store_false", help="各タグのWtを訓練データで制限するかどうか.")
@@ -167,7 +168,6 @@ if __name__ == "__main__":
 	parser.add_argument("-split", "--train-split", type=float, default=0.9, help="テキストデータの何割を訓練データにするか.")
 	parser.add_argument("--start-temperature", type=float, default=1.5, help="開始温度.")
 	parser.add_argument("--min-temperature", type=float, default=0.08, help="最小温度.")
-	parser.add_argument("--anneal", type=float, default=0.99989, help="温度の減少に使う係数.")
 	parser.add_argument("--initial-alpha", "-alpha", type=float, default=0.003, help="alphaの初期値.")
 	parser.add_argument("--initial-beta", "-beta", type=float, default=1.0, help="betaの初期値.")
 	args = parser.parse_args()

@@ -50,10 +50,9 @@ namespace bhmm {
 		delete[] _beta;
 		delete[] _Wt;
 	}
-	void HMM::anneal_temperature(double multiplier){
-		if(_temperature > _minimum_temperature){
-			_temperature *= multiplier;
-		}
+	void HMM::anneal_temperature(double decay){
+		_temperature -= decay;
+		_temperature = std::max(_temperature, _minimum_temperature);
 	}
 	void HMM::initialize_with_training_corpus(std::vector<std::vector<Word*>> &dataset, std::vector<int> &Wt){
 		int length = Wt.size();
