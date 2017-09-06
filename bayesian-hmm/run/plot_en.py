@@ -37,7 +37,7 @@ def main():
 				metadata = metadata.split("\t")
 				if len(metadata) == 3:
 					word, true_tag, lowercase = metadata
-					true_tag = collapse_true_tag(true_tag)
+					true_tag = collapse_true_tag(true_tag, lowercase)
 				else:
 					lowercase = metadata[0]
 					true_tag = "X"

@@ -25,6 +25,7 @@ def printr(string):
 class POS:
 	PUNCT = {":", ",", "'", "\"", "HYPH", "LS", "NFP", "(", ")"}	# punctuation mark
 	SYM = {"SYM", "SENT", "#", "$"}	# symbol
+	NUM = {"CD"}	# number
 	X = {"ADD", "FW", "GW", "XX"}	
 	ADJ = {"AFX", "JJ", "JJR", "JJS", "PDT", "PRP$", "WDT", "WP$"}	# adjective
 	VERB = {"BES", "HVS", "MD", "VB", "VBD", "VBG", "VBN", "VBZ", "VBP", "VH", "VH", "VHG", "VHN", 
@@ -39,7 +40,9 @@ class POS:
 	INTJ = {"UH"}	# interjection
 
 # 品詞をまとめる
-def collapse_true_tag(tag):
+def collapse_true_tag(tag, word):
+	if word == "##":
+		return "NUM"
 	if tag in POS.PUNCT:
 		return "PUNCT"
 	if tag in POS.SYM:
@@ -66,6 +69,8 @@ def collapse_true_tag(tag):
 		return "PART"
 	if tag in POS.INTJ:
 		return "INTJ"
+	if tag in POS.NUM:
+		return "NUM"
 	return tag
 
 def build_corpus(filename):
@@ -98,7 +103,7 @@ def build_corpus(filename):
 				metadata = metadata.split("\t")
 				if len(metadata) == 3:
 					word, true_tag, lowercase = metadata
-					true_tag = collapse_true_tag(true_tag)
+					true_tag = collapse_true_tag(true_tag, lowercase)
 					if true_tag not in Wt_count:
 						Wt_count[true_tag] = {}
 					if lowercase not in Wt_count[true_tag]:
