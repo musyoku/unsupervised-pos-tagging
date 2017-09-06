@@ -24,7 +24,7 @@ def main():
 	# 訓練データを形態素解析して集計
 	num_true_tags_of_found_tag = {}
 	words_of_true_tag = {}
-	all_types_of_true_tag = set()
+	true_tag_set = set()
 	tagger = treetaggerwrapper.TreeTagger(TAGLANG="en")
 	with codecs.open(args.filename, "r", "utf-8") as f:
 		for i, sentence_str in enumerate(f):
@@ -34,9 +34,14 @@ def main():
 			sentence_str = sentence_str.strip()	# 開業を消す
 			results = tagger.tag_text(sentence_str)	# 形態素解析
 			for metadata in results:
-				true_tag = collapse_true_tag(metadata.split("\t")[1])
-				lowercase = collapse_true_tag(metadata.split("\t")[2])
-				all_types_of_true_tag.add(true_tag)
+				metadata = metadata.split("\t")
+				if len(metadata) == 3:
+					word, true_tag, lowercase = metadata
+					true_tag = collapse_true_tag(true_tag)
+				else:
+					lowercase = metadata[0]
+					true_tag = "X"
+				true_tag_set.add(true_tag)
 				true_tag_seq.append(true_tag)
 				word_id_seq.append(dictionary.string_to_word_id(lowercase))
 				if true_tag not in words_of_true_tag:
@@ -53,26 +58,26 @@ def main():
 
 	# 存在しない部分を0埋め
 	for tag, occurrence in num_true_tags_of_found_tag.items():
-		for true_tag in all_types_of_true_tag:
+		for true_tag in true_tag_set:
 			if true_tag not in occurrence:
 				occurrence[true_tag] = 0
 	for tag in range(1, model.get_num_tags() + 1):
 		if tag not in num_true_tags_of_found_tag:
 			num_true_tags_of_found_tag[tag] = {}
-			for true_tag in all_types_of_true_tag:
+			for true_tag in true_tag_set:
 				num_true_tags_of_found_tag[tag][true_tag] = 0
 
 	# 予測品詞ごとに正規化
 	for tag, occurrence in num_true_tags_of_found_tag.items():
 		z = 0
-		for true_tag in all_types_of_true_tag:
+		for true_tag in true_tag_set:
 			z += occurrence[true_tag]
 		if z > 0:
-			for true_tag in all_types_of_true_tag:
+			for true_tag in true_tag_set:
 				occurrence[true_tag] = occurrence[true_tag] / z
 
 	fig = pylab.gcf()
-	fig.set_size_inches(model.get_num_tags() + 3, len(all_types_of_true_tag))
+	fig.set_size_inches(model.get_num_tags() + 3, len(true_tag_set))
 	pylab.clf()
 	dataframe = pd.DataFrame(num_true_tags_of_found_tag)
 	ax = sns.heatmap(dataframe, annot=False, fmt="f", linewidths=0)

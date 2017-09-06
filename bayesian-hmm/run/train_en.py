@@ -20,36 +20,53 @@ def printr(string):
 	sys.stdout.write(string)
 	sys.stdout.flush()
 
-class TAGSET:
-	sym = {"SYM", "SENT", ":", ",", "$", "(", ")", "'", "\""}
-	nn = {"NN", "NNS", "NP", "NPS"}
-	jj = {"JJ", "JJR", "JJS"}
-	rb = {"RB", "RBR", "RBS"}
-	vb = {"VB", "VBD", "VBG", "VBN", "VBZ", "VBP"}
-	vd = {"VD", "VDD", "VDG", "VDN", "VDZ", "VDP"}
-	vh = {"VH", "VH", "VHG", "VHN", "VHZ", "VHP", "VHD"}
-	vv = {"VV", "VV", "VVG", "VVN", "VVZ", "VVP", "VVD"}
+# https://spacy.io/docs/usage/pos-tagging
+# https://courses.washington.edu/hypertxt/csar-v02/penntable.html
+class POS:
+	PUNCT = {":", ",", "'", "\"", "HYPH", "LS", "NFP", "(", ")"}	# punctuation mark
+	SYM = {"SYM", "SENT", "#", "$"}	# symbol
+	X = {"ADD", "FW", "GW", "XX"}	
+	ADJ = {"AFX", "JJ", "JJR", "JJS", "PDT", "PRP$", "WDT", "WP$"}	# adjective
+	VERB = {"BES", "HVS", "MD", "VB", "VBD", "VBG", "VBN", "VBZ", "VBP", "VH", "VH", "VHG", "VHN", 
+		"VHZ", "VHP", "VHD", "VD", "VDD", "VDG", "VDN", "VDZ", "VDP", "VV", "VV", "VVG", "VVN", "VVZ", "VVP", "VVD"}
+	CONJ = {"CC"}	# conjunction
+	DET = {"DT"}	# determiner
+	ADV = {"EX", "RB", "RBR", "RBS", "WRB"}	# adverb
+	ADP = {"IN"}	# conjunction, subordinating or preposition
+	NOUN = {"NN", "NNS", "WP", "NP", "NPS"}	# noun
+	PROPN = {"NNP", "NNPS"}	# pronoun
+	PART = {"POS", "RP", "TO"}
+	INTJ = {"UH"}	# interjection
 
 # 品詞をまとめる
-# https://courses.washington.edu/hypertxt/csar-v02/penntable.html
-def collapse_true_tag(pos):
-	if pos in TAGSET.sym:
+def collapse_true_tag(tag):
+	if tag in POS.PUNCT:
+		return "PUNCT"
+	if tag in POS.SYM:
 		return "SYM"
-	if pos in TAGSET.nn:
-		return "NN"
-	if pos in TAGSET.rb:
-		return "RB"
-	if pos in TAGSET.vb:
-		return "VB"
-	if pos in TAGSET.vd:
-		return "VD"
-	if pos in TAGSET.vh:
-		return "VH"
-	if pos in TAGSET.vv:
-		return "VV"
-	if pos in TAGSET.jj:
-		return "JJ"
-	return pos
+	if tag in POS.X:
+		return "X"
+	if tag in POS.ADJ:
+		return "ADJ"
+	if tag in POS.VERB:
+		return "VERB"
+	if tag in POS.CONJ:
+		return "CONJ"
+	if tag in POS.DET:
+		return "DET"
+	if tag in POS.ADV:
+		return "ADV"
+	if tag in POS.ADP:
+		return "ADP"
+	if tag in POS.NOUN:
+		return "NOUN"
+	if tag in POS.PROPN:
+		return "PROPN"
+	if tag in POS.PART:
+		return "PART"
+	if tag in POS.INTJ:
+		return "INTJ"
+	return tag
 
 def build_corpus(filename):
 	dataset = bhmm.dataset()
@@ -89,8 +106,7 @@ def build_corpus(filename):
 					else:
 						Wt_count[true_tag][lowercase] += 1
 				else:
-					word = metadata[0]
-					lowercase = word
+					lowercase = metadata[0]
 				word_count.add(lowercase)
 				words.append(lowercase)
 			# データを追加
@@ -152,7 +168,6 @@ def main():
 		if epoch % 100 == 0:
 			printr("ハイパーパラメータのサンプリング ...")
 			trainer.update_hyperparameters()	# ハイパーパラメータをサンプリング
-			model.print_alpha_and_beta()
 			printr("")
 			print("log_likelihood: train {} - dev {}".format(trainer.compute_log_p_dataset_train(), trainer.compute_log_p_dataset_dev()))
 			model.save(os.path.join(args.model, "bhmm.model"))
