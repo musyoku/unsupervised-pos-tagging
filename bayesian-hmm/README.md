@@ -35,6 +35,12 @@ brew install boost-python --with-python3
 make install
 ```
 
+### MeCabのインストール
+
+```
+pip install mecab-python3
+```
+
 ## 学習
 
 ### 英語

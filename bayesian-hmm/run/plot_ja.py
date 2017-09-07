@@ -1,4 +1,4 @@
-# Python 3のみ対応
+﻿# Python 3のみ対応
 import argparse, sys, re, pylab, codecs, os
 import MeCab
 import pandas as pd
@@ -23,59 +23,37 @@ def main():
 	num_true_tags_of_found_tag = {}
 	words_of_true_tag = {}
 	true_tag_set = set()
+	tagger = MeCab.Tagger()
+	tagger.parse("")  # 追加
 	with codecs.open(args.filename, "r", "utf-8") as f:
-		tagger = MeCab.Tagger()
 		for i, sentence_str in enumerate(f):
 			if i % 10 == 0:
 				printr("データを集計しています ... {}".format(i + 1))
 			word_id_seq = []
 			true_tag_seq = []
-			sentence_str = sentence_str.strip().encode("utf-8")	# 改行を消す
+			sentence_str = sentence_str.strip()	# 改行を消す
 			m = tagger.parseToNode(sentence_str)	# 形態素解析
 			words = []
 			while m:
-				word = m.surface.decode("utf-8")
+				word = m.surface
 				features = m.feature.split(",")
 				pos_major = features[0]
-				pos = (pos_major + "," + features[1]).decode("utf-8")
-				if pos == u"名詞,数":
-					word = u"##"		# 数字は全て置き換える
+				pos = (pos_major + "," + features[1])
+				if pos == "名詞,数":
+					word = "##"		# 数字は全て置き換える
 
-				print(word.encode("utf-8"))
-				print(type(word))
-				raise Exception()
 				word_id_seq.append(dictionary.string_to_word_id(word))
-				true_tag_seq.append(pos)
+				true_tag_seq.append(pos_major)
 
 				if dictionary.is_unk(word):	# <unk>は無視
-					print(word, "is <unk>")
 					pass
 				else:
-					true_tag_set.add(true_tag)
-					if true_tag not in words_of_true_tag:
-						words_of_true_tag[true_tag] = set()
-					words_of_true_tag[true_tag].add(lowercase)
+					true_tag_set.add(pos_major)
+					if pos_major not in words_of_true_tag:
+						words_of_true_tag[pos_major] = set()
+					words_of_true_tag[pos_major].add(word)
 
-
-			results = tagger.tag_text(sentence_str)	# 形態素解析
-			for metadata in results:
-				metadata = metadata.split("\t")
-				if len(metadata) == 3:
-					word, true_tag, lowercase = metadata
-					true_tag = collapse_true_tag(true_tag, lowercase)
-				else:
-					lowercase = metadata[0]
-					true_tag = "X"
-				word_id_seq.append(dictionary.string_to_word_id(lowercase))
-				true_tag_seq.append(true_tag)
-
-				if dictionary.is_unk(lowercase):	# <unk>は無視
-					pass
-				else:
-					true_tag_set.add(true_tag)
-					if true_tag not in words_of_true_tag:
-						words_of_true_tag[true_tag] = set()
-					words_of_true_tag[true_tag].add(lowercase)
+				m = m.next
 
 			found_tag_seq = model.viterbi_decode(word_id_seq)
 			for word_id, true_tag, found_tag in zip(word_id_seq, true_tag_seq, found_tag_seq):
@@ -112,7 +90,7 @@ def main():
 	fig.set_size_inches(model.get_num_tags() + 3, len(true_tag_set))
 	pylab.clf()
 	dataframe = pd.DataFrame(num_true_tags_of_found_tag)
-	ax = sns.heatmap(dataframe, annot=False, fmt="f", linewidths=0)
+	ax = sns.heatmap(dataframe, annot=False, fmt="f", linewidths=0, cmap="cubehelix_r")
 	ax.tick_params(labelsize=20) 
 	plt.yticks(rotation=0)
 	plt.xlabel(u"予測タグ")

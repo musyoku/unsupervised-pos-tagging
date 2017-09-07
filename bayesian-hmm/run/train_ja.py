@@ -16,9 +16,9 @@ def printr(string):
 	sys.stdout.write(string)
 	sys.stdout.flush()
 
+# 訓練データを形態素解析して各品詞ごとにその品詞になりうる単語の総数を求めておく
 def build_corpus(filename):
 	dataset = bhmm.dataset()
-	# 訓練データを形態素解析して各品詞ごとにその品詞になりうる単語の総数を求めておく
 	sentence_list = []
 	with codecs.open(filename, "r", "utf-8") as f:
 		for sentence_str in f:
@@ -30,41 +30,42 @@ def build_corpus(filename):
 	pos_count = set()	# 品詞数
 	major_pos_count = set()	# 品詞数（大分類）
 	Wt_count = {}
-	with codecs.open(filename, "r", "utf-8") as f:
-		tagger = MeCab.Tagger()
-		for i, sentence_str in enumerate(f):
-			sentence_str = sentence_str.strip()
-			if i % 10 == 0:
-				printr("データを準備しています ... {}".format(i + 1))
-			m = tagger.parseToNode(sentence_str)	# 形態素解析
-			words = []
-			while m:
-				word = m.surface
-				features = m.feature.split(",")
-				pos_major = features[0]
-				pos = (pos_major + "," + features[1])
-				major_pos_count.add(pos_major)
-				pos_count.add(pos)
-				if pos == u"名詞,数":
-					word = u"##"		# 数字は全て置き換える
-				words.append(word)
-				word_count.add(word)
-				if pos_major not in Wt_count:
-					Wt_count[pos_major] = {}
-				if word not in Wt_count[pos_major]:
-					Wt_count[pos_major][word] = 1
-				else:
-					Wt_count[pos_major][word] += 1
-				m = m.next
 
-			if len(words) == 0:
-				continue
-
-			# データを追加
-			if i > train_split:
-				dataset.add_words_dev(words)		# 評価用データに追加
+	tagger = MeCab.Tagger()
+	for i, sentence_str in enumerate(sentence_list):
+		sentence_str = sentence_str.strip()
+		if i % 10 == 0:
+			printr("データを準備しています ... {}".format(i + 1))
+		m = tagger.parseToNode(sentence_str)	# 形態素解析
+		words = []
+		while m:
+			word = m.surface
+			print(word)
+			features = m.feature.split(",")
+			pos_major = features[0]
+			pos = (pos_major + "," + features[1])
+			major_pos_count.add(pos_major)
+			pos_count.add(pos)
+			if pos == "名詞,数":
+				word = "##"		# 数字は全て置き換える
+			words.append(word)
+			word_count.add(word)
+			if pos_major not in Wt_count:
+				Wt_count[pos_major] = {}
+			if word not in Wt_count[pos_major]:
+				Wt_count[pos_major][word] = 1
 			else:
-				dataset.add_words_train(words)		# 学習用データに追加
+				Wt_count[pos_major][word] += 1
+			m = m.next
+
+		if len(words) == 0:
+			continue
+
+		# データを追加
+		if i > train_split:
+			dataset.add_words_dev(words)		# 評価用データに追加
+		else:
+			dataset.add_words_train(words)		# 学習用データに追加
 
 	if args.supervised:
 		# Wtは各品詞について、その品詞になりうる単語の数が入っている
