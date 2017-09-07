@@ -14,6 +14,7 @@
 
 - [ ] [Embedded HMM](https://papers.nips.cc/paper/2391-inferring-state-sequences-for-non-linear-systems-with-embedded-hidden-markov-models.pdf)に基づくiTHMMのforward-backwardによる学習
 
+## 動作環境
 ## データセット
 
 ### 英語
