@@ -32,6 +32,7 @@ brew install boost-python --with-python3
 ./b2 python=3.6 -d2 -j4
 ```
 
+```
 make install
 ```
 
