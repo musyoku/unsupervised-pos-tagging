@@ -1,107 +1,144 @@
-# -*- coding: utf-8 -*-
-import argparse, sys, os, time, re, codecs
+# coding: utf-8
+from __future__ import print_function
+from __future__ import division
+import argparse, sys, os, time, codecs, random
 import MeCab
-import model
+import bhmm
 
 class stdout:
 	BOLD = "\033[1m"
 	END = "\033[0m"
 	CLEAR = "\033[2K"
 
-def main(args):
-	if args.filename is None:
-		raise Exception()
-	try:
-		os.mkdir(args.model)
-	except:
-		pass
+def printb(string):
+	print(stdout.BOLD + string + stdout.END)
 
-	hmm = model.bayesian_hmm()
-	# 訓練データを分かち書きする
-	print stdout.BOLD + "データを準備しています ..." + stdout.END
+def printr(string):
+	sys.stdout.write("\r" + stdout.CLEAR)
+	sys.stdout.write(string)
+	sys.stdout.flush()
+
+def build_corpus(filename):
+	dataset = bhmm.dataset()
+	# 訓練データを形態素解析して各品詞ごとにその品詞になりうる単語の総数を求めておく
+	sentence_list = []
+	with codecs.open(filename, "r", "utf-8") as f:
+		for sentence_str in f:
+			sentence_list.append(sentence_str)
+	random.shuffle(sentence_list)	# データをシャッフル
+	train_split = int(len(sentence_list) * args.train_split)
+
 	word_count = set()	# 単語の種類の総数
 	pos_count = set()	# 品詞数
 	major_pos_count = set()	# 品詞数（大分類）
-	with codecs.open(args.filename, "r", "utf-8") as f:
+	Wt_count = {}
+	with codecs.open(filename, "r", "utf-8") as f:
 		tagger = MeCab.Tagger()
-		for i, line in enumerate(f):
-			if args.train_split is not None and i > args.train_split:
-				break
-			if i % 500 == 0:
-				sys.stdout.write("\r{}行目を処理中です ...".format(i))
-				sys.stdout.flush()
-			segmentation = ""
-			line = re.sub(ur"\n", "", line)	# 開業を消す
-			string = line.encode("utf-8")
-			m = tagger.parseToNode(string)
+		for i, sentence_str in enumerate(f):
+			sentence_str = sentence_str.strip()
+			sentence_str = sentence_str.encode("utf-8")
+			if i % 10 == 0:
+				printr("データを準備しています ... {}".format(i + 1))
+			m = tagger.parseToNode(sentence_str)
+			words = []
 			while m:
-				word = m.surface
-				word_count.add(word)
+				word = m.surface.decode("utf-8")
 				features = m.feature.split(",")
-				major_pos_count.add(features[0].decode("utf-8"))
-				pos = (features[0] + "," + features[1]).decode("utf-8")
+				pos_major = features[0]
+				pos = (pos_major + "," + features[1]).decode("utf-8")
+				major_pos_count.add(pos_major)
 				pos_count.add(pos)
 				if pos == u"名詞,数":
-					word = "##"		# 数字は全て置き換える
-				segmentation += word + " "
+					word = u"##"		# 数字は全て置き換える
+				words.append(word)
+				word_count.add(word)
+				if pos_major not in Wt_count:
+					Wt_count[pos_major] = {}
+				if word not in Wt_count[pos_major]:
+					Wt_count[pos_major][word] = 1
+				else:
+					Wt_count[pos_major][word] += 1
 				m = m.next
-			segmentation = re.sub(ur" +$", "",  segmentation)	# 行末の空白を除去
-			segmentation = re.sub(ur"^ +", "",  segmentation)	# 行頭の空白を除去
-			hmm.add_line(segmentation.decode("utf-8"))	# 学習用データに追加
 
-	print stdout.END
-	print stdout.BOLD + "単語数:", len(word_count), stdout.END
-	print stdout.BOLD + "品詞数:", len(pos_count), stdout.END
-	print repr(pos_count).decode("unicode-escape").encode("utf-8")
-	print stdout.BOLD + "品詞数（大分類）:", len(major_pos_count), stdout.END
-	print repr(major_pos_count).decode("unicode-escape").encode("utf-8")
-	print stdout.BOLD + "1文あたりの単語数:　{}（最大）- {} 最小".format(hmm.get_max_num_words_in_line(), hmm.get_min_num_words_in_line()), stdout.END
+			if len(words) == 0:
+				continue
 
-	# Wtに制限をかけない場合
-	Wt = [len(word_count)] * args.num_tags
-	print "Wt:", Wt
+			# データを追加
+			if i > train_split:
+				dataset.add_words_dev(words)		# 評価用データに追加
+			else:
+				dataset.add_words_train(words)		# 学習用データに追加
 
-	hmm.set_num_tags(len(Wt));	# 品詞数を設定
-	hmm.mark_low_frequency_words_as_unknown(args.unknown_threshold)	# 低頻度語を全て<unk>に置き換える
-	hmm.initialize()	# 学習の準備
+	if args.supervised:
+		# Wtは各品詞について、その品詞になりうる単語の数が入っている
+		Wt = [len(words) for tag, words in Wt_count.items()]
+	else:
+		# Wtに制限をかけない場合
+		Wt = [int(len(word_count) / args.num_tags)] * args.num_tags
 
-	# Wtをセット
-	hmm.set_Wt(Wt)
+	return dataset, Wt
 
-	# alphaの初期値
-	hmm.set_alpha(1)
+def main():
+	assert args.train_filename is not None
+	try:
+		os.mkdir(args.working_directory)
+	except:
+		pass
 
-	hmm.set_temperature(args.start_temperature)	# 温度の初期設定
-	hmm.set_minimum_temperature(args.min_temperature)	# 温度の下限
-	for epoch in xrange(1, args.epoch + 1):
+	# 訓練データを追加
+	dataset, Wt = build_corpus(args.train_filename)
+	dataset.mark_low_frequency_words_as_unknown(args.unknown_threshold)	# 低頻度語を全て<unk>に置き換える
+
+	# 単語辞書を保存
+	dictionary = dataset.get_dict()
+	dictionary.save(os.path.join(args.working_directory, "bhmm.dict"))
+
+	# モデル
+	num_tags = len(Wt) if args.supervised else args.num_tags
+	model = bhmm.model(num_tags, dataset, Wt)
+
+	# ハイパーパラメータの設定
+	model.set_temperature(args.start_temperature)		# 温度の初期設定
+	model.set_minimum_temperature(args.min_temperature)	# 温度の下限
+	model.set_initial_alpha(args.initial_alpha)
+	model.set_initial_beta(args.initial_beta)
+
+	# 学習の準備
+	trainer = bhmm.trainer(dataset, model)
+
+	# 学習ループ
+	decay = (args.start_temperature - args.min_temperature) / args.epochs 
+	for epoch in range(1, args.epochs + 1):
 		start = time.time()
+		trainer.perform_gibbs_sampling()	# 新しい状態系列をギブスサンプリング
+		trainer.anneal_temperature(decay)	# 温度を下げる
 
-		hmm.perform_gibbs_sampling()
-		hmm.sample_new_alpha()
-		hmm.sample_new_beta()
-
+		# ログ
 		elapsed_time = time.time() - start
-		sys.stdout.write("\rEpoch {} / {} - {:.3f} sec".format(epoch, args.epoch, elapsed_time))		
-		sys.stdout.flush()
-		hmm.anneal_temperature(args.anneal)	# 温度を下げる
-		if epoch % 10 == 0:
-			print "\n"
-			hmm.show_alpha()
-			hmm.show_beta()
-			hmm.show_random_line(20, True);	# ランダムなn個の文と推定結果のタグを表示
-			hmm.show_typical_words_for_each_tag(20);	# それぞれのタグにつき上位n個の単語を表示
-			print "temperature: ", hmm.get_temperature()
-			hmm.save(args.model);
+		printr("Iteration {} / {} - temp {:.3f} - {:.3f} sec".format(epoch, args.epochs, model.get_temperature(), elapsed_time))
+		if epoch % 1000 == 0:
+			printr("")
+			model.print_typical_words_of_each_tag(20, dictionary)
+		if epoch % 100 == 0:
+			printr("ハイパーパラメータのサンプリング ...")
+			trainer.update_hyperparameters()	# ハイパーパラメータをサンプリング
+			printr("")
+			print("log_likelihood: train {} - dev {}".format(trainer.compute_log_p_dataset_train(), trainer.compute_log_p_dataset_dev()))
+			model.save(os.path.join(args.working_directory, "bhmm.model"))
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
-	parser.add_argument("-f", "--filename", type=str, default=None, help="訓練用のテキストファイルのパス. 分かち書きされていない必要がある.")
-	parser.add_argument("-e", "--epoch", type=int, default=20000, help="総epoch.")
-	parser.add_argument("-m", "--model", type=str, default="out", help="保存フォルダ名.")
-	parser.add_argument("-n", "--num-tags", type=int, default=20, help="タグの種類.")
-	parser.add_argument("-l", "--train-split", type=int, default=None, help="テキストデータの最初の何行を訓練データにするか.")
-	parser.add_argument("-u", "--unknown-threshold", type=int, default=1, help="出現回数がこの値以下の単語は<unk>に置き換える.")
-	parser.add_argument("--start-temperature", type=float, default=2, help="開始温度.")
+	parser.add_argument("-file", "--train-filename", type=str, default=None, help="訓練用のテキストファイルのパス.ディレクトリも可.")
+	parser.add_argument("-epochs", "--epochs", type=int, default=100000, help="総epoch.")
+	parser.add_argument("-cwd", "--working-directory", type=str, default="out", help="ワーキングディレクトリ.")
+	parser.add_argument("--supervised", dest="supervised", default=False, action="store_true", help="各タグのWtを訓練データで制限するかどうか.指定した場合num_tagsは無視される.")
+	parser.add_argument("--unsupervised", dest="supervised", action="store_false", help="各タグのWtを訓練データで制限するかどうか.")
+	parser.add_argument("-tags", "--num-tags", type=int, default=20, help="タグの種類（semi_supervisedがFalseの時のみ有効）.")
+	parser.add_argument("-unk", "--unknown-threshold", type=int, default=0, help="出現回数がこの値以下の単語は<unk>に置き換える.")
+	parser.add_argument("-split", "--train-split", type=float, default=0.9, help="テキストデータの何割を訓練データにするか.")
+	parser.add_argument("--start-temperature", type=float, default=1.5, help="開始温度.")
 	parser.add_argument("--min-temperature", type=float, default=0.08, help="最小温度.")
-	parser.add_argument("--anneal", type=float, default=0.9989, help="温度の減少に使う係数.")
-	main(parser.parse_args())
+	parser.add_argument("--initial-alpha", "-alpha", type=float, default=0.003, help="alphaの初期値.")
+	parser.add_argument("--initial-beta", "-beta", type=float, default=1.0, help="betaの初期値.")
+	args = parser.parse_args()
+	main()

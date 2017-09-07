@@ -9,8 +9,6 @@ class stdout:
 	BOLD = "\033[1m"
 	END = "\033[0m"
 	CLEAR = "\033[2K"
-	MOVE = "\033[1A"
-	LEFT = "\033[G"
 
 def printb(string):
 	print(stdout.BOLD + string + stdout.END)
@@ -132,7 +130,7 @@ def build_corpus(filename):
 def main():
 	assert args.train_filename is not None
 	try:
-		os.mkdir(args.model)
+		os.mkdir(args.working_directory)
 	except:
 		pass
 
@@ -142,7 +140,7 @@ def main():
 
 	# 単語辞書を保存
 	dictionary = dataset.get_dict()
-	dictionary.save(os.path.join(args.model, "bhmm.dict"))
+	dictionary.save(os.path.join(args.working_directory, "bhmm.dict"))
 
 	# モデル
 	num_tags = len(Wt) if args.supervised else args.num_tags
@@ -175,13 +173,13 @@ def main():
 			trainer.update_hyperparameters()	# ハイパーパラメータをサンプリング
 			printr("")
 			print("log_likelihood: train {} - dev {}".format(trainer.compute_log_p_dataset_train(), trainer.compute_log_p_dataset_dev()))
-			model.save(os.path.join(args.model, "bhmm.model"))
+			model.save(os.path.join(args.working_directory, "bhmm.model"))
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument("-file", "--train-filename", type=str, default=None, help="訓練用のテキストファイルのパス.ディレクトリも可.")
 	parser.add_argument("-epochs", "--epochs", type=int, default=100000, help="総epoch.")
-	parser.add_argument("-m", "--model", type=str, default="out", help="保存フォルダ名.")
+	parser.add_argument("-cwd", "--working-directory", type=str, default="out", help="ワーキングディレクトリ.")
 	parser.add_argument("--supervised", dest="supervised", default=False, action="store_true", help="各タグのWtを訓練データで制限するかどうか.指定した場合num_tagsは無視される.")
 	parser.add_argument("--unsupervised", dest="supervised", action="store_false", help="各タグのWtを訓練データで制限するかどうか.")
 	parser.add_argument("-tags", "--num-tags", type=int, default=20, help="タグの種類（semi_supervisedがFalseの時のみ有効）.")

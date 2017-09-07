@@ -16,10 +16,10 @@ sns.set(font=["MS Gothic"], font_scale=3)
 def main():
 	# 辞書
 	dictionary = bhmm.dictionary()
-	dictionary.load(os.path.join(args.model, "bhmm.dict"))
+	dictionary.load(os.path.join(args.working_directory, "bhmm.dict"))
 
 	# モデル
-	model = bhmm.model(os.path.join(args.model, "bhmm.model"))
+	model = bhmm.model(os.path.join(args.working_directory, "bhmm.model"))
 
 	# 訓練データを形態素解析して集計
 	num_true_tags_of_found_tag = {}
@@ -111,6 +111,6 @@ def main():
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
 	parser.add_argument("-f", "--filename", type=str, default=None, help="学習に使ったテキストファイルのパス.")
-	parser.add_argument("-m", "--model", type=str, default="out", help="モデルファイル.")
+	parser.add_argument("-cwd", "--working-directory", type=str, default="out", help="ワーキングディレクトリ.")
 	args = parser.parse_args()
 	main()
