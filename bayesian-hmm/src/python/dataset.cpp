@@ -1,4 +1,6 @@
+#include <iostream>
 #include <fstream>
+#include <unordered_set>
 #include "dataset.h"
 #include "../bhmm/utils.h"
 #include "../bhmm/sampler.h"
@@ -120,6 +122,7 @@ namespace bhmm {
 		_mark_low_frequency_words_as_unknown(threshold, _word_sequences_dev);
 	}
 	void Dataset::_mark_low_frequency_words_as_unknown(int threshold, std::vector<std::vector<Word*>> &word_sequence_vec){
+		std::unordered_set<id> word_ids_to_remove;
 		for(int data_index = 0;data_index < word_sequence_vec.size();data_index++){
 			std::vector<Word*> &data = word_sequence_vec[data_index];
 			for(auto word = data.begin(), end = data.end();word != end;word++){
@@ -127,9 +130,11 @@ namespace bhmm {
 				int count = get_count_of_word(word_id);
 				if(count <= threshold){
 					(*word)->_id = ID_UNK;
+					word_ids_to_remove.insert(word_id);
 				}
 			}
 		}
+		_dict->remove_ids(word_ids_to_remove);
 	}
 	int Dataset::get_num_words(){
 		return _dict->get_vocabrary_size();

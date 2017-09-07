@@ -1,5 +1,6 @@
 #pragma once
 #include <unordered_map>
+#include <unordered_set>
 #include <string>
 #include "../bhmm/common.h"
 
@@ -15,6 +16,7 @@ namespace bhmm {
 		id add_word_string(std::wstring word);
 		id string_to_word_id(std::wstring word);
 		std::wstring word_id_to_string(id word_id);
+		void remove_ids(std::unordered_set<id> word_ids);
 		int get_vocabrary_size();
 		bool is_unk(std::wstring word);
 		bool load(std::string filename);

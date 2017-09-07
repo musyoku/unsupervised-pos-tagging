@@ -35,6 +35,14 @@ namespace bhmm {
 		assert(itr != _id_to_str.end());
 		return itr->second;
 	}
+	// <unk>に置き換える
+	void Dictionary::remove_ids(std::unordered_set<id> word_ids){
+		for(id word_id: word_ids){
+			std::wstring word = word_id_to_string(word_id);
+			_id_to_str[word_id] = L"<unk>";
+			_str_to_id[word] = ID_UNK;
+		}
+	}
 	int Dictionary::get_vocabrary_size(){
 		return _str_to_id.size();
 	}

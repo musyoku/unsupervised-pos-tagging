@@ -1,6 +1,4 @@
-# coding: utf-8
-from __future__ import print_function
-from __future__ import division
+# Python 3のみ対応
 import argparse, sys, os, time, codecs, random
 import MeCab
 import bhmm
@@ -36,16 +34,15 @@ def build_corpus(filename):
 		tagger = MeCab.Tagger()
 		for i, sentence_str in enumerate(f):
 			sentence_str = sentence_str.strip()
-			sentence_str = sentence_str.encode("utf-8")
 			if i % 10 == 0:
 				printr("データを準備しています ... {}".format(i + 1))
-			m = tagger.parseToNode(sentence_str)
+			m = tagger.parseToNode(sentence_str)	# 形態素解析
 			words = []
 			while m:
-				word = m.surface.decode("utf-8")
+				word = m.surface
 				features = m.feature.split(",")
 				pos_major = features[0]
-				pos = (pos_major + "," + features[1]).decode("utf-8")
+				pos = (pos_major + "," + features[1])
 				major_pos_count.add(pos_major)
 				pos_count.add(pos)
 				if pos == u"名詞,数":
@@ -134,7 +131,7 @@ if __name__ == "__main__":
 	parser.add_argument("--supervised", dest="supervised", default=False, action="store_true", help="各タグのWtを訓練データで制限するかどうか.指定した場合num_tagsは無視される.")
 	parser.add_argument("--unsupervised", dest="supervised", action="store_false", help="各タグのWtを訓練データで制限するかどうか.")
 	parser.add_argument("-tags", "--num-tags", type=int, default=20, help="タグの種類（semi_supervisedがFalseの時のみ有効）.")
-	parser.add_argument("-unk", "--unknown-threshold", type=int, default=0, help="出現回数がこの値以下の単語は<unk>に置き換える.")
+	parser.add_argument("-unk", "--unknown-threshold", type=int, default=1, help="出現回数がこの値以下の単語は<unk>に置き換える.")
 	parser.add_argument("-split", "--train-split", type=float, default=0.9, help="テキストデータの何割を訓練データにするか.")
 	parser.add_argument("--start-temperature", type=float, default=1.5, help="開始温度.")
 	parser.add_argument("--min-temperature", type=float, default=0.08, help="最小温度.")

@@ -3,9 +3,35 @@
 - [A Fully Bayesian Approach to Unsupervised Part-of-Speech Tagging](http://homepages.inf.ed.ac.uk/sgwater/papers/acl07-bhmm.pdf)
 - [実装について](http://musyoku.github.io/2017/01/28/A-Fully-Bayesian-Approach-to-Unsupervised-Part-of-Speech-Tagging/)
 
-## ビルド
+## 準備
+
+### macOS
+
+#### Python 3のインストール
 
 ```
+brew install python3
+```
+
+`PYTHONPATH`を変更する必要があるかもしれません。
+
+#### Boostのインストール
+
+```
+brew install boost-python --with-python3
+```
+
+### Linux
+
+#### Boostのインストール
+
+```
+./bootstrap.sh --with-libraries=python --with-python=python --with-python-root=YOUR_PYTHON_ROOT
+./b2 python=2.7 -d2 -j4
+./bootstrap.sh --with-libraries=python --with-python=python3 --with-python-root=YOUR_PYTHON_ROOT
+./b2 python=3.6 -d2 -j4
+```
+
 make install
 ```
 
