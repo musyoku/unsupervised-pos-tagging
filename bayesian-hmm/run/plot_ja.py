@@ -1,5 +1,4 @@
-﻿# Python 3のみ対応
-import argparse, sys, re, pylab, codecs, os
+﻿import argparse, sys, re, pylab, codecs, os
 import MeCab
 import pandas as pd
 import seaborn as sns
@@ -86,17 +85,18 @@ def main():
 			for true_tag in true_tag_set:
 				occurrence[true_tag] = occurrence[true_tag] / z
 
+
 	fig = pylab.gcf()
 	fig.set_size_inches(model.get_num_tags() + 3, len(true_tag_set))
 	pylab.clf()
 	dataframe = pd.DataFrame(num_true_tags_of_found_tag)
-	ax = sns.heatmap(dataframe, annot=False, fmt="f", linewidths=0, cmap="cubehelix_r")
+	ax = sns.heatmap(dataframe, annot=False, fmt="f", linewidths=0, cmap=sns.cubehelix_palette(as_cmap=True, dark=0, light=0.95))
 	ax.tick_params(labelsize=20) 
 	plt.yticks(rotation=0)
-	plt.xlabel(u"予測タグ")
-	plt.ylabel(u"正解品詞")
+	plt.xlabel("予測タグ")
+	plt.ylabel("正解品詞")
 	heatmap = ax.get_figure()
-	heatmap.savefig("pos.png")
+	heatmap.savefig("{}/confusion_mat.png".format(args.working_directory))
 
 	printr("")
 	for true_tag in words_of_true_tag:

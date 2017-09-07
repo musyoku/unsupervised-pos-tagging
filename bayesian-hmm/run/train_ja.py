@@ -1,4 +1,3 @@
-# Python 3のみ対応
 import argparse, sys, os, time, codecs, random
 import MeCab
 import bhmm
