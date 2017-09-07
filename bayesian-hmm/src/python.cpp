@@ -8,6 +8,7 @@ using namespace bhmm;
 BOOST_PYTHON_MODULE(bhmm){
 	boost::python::class_<Dictionary>("dictionary")
 	.def("string_to_word_id", &Dictionary::string_to_word_id)
+	.def("is_unk", &Dictionary::is_unk)
 	.def("save", &Dictionary::save)
 	.def("load", &Dictionary::load);
 

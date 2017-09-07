@@ -289,9 +289,9 @@ namespace bhmm {
 	void Model::print_alpha_and_beta(){
 		using std::cout;
 		using std::endl;
-		cout << "\x1b[1m" << "alpha" << "\x1b[0m" << _hmm->_alpha << std::endl;
+		cout << "\x1b[1m" << "alpha" << "\x1b[0m " << _hmm->_alpha << std::endl;
 		for(int tag = 1;tag <= _hmm->_num_tags;tag++){
-			cout << "\x1b[1m" << "beta[" << tag << "]" << "\x1b[0m" << _hmm->_beta[tag] << std::endl;
+			cout << "\x1b[1m" << "beta[" << tag << "]" << "\x1b[0m " << _hmm->_beta[tag] << std::endl;
 		}
 	}
 }

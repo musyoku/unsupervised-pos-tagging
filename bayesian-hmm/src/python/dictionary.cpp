@@ -38,6 +38,10 @@ namespace bhmm {
 	int Dictionary::get_vocabrary_size(){
 		return _str_to_id.size();
 	}
+	bool Dictionary::is_unk(std::wstring word){
+		id word_id = string_to_word_id(word);
+		return word_id == ID_UNK;
+	}
 	bool Dictionary::load(std::string filename){
 		std::string dictionary_filename = filename;
 		std::ifstream ifs(dictionary_filename);

@@ -41,20 +41,27 @@ def main():
 				else:
 					lowercase = metadata[0]
 					true_tag = "X"
-				true_tag_set.add(true_tag)
-				true_tag_seq.append(true_tag)
 				word_id_seq.append(dictionary.string_to_word_id(lowercase))
-				if true_tag not in words_of_true_tag:
-					words_of_true_tag[true_tag] = set()
-				words_of_true_tag[true_tag].add(lowercase)
+				true_tag_seq.append(true_tag)
+
+				if dictionary.is_unk(lowercase):	# <unk>は無視
+					pass
+				else:
+					true_tag_set.add(true_tag)
+					if true_tag not in words_of_true_tag:
+						words_of_true_tag[true_tag] = set()
+					words_of_true_tag[true_tag].add(lowercase)
 
 			found_tag_seq = model.viterbi_decode(word_id_seq)
-			for true_tag, found_tag in zip(true_tag_seq, found_tag_seq):
-				if found_tag not in num_true_tags_of_found_tag:
-					num_true_tags_of_found_tag[found_tag] = {}
-				if true_tag not in num_true_tags_of_found_tag[found_tag]:
-					num_true_tags_of_found_tag[found_tag][true_tag] = 0
-				num_true_tags_of_found_tag[found_tag][true_tag] += 1
+			for word_id, true_tag, found_tag in zip(word_id_seq, true_tag_seq, found_tag_seq):
+				if word_id == 0:	# <unk>は無視
+					pass
+				else:
+					if found_tag not in num_true_tags_of_found_tag:
+						num_true_tags_of_found_tag[found_tag] = {}
+					if true_tag not in num_true_tags_of_found_tag[found_tag]:
+						num_true_tags_of_found_tag[found_tag][true_tag] = 0
+					num_true_tags_of_found_tag[found_tag][true_tag] += 1
 
 	# 存在しない部分を0埋め
 	for tag, occurrence in num_true_tags_of_found_tag.items():

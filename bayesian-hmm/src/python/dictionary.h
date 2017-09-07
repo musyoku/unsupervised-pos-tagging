@@ -16,6 +16,7 @@ namespace bhmm {
 		id string_to_word_id(std::wstring word);
 		std::wstring word_id_to_string(id word_id);
 		int get_vocabrary_size();
+		bool is_unk(std::wstring word);
 		bool load(std::string filename);
 		bool save(std::string filename);
 	};
