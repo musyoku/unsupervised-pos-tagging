@@ -177,8 +177,8 @@ def main():
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
-	parser.add_argument("-file", "--train-filename", type=str, default=None, help="訓練用のテキストファイルのパス.ディレクトリも可.")
-	parser.add_argument("-epochs", "--epochs", type=int, default=100000, help="総epoch.")
+	parser.add_argument("-file", "--train-filename", type=str, default=None, help="訓練用のテキストファイルのパス.")
+	parser.add_argument("-epochs", "--epochs", type=int, default=100000, help="総イテレーション.")
 	parser.add_argument("-cwd", "--working-directory", type=str, default="out", help="ワーキングディレクトリ.")
 	parser.add_argument("--supervised", dest="supervised", default=False, action="store_true", help="各タグのWtを訓練データで制限するかどうか.指定した場合num_tagsは無視される.")
 	parser.add_argument("--unsupervised", dest="supervised", action="store_false", help="各タグのWtを訓練データで制限するかどうか.")
