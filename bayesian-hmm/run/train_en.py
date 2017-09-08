@@ -1,6 +1,3 @@
-# coding: utf-8
-from __future__ import print_function
-from __future__ import division
 import argparse, sys, os, time, codecs, random
 import treetaggerwrapper
 import bhmm
@@ -167,7 +164,7 @@ def main():
 		printr("Iteration {} / {} - temp {:.3f} - {:.3f} sec".format(epoch, args.epochs, model.get_temperature(), elapsed_time))
 		if epoch % 1000 == 0:
 			printr("")
-			model.print_typical_words_of_each_tag(20, dictionary)
+			model.print_typical_words_assigned_to_each_tag(20, dictionary)
 		if epoch % 100 == 0:
 			printr("ハイパーパラメータのサンプリング ...")
 			trainer.update_hyperparameters()	# ハイパーパラメータをサンプリング

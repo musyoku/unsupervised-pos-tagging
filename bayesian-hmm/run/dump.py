@@ -5,7 +5,7 @@ def main(args):
 	dictionary = bhmm.dictionary()
 	dictionary.load(os.path.join(args.working_directory, "bhmm.dict"))
 	model = bhmm.model(os.path.join(args.working_directory, "bhmm.model"))
-	model.print_typical_words_of_each_tag(args.num_words_to_show, dictionary);
+	model.print_typical_words_assigned_to_each_tag(args.num_words_to_show, dictionary);
 	model.print_alpha_and_beta()
 
 if __name__ == "__main__":

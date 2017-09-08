@@ -262,7 +262,7 @@ namespace bhmm {
 			return a.second > b.second;
 		}   
 	};
-	void Model::print_typical_words_of_each_tag(int number_to_show, Dictionary* dict){
+	void Model::print_typical_words_assigned_to_each_tag(int number_to_show, Dictionary* dict){
 		using std::wcout;
 		using std::endl;
 		for(int tag = 1;tag <= _hmm->_num_tags;tag++){
