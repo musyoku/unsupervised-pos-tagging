@@ -41,7 +41,7 @@ void train(int num_iterations){
 			}
 		}
 		if(i % 1000 == 0){
-			trainer->show_typical_words_of_each_tag(10);
+			model->print_typical_words_assigned_to_each_tag(10, dictionary);
 		}
 	}
 	delete dataset;

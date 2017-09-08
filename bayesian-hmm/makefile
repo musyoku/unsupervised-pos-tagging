@@ -5,13 +5,19 @@ LDFLAGS = `python3-config --ldflags` -lboost_serialization -lboost_python3
 SOFLAGS = -shared -fPIC
 
 install: ## Python用ライブラリをビルドします.
-	$(CC) $(INCLUDE) $(LDFLAGS) $(SOFLAGS) src/python.cpp src/bhmm/*.cpp src/python/*.cpp -o run/bhmm.so -O3
+	$(CC) $(INCLUDE) $(LDFLAGS) $(SOFLAGS) src/python.cpp src/bhmm/*.cpp src/lib/*.cpp src/python/*.cpp -o run/bhmm.so -O3
 
-cpp_train: ## LLDB用.
-	$(CC) test/train.cpp src/bhmm/*.cpp src/python/*.cpp -o test/train $(INCLUDE) $(LDFLAGS) -O3
+check_includes:	## Python.hの場所を確認
+	python3-config --includes
 
-cpp_viterbi: ## LLDB用.
-	$(CC) test/viterbi.cpp src/bhmm/*.cpp src/python/*.cpp -o test/viterbi $(INCLUDE) -O0 -g
+check_ldflags:	## libpython3の場所を確認
+	python3-config --ldflags
+
+.PHONY: test
+test: ## LLDB用.
+	$(CC) test/train.cpp src/bhmm/*.cpp src/lib/*.cpp src/python/*.cpp -o test/train $(INCLUDE) $(LDFLAGS) -O0 -g
+	$(CC) test/viterbi.cpp src/bhmm/*.cpp src/lib/*.cpp src/python/*.cpp -o test/viterbi $(INCLUDE) -O0 -g
+	$(CC) test/dsfmt.cpp src/bhmm/*.cpp src/lib/*.cpp src/python/*.cpp -o test/dsfmt $(INCLUDE) -O0 -g
 
 .PHONY: help
 help:
