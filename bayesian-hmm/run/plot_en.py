@@ -90,7 +90,7 @@ def main():
 	plt.xlabel(u"予測タグ")
 	plt.ylabel(u"正解品詞")
 	heatmap = ax.get_figure()
-	heatmap.savefig("pos.png")
+	heatmap.savefig("{}/confusion_mat.png".format(args.working_directory))
 
 	printr("")
 	for true_tag in words_of_true_tag:
