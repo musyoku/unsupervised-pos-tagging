@@ -17,15 +17,26 @@
 namespace ihmm {
 	class InfiniteHMM {
 	private:
+		int _add_new_tag();
 		void _delete_tag(int tag);
+		void _increment_tag_unigram_count(int tag);
+		void _decrement_tag_unigram_count(int tag);
+		void _increment_tag_bigram_count(int context_tag, int tag);
+		void _increment_tag_word_count(int tag, id word_id);
+		void _increment_oracle_tag_count(int tag);
+		void _increment_oracle_word_count(int word_id);
+		void _decrement_oracle_word_count(int word_id);
+		void _decrement_oracle_tag_count(int tag);
+		void _decrement_tag_bigram_count(int context_tag, int tag);
+		void _decrement_tag_word_count(int tag, int word_id);
 	public:
 		int _initial_num_tags;
-		int _num_words;
+		id _num_words;
 		int _prev_num_tags;
-		std::vector<std::vector<Table*>> _bigram_tag_table;	// 品詞バイグラムの出現頻度
-		std::vector<std::unordered_map<int, Table*>> _tag_word_table;	// 品詞と単語のペアの出現頻度
-		std::vector<int> _oracle_word_counts;	// 品詞と単語のペアの出現頻度
-		std::vector<int> _oracle_tag_counts;	// 品詞と単語のペアの出現頻度
+		std::vector<std::vector<Table*>> _bigram_tag_table;	// 品詞bigramの出現頻度
+		std::vector<Table**> _tag_word_table;	// 品詞と単語のペアの出現頻度
+		int* _oracle_word_counts;
+		std::vector<int> _oracle_tag_counts;
 		std::vector<int> _tag_unigram_count;	// 全ての状態とそのカウント
 		std::vector<int> _sum_word_count_of_tag;
 		double _alpha;
