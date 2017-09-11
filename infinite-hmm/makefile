@@ -1,12 +1,23 @@
 CC = g++
-CFLAGS = -I`python -c 'from distutils.sysconfig import *; print get_python_inc()'` -std=c++11 -L/usr/local/lib -lboost_serialization -lboost_python -lpython2.7 -O2
-CFLAGS_SO = -I`python -c 'from distutils.sysconfig import *; print get_python_inc()'` -shared -fPIC -std=c++11 -L/usr/local/lib -lboost_serialization -lboost_python -lpython2.7 -O2
+BOOST = /usr/local/Cellar/boost/1.65.0/include
+INCLUDE = `python3-config --includes` -std=c++11 -I$(BOOST)
+LDFLAGS = `python3-config --ldflags` -lboost_serialization -lboost_python3
+SOFLAGS = -shared -fPIC
 
 install: ## Python用ライブラリをビルドします.
-	$(CC) model.cpp -o model.so $(CFLAGS_SO)
+	$(CC) $(INCLUDE) $(LDFLAGS) $(SOFLAGS) src/python.cpp src/bhmm/*.cpp src/python/*.cpp -o run/bhmm.so -O3
 
-test: ## LLDB用.
-	$(CC) test.cpp $(CFLAGS)
+check_includes:	## Python.hの場所を確認
+	python3-config --includes
+
+check_ldflags:	## libpython3の場所を確認
+	python3-config --ldflags
+
+cpp_train: ## LLDB用.
+	$(CC) test/train.cpp src/bhmm/*.cpp src/python/*.cpp -o test/train $(INCLUDE) $(LDFLAGS) -O3
+
+cpp_viterbi: ## LLDB用.
+	$(CC) test/viterbi.cpp src/bhmm/*.cpp src/python/*.cpp -o test/viterbi $(INCLUDE) -O0 -g
 
 .PHONY: help
 help:
