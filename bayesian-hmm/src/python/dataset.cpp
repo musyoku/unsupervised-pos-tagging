@@ -6,7 +6,7 @@
 #include "../bhmm/sampler.h"
 
 namespace bhmm {
-	Dataset::Dataset(Corpus* corpus, double dev_split, int unknown_count){
+	Dataset::Dataset(Corpus* corpus, double train_split, int unknown_count){
 		_dict = new Dictionary();
 		_max_num_words_in_line = corpus->_max_num_words_in_line;
 		_min_num_words_in_line = corpus->_min_num_words_in_line;
@@ -16,7 +16,7 @@ namespace bhmm {
 			rand_indices.push_back(i);
 		}
 		shuffle(rand_indices.begin(), rand_indices.end(), sampler::mt);	// データをシャッフル
-		double train_split = 1.0 - std::min(1.0, std::max(0.0, dev_split));
+		train_split = std::min(1.0, std::max(0.0, train_split));
 		int num_train_data = corpus->_word_sequences.size() * train_split;
 		for(int i = 0;i < rand_indices.size();i++){
 			std::vector<std::wstring> &word_str_vec = corpus->_word_sequences[rand_indices[i]];

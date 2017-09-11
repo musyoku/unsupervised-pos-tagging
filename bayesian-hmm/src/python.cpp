@@ -16,7 +16,7 @@ BOOST_PYTHON_MODULE(bhmm){
 	boost::python::class_<Corpus>("corpus")
 	.def("add_words", &Corpus::python_add_words);
 
-	boost::python::class_<Dataset>("dataset", boost::python::init<Corpus*, int, int>())
+	boost::python::class_<Dataset>("dataset", boost::python::init<Corpus*, double, int>())
 	.def("get_num_words", &Dataset::get_num_words)
 	.def("get_dict", &Dataset::get_dict_obj, boost::python::return_internal_reference<>());
 

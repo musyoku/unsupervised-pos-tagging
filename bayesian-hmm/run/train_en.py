@@ -69,7 +69,7 @@ def collapse_true_tag(tag, word):
 	return tag
 
 def build_corpus(filename):
-	dataset = bhmm.dataset()
+	corpus = bhmm.corpus()
 	# 訓練データを形態素解析して各品詞ごとにその品詞になりうる単語の総数を求めておく
 	sentence_list = []
 	with codecs.open(filename, "r", "utf-8") as f:
@@ -110,10 +110,7 @@ def build_corpus(filename):
 				word_count.add(lowercase)
 				words.append(lowercase)
 			# データを追加
-			if i > train_split:
-				dataset.add_words_dev(words)		# 評価用データに追加
-			else:
-				dataset.add_words_train(words)		# 学習用データに追加
+			corpus.add_words(words)
 
 	if args.supervised:
 		# Wtは各品詞について、その品詞になりうる単語の数が入っている
@@ -122,7 +119,7 @@ def build_corpus(filename):
 		# Wtに制限をかけない場合
 		Wt = [int(len(word_count) / args.num_tags)] * args.num_tags
 
-	return dataset, Wt
+	return corpus, Wt
 
 def main():
 	assert args.train_filename is not None
@@ -132,8 +129,8 @@ def main():
 		pass
 
 	# 訓練データを追加
-	dataset, Wt = build_corpus(args.train_filename)
-	dataset.mark_low_frequency_words_as_unknown(args.unknown_threshold)	# 低頻度語を全て<unk>に置き換える
+	corpus, Wt = build_corpus(args.train_filename)
+	dataset = bhmm.dataset(corpus, args.train_split, args.unknown_threshold)	# 低頻度語を全て<unk>に置き換える
 
 	# 単語辞書を保存
 	dictionary = dataset.get_dict()

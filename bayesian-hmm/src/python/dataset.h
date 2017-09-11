@@ -18,7 +18,7 @@ namespace bhmm {
 		std::vector<std::vector<Word*>> _word_sequences_dev;
 		int _max_num_words_in_line;
 		int _min_num_words_in_line;
-		Dataset(Corpus* corpus, double dev_split, int unknown_count);
+		Dataset(Corpus* corpus, double train_split, int unknown_count);
 		~Dataset();
 		int get_num_words();
 		Dictionary &get_dict_obj();
