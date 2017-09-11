@@ -8,7 +8,7 @@ from train_en import collapse_true_tag, printr, printb
 
 # フォントをセット
 # UbuntuならTakaoGothicなどが標準で入っている
-sns.set(font=["MS Gothic"], font_scale=3)
+sns.set(font=["MS Gothic"], font_scale=2)
 
 def main():
 	# 辞書
