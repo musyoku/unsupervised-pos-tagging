@@ -16,15 +16,17 @@
 
 namespace ihmm {
 	class InfiniteHMM {
+	private:
+		void _delete_tag(int tag);
 	public:
 		int _initial_num_tags;
 		int _num_words;
 		int _prev_num_tags;
-		std::vector<std::unordered_map<int, Table*>> _bigram_tag_table;	// 品詞と単語のペアの出現頻度
+		std::vector<std::vector<Table*>> _bigram_tag_table;	// 品詞バイグラムの出現頻度
 		std::vector<std::unordered_map<int, Table*>> _tag_word_table;	// 品詞と単語のペアの出現頻度
 		std::vector<int> _oracle_word_counts;	// 品詞と単語のペアの出現頻度
 		std::vector<int> _oracle_tag_counts;	// 品詞と単語のペアの出現頻度
-		std::vector<int> _tag_unigram_count;		// 全ての状態とそのカウント
+		std::vector<int> _tag_unigram_count;	// 全ての状態とそのカウント
 		std::vector<int> _sum_word_count_of_tag;
 		double _alpha;
 		double _beta;

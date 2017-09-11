@@ -61,18 +61,8 @@ namespace ihmm {
 			increment_tag_bigram_count(ti_1, 0);	// </s>への遷移
 		}
 	}
-	void InfiniteHMM::increment_tag_unigram_count(int tag){
-		assert(1 <= tag <= get_num_tags());
-		_tag_unigram_count[tag] += 1;
-	}
-	void InfiniteHMM::decrement_tag_unigram_count(int tag){
-		assert(1 <= tag <= get_num_tags());
-		_tag_unigram_count[tag] -= 1;
-		assert(_tag_unigram_count[tag] >= 0);
-		if(_tag_unigram_count[tag] > 0){
-			return;
-		}
-		// タグが無くなったら詰める
+	// タグが無くなったら詰める
+	void InfiniteHMM::_delete_tag(int tag){
 		auto &tables = _bigram_tag_table[t];
 		for(auto &table: tables){
 			delete table.second;
@@ -101,23 +91,23 @@ namespace ihmm {
 		assert(_oracle_tag_counts.size() == _tag_unigram_count);
 		assert(_tag_unigram_count.size() == _sum_word_count_of_tag);
 	}
-	void InfiniteHMM::increment_tag_bigram_count(int context_tag_id, int tag){
-		_sum_bigram_destination[context_tag_id] += 1;
-		Table* table = NULL;
-		auto itr_context = _bigram_tag_table.find(context_tag_id);
-		if(itr_context == _bigram_tag_table.end()){
-			table = new Table(tag);
-			_bigram_tag_table[context_tag_id][tag] = table;
-		}else{
-			unordered_map<int, Table*> &tables = itr_context->second;
-			auto itr_table = tables.find(tag);
-			if(itr_table == tables.end()){
-				table = new Table(tag);
-				tables[tag] = table;
-			}else{
-				table = itr_table->second;
-			}
+	void InfiniteHMM::increment_tag_unigram_count(int tag){
+		assert(1 <= tag <= get_num_tags());
+		_tag_unigram_count[tag] += 1;
+	}
+	void InfiniteHMM::decrement_tag_unigram_count(int tag){
+		assert(1 <= tag <= get_num_tags());
+		_tag_unigram_count[tag] -= 1;
+		assert(_tag_unigram_count[tag] >= 0);
+		if(_tag_unigram_count[tag] == 0){
+			_delete_tag(tag);
 		}
+	}
+	void InfiniteHMM::increment_tag_bigram_count(int context_tag, int tag){
+		assert(1 <= context_tag <= get_num_tags());
+		assert(1 <= tag <= get_num_tags());
+		Table* table = _bigram_tag_table[context_tag][tag];
+		assert(table != NULL);
 		bool new_table_generated = false;
 		table->add_customer(_beta, new_table_generated);
 		if(new_table_generated){
@@ -127,22 +117,16 @@ namespace ihmm {
 	void InfiniteHMM::increment_tag_word_count(Word* word){
 		increment_tag_word_count(word->_tag, word->_id);
 	}
-	void InfiniteHMM::increment_tag_word_count(int tag, int word_id){
+	void InfiniteHMM::increment_tag_word_count(int tag, id word_id){
+		assert(1 <= tag <= get_num_tags());
 		_sum_word_count_of_tag[tag] += 1;
-		Table* table = NULL;
-		auto itr_tag = _tag_word_table.find(tag);
-		if(itr_tag == _tag_word_table.end()){
+		unordered_map<int, Table*> &tables = _tag_word_table[tag];
+		auto itr_table = tables.find(word_id);
+		if(itr_table == tables.end()){
 			table = new Table(word_id);
-			_tag_word_table[tag][word_id] = table;
+			tables[word_id] = table;
 		}else{
-			unordered_map<int, Table*> &tables = itr_tag->second;
-			auto itr_table = tables.find(word_id);
-			if(itr_table == tables.end()){
-				table = new Table(word_id);
-				tables[word_id] = table;
-			}else{
-				table = itr_table->second;
-			}
+			table = itr_table->second;
 		}
 		bool new_table_generated = false;
 		table->add_customer(_beta_emission, new_table_generated);
@@ -151,6 +135,7 @@ namespace ihmm {
 		}
 	}
 	void InfiniteHMM::increment_oracle_tag_count(int tag){
+		assert(1 <= tag <= get_num_tags());
 		_oracle_tag_counts[tag] += 1;
 		_sum_oracle_tags_count += 1;
 	}
@@ -165,6 +150,7 @@ namespace ihmm {
 		assert(_sum_oracle_words_count >= 0);
 	}
 	void InfiniteHMM::decrement_oracle_tag_count(int tag){
+		assert(1 <= tag <= get_num_tags());
 		auto itr = _oracle_tag_counts.find(tag);
 		assert(itr != _oracle_tag_counts.end());
 		itr->second -= 1;
@@ -175,8 +161,8 @@ namespace ihmm {
 		_sum_oracle_tags_count -= 1;
 		assert(_sum_oracle_tags_count >= 0);
 	}
-	void InfiniteHMM::decrement_tag_bigram_count(int context_tag_id, int tag){
-		auto itr = _sum_bigram_destination.find(context_tag_id);
+	void InfiniteHMM::decrement_tag_bigram_count(int context_tag, int tag){
+		auto itr = _sum_bigram_destination.find(context_tag);
 		assert(itr != _sum_bigram_destination.end());
 		itr->second -= 1;
 		assert(itr->second >= 0);
@@ -184,7 +170,7 @@ namespace ihmm {
 			_sum_bigram_destination.erase(itr);
 		}
 
-		auto itr_context = _bigram_tag_table.find(context_tag_id);
+		auto itr_context = _bigram_tag_table.find(context_tag);
 		assert(itr_context != _bigram_tag_table.end());
 		unordered_map<int, Table*> &tables = itr_context->second;
 		auto itr_table = tables.find(tag);
