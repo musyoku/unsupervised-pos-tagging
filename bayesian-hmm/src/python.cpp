@@ -1,4 +1,5 @@
 #include "python/model.h"
+#include "python/corpus.h"
 #include "python/dataset.h"
 #include "python/dictionary.h"
 #include "python/trainer.h"
@@ -12,15 +13,13 @@ BOOST_PYTHON_MODULE(bhmm){
 	.def("save", &Dictionary::save)
 	.def("load", &Dictionary::load);
 
-	boost::python::class_<Dataset>("dataset")
+	boost::python::class_<Corpus>("corpus")
+	.def("add_words", &Corpus::python_add_words);
+
+	boost::python::class_<Dataset>("dataset", boost::python::init<Corpus*, int, int>())
 	.def("get_num_words", &Dataset::get_num_words)
-	.def("get_count_of_word", &Dataset::get_count_of_word)
-	.def("get_dict", &Dataset::get_dict_obj, boost::python::return_internal_reference<>())
-	.def("add_words_train", &Dataset::python_add_words_train)
-	.def("add_words_dev", &Dataset::python_add_words_dev)
-	.def("add_textfile", &Dataset::add_textfile)
-	.def("mark_low_frequency_words_as_unknown", &Dataset::mark_low_frequency_words_as_unknown);
-	
+	.def("get_dict", &Dataset::get_dict_obj, boost::python::return_internal_reference<>());
+
 	boost::python::class_<Trainer>("trainer", boost::python::init<Dataset*, Model*>())
 	.def("compute_log_p_dataset_train", &Trainer::compute_log_p_dataset_train)
 	.def("compute_log_p_dataset_dev", &Trainer::compute_log_p_dataset_dev)
