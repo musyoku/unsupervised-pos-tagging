@@ -6,10 +6,26 @@
 #include "../bhmm/sampler.h"
 
 namespace bhmm {
-	Dataset::Dataset(){
+	Dataset::Dataset(Corpus* corpus, double dev_split, int unknown_count){
 		_dict = new Dictionary();
-		_max_num_words_in_line = -1;
-		_min_num_words_in_line = -1;
+		_max_num_words_in_line = corpus->_max_num_words_in_line;
+		_min_num_words_in_line = corpus->_min_num_words_in_line;
+
+		std::vector<int> rand_indices;
+		for(int i = 0;i < corpus->_word_sequences.size();i++){
+			rand_indices.push_back(i);
+		}
+		shuffle(rand_indices.begin(), rand_indices.end(), sampler::mt);	// データをシャッフル
+		double train_split = 1.0 - std::min(1.0, std::max(0.0, dev_split));
+		int num_train_data = corpus->_word_sequences.size() * train_split;
+		for(int i = 0;i < rand_indices.size();i++){
+			std::vector<std::wstring> &word_str_vec = corpus->_word_sequences[rand_indices[i]];
+			if(i < num_train_data){
+				_add_words_to_dataset(word_str_vec, _word_sequences_train, corpus, unknown_count);
+			}else{
+				_add_words_to_dataset(word_str_vec, _word_sequences_dev, corpus, unknown_count);
+			}
+		}
 	}
 	Dataset::~Dataset(){
 		for(int n = 0;n < _word_sequences_train.size();n++){
@@ -27,61 +43,7 @@ namespace bhmm {
 			}
 		}
 	}
-	void Dataset::add_textfile(std::string filename, double train_split_ratio){
-		std::wifstream ifs(filename.c_str());
-		std::wstring sentence_str;
-		assert(ifs.fail() == false);
-		std::vector<std::wstring> sentence_vec;
-		while (getline(ifs, sentence_str) && !sentence_str.empty()){
-			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
-				return;
-			}
-			sentence_vec.push_back(sentence_str);
-		}
-		train_split_ratio = std::min(1.0, std::max(0.0, train_split_ratio));
-		int train_split = sentence_vec.size() * train_split_ratio;
-		std::vector<int> rand_indices;
-		for(int i = 0;i < sentence_vec.size();i++){
-			rand_indices.push_back(i);
-		}
-		shuffle(rand_indices.begin(), rand_indices.end(), sampler::mt);	// データをシャッフル
-		for(int i = 0;i < rand_indices.size();i++){
-			std::wstring &sentence_str = sentence_vec[rand_indices[i]];
-			if(i < train_split){
-				add_sentence_str_train(sentence_str);
-			}else{
-				add_sentence_str_dev(sentence_str);
-			}
-		}
-	}
-	void Dataset::add_sentence_str_train(std::wstring sentence_str){
-		std::vector<std::wstring> word_str_vec;
-		utils::split_word_by(sentence_str, L' ', word_str_vec);	// スペースで分割
-		_add_words_to_dataset(word_str_vec, _word_sequences_train);
-	}
-	void Dataset::add_sentence_str_dev(std::wstring sentence_str){
-		std::vector<std::wstring> word_str_vec;
-		utils::split_word_by(sentence_str, L' ', word_str_vec);	// スペースで分割
-		_add_words_to_dataset(word_str_vec, _word_sequences_dev);
-	}
-	void Dataset::_before_python_add_sentence_str(boost::python::list &py_word_str_list, std::vector<std::wstring> &word_str_vec){
-		int num_words = boost::python::len(py_word_str_list);
-		for(int i = 0;i < num_words;i++){
-			std::wstring word = boost::python::extract<std::wstring>(py_word_str_list[i]);
-			word_str_vec.push_back(word);
-		}
-	}
-	void Dataset::python_add_words_train(boost::python::list py_word_str_list){
-		std::vector<std::wstring> word_str_vec;
-		_before_python_add_sentence_str(py_word_str_list, word_str_vec);
-		_add_words_to_dataset(word_str_vec, _word_sequences_train);
-	}
-	void Dataset::python_add_words_dev(boost::python::list py_word_str_list){
-		std::vector<std::wstring> word_str_vec;
-		_before_python_add_sentence_str(py_word_str_list, word_str_vec);
-		_add_words_to_dataset(word_str_vec, _word_sequences_dev);
-	}
-	void Dataset::_add_words_to_dataset(std::vector<std::wstring> &word_str_vec, std::vector<std::vector<Word*>> &dataset){
+	void Dataset::_add_words_to_dataset(std::vector<std::wstring> &word_str_vec, std::vector<std::vector<Word*>> &dataset, Corpus* corpus, int unknown_count){
 		assert(word_str_vec.size() > 0);
 		std::vector<Word*> words;
 		// <s>を2つセット
@@ -96,7 +58,12 @@ namespace bhmm {
 				continue;
 			}
 			Word* word = new Word();
-			word->_id = _dict->add_word_string(word_str);
+			int count = corpus->get_count_of_word(word_str);
+			if(count <= unknown_count){
+				word->_id = ID_UNK;
+			}else{
+				word->_id = _dict->add_word_string(word_str);
+			}
 			word->_state = 1;
 			words.push_back(word);
 			_word_count[word->_id] += 1;
@@ -116,10 +83,6 @@ namespace bhmm {
 		if((int)words.size() < _min_num_words_in_line || _min_num_words_in_line == -1){
 			_min_num_words_in_line = words.size();
 		}
-	}
-	void Dataset::mark_low_frequency_words_as_unknown(int threshold){
-		_mark_low_frequency_words_as_unknown(threshold, _word_sequences_train);
-		_mark_low_frequency_words_as_unknown(threshold, _word_sequences_dev);
 	}
 	void Dataset::_mark_low_frequency_words_as_unknown(int threshold, std::vector<std::vector<Word*>> &word_sequence_vec){
 		std::unordered_set<id> word_ids_to_remove;
