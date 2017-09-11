@@ -5,9 +5,10 @@
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/serialization/unordered_map.hpp>
 #include <boost/serialization/vector.hpp>
+#include <unordered_map>
+#include <vector>
 #include <cassert>
 #include <cmath>
-#include <unordered_map>
 #include <set>
 #include <algorithm>
 #include "sampler.h"
@@ -18,10 +19,23 @@ namespace ihmm {
 	public:
 		int _initial_num_tags;
 		int _num_words;
-		InfiniteHMM(int initial_num_tags, int num_words){
-			_initial_num_tags = initial_num_tags;
-			_num_words = num_words;
-		}
+		std::vector<int, std::unordered_map<int, Table*>> _bigram_tag_table;	// 品詞と単語のペアの出現頻度
+		std::vector<int, std::unordered_map<int, Table*>> _tag_word_table;		// 品詞と単語のペアの出現頻度
+		std::vector<int> _oracle_word_counts;	// 品詞と単語のペアの出現頻度
+		std::vector<int> _oracle_tag_counts;	// 品詞と単語のペアの出現頻度
+		std::vector<int> _tag_unigram_count;		// 全ての状態とそのカウント
+		std::vector<int> _sum_word_count_of_tag;
+		double _alpha;
+		double _beta;
+		double _gamma;
+		double _beta_emission;
+		double _gamma_emission;
+		int _sum_oracle_tags_count;
+		int _sum_oracle_words_count;
+		InfiniteHMM();
+		InfiniteHMM(int initial_num_tags, int num_words);
+		~InfiniteHMM();
+		void initialize_with_training_corpus(std::vector<std::vector<Word*>> &dataset);
 	};
 }
 
@@ -47,7 +61,7 @@ namespace ihmm {
 // 		archive & _sum_oracle_words_count;
 // 		archive & _num_words;
 // 		archive & _sum_bigram_destination;
-// 		archive & _sum_word_count_for_tag;
+// 		archive & _sum_word_count_of_tag;
 // 	}
 // public:
 // 	vector<int> _tag_unigram_count;	// 全ての状態とそのカウント
@@ -69,7 +83,7 @@ namespace ihmm {
 // 	int _max_sequence_length;
 // 	// double _temperature;
 // 	unordered_map<int, int> _sum_bigram_destination;
-// 	unordered_map<int, int> _sum_word_count_for_tag;
+// 	unordered_map<int, int> _sum_word_count_of_tag;
 // 	double* _gibbs_sampling_table;
 // 	double* _beam_sampling_table_u;
 // 	double** _beam_sampling_table_s;
@@ -243,7 +257,7 @@ namespace ihmm {
 // 		increment_tag_word_count(word->_tag, word->_id);
 // 	}
 // 	void increment_tag_word_count(int tag_id, int word_id){
-// 		_sum_word_count_for_tag[tag_id] += 1;
+// 		_sum_word_count_of_tag[tag_id] += 1;
 // 		Table* table = NULL;
 // 		auto itr_tag = _tag_word_table.find(tag_id);
 // 		if(itr_tag == _tag_word_table.end()){
@@ -319,12 +333,12 @@ namespace ihmm {
 // 		}
 // 	}
 // 	void decrement_tag_word_count(int tag_id, int word_id){
-// 		auto itr_sum = _sum_word_count_for_tag.find(tag_id);
-// 		assert(itr_sum != _sum_word_count_for_tag.end());
+// 		auto itr_sum = _sum_word_count_of_tag.find(tag_id);
+// 		assert(itr_sum != _sum_word_count_of_tag.end());
 // 		itr_sum->second -= 1;
 // 		assert(itr_sum->second >= 0);
 // 		if(itr_sum->second == 0){
-// 			_sum_word_count_for_tag.erase(itr_sum);
+// 			_sum_word_count_of_tag.erase(itr_sum);
 // 		}
 
 // 		auto itr_tag = _tag_word_table.find(tag_id);
@@ -439,7 +453,7 @@ namespace ihmm {
 // 		return _sum_oracle_words_count;
 // 	}
 // 	int sum_word_count_for_tag(int tag_id){
-// 		return _sum_word_count_for_tag[tag_id];
+// 		return _sum_word_count_of_tag[tag_id];
 // 	}
 // 	int sum_bigram_destination(int tag_id){
 // 		return _sum_bigram_destination[tag_id];
