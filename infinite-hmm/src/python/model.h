@@ -1,11 +1,11 @@
 #pragma once
 #include <boost/python.hpp>
 #include <string>
-#include "../bhmm/hmm.h"
+#include "../ihmm/hmm.h"
 #include "dataset.h"
 #include "dictionary.h"
 
-namespace bhmm {
+namespace ihmm {
 	class Model{
 	private:
 		void _alloc_viterbi_tables(int sentence_length, double*** &forward_table, double*** &decode_table);

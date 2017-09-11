@@ -2,11 +2,11 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <string>
-#include "../bhmm/common.h"
+#include "../ihmm/common.h"
 
 #define ID_UNK 0
 
-namespace bhmm {
+namespace ihmm {
 	class Dictionary{
 	public:
 		std::unordered_map<id, std::wstring> _id_to_str;

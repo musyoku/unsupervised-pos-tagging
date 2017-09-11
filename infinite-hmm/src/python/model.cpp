@@ -1,8 +1,8 @@
 #include <iostream>
-#include "../bhmm/utils.h"
+#include "../ihmm/utils.h"
 #include "model.h"
 
-namespace bhmm {
+namespace ihmm {
 	Model::Model(int num_tags, Dataset* dataset, boost::python::list py_Wt){
 		_set_locale();
 		_hmm = new HMM(num_tags, dataset->get_num_words());

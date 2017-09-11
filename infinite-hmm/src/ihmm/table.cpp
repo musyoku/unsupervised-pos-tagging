@@ -1,7 +1,10 @@
+#include <numeric>
 #include "table.h"
+#include "sampler.h"
 
-namespace ithmm {
-	Table::serialize(Archive& archive, unsigned int version)
+namespace ihmm {
+	template <class Archive>
+	void Table::serialize(Archive& archive, unsigned int version)
 	{
 		archive & _arrangement;
 		archive & _num_customers;

@@ -4,7 +4,7 @@
 #include "dataset.h"
 #include "dictionary.h"
 
-namespace bhmm {
+namespace ihmm {
 	class Trainer{
 	private:
 		void _before_viterbi_decode();

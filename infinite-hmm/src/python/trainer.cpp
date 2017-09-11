@@ -1,10 +1,10 @@
 #include <cassert>
 #include <iostream>
-#include "../bhmm/sampler.h"
-#include "../bhmm/utils.h"
+#include "../ihmm/sampler.h"
+#include "../ihmm/utils.h"
 #include "trainer.h"
 
-namespace bhmm {
+namespace ihmm {
 	Trainer::Trainer(Dataset* dataset, Model* model){
 		_model = model;
 		_dict = dataset->_dict;

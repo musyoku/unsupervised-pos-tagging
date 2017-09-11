@@ -7,7 +7,7 @@
 #include <cassert>
 #include "dictionary.h"
 
-namespace bhmm {
+namespace ihmm {
 	Dictionary::Dictionary(){
 		_id_to_str[ID_UNK] = L"<unk>";
 		_str_to_id[L"<unk>"] = ID_UNK;

@@ -2,10 +2,10 @@
 #include <boost/python.hpp>
 #include <unordered_map>
 #include <vector>
-#include "../bhmm/common.h"
+#include "../ihmm/common.h"
 #include "dictionary.h"
 
-namespace bhmm {
+namespace ihmm {
 	class Dataset{
 	public:
 		Dictionary* _dict;
