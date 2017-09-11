@@ -66,7 +66,6 @@ namespace bhmm {
 			}
 			word->_state = 1;
 			words.push_back(word);
-			_word_count[word->_id] += 1;
 		}
 		// </s>を2つセット
 		for(int i = 0;i < 2;i++){
@@ -84,30 +83,8 @@ namespace bhmm {
 			_min_num_words_in_line = words.size();
 		}
 	}
-	void Dataset::_mark_low_frequency_words_as_unknown(int threshold, std::vector<std::vector<Word*>> &word_sequence_vec){
-		std::unordered_set<id> word_ids_to_remove;
-		for(int data_index = 0;data_index < word_sequence_vec.size();data_index++){
-			std::vector<Word*> &data = word_sequence_vec[data_index];
-			for(auto word = data.begin(), end = data.end();word != end;word++){
-				id word_id = (*word)->_id;
-				int count = get_count_of_word(word_id);
-				if(count <= threshold){
-					(*word)->_id = ID_UNK;
-					word_ids_to_remove.insert(word_id);
-				}
-			}
-		}
-		_dict->remove_ids(word_ids_to_remove);
-	}
 	int Dataset::get_num_words(){
 		return _dict->get_vocabrary_size();
-	}
-	int Dataset::get_count_of_word(id word_id){
-		auto itr = _word_count.find(word_id);
-		if(itr == _word_count.end()){
-			return 0;
-		}
-		return itr->second;
 	}
 	Dictionary &Dataset::get_dict_obj(){
 		return *_dict;

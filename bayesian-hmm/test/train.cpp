@@ -2,6 +2,7 @@
 #include  <string>
 #include "../src/bhmm/utils.h"
 #include "../src/python/model.h"
+#include "../src/python/corpus.h"
 #include "../src/python/dataset.h"
 #include "../src/python/dictionary.h"
 #include "../src/python/trainer.h"
@@ -13,8 +14,9 @@ using std::endl;
 void train(int num_iterations){
 	int num_tags = 10;
 	std::string filename = "../../text/alice.txt";
-	Dataset* dataset = new Dataset();
-	dataset->add_textfile(filename, 0.95);
+	Corpus* corpus = new Corpus();
+	corpus->add_textfile(filename);
+	Dataset* dataset = new Dataset(corpus, 0.01, 1);
 	Dictionary* dictionary = dataset->_dict;
 	dictionary->save("bhmm.dict");
 	std::vector<int> Wt;
@@ -44,6 +46,7 @@ void train(int num_iterations){
 			model->print_typical_words_assigned_to_each_tag(10, dictionary);
 		}
 	}
+	delete corpus;
 	delete dataset;
 	delete dictionary;
 	delete model;

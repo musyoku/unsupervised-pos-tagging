@@ -21,7 +21,6 @@ namespace bhmm {
 			}
 			sentence_vec.push_back(sentence_str);
 		}
-
 		for(std::wstring &sentence_str: sentence_vec){
 			std::vector<std::wstring> word_str_vec;
 			utils::split_word_by(sentence_str, L' ', word_str_vec);	// スペースで分割

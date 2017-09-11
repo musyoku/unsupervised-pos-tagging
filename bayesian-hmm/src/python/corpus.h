@@ -15,7 +15,6 @@ namespace bhmm {
 		int _max_num_words_in_line;
 		int _min_num_words_in_line;
 		Corpus();
-		~Corpus();
 		void add_textfile(std::string filename);
 		void add_sentence_str(std::wstring sentence_str);
 		void python_add_words(boost::python::list py_word_str_list);

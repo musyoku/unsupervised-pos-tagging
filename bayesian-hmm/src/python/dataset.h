@@ -21,7 +21,6 @@ namespace bhmm {
 		Dataset(Corpus* corpus, double dev_split, int unknown_count);
 		~Dataset();
 		int get_num_words();
-		int get_count_of_word(id word_id);
 		Dictionary &get_dict_obj();
 	};
 }
