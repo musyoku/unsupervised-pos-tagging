@@ -7,20 +7,21 @@
 #include <boost/serialization/vector.hpp>
 #include <unordered_map>
 #include <vector>
-#include <cassert>
-#include <cmath>
-#include <set>
-#include <algorithm>
+#include "common.h"
 #include "sampler.h"
 #include "util.h"
+#include "table.h"
+
+// <s>と</s>のIDは0
 
 namespace ihmm {
 	class InfiniteHMM {
 	public:
 		int _initial_num_tags;
 		int _num_words;
-		std::vector<int, std::unordered_map<int, Table*>> _bigram_tag_table;	// 品詞と単語のペアの出現頻度
-		std::vector<int, std::unordered_map<int, Table*>> _tag_word_table;		// 品詞と単語のペアの出現頻度
+		int _prev_num_tags;
+		std::vector<std::unordered_map<int, Table*>> _bigram_tag_table;	// 品詞と単語のペアの出現頻度
+		std::vector<std::unordered_map<int, Table*>> _tag_word_table;	// 品詞と単語のペアの出現頻度
 		std::vector<int> _oracle_word_counts;	// 品詞と単語のペアの出現頻度
 		std::vector<int> _oracle_tag_counts;	// 品詞と単語のペアの出現頻度
 		std::vector<int> _tag_unigram_count;		// 全ての状態とそのカウント
@@ -35,6 +36,7 @@ namespace ihmm {
 		InfiniteHMM();
 		InfiniteHMM(int initial_num_tags, int num_words);
 		~InfiniteHMM();
+		int get_num_tags();
 		void initialize_with_training_corpus(std::vector<std::vector<Word*>> &dataset);
 	};
 }
@@ -65,7 +67,7 @@ namespace ihmm {
 // 	}
 // public:
 // 	vector<int> _tag_unigram_count;	// 全ての状態とそのカウント
-// 	int _prev_tag_unigram_count_size;
+// 	int _prev_num_tags;
 
 // 	unordered_map<int, unordered_map<int, Table*>> _bigram_tag_table;	// 品詞と単語のペアの出現頻度
 // 	unordered_map<int, unordered_map<int, Table*>> _tag_word_table;	// 品詞と単語のペアの出現頻度
@@ -134,8 +136,8 @@ namespace ihmm {
 // 		for(int tag = 0;tag < _initial_num_tags;tag++){
 // 			_tag_unigram_count.push_back(0);
 // 		}
-// 		_prev_tag_unigram_count_size = _tag_unigram_count.size();
-// 		_gibbs_sampling_table = new double[_prev_tag_unigram_count_size];
+// 		_prev_num_tags = _tag_unigram_count.size();
+// 		_gibbs_sampling_table = new double[_prev_num_tags];
 // 		assert(_max_sequence_length > 0);
 // 		_beam_sampling_table_u = new double[_max_sequence_length + 1];
 // 		_beam_sampling_table_s = new double*[_max_sequence_length];
@@ -178,7 +180,7 @@ namespace ihmm {
 // 			_tag_unigram_count.push_back(0);
 // 		}
 // 		_tag_unigram_count[tag_id] += 1;
-// 		if(_tag_unigram_count.size() != _prev_tag_unigram_count_size){
+// 		if(_tag_unigram_count.size() != _prev_num_tags){
 // 			assert(_gibbs_sampling_table != NULL);
 // 			delete[] _gibbs_sampling_table;
 // 			assert(_beam_sampling_table_s != NULL);
@@ -187,12 +189,12 @@ namespace ihmm {
 // 				delete[] _beam_sampling_table_s[pos];
 // 			}
 // 			// 更新
-// 			_prev_tag_unigram_count_size = _tag_unigram_count.size();
+// 			_prev_num_tags = _tag_unigram_count.size();
 // 			// re-alloc
-// 			_gibbs_sampling_table = new double[_prev_tag_unigram_count_size];
+// 			_gibbs_sampling_table = new double[_prev_num_tags];
 // 			for(int pos = 0;pos < _max_sequence_length;pos++){
 // 				// ここだけは既存タグ数+1
-// 				_beam_sampling_table_s[pos] = new double[_prev_tag_unigram_count_size + 1];
+// 				_beam_sampling_table_s[pos] = new double[_prev_num_tags + 1];
 // 			}
 // 		}
 // 	}
@@ -212,7 +214,7 @@ namespace ihmm {
 // 		for(int n = 0;n < num_pop;n++){
 // 			_tag_unigram_count.pop_back();
 // 		}
-// 		if(_tag_unigram_count.size() != _prev_tag_unigram_count_size){
+// 		if(_tag_unigram_count.size() != _prev_num_tags){
 // 			assert(_gibbs_sampling_table != NULL);
 // 			delete[] _gibbs_sampling_table;
 // 			assert(_beam_sampling_table_s != NULL);
@@ -221,12 +223,12 @@ namespace ihmm {
 // 				delete[] _beam_sampling_table_s[pos];
 // 			}
 // 			// 更新
-// 			_prev_tag_unigram_count_size = _tag_unigram_count.size();
+// 			_prev_num_tags = _tag_unigram_count.size();
 // 			// re-alloc
-// 			_gibbs_sampling_table = new double[_prev_tag_unigram_count_size];
+// 			_gibbs_sampling_table = new double[_prev_num_tags];
 // 			for(int pos = 0;pos < _max_sequence_length;pos++){
 // 				// ここだけは既存タグ数+1
-// 				_beam_sampling_table_s[pos] = new double[_prev_tag_unigram_count_size + 1];
+// 				_beam_sampling_table_s[pos] = new double[_prev_num_tags + 1];
 // 			}
 // 		}
 // 	}
