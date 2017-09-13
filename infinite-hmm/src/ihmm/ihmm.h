@@ -16,20 +16,7 @@
 
 namespace ihmm {
 	class InfiniteHMM {
-	private:
-		int _add_new_tag();
-		void _delete_tag(int tag);
 	public:
-		void _increment_tag_unigram_count(int tag);
-		void _decrement_tag_unigram_count(int tag);
-		void _increment_tag_bigram_count(int context_tag, int tag);
-		void _increment_tag_word_count(int tag, id word_id);
-		void _increment_oracle_tag_count(int tag);
-		void _increment_oracle_word_count(int word_id);
-		void _decrement_oracle_word_count(int word_id);
-		void _decrement_oracle_tag_count(int tag);
-		void _decrement_tag_bigram_count(int context_tag, int tag);
-		void _decrement_tag_word_count(int tag, int word_id);
 		int _initial_num_tags;
 		id _num_words;
 		int _prev_num_tags;
@@ -51,6 +38,18 @@ namespace ihmm {
 		~InfiniteHMM();
 		int get_num_tags();
 		void initialize_with_training_corpus(std::vector<std::vector<Word*>> &dataset);
+		int _add_new_tag();
+		void _delete_tag(int tag);
+		void _increment_tag_unigram_count(int tag);
+		void _decrement_tag_unigram_count(int tag);
+		void _increment_tag_bigram_count(int context_tag, int tag);
+		void _increment_tag_word_count(int tag, id word_id);
+		void _increment_oracle_tag_count(int tag);
+		void _increment_oracle_word_count(int word_id);
+		void _decrement_oracle_word_count(int word_id);
+		void _decrement_oracle_tag_count(int tag);
+		void _decrement_tag_bigram_count(int context_tag, int tag);
+		void _decrement_tag_word_count(int tag, int word_id);
 	};
 }
 

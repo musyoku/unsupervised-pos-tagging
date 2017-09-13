@@ -1,6 +1,5 @@
 #include <cassert>
 #include <set>
-#include <iostream>
 #include "ihmm.h"
 
 // num_tagsは全て特殊タグを除いた個数を表す
@@ -91,13 +90,22 @@ namespace ihmm {
 			table_array[word_id] = new Table();
 		}
 		_tag_word_table.push_back(table_array);
+		// その他カウント
 		_oracle_tag_counts.push_back(0);
 		_tag_unigram_count.push_back(0);
 		_sum_word_count_of_tag.push_back(0);
+
+		assert(_bigram_tag_table.size() == new_num_tags + 1);
+		assert(_tag_word_table.size() == new_num_tags + 1);
+		assert(_oracle_tag_counts.size() == new_num_tags + 1);
+		assert(_tag_unigram_count.size() == new_num_tags + 1);
+		assert(_sum_word_count_of_tag.size() == new_num_tags + 1);
 		return new_num_tags;
 	}
 	// タグが無くなったら詰める
 	void InfiniteHMM::_delete_tag(int tag){
+		assert(1 <= tag && tag <= get_num_tags());
+		int new_num_tags = get_num_tags() - 1;	// <s></s>は除く
 		std::vector<Table*> &tables_vec = _bigram_tag_table[tag];
 		for(Table* table: tables_vec){
 			delete table;
@@ -107,7 +115,7 @@ namespace ihmm {
 			delete tables_array[word_id];
 		}
 		delete[] tables_array;
-		for(int t = tag;t < get_num_tags();t++){
+		for(int t = tag;t <= new_num_tags;t++){
 			_bigram_tag_table[t] = _bigram_tag_table[t + 1];
 			_tag_word_table[t] = _tag_word_table[t + 1];
 			_oracle_tag_counts[t] = _oracle_tag_counts[t + 1];
@@ -119,10 +127,11 @@ namespace ihmm {
 		_oracle_tag_counts.pop_back();
 		_tag_unigram_count.pop_back();
 		_sum_word_count_of_tag.pop_back();
-		assert(_bigram_tag_table.size() == _tag_word_table.size());
-		assert(_tag_word_table.size() == _oracle_tag_counts.size());
-		assert(_oracle_tag_counts.size() == _tag_unigram_count.size());
-		assert(_tag_unigram_count.size() == _sum_word_count_of_tag.size());
+		assert(_bigram_tag_table.size() == new_num_tags + 1);
+		assert(_tag_word_table.size() == new_num_tags + 1);
+		assert(_oracle_tag_counts.size() == new_num_tags + 1);
+		assert(_tag_unigram_count.size() == new_num_tags + 1);
+		assert(_sum_word_count_of_tag.size() == new_num_tags + 1);
 	}
 	void InfiniteHMM::_increment_tag_unigram_count(int tag){
 		assert(1 <= tag <= get_num_tags());
@@ -132,9 +141,6 @@ namespace ihmm {
 		assert(1 <= tag <= get_num_tags());
 		_tag_unigram_count[tag] -= 1;
 		assert(_tag_unigram_count[tag] >= 0);
-		if(_tag_unigram_count[tag] == 0){
-			_delete_tag(tag);
-		}
 	}
 	void InfiniteHMM::_increment_tag_bigram_count(int context_tag, int tag){
 		assert(1 <= context_tag <= get_num_tags());
@@ -145,6 +151,17 @@ namespace ihmm {
 		table->add_customer(_beta, new_table_generated);
 		if(new_table_generated){
 			_increment_oracle_tag_count(tag);
+		}
+	}
+	void InfiniteHMM::_decrement_tag_bigram_count(int context_tag, int tag){
+		assert(1 <= context_tag <= get_num_tags());
+		assert(1 <= tag <= get_num_tags());
+		Table* table = _bigram_tag_table[context_tag][tag];
+		assert(table != NULL);
+		bool empty_table_deleted = false;
+		table->remove_customer(empty_table_deleted);
+		if(empty_table_deleted){
+			_decrement_oracle_tag_count(tag);
 		}
 	}
 	void InfiniteHMM::_increment_tag_word_count(int tag, id word_id){
@@ -158,10 +175,26 @@ namespace ihmm {
 			_increment_oracle_word_count(word_id);
 		}
 	}
+	void InfiniteHMM::_decrement_tag_word_count(int tag, int word_id){
+		assert(1 <= tag <= get_num_tags());
+		assert(0 <= word_id < _num_words);
+		_sum_word_count_of_tag[tag] += 1;
+		Table* table = _tag_word_table[tag][word_id];
+		bool empty_table_deleted = false;
+		table->remove_customer(empty_table_deleted);
+		if(empty_table_deleted){
+			_decrement_oracle_word_count(word_id);
+		}
+	}
 	void InfiniteHMM::_increment_oracle_tag_count(int tag){
 		assert(1 <= tag <= get_num_tags());
 		_oracle_tag_counts[tag] += 1;
 		_sum_oracle_tags_count += 1;
+	}
+	void InfiniteHMM::_decrement_oracle_tag_count(int tag){
+		assert(1 <= tag <= get_num_tags());
+		_oracle_tag_counts[tag] -= 1;
+		assert(_oracle_tag_counts[tag] >= 0);
 	}
 	void InfiniteHMM::_increment_oracle_word_count(int word_id){
 		assert(0 <= word_id < _num_words);
@@ -175,32 +208,4 @@ namespace ihmm {
 		_sum_oracle_words_count -= 1;
 		assert(_sum_oracle_words_count >= 0);
 	}
-	void InfiniteHMM::_decrement_oracle_tag_count(int tag){
-		assert(1 <= tag <= get_num_tags());
-		_oracle_tag_counts[tag] -= 1;
-		assert(_oracle_tag_counts[tag] >= 0);
-	}
-	void InfiniteHMM::_decrement_tag_bigram_count(int context_tag, int tag){
-		assert(1 <= context_tag <= get_num_tags());
-		assert(1 <= tag <= get_num_tags());
-		Table* table = _bigram_tag_table[context_tag][tag];
-		assert(table != NULL);
-		bool empty_table_deleted = false;
-		table->remove_customer(empty_table_deleted);
-		if(empty_table_deleted){
-			_decrement_oracle_tag_count(tag);
-		}
-	}
-	void InfiniteHMM::_decrement_tag_word_count(int tag, int word_id){
-		assert(1 <= tag <= get_num_tags());
-		assert(0 <= word_id < _num_words);
-		_sum_word_count_of_tag[tag] += 1;
-		Table* table = _tag_word_table[tag][word_id];
-		bool empty_table_deleted = false;
-		table->remove_customer(empty_table_deleted);
-		if(empty_table_deleted){
-			_decrement_oracle_word_count(word_id);
-		}
-	}
-
 }
