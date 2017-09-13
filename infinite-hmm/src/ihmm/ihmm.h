@@ -19,6 +19,7 @@ namespace ihmm {
 	private:
 		int _add_new_tag();
 		void _delete_tag(int tag);
+	public:
 		void _increment_tag_unigram_count(int tag);
 		void _decrement_tag_unigram_count(int tag);
 		void _increment_tag_bigram_count(int context_tag, int tag);
@@ -29,7 +30,6 @@ namespace ihmm {
 		void _decrement_oracle_tag_count(int tag);
 		void _decrement_tag_bigram_count(int context_tag, int tag);
 		void _decrement_tag_word_count(int tag, int word_id);
-	public:
 		int _initial_num_tags;
 		id _num_words;
 		int _prev_num_tags;

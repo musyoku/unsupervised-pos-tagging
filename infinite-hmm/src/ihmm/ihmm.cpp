@@ -1,5 +1,6 @@
 #include <cassert>
 #include <set>
+#include <iostream>
 #include "ihmm.h"
 
 // num_tagsは全て特殊タグを除いた個数を表す
@@ -65,18 +66,23 @@ namespace ihmm {
 		}
 	}
 	int InfiniteHMM::_add_new_tag(){
-		int num_tags = get_num_tags() + 1;
-		// unigramのカウント
-		_tag_unigram_count.push_back(0);
+		int new_num_tags = get_num_tags() + 1;	// <s></s>は除く
 		// bigramのカウント
+		// 0: *, *				0: *, *
+		// 1: *, *		->   	1: *, *
+		// 						2: *, *, *
 		std::vector<Table*> table_vec;
-		_bigram_tag_table.push_back(table_vec);
-		for(int tag = 0;tag <= num_tags;tag++){
+		table_vec.push_back(NULL);
+		for(int tag = 1;tag <= new_num_tags;tag++){
 			table_vec.push_back(new Table());
 		}
-		for(int context_tag = 1;context_tag < num_tags;context_tag++){
+		_bigram_tag_table.push_back(table_vec);
+		// 0: *, *				0: *, *, *
+		// 1: *, *		->   	1: *, *, *
+		// 2: *, *, *			2: *, *, *
+		for(int context_tag = 1;context_tag < new_num_tags;context_tag++){
 			std::vector<Table*> &table_vec = _bigram_tag_table[context_tag];
-			assert(table_vec.size() == num_tags - 1);
+			assert(table_vec.size() == new_num_tags);
 			table_vec.push_back(new Table());
 		}
 		// tagと単語のペアの出現頻度
@@ -88,7 +94,7 @@ namespace ihmm {
 		_oracle_tag_counts.push_back(0);
 		_tag_unigram_count.push_back(0);
 		_sum_word_count_of_tag.push_back(0);
-		return num_tags;
+		return new_num_tags;
 	}
 	// タグが無くなったら詰める
 	void InfiniteHMM::_delete_tag(int tag){

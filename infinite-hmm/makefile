@@ -4,7 +4,7 @@ INCLUDE = `python3-config --includes` -std=c++11 -I$(BOOST)
 LDFLAGS = `python3-config --ldflags` -lboost_serialization -lboost_python3
 SOFLAGS = -shared -fPIC
 
-install: ## Python用ライブラリをビルドします.
+install: ## Python用ライブラリをコンパイル
 	$(CC) $(INCLUDE) $(LDFLAGS) $(SOFLAGS) src/python.cpp src/ihmm/*.cpp src/python/*.cpp -o run/ihmm.so -O3
 
 check_includes:	## Python.hの場所を確認
@@ -13,11 +13,9 @@ check_includes:	## Python.hの場所を確認
 check_ldflags:	## libpython3の場所を確認
 	python3-config --ldflags
 
-cpp_train: ## LLDB用.
-	$(CC) test/train.cpp src/ihmm/*.cpp -o test/train $(INCLUDE) $(LDFLAGS) -O3
-
-cpp_viterbi: ## LLDB用.
-	$(CC) test/viterbi.cpp src/ihmm/*.cpp src/python/*.cpp -o test/viterbi $(INCLUDE) -O0 -g
+.PHONY: test
+test: ## LLDB用.
+	$(CC) test/test.cpp src/ihmm/*.cpp -o test/test $(INCLUDE) $(LDFLAGS) -O3
 
 .PHONY: help
 help:
