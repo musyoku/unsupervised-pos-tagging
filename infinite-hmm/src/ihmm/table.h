@@ -20,5 +20,6 @@ namespace ihmm {
 		bool is_empty();
 		void add_customer(double concentration_parameter, bool &new_table_generated);
 		void remove_customer(bool &empty_table_deleted);
+		int get_num_customers();
 	};
 }

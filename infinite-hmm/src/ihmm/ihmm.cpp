@@ -1,4 +1,5 @@
 #include <cassert>
+#include <iostream>
 #include <set>
 #include "ihmm.h"
 
@@ -15,11 +16,9 @@ namespace ihmm {
 		_gamma = 1;
 		_beta_emission = 1;
 		_gamma_emission = 1;
-		_sum_oracle_words_count = 0;
-		_sum_oracle_tags_count = 0;
+		_oracle_sum_n_over_j = 0;
 	}
-	InfiniteHMM::InfiniteHMM(int initial_num_tags, int num_words){
-		InfiniteHMM();
+	InfiniteHMM::InfiniteHMM(int initial_num_tags, int num_words): InfiniteHMM(){
 		_initial_num_tags = initial_num_tags;
 		_num_words = num_words;
 		for(int tag = 0;tag <= _initial_num_tags;tag++){	// <s>と</s>のID=0
@@ -92,13 +91,13 @@ namespace ihmm {
 		// その他カウント
 		_oracle_n_j_counts.push_back(0);
 		_sum_word_count_of_tag.push_back(0);
-		_sum_n_i_over_j_counts.push_back(0);
+		_sum_n_i_over_j.push_back(0);
 
 		assert(_n_ij_tables.size() == new_num_tags + 1);
 		assert(_m_iq_tables.size() == new_num_tags + 1);
 		assert(_oracle_n_j_counts.size() == new_num_tags + 1);
 		assert(_sum_word_count_of_tag.size() == new_num_tags + 1);
-		assert(_sum_n_i_over_j_counts.size() == new_num_tags + 1);
+		assert(_sum_n_i_over_j.size() == new_num_tags + 1);
 		return new_num_tags;
 	}
 	// タグが無くなったら詰める
@@ -119,23 +118,23 @@ namespace ihmm {
 			_m_iq_tables[t] = _m_iq_tables[t + 1];
 			_oracle_n_j_counts[t] = _oracle_n_j_counts[t + 1];
 			_sum_word_count_of_tag[t] = _sum_word_count_of_tag[t + 1];
-			_sum_n_i_over_j_counts[t] = _sum_n_i_over_j_counts[t + 1];
+			_sum_n_i_over_j[t] = _sum_n_i_over_j[t + 1];
 		}
 		_n_ij_tables.pop_back();
 		_m_iq_tables.pop_back();
 		_oracle_n_j_counts.pop_back();
 		_sum_word_count_of_tag.pop_back();
-		_sum_n_i_over_j_counts.pop_back();
+		_sum_n_i_over_j.pop_back();
 		assert(_n_ij_tables.size() == new_num_tags + 1);
 		assert(_m_iq_tables.size() == new_num_tags + 1);
 		assert(_oracle_n_j_counts.size() == new_num_tags + 1);
 		assert(_sum_word_count_of_tag.size() == new_num_tags + 1);
-		assert(_sum_n_i_over_j_counts.size() == new_num_tags + 1);
+		assert(_sum_n_i_over_j.size() == new_num_tags + 1);
 	}
 	void InfiniteHMM::_increment_tag_bigram_count(int context_tag, int tag){
 		assert(1 <= context_tag <= get_num_tags());
 		assert(1 <= tag <= get_num_tags());
-		_sum_n_i_over_j_counts[context_tag] += 1;
+		_sum_n_i_over_j[context_tag] += 1;
 		Table* table = _n_ij_tables[context_tag][tag];
 		assert(table != NULL);
 		bool new_table_generated = false;
@@ -147,8 +146,8 @@ namespace ihmm {
 	void InfiniteHMM::_decrement_tag_bigram_count(int context_tag, int tag){
 		assert(1 <= context_tag <= get_num_tags());
 		assert(1 <= tag <= get_num_tags());
-		_sum_n_i_over_j_counts[context_tag] += 1;
-		assert(_sum_n_i_over_j_counts[context_tag] >= 0);
+		_sum_n_i_over_j[context_tag] -= 1;
+		assert(_sum_n_i_over_j[context_tag] >= 0);
 		Table* table = _n_ij_tables[context_tag][tag];
 		assert(table != NULL);
 		bool empty_table_deleted = false;
@@ -182,33 +181,42 @@ namespace ihmm {
 	void InfiniteHMM::_increment_oracle_tag_count(int tag){
 		assert(1 <= tag <= get_num_tags());
 		_oracle_n_j_counts[tag] += 1;
-		_sum_oracle_tags_count += 1;
+		_oracle_sum_n_over_j += 1;
 	}
 	void InfiniteHMM::_decrement_oracle_tag_count(int tag){
 		assert(1 <= tag <= get_num_tags());
 		_oracle_n_j_counts[tag] -= 1;
+		_oracle_sum_n_over_j -= 1;
 		assert(_oracle_n_j_counts[tag] >= 0);
+		assert(_oracle_sum_n_over_j >= 0);
 	}
 	void InfiniteHMM::_increment_oracle_word_count(int word_id){
 		assert(0 <= word_id < _num_words);
 		_oracle_m_q_counts[word_id] += 1;
-		_sum_oracle_words_count += 1;
 	}
 	void InfiniteHMM::_decrement_oracle_word_count(int word_id){
 		assert(0 <= word_id < _num_words);
 		_oracle_m_q_counts[word_id] -= 1;
 		assert(_oracle_m_q_counts[word_id] >= 0);
-		_sum_oracle_words_count -= 1;
-		assert(_sum_oracle_words_count >= 0);
 	}
-
+	int InfiniteHMM::get_sum_n_i_over_j(int tag){
+		assert(1 <= tag <= get_num_tags());
+		return _sum_word_count_of_tag[tag];
+	}
+	int InfiniteHMM::get_n_ij(int context_tag, int tag){
+		assert(1 <= tag <= get_num_tags());
+		assert(1 <= context_tag <= get_num_tags());
+		Table* table = _n_ij_tables[context_tag][tag];
+		assert(table != NULL);
+		return table->get_num_customers();
+	}
 	// // P(s_{t+1}|s_t)
-	// double compute_p_tag_given_context(int tag, int context_tag){
-	// 	double n_i = sum_bigram_destination(context_tag);
-	// 	double n_ij = get_bigram_tag_count(context_tag, tag);
+	// double InfiniteHMM::compute_p_tag_given_context(int tag, int context_tag){
+	// 	double n_i = get_sum_n_i_over_j(context_tag);
+	// 	double n_ij = get_n_ij(context_tag, tag);
 	// 	double alpha = (tag == context_tag) ? _alpha : 0;
 	// 	double empirical_p = (n_ij + alpha) / (n_i + _beta + _alpha);
-	// 	double coeff_oracle_p = _beta / (n_i + _beta + _alpha);	// 親の分布から生成される確率. 親からtag_idが生成される確率とは別物.
+	// 	double coeff_oracle_p = _beta / (n_i + _beta + _alpha);	// 親の分布を選択する確率. 親からtagが生成される確率とは別物.
 	// 	double n_o = sum_oracle_tags_count();
 	// 	double n_oj = get_oracle_count_for_tag(tag);
 	// 	double T = get_num_tags();
@@ -218,7 +226,7 @@ namespace ihmm {
 	// 	return empirical_p + coeff_oracle_p * oracle_p;
 	// }
 	// // P(y_t|s_t)
-	// double compute_p_word_given_tag(int word_id, int tag){
+	// double InfiniteHMM::compute_p_word_given_tag(int word_id, int tag){
 	// 	double m_i = sum_word_count_for_tag(tag);
 	// 	double m_iq = get_tag_word_count(tag, word_id);
 	// 	double empirical_p = m_iq / (m_i + _beta_emission);

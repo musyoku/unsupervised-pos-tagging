@@ -1,4 +1,5 @@
 #include <numeric>
+#include <iostream>
 #include "table.h"
 #include "sampler.h"
 
@@ -63,5 +64,8 @@ namespace ihmm {
 			_arrangement.erase(_arrangement.begin() + target_index);
 			empty_table_deleted = true;
 		}
+	}
+	int Table::get_num_customers(){
+		return _num_customers;
 	}
 }

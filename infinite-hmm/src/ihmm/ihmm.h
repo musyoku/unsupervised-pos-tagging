@@ -23,7 +23,8 @@ namespace ihmm {
 		std::vector<std::vector<Table*>> _n_ij_tables;	// 品詞bigramの出現頻度
 		std::vector<Table**> _m_iq_tables;	// 品詞と単語のペアの出現頻度
 		int* _oracle_m_q_counts;
-		std::vector<int> _sum_n_i_over_j_counts;		// \sum_j{n_ij}の計算用
+		int _oracle_sum_n_over_j;			// \sum_j{n_j^oj}
+		std::vector<int> _sum_n_i_over_j;	// \sum_j{n_ij}の計算用
 		std::vector<int> _oracle_n_j_counts;
 		std::vector<int> _sum_word_count_of_tag;
 		double _alpha;
@@ -31,13 +32,13 @@ namespace ihmm {
 		double _gamma;
 		double _beta_emission;
 		double _gamma_emission;
-		int _sum_oracle_tags_count;
-		int _sum_oracle_words_count;
 		InfiniteHMM();
 		InfiniteHMM(int initial_num_tags, int num_words);
 		~InfiniteHMM();
-		int get_num_tags();
 		void initialize_with_training_corpus(std::vector<std::vector<Word*>> &dataset);
+		int get_num_tags();
+		int get_sum_n_i_over_j(int tag);
+		int get_n_ij(int context_tag, int tag);
 		int _add_new_tag();
 		void _delete_tag(int tag);
 		void _increment_tag_bigram_count(int context_tag, int tag);
@@ -72,7 +73,7 @@ namespace ihmm {
 // 		archive & _sum_oracle_tags_count;
 // 		archive & _sum_oracle_words_count;
 // 		archive & _num_words;
-// 		archive & _sum_n_i_over_j_counts;
+// 		archive & _sum_n_i_over_j;
 // 		archive & _sum_word_count_of_tag;
 // 	}
 // public:
@@ -94,7 +95,7 @@ namespace ihmm {
 // 	int _sum_oracle_words_count;
 // 	int _max_sequence_length;
 // 	// double _temperature;
-// 	unordered_map<int, int> _sum_n_i_over_j_counts;
+// 	unordered_map<int, int> _sum_n_i_over_j;
 // 	unordered_map<int, int> _sum_word_count_of_tag;
 // 	double* _gibbs_sampling_table;
 // 	double* _beam_sampling_table_u;
@@ -243,7 +244,7 @@ namespace ihmm {
 // 		}
 // 	}
 // 	void increment_tag_bigram_count(int context_tag_id, int tag_id){
-// 		_sum_n_i_over_j_counts[context_tag_id] += 1;
+// 		_sum_n_i_over_j[context_tag_id] += 1;
 // 		Table* table = NULL;
 // 		auto itr_context = _n_ij_tables.find(context_tag_id);
 // 		if(itr_context == _n_ij_tables.end()){
@@ -317,12 +318,12 @@ namespace ihmm {
 // 		assert(_sum_oracle_tags_count >= 0);
 // 	}
 // 	void decrement_tag_bigram_count(int context_tag_id, int tag_id){
-// 		auto itr = _sum_n_i_over_j_counts.find(context_tag_id);
-// 		assert(itr != _sum_n_i_over_j_counts.end());
+// 		auto itr = _sum_n_i_over_j.find(context_tag_id);
+// 		assert(itr != _sum_n_i_over_j.end());
 // 		itr->second -= 1;
 // 		assert(itr->second >= 0);
 // 		if(itr->second == 0){
-// 			_sum_n_i_over_j_counts.erase(itr);
+// 			_sum_n_i_over_j.erase(itr);
 // 		}
 
 // 		auto itr_context = _n_ij_tables.find(context_tag_id);
@@ -468,7 +469,7 @@ namespace ihmm {
 // 		return _sum_word_count_of_tag[tag_id];
 // 	}
 // 	int sum_bigram_destination(int tag_id){
-// 		return _sum_n_i_over_j_counts[tag_id];
+// 		return _sum_n_i_over_j[tag_id];
 // 	}
 // 	int sum_oracle_tags_count(){
 // 		return _sum_oracle_tags_count;
@@ -898,7 +899,7 @@ namespace ihmm {
 // 		}
 // 	}
 // 	void check_sum_bigram_destination(){
-// 		for(const auto &tag: _sum_n_i_over_j_counts){
+// 		for(const auto &tag: _sum_n_i_over_j){
 // 			int tag_id = tag.first;
 // 			int count = tag.second;
 // 			int sum = 0;
