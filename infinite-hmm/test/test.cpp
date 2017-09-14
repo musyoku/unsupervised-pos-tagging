@@ -27,6 +27,12 @@ void test1(){
 			}
 		}
 	}
+	for(int context_tag = 1;context_tag <= num_tags;context_tag++){
+		for(int tag = 1;tag <= num_tags + 1;tag++){
+			double prob = ihmm->compute_p_tag_given_context(tag, context_tag);
+			cout << "p(" << tag << "|" << context_tag << ") = " << prob << endl;
+		}
+	}
 	num_tags = ihmm->get_num_tags();
 	for(int tag = 0;tag <= num_tags;tag++){
 		cout << "tag: " << tag << endl;

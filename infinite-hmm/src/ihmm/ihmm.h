@@ -39,6 +39,9 @@ namespace ihmm {
 		int get_num_tags();
 		int get_sum_n_i_over_j(int tag);
 		int get_n_ij(int context_tag, int tag);
+		int get_oracle_sum_n_over_j();
+		int get_oracle_n_j_count(int tag);
+		double compute_p_tag_given_context(int tag, int context_tag);
 		int _add_new_tag();
 		void _delete_tag(int tag);
 		void _increment_tag_bigram_count(int context_tag, int tag);

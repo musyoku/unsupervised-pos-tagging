@@ -132,8 +132,8 @@ namespace ihmm {
 		assert(_sum_n_i_over_j.size() == new_num_tags + 1);
 	}
 	void InfiniteHMM::_increment_tag_bigram_count(int context_tag, int tag){
-		assert(1 <= context_tag <= get_num_tags());
-		assert(1 <= tag <= get_num_tags());
+		assert(1 <= context_tag && context_tag <= get_num_tags());
+		assert(1 <= tag && tag <= get_num_tags());
 		_sum_n_i_over_j[context_tag] += 1;
 		Table* table = _n_ij_tables[context_tag][tag];
 		assert(table != NULL);
@@ -144,8 +144,8 @@ namespace ihmm {
 		}
 	}
 	void InfiniteHMM::_decrement_tag_bigram_count(int context_tag, int tag){
-		assert(1 <= context_tag <= get_num_tags());
-		assert(1 <= tag <= get_num_tags());
+		assert(1 <= context_tag && context_tag <= get_num_tags());
+		assert(1 <= tag && tag <= get_num_tags());
 		_sum_n_i_over_j[context_tag] -= 1;
 		assert(_sum_n_i_over_j[context_tag] >= 0);
 		Table* table = _n_ij_tables[context_tag][tag];
@@ -157,7 +157,7 @@ namespace ihmm {
 		}
 	}
 	void InfiniteHMM::_increment_tag_word_count(int tag, id word_id){
-		assert(1 <= tag <= get_num_tags());
+		assert(1 <= tag && tag <= get_num_tags());
 		assert(0 <= word_id < _num_words);
 		_sum_word_count_of_tag[tag] += 1;
 		Table* table = _m_iq_tables[tag][word_id];
@@ -168,7 +168,7 @@ namespace ihmm {
 		}
 	}
 	void InfiniteHMM::_decrement_tag_word_count(int tag, int word_id){
-		assert(1 <= tag <= get_num_tags());
+		assert(1 <= tag && tag <= get_num_tags());
 		assert(0 <= word_id < _num_words);
 		_sum_word_count_of_tag[tag] += 1;
 		Table* table = _m_iq_tables[tag][word_id];
@@ -179,12 +179,12 @@ namespace ihmm {
 		}
 	}
 	void InfiniteHMM::_increment_oracle_tag_count(int tag){
-		assert(1 <= tag <= get_num_tags());
+		assert(1 <= tag && tag <= get_num_tags());
 		_oracle_n_j_counts[tag] += 1;
 		_oracle_sum_n_over_j += 1;
 	}
 	void InfiniteHMM::_decrement_oracle_tag_count(int tag){
-		assert(1 <= tag <= get_num_tags());
+		assert(1 <= tag && tag <= get_num_tags());
 		_oracle_n_j_counts[tag] -= 1;
 		_oracle_sum_n_over_j -= 1;
 		assert(_oracle_n_j_counts[tag] >= 0);
@@ -200,31 +200,43 @@ namespace ihmm {
 		assert(_oracle_m_q_counts[word_id] >= 0);
 	}
 	int InfiniteHMM::get_sum_n_i_over_j(int tag){
-		assert(1 <= tag <= get_num_tags());
+		assert(1 <= tag && tag <= get_num_tags());
 		return _sum_word_count_of_tag[tag];
 	}
 	int InfiniteHMM::get_n_ij(int context_tag, int tag){
-		assert(1 <= tag <= get_num_tags());
-		assert(1 <= context_tag <= get_num_tags());
+		if(tag > get_num_tags()){
+			return 0;
+		}
+		assert(1 <= tag && tag <= get_num_tags());
+		assert(1 <= context_tag && context_tag <= get_num_tags());
 		Table* table = _n_ij_tables[context_tag][tag];
 		assert(table != NULL);
 		return table->get_num_customers();
 	}
-	// // P(s_{t+1}|s_t)
-	// double InfiniteHMM::compute_p_tag_given_context(int tag, int context_tag){
-	// 	double n_i = get_sum_n_i_over_j(context_tag);
-	// 	double n_ij = get_n_ij(context_tag, tag);
-	// 	double alpha = (tag == context_tag) ? _alpha : 0;
-	// 	double empirical_p = (n_ij + alpha) / (n_i + _beta + _alpha);
-	// 	double coeff_oracle_p = _beta / (n_i + _beta + _alpha);	// 親の分布を選択する確率. 親からtagが生成される確率とは別物.
-	// 	double n_o = sum_oracle_tags_count();
-	// 	double n_oj = get_oracle_count_for_tag(tag);
-	// 	double T = get_num_tags();
-	// 	double g0 = 1.0 / (T + 1.0);
-	// 	// double g0 = 1.0;
-	// 	double oracle_p = (n_oj + _gamma * g0) / (n_o + _gamma);
-	// 	return empirical_p + coeff_oracle_p * oracle_p;
-	// }
+	int InfiniteHMM::get_oracle_sum_n_over_j(){
+		return _oracle_sum_n_over_j;
+	}
+	int InfiniteHMM::get_oracle_n_j_count(int tag){
+		if(tag > get_num_tags()){
+			return 0;
+		}
+		assert(1 <= tag && tag <= get_num_tags());
+		return _oracle_n_j_counts[tag];
+	}
+	// P(s_{t+1}|s_t)
+	double InfiniteHMM::compute_p_tag_given_context(int tag, int context_tag){
+		double n_i = get_sum_n_i_over_j(context_tag);
+		double n_ij = get_n_ij(context_tag, tag);
+		assert(n_i >= n_ij);
+		double alpha = (tag == context_tag) ? _alpha : 0;
+		double empirical_p = (n_ij + alpha) / (n_i + _beta + _alpha);
+		double coeff_oracle_p = _beta / (n_i + _beta + _alpha);	// 親の分布を選択する確率. 親からtagが生成される確率とは別物.
+		double n_o = get_oracle_sum_n_over_j();
+		double n_oj = get_oracle_n_j_count(tag);
+		double T = get_num_tags();
+		double oracle_p = (n_oj + _gamma) / (n_o + _gamma);
+		return empirical_p + coeff_oracle_p * oracle_p;
+	}
 	// // P(y_t|s_t)
 	// double InfiniteHMM::compute_p_word_given_tag(int word_id, int tag){
 	// 	double m_i = sum_word_count_for_tag(tag);
