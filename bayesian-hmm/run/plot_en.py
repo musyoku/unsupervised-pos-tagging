@@ -1,5 +1,6 @@
 import argparse, sys, re, pylab, codecs, os
 import treetaggerwrapper
+import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -8,7 +9,7 @@ from train_en import collapse_true_tag, printr, printb
 
 # フォントをセット
 # UbuntuならTakaoGothicなどが標準で入っている
-sns.set(font=["MS Gothic"], font_scale=2)
+sns.set(font=["MS Gothic"], font_scale=2, style="ticks")
 
 def main():
 	# 辞書
@@ -60,35 +61,36 @@ def main():
 						num_true_tags_of_found_tag[found_tag][true_tag] = 0
 					num_true_tags_of_found_tag[found_tag][true_tag] += 1
 
-	# 存在しない部分を0埋め
-	for tag, occurrence in num_true_tags_of_found_tag.items():
-		for true_tag in true_tag_set:
-			if true_tag not in occurrence:
-				occurrence[true_tag] = 0
-	for tag in range(1, model.get_num_tags() + 1):
-		if tag not in num_true_tags_of_found_tag:
-			num_true_tags_of_found_tag[tag] = {}
-			for true_tag in true_tag_set:
-				num_true_tags_of_found_tag[tag][true_tag] = 0
+	true_tag_to_id = {}
+	for true_tag in true_tag_set:
+		true_tag_to_id[true_tag] = len(true_tag_to_id)
 
-	# 予測品詞ごとに正規化
+	num_true_tags = len(true_tag_to_id)
+	confusion_mat = np.zeros((num_true_tags, model.get_num_tags()), dtype=int)
 	for tag, occurrence in num_true_tags_of_found_tag.items():
-		z = 0
 		for true_tag in true_tag_set:
-			z += occurrence[true_tag]
-		if z > 0:
-			for true_tag in true_tag_set:
-				occurrence[true_tag] = occurrence[true_tag] / z
+			num = 0
+			if true_tag in occurrence:
+				num = occurrence[true_tag]
+			confusion_mat[true_tag_to_id[true_tag]][tag - 1] = num
+	normalized_confusion_mat = confusion_mat / np.sum(confusion_mat, axis=0)
 
 	fig = pylab.gcf()
-	fig.set_size_inches(model.get_num_tags() + 3, len(true_tag_set))
+	fig.set_size_inches(model.get_num_tags() + 1, len(true_tag_set))
 	pylab.clf()
-	dataframe = pd.DataFrame(num_true_tags_of_found_tag)
-	ax = sns.heatmap(dataframe, annot=False, fmt="f", linewidths=0, cmap="gray_r")
-	ax.tick_params(labelsize=20) 
+	dataframe = pd.DataFrame(normalized_confusion_mat)
+	yticks = np.arange(0, num_true_tags)
+	yticks_labeles = [None] * len(true_tag_to_id)
+	for true_tag, index in true_tag_to_id.items():
+		yticks_labeles[index] = true_tag
+	ax = sns.heatmap(dataframe, annot=confusion_mat, annot_kws={"size": 14}, fmt="d", linewidths=0, cmap="gray_r", 
+		yticklabels=yticks_labeles, xticklabels=np.arange(1, model.get_num_tags() + 1), cbar=False, square=True)
+	for _, spine in ax.spines.items():
+		spine.set_visible(True)	# 枠線を表示
+	ax.tick_params(labelsize=20)
 	plt.yticks(rotation=0)
-	plt.xlabel(u"予測タグ")
-	plt.ylabel(u"正解品詞")
+	plt.xlabel("Found Tags", fontname="Arial", fontsize=28, labelpad=20)
+	plt.ylabel("True Tags", fontname="Arial", fontsize=28, labelpad=20)
 	heatmap = ax.get_figure()
 	heatmap.savefig("{}/confusion_mat.png".format(args.working_directory))
 

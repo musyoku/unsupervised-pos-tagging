@@ -77,7 +77,6 @@ def main():
 			num = 0
 			if true_tag in occurrence:
 				num = occurrence[true_tag]
-			print(tag, true_tag, num)
 			confusion_mat[true_tag_to_id[true_tag]][tag - 1] = num
 	normalized_confusion_mat = confusion_mat / np.sum(confusion_mat, axis=0)
 
