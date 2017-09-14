@@ -24,9 +24,10 @@ namespace ihmm {
 		std::vector<Table**> _m_iq_tables;	// 品詞と単語のペアの出現頻度
 		int* _oracle_m_q_counts;
 		int _oracle_sum_n_over_j;			// \sum_j{n_j^oj}
+		int _oracle_sum_m_over_q;			// \sum_j{m_q^oj}
 		std::vector<int> _sum_n_i_over_j;	// \sum_j{n_ij}の計算用
 		std::vector<int> _oracle_n_j_counts;
-		std::vector<int> _sum_word_count_of_tag;
+		std::vector<int> _sum_m_i_over_q;
 		double _alpha;
 		double _beta;
 		double _gamma;
@@ -37,10 +38,15 @@ namespace ihmm {
 		~InfiniteHMM();
 		void initialize_with_training_corpus(std::vector<std::vector<Word*>> &dataset);
 		int get_num_tags();
+		int get_num_words();
 		int get_sum_n_i_over_j(int tag);
 		int get_n_ij(int context_tag, int tag);
 		int get_oracle_sum_n_over_j();
-		int get_oracle_n_j_count(int tag);
+		int get_oracle_n_j(int tag);
+		int get_sum_m_i_over_q(int tag);
+		int get_m_iq(int tag, id word_id);
+		int get_oracle_sum_m_over_q();
+		int get_oracle_m_q(id word_id);
 		double compute_p_tag_given_context(int tag, int context_tag);
 		int _add_new_tag();
 		void _delete_tag(int tag);
