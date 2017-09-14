@@ -21,25 +21,17 @@ void test1(){
 	}
 	num_tags = ihmm->get_num_tags();
 	for(int i = 0;i < 100;i++){
-		for(int tag = 1;tag <= num_tags;tag++){
-			ihmm->_increment_tag_unigram_count(tag);
-		}
-	}
-	for(int i = 0;i < 100;i++){
-		for(int tag = 1;tag <= num_tags;tag++){
-			ihmm->_decrement_tag_unigram_count(tag);
-		}
-	}
-	cout << ihmm->get_num_tags() << endl;
-	for(int i = 0;i < 10;i++){
-		ihmm->_add_new_tag();
-	}
-	for(int i = 0;i < 100;i++){
 		for(int context_tag = 1;context_tag <= num_tags;context_tag++){
 			for(int tag = 1;tag <= num_tags;tag++){
 				ihmm->_increment_tag_bigram_count(context_tag, tag);
 			}
 		}
+	}
+	num_tags = ihmm->get_num_tags();
+	for(int tag = 0;tag <= num_tags;tag++){
+		cout << "tag: " << tag << endl;
+		cout << ihmm->_sum_n_i_over_j_counts[tag] << endl;
+		cout << ihmm->_oracle_n_j_counts[tag] << endl;
 	}
 	for(int i = 0;i < 100;i++){
 		for(int context_tag = 1;context_tag <= num_tags;context_tag++){
@@ -49,16 +41,17 @@ void test1(){
 		}
 	}
 	num_tags = ihmm->get_num_tags();
-	for(int i = 0;i < 100;i++){
-		for(int tag = 1;tag <= num_tags;tag++){
-			ihmm->_increment_tag_unigram_count(tag);
-		}
+	for(int tag = 0;tag <= num_tags;tag++){
+		cout << "tag: " << tag << endl;
+		cout << ihmm->_sum_n_i_over_j_counts[tag] << endl;
+		cout << ihmm->_oracle_n_j_counts[tag] << endl;
 	}
-	for(int i = 0;i < 100;i++){
-		for(int tag = 1;tag <= num_tags;tag++){
-			ihmm->_decrement_tag_unigram_count(tag);
-		}
+	for(int tag = num_tags;tag >= 1;tag--){
+		ihmm->_delete_tag(tag);
 	}
+	cout << ihmm->_sum_n_i_over_j_counts.size() << endl;
+	cout << ihmm->_oracle_n_j_counts.size() << endl;
+	cout << ihmm->_sum_word_count_of_tag.size() << endl;
 	delete ihmm;
 }
 
