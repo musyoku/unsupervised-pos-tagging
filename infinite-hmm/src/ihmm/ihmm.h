@@ -28,6 +28,7 @@ namespace ihmm {
 		std::vector<int> _sum_n_i_over_j;	// \sum_j{n_ij}の計算用
 		std::vector<int> _oracle_n_j_counts;
 		std::vector<int> _sum_m_i_over_q;
+		double* _gibbs_sampling_table;
 		double _alpha;
 		double _beta;
 		double _gamma;
@@ -47,6 +48,7 @@ namespace ihmm {
 		int get_m_iq(int tag, id word_id);
 		int get_oracle_sum_m_over_q();
 		int get_oracle_m_q(id word_id);
+		bool is_tag_new(int tag);
 		double compute_p_tag_given_context(int tag, int context_tag);
 		double compute_p_word_given_tag(id word_id, int tag);
 		void _add_special_tag();
@@ -60,83 +62,11 @@ namespace ihmm {
 		void _decrement_oracle_tag_count(int tag);
 		void _increment_oracle_word_count(int word_id);
 		void _decrement_oracle_word_count(int word_id);
+		int _perform_gibbs_sampling_on_markov_blanket(int ti_1, int ti1, id wi);
 	};
 }
 
 // class InfiniteHMM{
-// private:
-// 	friend class boost::serialization::access;
-// 	template <class Archive>
-// 	void serialize(Archive& archive, unsigned int version)
-// 	{
-// 		static_cast<void>(version);
-// 		archive & _tag_unigram_count;
-// 		archive & _n_ij_tables;
-// 		archive & _m_iq_tables;
-// 		archive & _oracle_m_q_counts;
-// 		archive & _oracle_n_j_counts;
-// 		archive & _alpha;
-// 		archive & _beta;
-// 		archive & _gamma;
-// 		archive & _beta_emission;
-// 		archive & _gamma_emission;
-// 		archive & _initial_num_tags;
-// 		archive & _sum_oracle_tags_count;
-// 		archive & _sum_oracle_words_count;
-// 		archive & _num_words;
-// 		archive & _sum_n_i_over_j;
-// 		archive & _sum_word_count_of_tag;
-// 	}
-// public:
-// 	vector<int> _tag_unigram_count;	// 全ての状態とそのカウント
-// 	int _prev_num_tags;
-
-// 	unordered_map<int, unordered_map<int, Table*>> _n_ij_tables;	// 品詞と単語のペアの出現頻度
-// 	unordered_map<int, unordered_map<int, Table*>> _m_iq_tables;	// 品詞と単語のペアの出現頻度
-// 	unordered_map<int, int> _oracle_m_q_counts;	// 品詞と単語のペアの出現頻度
-// 	unordered_map<int, int> _oracle_n_j_counts;	// 品詞と単語のペアの出現頻度
-// 	double _alpha;
-// 	double _beta;
-// 	double _gamma;
-// 	double _beta_emission;
-// 	double _gamma_emission;
-// 	int _initial_num_tags;
-// 	int _num_words;
-// 	int _sum_oracle_tags_count;
-// 	int _sum_oracle_words_count;
-// 	int _max_sequence_length;
-// 	// double _temperature;
-// 	unordered_map<int, int> _sum_n_i_over_j;
-// 	unordered_map<int, int> _sum_word_count_of_tag;
-// 	double* _gibbs_sampling_table;
-// 	double* _beam_sampling_table_u;
-// 	double** _beam_sampling_table_s;
-// 	void init_ngram_counts(vector<vector<Word*>> &dataset){
-// 		c_printf("[*]%s\n", "n-gramモデルを構築してます ...");
-// 		// 最初は品詞をランダムに割り当てる
-// 		set<int> word_set;
-// 		int num_words = 0;
-// 		unordered_map<int, int> tag_for_word;
-// 		for(int data_index = 0;data_index < dataset.size();data_index++){
-// 			vector<Word*> &line = dataset[data_index];
-// 			int ti_1 = BOS;
-// 			for(int pos = 0;pos < line.size();pos++){
-// 				Word* word = line[pos];
-// 				int ti = Sampler::uniform_int(EOS + 1, _initial_num_tags - 1);
-// 				int wi = word->_id;
-// 				increment_tag_bigram_count(ti_1, ti);
-// 				increment_tag_unigram_count(ti);
-// 				increment_tag_word_count(ti, wi);
-// 				word_set.insert(wi);
-// 				word->_tag = ti;
-// 				num_words += 1;
-// 				ti_1 = ti;
-// 			}
-// 			increment_tag_bigram_count(ti_1, EOS);
-// 		}
-// 		c_printf("[*]%s\n", (boost::format("単語数: %d - 単語種: %d - 行数: %d") % num_words % word_set.size() % dataset.size()).str().c_str());
-// 		_num_words += num_words;
-// 	}
 // 	bool is_tag_new(int tag_id){
 // 		assert(tag_id != EOS);
 // 		if(tag_id >= _tag_unigram_count.size()){

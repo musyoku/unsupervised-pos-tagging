@@ -11,13 +11,14 @@ namespace ihmm {
 	InfiniteHMM::InfiniteHMM(){
 		_initial_num_tags = 0;
 		_num_words = 0;
-		_alpha = 1;
+		_alpha = 0;
 		_beta = 1;
 		_gamma = 1;
 		_beta_emission = 1;
 		_gamma_emission = 1;
 		_oracle_sum_n_over_j = 0;
 		_oracle_sum_m_over_q = 0;
+		_gibbs_sampling_table = NULL;
 	}
 	InfiniteHMM::InfiniteHMM(int initial_num_tags, int num_words): InfiniteHMM(){
 		_initial_num_tags = initial_num_tags;
@@ -37,6 +38,9 @@ namespace ihmm {
 			_delete_tag(tag);
 		}
 		delete[] _oracle_m_q_counts;
+		if(_gibbs_sampling_table != NULL){
+			delete[] _gibbs_sampling_table;
+		}
 	}
 	// <s></s>を除いたタグの数を返す
 	int InfiniteHMM::get_num_tags(){
@@ -114,6 +118,11 @@ namespace ihmm {
 		assert(_oracle_n_j_counts.size() == new_num_tags + 1);
 		assert(_sum_m_i_over_q.size() == new_num_tags + 1);
 		assert(_sum_n_i_over_j.size() == new_num_tags + 1);
+
+		if(_gibbs_sampling_table != NULL){
+			delete[] _gibbs_sampling_table;
+		}
+		_gibbs_sampling_table = new double[new_num_tags + 2];	// <s>と新しいタグの分も確保
 		return new_num_tags;
 	}
 	// タグが無くなったら詰める
@@ -219,11 +228,17 @@ namespace ihmm {
 		assert(_oracle_sum_m_over_q >= 0);
 	}
 	int InfiniteHMM::get_sum_n_i_over_j(int tag){
+		if(tag > get_num_tags()){
+			return 0;
+		}
 		assert(1 <= tag && tag <= get_num_tags());
 		return _sum_n_i_over_j[tag];
 	}
 	int InfiniteHMM::get_n_ij(int context_tag, int tag){
 		if(tag > get_num_tags()){
+			return 0;
+		}
+		if(context_tag > get_num_tags()){
 			return 0;
 		}
 		assert(1 <= tag && tag <= get_num_tags());
@@ -243,10 +258,16 @@ namespace ihmm {
 		return _oracle_n_j_counts[tag];
 	}
 	int InfiniteHMM::get_sum_m_i_over_q(int tag){
+		if(tag > get_num_tags()){
+			return 0;
+		}
 		assert(1 <= tag && tag <= get_num_tags());
 		return _sum_m_i_over_q[tag];
 	}
 	int InfiniteHMM::get_m_iq(int tag, id word_id){
+		if(tag > get_num_tags()){
+			return 0;
+		}
 		assert(1 <= tag && tag <= get_num_tags());
 		assert(0 <= word_id && word_id < get_num_words());
 		Table* table = _m_iq_tables[tag][word_id];
@@ -260,6 +281,13 @@ namespace ihmm {
 		assert(0 <= word_id && word_id < get_num_words());
 		return _oracle_m_q_counts[word_id];
 	}
+	bool InfiniteHMM::is_tag_new(int tag){
+		assert(tag != 0);
+		if(tag > get_num_tags()){
+			return true;
+		}
+		return false;
+	}
 	// P(s_{t+1}|s_t)
 	double InfiniteHMM::compute_p_tag_given_context(int tag, int context_tag){
 		double n_i = get_sum_n_i_over_j(context_tag);
@@ -272,8 +300,20 @@ namespace ihmm {
 		double n_oj = get_oracle_n_j(tag);
 		assert(n_o >= n_oj);
 		double T = get_num_tags();
-		double g0 = 1.0 / T;
+		double g0 = 1.0 / (T + 1);
 		double oracle_p = (n_oj + _gamma * g0) / (n_o + _gamma);
+		if(tag == 11 && context_tag == 11){
+			std::cout << "n_i" << n_i << std::endl;
+			std::cout << "n_ij" << n_ij << std::endl;
+			std::cout << "alpha" << alpha << std::endl;
+			std::cout << "empirical_p" << empirical_p << std::endl;
+			std::cout << "coeff_oracle_p" << coeff_oracle_p << std::endl;
+			std::cout << "n_o" << n_o << std::endl;
+			std::cout << "n_oj" << n_oj << std::endl;
+			std::cout << "g0" << g0 << std::endl;
+			std::cout << "oracle_p" << oracle_p << std::endl;
+			exit(0);
+		}
 		return empirical_p + coeff_oracle_p * oracle_p;
 	}
 	// P(y_t|s_t)
@@ -294,5 +334,39 @@ namespace ihmm {
 		// cout << "empirical_p = " << empirical_p << ", coeff_oracle_p = " << coeff_oracle_p << ", oracle_p = " << oracle_p << endl;
 		return empirical_p + coeff_oracle_p * oracle_p;
 	}
-
+	// ギブスサンプリング
+	// int InfiniteHMM::_perform_gibbs_sampling_on_markov_blanket(int ti_1, int ti1, id wi){
+	// 	double sum = 0;
+	// 	for(int tag = 1;tag <= get_num_tags() + 1;tag++){
+	// 		double p_emission = compute_p_word_given_tag(wi, tag);
+	// 		double p_generation = compute_p_tag_given_context(tag, ti_1);
+	// 		// int correcting_count_for_bigram = (ti_1 == tag == ti1) ? 1 : 0;
+	// 		// int correcting_count_for_destination = (ti_1 == tag) ? 1 : 0;
+	// 		double p_likelihood = compute_p_tag_given_context(ti1, tag);
+	// 		double conditional_p = p_emission * p_generation * p_likelihood;
+	// 		_gibbs_sampling_table[tag] = conditional_p;
+	// 		sum += conditional_p;
+	// 	}
+	// 	int new_tag = get_new_tag_id();
+	// 	double p_emission = compute_p_word_given_tag(wi, new_tag);
+	// 	double p_generation = compute_p_tag_given_context(new_tag, ti_1);
+	// 	double p_likelihood = compute_p_tag_given_context(ti1, new_tag);
+	// 	double conditional_p = p_emission * p_generation * p_likelihood;
+	// 	sum += conditional_p;
+	// 	// new_tag > _tag_unigram_count.size()ならサンプリングテーブルに入れなくてもよい.
+	// 	if(new_tag < _tag_unigram_count.size()){
+	// 		_gibbs_sampling_table[new_tag] = conditional_p;
+	// 	}
+	// 	assert(sum > 0);
+	// 	double normalizer = 1.0 / sum;
+	// 	double bernoulli = Sampler::uniform(0, 1);
+	// 	sum = 0;
+	// 	for(int tag = EOS + 1;tag < _tag_unigram_count.size();tag++){
+	// 		sum += _gibbs_sampling_table[tag] * normalizer;
+	// 		if(bernoulli <= sum){
+	// 			return tag;
+	// 		}
+	// 	}
+	// 	return new_tag;
+	// }
 }

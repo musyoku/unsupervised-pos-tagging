@@ -27,13 +27,13 @@ void test1(){
 			}
 		}
 	}
-	for(int context_tag = 1;context_tag <= num_tags;context_tag++){
+	for(int context_tag = 1;context_tag <= num_tags + 1;context_tag++){
 		for(int tag = 1;tag <= num_tags + 1;tag++){
 			double prob = ihmm->compute_p_tag_given_context(tag, context_tag);
 			cout << "p(" << tag << "|" << context_tag << ") = " << prob << endl;
 		}
 	}
-	for(int tag = 1;tag <= num_tags;tag++){
+	for(int tag = 1;tag <= num_tags + 1;tag++){
 		for(id word_id = 0;word_id < ihmm->get_num_words();word_id++){
 			double prob = ihmm->compute_p_word_given_tag(word_id, tag);
 			cout << "p(" << word_id << "|" << tag << ") = " << prob << endl;
