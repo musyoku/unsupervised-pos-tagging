@@ -49,6 +49,7 @@ namespace ihmm {
 		int get_oracle_m_q(id word_id);
 		double compute_p_tag_given_context(int tag, int context_tag);
 		double compute_p_word_given_tag(id word_id, int tag);
+		void _add_special_tag();
 		int _add_new_tag();
 		void _delete_tag(int tag);
 		void _increment_tag_bigram_count(int context_tag, int tag);

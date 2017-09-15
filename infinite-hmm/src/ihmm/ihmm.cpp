@@ -22,19 +22,20 @@ namespace ihmm {
 	InfiniteHMM::InfiniteHMM(int initial_num_tags, int num_words): InfiniteHMM(){
 		_initial_num_tags = initial_num_tags;
 		_num_words = num_words;
-		for(int tag = 0;tag <= _initial_num_tags;tag++){	// <s>と</s>のID=0
+		_add_special_tag();									// <s>と</s>（両者は同一ID）
+		for(int tag = 1;tag <= _initial_num_tags;tag++){	// それ以外
 			_add_new_tag();
 		}
 		_prev_num_tags = _initial_num_tags;
 		_oracle_m_q_counts = new int[num_words];
+		for(id word_id = 0;word_id < num_words;word_id++){
+			_oracle_m_q_counts[word_id] = 0;
+		}
 	}
 	InfiniteHMM::~InfiniteHMM(){
 		for(int tag = get_num_tags();tag > 0;tag--){
 			_delete_tag(tag);
 		}
-		// <s></s>を削除
-		std::cout << _m_iq_tables.size() << endl;
-		Table** table_array = _m_iq_tables[0];
 		delete[] _oracle_m_q_counts;
 	}
 	// <s></s>を除いたタグの数を返す
@@ -61,8 +62,24 @@ namespace ihmm {
 			_increment_tag_bigram_count(ti_1, 0);	// </s>への遷移
 		}
 	}
+	void InfiniteHMM::_add_special_tag(){
+		assert(get_num_tags() == -1);
+		std::vector<Table*> table_vec;
+		table_vec.push_back(NULL);
+		_n_ij_tables.push_back(table_vec);
+		_m_iq_tables.push_back(NULL);
+		_oracle_n_j_counts.push_back(0);
+		_sum_m_i_over_q.push_back(0);
+		_sum_n_i_over_j.push_back(0);
+		assert(_n_ij_tables.size() == 1);
+		assert(_m_iq_tables.size() == 1);
+		assert(_oracle_n_j_counts.size() == 1);
+		assert(_sum_m_i_over_q.size() == 1);
+		assert(_sum_n_i_over_j.size() == 1);
+	}
 	int InfiniteHMM::_add_new_tag(){
 		int new_num_tags = get_num_tags() + 1;	// <s></s>は除く
+		assert(new_num_tags > 0);
 		// bigramのカウント
 		// 0: *, *				0: *, *
 		// 1: *, *		->   	1: *, *
