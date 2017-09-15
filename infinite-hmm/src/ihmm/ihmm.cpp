@@ -29,24 +29,19 @@ namespace ihmm {
 		_oracle_m_q_counts = new int[num_words];
 	}
 	InfiniteHMM::~InfiniteHMM(){
-		for(std::vector<Table*> &tables: _n_ij_tables){
-			for(Table* table: tables){
-				delete table;
-			}
+		for(int tag = get_num_tags();tag > 0;tag--){
+			_delete_tag(tag);
 		}
-		for(Table** tables: _m_iq_tables){
-			for(id word_id = 0;word_id < _num_words;word_id++){
-				delete tables[word_id];
-			}
-			delete[] tables;
-		}
+		// <s></s>を削除
+		std::cout << _m_iq_tables.size() << endl;
+		Table** table_array = _m_iq_tables[0];
 		delete[] _oracle_m_q_counts;
 	}
 	// <s></s>を除いたタグの数を返す
 	int InfiniteHMM::get_num_tags(){
 		return _oracle_n_j_counts.size() - 1;
 	}
-	int get_num_words(){
+	int InfiniteHMM::get_num_words(){
 		return _num_words;
 	}
 	void InfiniteHMM::initialize_with_training_corpus(std::vector<std::vector<Word*>> &dataset){
@@ -260,19 +255,22 @@ namespace ihmm {
 		double n_oj = get_oracle_n_j(tag);
 		assert(n_o >= n_oj);
 		double T = get_num_tags();
-		double oracle_p = (n_oj + _gamma) / (n_o + _gamma);
+		double g0 = 1.0 / T;
+		double oracle_p = (n_oj + _gamma * g0) / (n_o + _gamma);
 		return empirical_p + coeff_oracle_p * oracle_p;
 	}
 	// P(y_t|s_t)
-	double InfiniteHMM::compute_p_word_given_tag(int word_id, int tag){
+	double InfiniteHMM::compute_p_word_given_tag(id word_id, int tag){
 		double m_i = get_sum_m_i_over_q(tag);
 		double m_iq = get_m_iq(tag, word_id);
+		assert(m_i >= m_iq);
 		double empirical_p = m_iq / (m_i + _beta_emission);
 		double coeff_oracle_p = _beta_emission / (m_i + _beta_emission);	// 親の分布を選択する確率. 親からword_idが生成される確率とは別物.
 		double m_o = get_oracle_sum_m_over_q();
 		double m_oq = get_oracle_m_q(word_id);
+		assert(m_o >= m_oq);
 		double W = get_num_words();
-		// double g0 = 1.0;
+		double g0 = 1.0 / W;
 		// cout << "tag = " << tag <<  ", m_i = " << m_i << ", m_iq = " << m_iq << endl;
 		// cout << "m_o = " << m_o << ", m_oq = " << m_oq << endl;
 		double oracle_p = (m_oq + _gamma_emission * g0) / (m_o + _gamma_emission);

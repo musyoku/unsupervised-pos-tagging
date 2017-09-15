@@ -33,6 +33,12 @@ void test1(){
 			cout << "p(" << tag << "|" << context_tag << ") = " << prob << endl;
 		}
 	}
+	for(int tag = 1;tag <= num_tags;tag++){
+		for(id word_id = 0;word_id < ihmm->get_num_words();word_id++){
+			double prob = ihmm->compute_p_word_given_tag(word_id, tag);
+			cout << "p(" << word_id << "|" << tag << ") = " << prob << endl;
+		}
+	}
 	num_tags = ihmm->get_num_tags();
 	for(int tag = 0;tag <= num_tags;tag++){
 		cout << "tag: " << tag << endl;
@@ -58,12 +64,14 @@ void test1(){
 	}
 	cout << ihmm->_sum_n_i_over_j.size() << endl;
 	cout << ihmm->_oracle_n_j_counts.size() << endl;
-	cout << ihmm->_sum_word_count_of_tag.size() << endl;
+	cout << ihmm->_sum_m_i_over_q.size() << endl;
 	cout << "oracle: " << ihmm->_oracle_sum_n_over_j << endl;
 	delete ihmm;
 }
 
 int main(){
-	test1();
+	for(int i = 0;i < 10;i++){
+		test1();
+	}
 	return 0;
 }
