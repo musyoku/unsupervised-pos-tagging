@@ -63,6 +63,7 @@ namespace ihmm {
 		void _increment_oracle_word_count(int word_id);
 		void _decrement_oracle_word_count(int word_id);
 		int _perform_gibbs_sampling_on_markov_blanket(int ti_1, int ti1, id wi);
+		void perform_gibbs_sampling_with_sequence(std::vector<Word*> &word_vec);
 	};
 }
 

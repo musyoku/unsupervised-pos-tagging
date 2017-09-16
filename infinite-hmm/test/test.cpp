@@ -75,9 +75,9 @@ void test2(){
 }
 
 int main(){
-	// for(int i = 0;i < 10;i++){
-	// 	test1();
-	// }
+	for(int i = 0;i < 10;i++){
+		test1();
+	}
 	test2();
 	return 0;
 }

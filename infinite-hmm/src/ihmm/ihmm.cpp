@@ -302,18 +302,6 @@ namespace ihmm {
 		double T = get_num_tags();
 		double g0 = 1.0 / (T + 1);
 		double oracle_p = (n_oj + _gamma * g0) / (n_o + _gamma);
-		if(tag == 11 && context_tag == 11){
-			std::cout << "n_i" << n_i << std::endl;
-			std::cout << "n_ij" << n_ij << std::endl;
-			std::cout << "alpha" << alpha << std::endl;
-			std::cout << "empirical_p" << empirical_p << std::endl;
-			std::cout << "coeff_oracle_p" << coeff_oracle_p << std::endl;
-			std::cout << "n_o" << n_o << std::endl;
-			std::cout << "n_oj" << n_oj << std::endl;
-			std::cout << "g0" << g0 << std::endl;
-			std::cout << "oracle_p" << oracle_p << std::endl;
-			exit(0);
-		}
 		return empirical_p + coeff_oracle_p * oracle_p;
 	}
 	// P(y_t|s_t)
@@ -358,5 +346,25 @@ namespace ihmm {
 			}
 		}
 		return get_num_tags() + 1;
+	}
+	void InfiniteHMM::perform_gibbs_sampling_with_sequence(std::vector<Word*> &word_vec){
+		for(int i = 1;i < word_vec.size() - 1;i++){	// <s>と</s>の内側だけ考える
+			int ti_1 = word_vec[i - 1]->_tag;
+			int ti = word_vec[i]->_tag;
+			id wi = word_vec[i]->_id;
+			int ti1 = word_vec[i + 1]->_tag;
+			// 現在のtiをモデルから除去
+			_decrement_tag_bigram_count(ti_1, ti);
+			_decrement_tag_bigram_count(ti, ti1);
+			_decrement_tag_word_count(ti, wi);
+			// t_iを再サンプリング
+			int new_ti = _perform_gibbs_sampling_on_markov_blanket(ti_1, ti1, wi);
+			assert(1 <= new_ti && new_ti <= get_num_tags() + 1);	// 新しいタグも許可
+			// 新しいt_iをモデルパラメータに追加
+			_increment_tag_bigram_count(ti_1, new_ti);
+			_increment_tag_bigram_count(new_ti, ti1);
+			_increment_tag_word_count(new_ti, wi);
+			word_vec[i]->_tag = new_ti;
+		}
 	}
 }
