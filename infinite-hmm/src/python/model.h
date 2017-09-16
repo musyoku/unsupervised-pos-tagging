@@ -8,8 +8,8 @@
 namespace ihmm {
 	class Model{
 	private:
-		void _alloc_viterbi_tables(int sentence_length, double*** &forward_table, double*** &decode_table);
-		void _free_viterbi_tables(int sentence_length, double*** &forward_table, double*** &decode_table);
+		void _alloc_viterbi_tables(int sentence_length, double** &forward_table, double** &decode_table);
+		void _free_viterbi_tables(int sentence_length, double** &forward_table, double** &decode_table);
 		void _set_locale();
 	public:
 		InfiniteHMM* _hmm;
@@ -28,7 +28,7 @@ namespace ihmm {
 		void viterbi_decode(std::vector<Word*> &sentence, std::vector<int> &sampled_state_sequence, double** forward_table, double** decode_table);
 		boost::python::list python_viterbi_decode(boost::python::list py_word_ids);
 		double compute_p_sentence(std::vector<Word*> &sentence, double** forward_table);
-		void print_typical_words_assigned_to_each_tag(int number_to_show, Dictionary* dict);
-		void print_alpha_and_beta();
+		// void print_typical_words_assigned_to_each_tag(int number_to_show, Dictionary* dict);
+		// void print_alpha_and_beta();
 	};
 }

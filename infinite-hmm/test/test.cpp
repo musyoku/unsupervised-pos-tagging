@@ -98,9 +98,6 @@ void test3(int num_iterations){
 			cout << trainer->compute_log_p_dataset_train() << ", " << trainer->compute_log_p_dataset_dev() << endl;
 			model->save("ihmm.model");
 		}
-		if(i % 1000 == 0){
-			model->print_typical_words_assigned_to_each_tag(10, dictionary);
-		}
 	}
 	delete corpus;
 	delete dataset;

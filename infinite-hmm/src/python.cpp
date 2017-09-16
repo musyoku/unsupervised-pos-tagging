@@ -33,8 +33,8 @@ BOOST_PYTHON_MODULE(bhmm){
 	.def("set_initial_alpha", &Model::set_initial_alpha)
 	.def("set_initial_beta", &Model::set_initial_beta)
 	.def("viterbi_decode", &Model::python_viterbi_decode)
-	.def("print_typical_words_assigned_to_each_tag", &Model::print_typical_words_assigned_to_each_tag)
-	.def("print_alpha_and_beta", &Model::print_alpha_and_beta)
+	// .def("print_typical_words_assigned_to_each_tag", &Model::print_typical_words_assigned_to_each_tag)
+	// .def("print_alpha_and_beta", &Model::print_alpha_and_beta)
 	.def("save", &Model::save)
 	.def("load", &Model::load);
 }

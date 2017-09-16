@@ -91,7 +91,7 @@ namespace ihmm {
 			decode_table[i] = new double[_hmm->get_num_tags() + 1];
 		}
 	}
-	void Model::_free_viterbi_tables(int sentence_length, double*** &forward_table, double*** &decode_table){
+	void Model::_free_viterbi_tables(int sentence_length, double** &forward_table, double** &decode_table){
 		for(int i = 0;i < sentence_length;i++){
 			delete[] forward_table[i];
 			delete[] decode_table[i];
@@ -150,7 +150,7 @@ namespace ihmm {
 		for(int ti = 1;ti <= _hmm->get_num_tags();ti++){
 			int ti_1 = tag_bos;	// <s>
 			id wi = sentence[1]->_id;
-			double p_transition = _hmm->compute_p_ti_given_t(ti, ti_1);
+			double p_transition = _hmm->compute_p_tag_given_context(ti, ti_1);
 			double p_emission = _hmm->compute_p_word_given_tag(wi, ti);
 			assert(p_transition > 0);
 			double log_p_emission = -1000000;
@@ -169,7 +169,7 @@ namespace ihmm {
 				}
 				double max_value = 0;
 				for(int ti_1 = 1;ti_1 <= _hmm->get_num_tags();ti_1++){
-					double p_transition = _hmm->compute_p_ti_given_t(ti, ti_1, ti_1);
+					double p_transition = _hmm->compute_p_tag_given_context(ti, ti_1);
 					double value = log(p_transition) + forward_table[i - 1][ti_1];
 					if(max_value == 0 || value > max_value){
 						max_value = value;
@@ -186,61 +186,56 @@ namespace ihmm {
 			double log_p_x_s = forward_table[i][ti];
 			if(max_p_x_s == 0 || log_p_x_s > max_p_x_s){
 				max_p_x_s = log_p_x_s;
-				argmax_ti_1 = ti_1;
 				argmax_ti = ti;
 			}
 		}
-		assert(1 <= argmax_ti_1 && argmax_ti_1 <= _hmm->get_num_tags());
 		assert(1 <= argmax_ti && argmax_ti <= _hmm->get_num_tags());
 		sampled_state_sequence.clear();
-		sampled_state_sequence.push_back(argmax_ti_1);
 		sampled_state_sequence.push_back(argmax_ti);
-		int ti_1 = argmax_ti_1;
 		int ti = argmax_ti;
-		for(int i = sentence.size() - 3;i >= 4;i--){
-			int ti_2 = decode_table[i][ti_1][ti];
-			sampled_state_sequence.push_back(ti_2);
+		for(int i = sentence.size() - 2;i >= 2;i--){
+			int ti_1 = decode_table[i][ti];
+			sampled_state_sequence.push_back(ti_1);
 			ti = ti_1;
-			ti_1 = ti_2;
 		}
 		std::reverse(sampled_state_sequence.begin(), sampled_state_sequence.end());
-		assert(sampled_state_sequence.size() == sentence.size() - 4);
+		assert(sampled_state_sequence.size() == sentence.size() - 2);
 	}
-	struct value_comparator {
-		bool operator()(const std::pair<int, int> &a, const std::pair<int, int> &b) {
-			return a.second > b.second;
-		}   
-	};
-	void Model::print_typical_words_assigned_to_each_tag(int number_to_show, Dictionary* dict){
-		using std::wcout;
-		using std::endl;
-		for(int tag = 1;tag <= _hmm->get_num_tags();tag++){
-			int n = 0;
-			wcout << "\x1b[32;1m" << "[" << tag << "]" << "\x1b[0m" << std::endl;
-			std::multiset<std::pair<int, int>, value_comparator> ranking;
-			for(id word_id = 0;word_id < _hmm->_num_words;word_id++){
-				int count = _hmm->_tag_word_counts[tag][word_id];
-				if(count > 0){
-					ranking.insert(std::make_pair(word_id, count));
-				}
-			}
-			for(auto elem: ranking){
-				std::wstring word = dict->word_id_to_string(elem.first);
-				wcout << "\x1b[1m" << word << "\x1b[0m" << L"(" << elem.second << L") ";
-				n++;
-				if(n > number_to_show){
-					break;
-				}
-			}
-			wcout << endl;
-		}
-	}
-	void Model::print_alpha_and_beta(){
-		using std::cout;
-		using std::endl;
-		cout << "\x1b[1m" << "alpha" << "\x1b[0m " << _hmm->_alpha << std::endl;
-		for(int tag = 1;tag <= _hmm->get_num_tags();tag++){
-			cout << "\x1b[1m" << "beta[" << tag << "]" << "\x1b[0m " << _hmm->_beta[tag] << std::endl;
-		}
-	}
+	// struct value_comparator {
+	// 	bool operator()(const std::pair<int, int> &a, const std::pair<int, int> &b) {
+	// 		return a.second > b.second;
+	// 	}   
+	// };
+	// void Model::print_typical_words_assigned_to_each_tag(int number_to_show, Dictionary* dict){
+	// 	using std::wcout;
+	// 	using std::endl;
+	// 	for(int tag = 1;tag <= _hmm->get_num_tags();tag++){
+	// 		int n = 0;
+	// 		wcout << "\x1b[32;1m" << "[" << tag << "]" << "\x1b[0m" << std::endl;
+	// 		std::multiset<std::pair<int, int>, value_comparator> ranking;
+	// 		for(id word_id = 0;word_id < _hmm->_num_words;word_id++){
+	// 			int count = _hmm->_tag_word_counts[tag][word_id];
+	// 			if(count > 0){
+	// 				ranking.insert(std::make_pair(word_id, count));
+	// 			}
+	// 		}
+	// 		for(auto elem: ranking){
+	// 			std::wstring word = dict->word_id_to_string(elem.first);
+	// 			wcout << "\x1b[1m" << word << "\x1b[0m" << L"(" << elem.second << L") ";
+	// 			n++;
+	// 			if(n > number_to_show){
+	// 				break;
+	// 			}
+	// 		}
+	// 		wcout << endl;
+	// 	}
+	// }
+	// void Model::print_alpha_and_beta(){
+	// 	using std::cout;
+	// 	using std::endl;
+	// 	cout << "\x1b[1m" << "alpha" << "\x1b[0m " << _hmm->_alpha << std::endl;
+	// 	for(int tag = 1;tag <= _hmm->get_num_tags();tag++){
+	// 		cout << "\x1b[1m" << "beta[" << tag << "]" << "\x1b[0m " << _hmm->_beta[tag] << std::endl;
+	// 	}
+	// }
 }
