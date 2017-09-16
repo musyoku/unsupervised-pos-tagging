@@ -39,6 +39,7 @@ namespace ihmm {
 		~InfiniteHMM();
 		void initialize_with_training_dataset(std::vector<std::vector<Word*>> &dataset);
 		int get_num_tags();
+		int get_num_valid_tags();
 		int get_num_words();
 		int get_sum_n_i_over_j(int tag);
 		int get_n_ij(int context_tag, int tag);
@@ -48,6 +49,7 @@ namespace ihmm {
 		int get_m_iq(int tag, id word_id);
 		int get_oracle_sum_m_over_q();
 		int get_oracle_m_q(id word_id);
+		int _get_new_tag();
 		bool is_tag_new(int tag);
 		double compute_p_tag_given_context(int tag, int context_tag);
 		double compute_p_word_given_tag(id word_id, int tag);

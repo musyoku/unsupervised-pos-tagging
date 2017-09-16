@@ -97,7 +97,7 @@ void test3(int num_iterations){
 			cout << "\r" << flush;
 			cout << trainer->compute_log_p_dataset_train() << ", " << trainer->compute_log_p_dataset_dev() << endl;
 			model->save("ihmm.model");
-			cout << model->_hmm->get_num_tags() << endl;
+			cout << model->_hmm->get_num_valid_tags() << endl;
 		}
 	}
 	delete corpus;

@@ -48,6 +48,15 @@ namespace ihmm {
 	int InfiniteHMM::get_num_words(){
 		return _num_words;
 	}
+	int InfiniteHMM::get_num_valid_tags(){
+		int num_tags = 0;
+		for(int count: _oracle_n_j_counts){
+			if(count > 0){
+				num_tags++;
+			}
+		}
+		return num_tags;
+	}
 	void InfiniteHMM::initialize_with_training_dataset(std::vector<std::vector<Word*>> &dataset){
 		// 最初は品詞をランダムに割り当てる
 		for(int data_index = 0;data_index < dataset.size();data_index++){
@@ -298,6 +307,14 @@ namespace ihmm {
 		assert(0 <= word_id && word_id < get_num_words());
 		return _oracle_m_q_counts[word_id];
 	}
+	int InfiniteHMM::_get_new_tag(){
+		for(int tag = 1;tag < get_num_tags();tag++){
+			if(_oracle_n_j_counts[tag] == 0){
+				return tag;
+			}
+		}
+		return get_num_tags() + 1;
+	}
 	bool InfiniteHMM::is_tag_new(int tag){
 		assert(tag != 0);
 		if(tag > get_num_tags()){
@@ -342,7 +359,7 @@ namespace ihmm {
 	// ギブスサンプリング
 	int InfiniteHMM::_perform_gibbs_sampling_on_markov_blanket(int ti_1, int ti1, id wi){
 		double sum = 0;
-		for(int tag = 1;tag <= get_num_tags() + 1;tag++){
+		for(int tag = 1;tag <= get_num_tags();tag++){
 			double p_emission = compute_p_word_given_tag(wi, tag);
 			double p_generation = compute_p_tag_given_context(tag, ti_1);
 			// int correcting_count_for_bigram = (ti_1 == tag == ti1) ? 1 : 0;
@@ -352,17 +369,29 @@ namespace ihmm {
 			_gibbs_sampling_table[tag] = conditional_p;
 			sum += conditional_p;
 		}
+		int total_stacks = get_num_tags();
+		int new_tag = _get_new_tag();
+		assert(1 <= new_tag && new_tag <= get_num_tags() + 1);
+		if(new_tag == get_num_tags() + 1){
+			double p_emission = compute_p_word_given_tag(wi, new_tag);
+			double p_generation = compute_p_tag_given_context(new_tag, ti_1);
+			double p_likelihood = compute_p_tag_given_context(ti1, new_tag);
+			double conditional_p = p_emission * p_generation * p_likelihood;
+			_gibbs_sampling_table[new_tag] = conditional_p;
+			sum += conditional_p;
+			total_stacks += 1;
+		}
 		assert(sum > 0);
 		double normalizer = 1.0 / sum;
 		double bernoulli = sampler::uniform(0, 1);
 		sum = 0;
-		for(int tag = 1;tag <= get_num_tags() + 1;tag++){
+		for(int tag = 1;tag <= total_stacks;tag++){
 			sum += _gibbs_sampling_table[tag] * normalizer;
 			if(bernoulli <= sum){
 				return tag;
 			}
 		}
-		return get_num_tags() + 1;
+		return total_stacks;
 	}
 	void InfiniteHMM::perform_gibbs_sampling_with_sequence(std::vector<Word*> &word_vec){
 		for(int i = 1;i < word_vec.size() - 1;i++){	// <s>と</s>の内側だけ考える

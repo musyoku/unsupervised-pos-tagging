@@ -26,6 +26,7 @@ namespace ihmm {
 			int data_index = _rand_indices[n];
 			std::vector<Word*> &word_vec = dataset[data_index];
 			_model->_hmm->perform_gibbs_sampling_with_sequence(word_vec);
+			
 		}
 	}
 	void Trainer::update_hyperparameters(){
