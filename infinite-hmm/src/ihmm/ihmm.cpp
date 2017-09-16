@@ -49,7 +49,7 @@ namespace ihmm {
 	int InfiniteHMM::get_num_words(){
 		return _num_words;
 	}
-	void InfiniteHMM::initialize_with_training_corpus(std::vector<std::vector<Word*>> &dataset){
+	void InfiniteHMM::initialize_with_training_dataset(std::vector<std::vector<Word*>> &dataset){
 		// 最初は品詞をランダムに割り当てる
 		for(int data_index = 0;data_index < dataset.size();data_index++){
 			std::vector<Word*> &word_ids = dataset[data_index];
@@ -366,5 +366,11 @@ namespace ihmm {
 			_increment_tag_word_count(new_ti, wi);
 			word_vec[i]->_tag = new_ti;
 		}
+	}
+	bool InfiniteHMM::save(std::string filename){
+		return true;
+	}
+	bool InfiniteHMM::load(std::string filename){
+		return true;
 	}
 }

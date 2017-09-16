@@ -37,7 +37,7 @@ namespace ihmm {
 		InfiniteHMM();
 		InfiniteHMM(int initial_num_tags, int num_words);
 		~InfiniteHMM();
-		void initialize_with_training_corpus(std::vector<std::vector<Word*>> &dataset);
+		void initialize_with_training_dataset(std::vector<std::vector<Word*>> &dataset);
 		int get_num_tags();
 		int get_num_words();
 		int get_sum_n_i_over_j(int tag);
@@ -51,6 +51,8 @@ namespace ihmm {
 		bool is_tag_new(int tag);
 		double compute_p_tag_given_context(int tag, int context_tag);
 		double compute_p_word_given_tag(id word_id, int tag);
+		bool save(std::string filename);
+		bool load(std::string filename);
 		void _add_special_tag();
 		int _add_new_tag();
 		void _delete_tag(int tag);

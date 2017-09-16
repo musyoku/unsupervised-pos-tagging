@@ -1,7 +1,7 @@
 #include <iostream>
 #include "utils.h"
 
-namespace bhmm {
+namespace ihmm {
 	namespace utils{
 		template<class T>
 		boost::python::list list_from_vector(std::vector<T> &vec){  

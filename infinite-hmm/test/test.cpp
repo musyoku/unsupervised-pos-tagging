@@ -1,7 +1,12 @@
 #include  <iostream>
 #include  <string>
-#include "../src/ihmm/utils.h"
 #include "../src/ihmm/ihmm.h"
+#include "../src/ihmm/utils.h"
+#include "../src/python/model.h"
+#include "../src/python/corpus.h"
+#include "../src/python/dataset.h"
+#include "../src/python/dictionary.h"
+#include "../src/python/trainer.h"
 using namespace ihmm;
 using namespace std;
 
@@ -74,10 +79,41 @@ void test2(){
 	ihmm->_perform_gibbs_sampling_on_markov_blanket(1, 2, 0);
 }
 
+void test3(int num_iterations){
+	int num_tags = 10;
+	std::string filename = "../../text/alice.txt";
+	Corpus* corpus = new Corpus();
+	corpus->add_textfile(filename);
+	Dataset* dataset = new Dataset(corpus, 0.01, 1);
+	Dictionary* dictionary = dataset->_dict;
+	dictionary->save("ihmm.dict");
+	Model* model = new Model(num_tags, dataset);
+	Trainer* trainer = new Trainer(dataset, model);
+
+	for(int i = 1;i <= num_iterations;i++){
+		trainer->perform_gibbs_sampling();
+		cout << "\r" << i << flush;
+		if(i % 100 == 0){
+			cout << "\r" << flush;
+			cout << trainer->compute_log_p_dataset_train() << ", " << trainer->compute_log_p_dataset_dev() << endl;
+			model->save("ihmm.model");
+		}
+		if(i % 1000 == 0){
+			model->print_typical_words_assigned_to_each_tag(10, dictionary);
+		}
+	}
+	delete corpus;
+	delete dataset;
+	delete dictionary;
+	delete model;
+	delete trainer;
+}
+
 int main(){
 	for(int i = 0;i < 10;i++){
 		test1();
 	}
 	test2();
+	test3(100);
 	return 0;
 }

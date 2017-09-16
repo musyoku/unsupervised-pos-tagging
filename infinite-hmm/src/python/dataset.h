@@ -2,11 +2,11 @@
 #include <boost/python.hpp>
 #include <unordered_map>
 #include <vector>
-#include "../bhmm/common.h"
+#include "../ihmm/common.h"
 #include "corpus.h"
 #include "dictionary.h"
 
-namespace bhmm {
+namespace ihmm {
 	class Dataset{
 	private:
 		void _before_python_add_sentence_str(boost::python::list &py_word_str_list, std::vector<std::wstring> &word_str_vec);

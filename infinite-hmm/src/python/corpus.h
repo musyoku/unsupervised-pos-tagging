@@ -2,9 +2,9 @@
 #include <boost/python.hpp>
 #include <unordered_map>
 #include <vector>
-#include "../bhmm/common.h"
+#include "../ihmm/common.h"
 
-namespace bhmm {
+namespace ihmm {
 	class Corpus{
 	private:
 		void _add_words_to_corpus(std::vector<std::wstring> &word_str_vec);

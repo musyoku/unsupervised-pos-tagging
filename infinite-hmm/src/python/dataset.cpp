@@ -2,10 +2,10 @@
 #include <fstream>
 #include <unordered_set>
 #include "dataset.h"
-#include "../bhmm/utils.h"
-#include "../bhmm/sampler.h"
+#include "../ihmm/utils.h"
+#include "../ihmm/sampler.h"
 
-namespace bhmm {
+namespace ihmm {
 	Dataset::Dataset(Corpus* corpus, double train_split, int unknown_count){
 		_dict = new Dictionary();
 		_max_num_words_in_line = corpus->_max_num_words_in_line;
