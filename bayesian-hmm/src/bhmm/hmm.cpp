@@ -54,7 +54,7 @@ namespace bhmm {
 		_temperature -= decay;
 		_temperature = std::max(_temperature, _minimum_temperature);
 	}
-	void HMM::initialize_with_training_corpus(std::vector<std::vector<Word*>> &dataset, std::vector<int> &Wt){
+	void HMM::initialize_with_training_dataset(std::vector<std::vector<Word*>> &dataset, std::vector<int> &Wt){
 		int length = Wt.size();
 		assert(length == _num_tags);
 		_init_ngram_counts_with_corpus(dataset);

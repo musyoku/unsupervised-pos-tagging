@@ -7,12 +7,12 @@ namespace bhmm {
 		_set_locale();
 		_hmm = new HMM(num_tags, dataset->get_num_words());
 		std::vector<int> Wt = utils::vector_from_list<int>(py_Wt);
-		_hmm->initialize_with_training_corpus(dataset->_word_sequences_train, Wt);
+		_hmm->initialize_with_training_dataset(dataset->_word_sequences_train, Wt);
 	}
 	Model::Model(int num_tags, Dataset* dataset, std::vector<int> &Wt){
 		_set_locale();
 		_hmm = new HMM(num_tags, dataset->get_num_words());
-		_hmm->initialize_with_training_corpus(dataset->_word_sequences_train, Wt);
+		_hmm->initialize_with_training_dataset(dataset->_word_sequences_train, Wt);
 	}
 	Model::Model(std::string filename){
 		_set_locale();

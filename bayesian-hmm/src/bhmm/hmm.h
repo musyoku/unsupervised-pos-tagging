@@ -34,7 +34,7 @@ namespace bhmm {
 		HMM(int num_tags, int num_words);
 		~HMM();
 		void anneal_temperature(double decay);
-		void initialize_with_training_corpus(std::vector<std::vector<Word*>> &dataset, std::vector<int> &Wt);
+		void initialize_with_training_dataset(std::vector<std::vector<Word*>> &dataset, std::vector<int> &Wt);
 		int get_count_of_tag_word(int tag_id, int word_id);
 		int get_most_co_occurring_tag(int word_id);
 		void set_Wt_for_tag(int tag_id, int number);
