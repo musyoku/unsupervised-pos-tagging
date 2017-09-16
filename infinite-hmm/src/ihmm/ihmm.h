@@ -53,7 +53,7 @@ namespace ihmm {
 		double compute_p_word_given_tag(id word_id, int tag);
 		bool save(std::string filename);
 		bool load(std::string filename);
-		void _add_special_tag();
+		// void _add_special_tag();
 		int _add_new_tag();
 		void _delete_tag(int tag);
 		void _increment_tag_bigram_count(int context_tag, int tag);

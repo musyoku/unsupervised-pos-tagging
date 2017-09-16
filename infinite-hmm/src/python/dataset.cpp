@@ -6,7 +6,7 @@
 #include "../ihmm/sampler.h"
 
 namespace ihmm {
-	Dataset::Dataset(Corpus* corpus, double train_split, int unknown_count){
+	Dataset::Dataset(Corpus* corpus, double train_split, int unknown_count, int seed){
 		_dict = new Dictionary();
 		_max_num_words_in_line = corpus->_max_num_words_in_line;
 		_min_num_words_in_line = corpus->_min_num_words_in_line;
@@ -15,6 +15,7 @@ namespace ihmm {
 		for(int i = 0;i < corpus->_word_sequences.size();i++){
 			rand_indices.push_back(i);
 		}
+		sampler::set_seed(seed);
 		shuffle(rand_indices.begin(), rand_indices.end(), sampler::mt);	// データをシャッフル
 		train_split = std::min(1.0, std::max(0.0, train_split));
 		int num_train_data = corpus->_word_sequences.size() * train_split;

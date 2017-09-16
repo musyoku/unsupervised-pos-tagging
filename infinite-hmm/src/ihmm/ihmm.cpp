@@ -23,8 +23,7 @@ namespace ihmm {
 	InfiniteHMM::InfiniteHMM(int initial_num_tags, int num_words): InfiniteHMM(){
 		_initial_num_tags = initial_num_tags;
 		_num_words = num_words;
-		_add_special_tag();									// <s>と</s>（両者は同一ID）
-		for(int tag = 1;tag <= _initial_num_tags;tag++){	// それ以外
+		for(int tag = 0;tag <= _initial_num_tags;tag++){
 			_add_new_tag();
 		}
 		_prev_num_tags = _initial_num_tags;
@@ -66,38 +65,37 @@ namespace ihmm {
 			_increment_tag_bigram_count(ti_1, 0);	// </s>への遷移
 		}
 	}
-	void InfiniteHMM::_add_special_tag(){
-		assert(get_num_tags() == -1);
-		std::vector<Table*> table_vec;
-		table_vec.push_back(NULL);
-		_n_ij_tables.push_back(table_vec);
-		_m_iq_tables.push_back(NULL);
-		_oracle_n_j_counts.push_back(0);
-		_sum_m_i_over_q.push_back(0);
-		_sum_n_i_over_j.push_back(0);
-		assert(_n_ij_tables.size() == 1);
-		assert(_m_iq_tables.size() == 1);
-		assert(_oracle_n_j_counts.size() == 1);
-		assert(_sum_m_i_over_q.size() == 1);
-		assert(_sum_n_i_over_j.size() == 1);
-	}
+	// void InfiniteHMM::_add_special_tag(){
+	// 	assert(get_num_tags() == -1);
+	// 	std::vector<Table*> table_vec;
+	// 	table_vec.push_back(NULL);
+	// 	_n_ij_tables.push_back(table_vec);
+	// 	_m_iq_tables.push_back(NULL);
+	// 	_oracle_n_j_counts.push_back(0);
+	// 	_sum_m_i_over_q.push_back(0);
+	// 	_sum_n_i_over_j.push_back(0);
+	// 	assert(_n_ij_tables.size() == 1);
+	// 	assert(_m_iq_tables.size() == 1);
+	// 	assert(_oracle_n_j_counts.size() == 1);
+	// 	assert(_sum_m_i_over_q.size() == 1);
+	// 	assert(_sum_n_i_over_j.size() == 1);
+	// }
 	int InfiniteHMM::_add_new_tag(){
 		int new_num_tags = get_num_tags() + 1;	// <s></s>は除く
-		assert(new_num_tags > 0);
+		assert(new_num_tags >= 0);
 		// bigramのカウント
 		// 0: *, *				0: *, *
 		// 1: *, *		->   	1: *, *
 		// 						2: *, *, *
 		std::vector<Table*> table_vec;
-		table_vec.push_back(NULL);
-		for(int tag = 1;tag <= new_num_tags;tag++){
+		for(int tag = 0;tag <= new_num_tags;tag++){
 			table_vec.push_back(new Table());
 		}
 		_n_ij_tables.push_back(table_vec);
 		// 0: *, *				0: *, *, *
 		// 1: *, *		->   	1: *, *, *
 		// 2: *, *, *			2: *, *, *
-		for(int context_tag = 1;context_tag < new_num_tags;context_tag++){
+		for(int context_tag = 0;context_tag < new_num_tags;context_tag++){
 			std::vector<Table*> &table_vec = _n_ij_tables[context_tag];
 			assert(table_vec.size() == new_num_tags);
 			table_vec.push_back(new Table());
@@ -126,24 +124,43 @@ namespace ihmm {
 		return new_num_tags;
 	}
 	// タグが無くなったら詰める
-	void InfiniteHMM::_delete_tag(int tag){
-		assert(1 <= tag && tag <= get_num_tags());
+	void InfiniteHMM::_delete_tag(int delete_tag){
+		assert(1 <= delete_tag && delete_tag <= get_num_tags());
+		int current_num_tags = get_num_tags();
 		int new_num_tags = get_num_tags() - 1;	// <s></s>は除く
-		std::vector<Table*> &tables_vec = _n_ij_tables[tag];
-		for(Table* table: tables_vec){
+		// 対応する行を削除
+		std::vector<Table*> &tables_vec = _n_ij_tables[delete_tag];
+		for(Table* &table: tables_vec){
+			assert(table != NULL);
 			delete table;
+			table = NULL;
 		}
-		Table** tables_array = _m_iq_tables[tag];
+		// 対応する列を削除
+		for(int context_tag = 0;context_tag <= current_num_tags;context_tag++){
+			if(context_tag == delete_tag){
+				continue;	// 交差する点は二重に解放されるのでスキップ
+			}
+			Table* &table = _n_ij_tables[context_tag][delete_tag];
+			assert(table != NULL);
+			delete table;
+			table = NULL;
+			for(int t = delete_tag;t <= new_num_tags;t++){
+				_n_ij_tables[context_tag][t] = _n_ij_tables[context_tag][t + 1];
+			}
+			_n_ij_tables[context_tag].pop_back();
+		}
+		Table** tables_array = _m_iq_tables[delete_tag];
 		for(id word_id = 0;word_id < _num_words;word_id++){
 			delete tables_array[word_id];
 		}
 		delete[] tables_array;
-		for(int t = tag;t <= new_num_tags;t++){
+		for(int t = delete_tag;t <= new_num_tags;t++){
 			_n_ij_tables[t] = _n_ij_tables[t + 1];
 			_m_iq_tables[t] = _m_iq_tables[t + 1];
 			_oracle_n_j_counts[t] = _oracle_n_j_counts[t + 1];
 			_sum_m_i_over_q[t] = _sum_m_i_over_q[t + 1];
 			_sum_n_i_over_j[t] = _sum_n_i_over_j[t + 1];
+			assert(_n_ij_tables[t].size() == new_num_tags + 1);
 		}
 		_n_ij_tables.pop_back();
 		_m_iq_tables.pop_back();
@@ -157,8 +174,8 @@ namespace ihmm {
 		assert(_sum_n_i_over_j.size() == new_num_tags + 1);
 	}
 	void InfiniteHMM::_increment_tag_bigram_count(int context_tag, int tag){
-		assert(1 <= context_tag && context_tag <= get_num_tags());
-		assert(1 <= tag && tag <= get_num_tags());
+		assert(0 <= context_tag && context_tag <= get_num_tags());
+		assert(0 <= tag && tag <= get_num_tags());
 		_sum_n_i_over_j[context_tag] += 1;
 		Table* table = _n_ij_tables[context_tag][tag];
 		assert(table != NULL);
@@ -204,7 +221,7 @@ namespace ihmm {
 		}
 	}
 	void InfiniteHMM::_increment_oracle_tag_count(int tag){
-		assert(1 <= tag && tag <= get_num_tags());
+		assert(0 <= tag && tag <= get_num_tags());
 		_oracle_n_j_counts[tag] += 1;
 		_oracle_sum_n_over_j += 1;
 	}
@@ -231,7 +248,7 @@ namespace ihmm {
 		if(tag > get_num_tags()){
 			return 0;
 		}
-		assert(1 <= tag && tag <= get_num_tags());
+		assert(0 <= tag && tag <= get_num_tags());
 		return _sum_n_i_over_j[tag];
 	}
 	int InfiniteHMM::get_n_ij(int context_tag, int tag){
@@ -242,7 +259,7 @@ namespace ihmm {
 			return 0;
 		}
 		assert(1 <= tag && tag <= get_num_tags());
-		assert(1 <= context_tag && context_tag <= get_num_tags());
+		assert(0 <= context_tag && context_tag <= get_num_tags());
 		Table* table = _n_ij_tables[context_tag][tag];
 		assert(table != NULL);
 		return table->get_num_customers();
@@ -360,6 +377,9 @@ namespace ihmm {
 			// t_iを再サンプリング
 			int new_ti = _perform_gibbs_sampling_on_markov_blanket(ti_1, ti1, wi);
 			assert(1 <= new_ti && new_ti <= get_num_tags() + 1);	// 新しいタグも許可
+			if(new_ti == get_num_tags() + 1){
+				_add_new_tag();
+			}
 			// 新しいt_iをモデルパラメータに追加
 			_increment_tag_bigram_count(ti_1, new_ti);
 			_increment_tag_bigram_count(new_ti, ti1);

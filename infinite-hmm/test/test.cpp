@@ -84,7 +84,7 @@ void test3(int num_iterations){
 	std::string filename = "../../text/alice.txt";
 	Corpus* corpus = new Corpus();
 	corpus->add_textfile(filename);
-	Dataset* dataset = new Dataset(corpus, 0.01, 1);
+	Dataset* dataset = new Dataset(corpus, 0.9, 1, 0);
 	Dictionary* dictionary = dataset->_dict;
 	dictionary->save("ihmm.dict");
 	Model* model = new Model(num_tags, dataset);
@@ -97,6 +97,7 @@ void test3(int num_iterations){
 			cout << "\r" << flush;
 			cout << trainer->compute_log_p_dataset_train() << ", " << trainer->compute_log_p_dataset_dev() << endl;
 			model->save("ihmm.model");
+			cout << model->_hmm->get_num_tags() << endl;
 		}
 	}
 	delete corpus;
@@ -111,6 +112,6 @@ int main(){
 		test1();
 	}
 	test2();
-	test3(100);
+	test3(1000);
 	return 0;
 }
