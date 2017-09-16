@@ -69,9 +69,15 @@ void test1(){
 	delete ihmm;
 }
 
+void test2(){
+	InfiniteHMM* ihmm = new InfiniteHMM(10, 100);
+	ihmm->_perform_gibbs_sampling_on_markov_blanket(1, 2, 0);
+}
+
 int main(){
-	for(int i = 0;i < 10;i++){
-		test1();
-	}
+	// for(int i = 0;i < 10;i++){
+	// 	test1();
+	// }
+	test2();
 	return 0;
 }

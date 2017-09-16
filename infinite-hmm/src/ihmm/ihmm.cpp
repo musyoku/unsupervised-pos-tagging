@@ -335,38 +335,28 @@ namespace ihmm {
 		return empirical_p + coeff_oracle_p * oracle_p;
 	}
 	// ギブスサンプリング
-	// int InfiniteHMM::_perform_gibbs_sampling_on_markov_blanket(int ti_1, int ti1, id wi){
-	// 	double sum = 0;
-	// 	for(int tag = 1;tag <= get_num_tags() + 1;tag++){
-	// 		double p_emission = compute_p_word_given_tag(wi, tag);
-	// 		double p_generation = compute_p_tag_given_context(tag, ti_1);
-	// 		// int correcting_count_for_bigram = (ti_1 == tag == ti1) ? 1 : 0;
-	// 		// int correcting_count_for_destination = (ti_1 == tag) ? 1 : 0;
-	// 		double p_likelihood = compute_p_tag_given_context(ti1, tag);
-	// 		double conditional_p = p_emission * p_generation * p_likelihood;
-	// 		_gibbs_sampling_table[tag] = conditional_p;
-	// 		sum += conditional_p;
-	// 	}
-	// 	int new_tag = get_new_tag_id();
-	// 	double p_emission = compute_p_word_given_tag(wi, new_tag);
-	// 	double p_generation = compute_p_tag_given_context(new_tag, ti_1);
-	// 	double p_likelihood = compute_p_tag_given_context(ti1, new_tag);
-	// 	double conditional_p = p_emission * p_generation * p_likelihood;
-	// 	sum += conditional_p;
-	// 	// new_tag > _tag_unigram_count.size()ならサンプリングテーブルに入れなくてもよい.
-	// 	if(new_tag < _tag_unigram_count.size()){
-	// 		_gibbs_sampling_table[new_tag] = conditional_p;
-	// 	}
-	// 	assert(sum > 0);
-	// 	double normalizer = 1.0 / sum;
-	// 	double bernoulli = Sampler::uniform(0, 1);
-	// 	sum = 0;
-	// 	for(int tag = EOS + 1;tag < _tag_unigram_count.size();tag++){
-	// 		sum += _gibbs_sampling_table[tag] * normalizer;
-	// 		if(bernoulli <= sum){
-	// 			return tag;
-	// 		}
-	// 	}
-	// 	return new_tag;
-	// }
+	int InfiniteHMM::_perform_gibbs_sampling_on_markov_blanket(int ti_1, int ti1, id wi){
+		double sum = 0;
+		for(int tag = 1;tag <= get_num_tags() + 1;tag++){
+			double p_emission = compute_p_word_given_tag(wi, tag);
+			double p_generation = compute_p_tag_given_context(tag, ti_1);
+			// int correcting_count_for_bigram = (ti_1 == tag == ti1) ? 1 : 0;
+			// int correcting_count_for_destination = (ti_1 == tag) ? 1 : 0;
+			double p_likelihood = compute_p_tag_given_context(ti1, tag);
+			double conditional_p = p_emission * p_generation * p_likelihood;
+			_gibbs_sampling_table[tag] = conditional_p;
+			sum += conditional_p;
+		}
+		assert(sum > 0);
+		double normalizer = 1.0 / sum;
+		double bernoulli = sampler::uniform(0, 1);
+		sum = 0;
+		for(int tag = 1;tag <= get_num_tags() + 1;tag++){
+			sum += _gibbs_sampling_table[tag] * normalizer;
+			if(bernoulli <= sum){
+				return tag;
+			}
+		}
+		return get_num_tags() + 1;
+	}
 }
