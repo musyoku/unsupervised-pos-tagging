@@ -15,7 +15,7 @@ check_ldflags:	## libpython3の場所を確認
 
 .PHONY: test
 test: ## LLDB用.
-	$(CC) test/test.cpp src/ihmm/*.cpp src/python/*.cpp -o test/test $(INCLUDE) $(LDFLAGS) -O3
+	$(CC) test/test.cpp src/ihmm/*.cpp src/python/*.cpp -o test/test $(INCLUDE) $(LDFLAGS) -O0 -g
 
 .PHONY: help
 help:

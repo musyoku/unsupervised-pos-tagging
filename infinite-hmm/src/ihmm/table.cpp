@@ -9,15 +9,15 @@ namespace ihmm {
 	{
 		archive & _arrangement;
 		archive & _num_customers;
-		archive & _token_id;
+		archive & _identifier;
 	}
 	Table::Table(){
 		_num_customers = 0;
-		_token_id = 0;
+		_identifier = 0;
 	}
-	Table::Table(int token_id){
+	Table::Table(int identifier){
 		_num_customers = 0;
-		_token_id = token_id;
+		_identifier = identifier;
 	}
 	bool Table::is_empty(){
 		return _arrangement.size() == 0;

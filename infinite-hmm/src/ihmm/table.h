@@ -14,9 +14,9 @@ namespace ihmm {
 	public:
 		std::vector<int> _arrangement;
 		int _num_customers;
-		int _token_id;
+		int _identifier;
 		Table();
-		Table(int token_id);
+		Table(int identifier);
 		bool is_empty();
 		void add_customer(double concentration_parameter, bool &new_table_generated);
 		void remove_customer(bool &empty_table_deleted);

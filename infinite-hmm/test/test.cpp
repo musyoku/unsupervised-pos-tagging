@@ -39,7 +39,7 @@ void test1(){
 		}
 	}
 	for(int tag = 1;tag <= num_tags + 1;tag++){
-		for(id word_id = 0;word_id < ihmm->get_num_words();word_id++){
+		for(int word_id = 0;word_id < ihmm->get_num_words();word_id++){
 			double prob = ihmm->compute_p_word_given_tag(word_id, tag);
 			cout << "p(" << word_id << "|" << tag << ") = " << prob << endl;
 		}
@@ -80,8 +80,8 @@ void test2(){
 }
 
 void test3(int num_iterations){
-	int num_tags = 10;
-	std::string filename = "../../text/alice.txt";
+	int num_tags = 1;
+	std::string filename = "../../text/test.txt";
 	Corpus* corpus = new Corpus();
 	corpus->add_textfile(filename);
 	Dataset* dataset = new Dataset(corpus, 0.9, 1, 0);
@@ -102,7 +102,24 @@ void test3(int num_iterations){
 	}
 	delete corpus;
 	delete dataset;
-	delete dictionary;
+	delete model;
+	delete trainer;
+}
+
+void test4(){
+	int num_tags = 1;
+	std::string filename = "../../text/test.txt";
+	Corpus* corpus = new Corpus();
+	corpus->add_textfile(filename);
+	Dataset* dataset = new Dataset(corpus, 0.9, 1, 0);
+	Model* model = new Model(num_tags, dataset);
+	Trainer* trainer = new Trainer(dataset, model);
+
+
+	model->_hmm->_remove_all_training_dataset(dataset->_word_sequences_train);
+
+	delete corpus;
+	delete dataset;
 	delete model;
 	delete trainer;
 }
@@ -112,6 +129,7 @@ int main(){
 		test1();
 	}
 	test2();
-	test3(1000);
+	// test3(1000000);
+	test4();
 	return 0;
 }

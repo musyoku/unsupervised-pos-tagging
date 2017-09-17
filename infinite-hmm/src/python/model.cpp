@@ -56,8 +56,12 @@ namespace ihmm {
 		assert(sentence.size() > 2);	// <s>と</s>
 		int tag_bos = 0;	// <s>
 		for(int ti = 1;ti <= _hmm->get_num_tags();ti++){
+			if(_hmm->is_tag_new(ti)){
+				forward_table[1][ti] = 0;
+				continue;
+			}
 			int ti_1 = tag_bos;	// <s>
-			id wi = sentence[1]->_id;
+			int wi = sentence[1]->_id;
 			double p_transition = _hmm->compute_p_tag_given_context(ti, ti_1);
 			double p_emission = _hmm->compute_p_word_given_tag(wi, ti);
 			assert(p_transition > 0);
@@ -66,7 +70,11 @@ namespace ihmm {
 		}
 		for(int i = 2;i < sentence.size() - 1;i++){
 			for(int ti = 1;ti <= _hmm->get_num_tags();ti++){
-				id wi = sentence[i]->_id;
+				if(_hmm->is_tag_new(ti)){
+					forward_table[i][ti] = 0;
+					continue;
+				}
+				int wi = sentence[i]->_id;
 				double p_emission = _hmm->compute_p_word_given_tag(wi, ti);
 				assert(p_emission > 0);
 				forward_table[i][ti] = 0;
@@ -113,7 +121,7 @@ namespace ihmm {
 		sentence.push_back(bos);
 		for(int i = 0;i < num_words;i++){
 			Word* word = new Word();
-			word->_id = boost::python::extract<id>(py_word_ids[i]);
+			word->_id = boost::python::extract<int>(py_word_ids[i]);
 			word->_tag = 0;
 			sentence.push_back(word);
 		}
@@ -149,7 +157,7 @@ namespace ihmm {
 		int tag_bos = 0;	// <s>
 		for(int ti = 1;ti <= _hmm->get_num_tags();ti++){
 			int ti_1 = tag_bos;	// <s>
-			id wi = sentence[1]->_id;
+			int wi = sentence[1]->_id;
 			double p_transition = _hmm->compute_p_tag_given_context(ti, ti_1);
 			double p_emission = _hmm->compute_p_word_given_tag(wi, ti);
 			assert(p_transition > 0);
@@ -161,7 +169,7 @@ namespace ihmm {
 		}
 		for(int i = 2;i < sentence.size() - 1;i++){
 			for(int ti = 1;ti <= _hmm->get_num_tags();ti++){
-				id wi = sentence[i]->_id;
+				int wi = sentence[i]->_id;
 				double p_emission = _hmm->compute_p_word_given_tag(wi, ti);
 				double log_p_emission = -1000000;
 				if(p_emission > 0){
@@ -213,7 +221,7 @@ namespace ihmm {
 	// 		int n = 0;
 	// 		wcout << "\x1b[32;1m" << "[" << tag << "]" << "\x1b[0m" << std::endl;
 	// 		std::multiset<std::pair<int, int>, value_comparator> ranking;
-	// 		for(id word_id = 0;word_id < _hmm->_num_words;word_id++){
+	// 		for(int word_id = 0;word_id < _hmm->_num_words;word_id++){
 	// 			int count = _hmm->_tag_word_counts[tag][word_id];
 	// 			if(count > 0){
 	// 				ranking.insert(std::make_pair(word_id, count));

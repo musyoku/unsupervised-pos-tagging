@@ -9,14 +9,14 @@
 namespace ihmm {
 	class Dictionary{
 	public:
-		std::unordered_map<id, std::wstring> _id_to_str;
-		std::unordered_map<std::wstring, id> _str_to_id;
-		id _autoincrement;
+		std::unordered_map<int, std::wstring> _id_to_str;
+		std::unordered_map<std::wstring, int> _str_to_id;
+		int _autoincrement;
 		Dictionary();
-		id add_word_string(std::wstring word);
-		id string_to_word_id(std::wstring word);
-		std::wstring word_id_to_string(id word_id);
-		void remove_ids(std::unordered_set<id> word_ids);
+		int add_word_string(std::wstring word);
+		int string_to_word_id(std::wstring word);
+		std::wstring word_id_to_string(int word_id);
+		void remove_ids(std::unordered_set<int> word_ids);
 		int get_vocabrary_size();
 		bool is_unk(std::wstring word);
 		bool load(std::string filename);

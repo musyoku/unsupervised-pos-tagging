@@ -13,7 +13,7 @@ namespace ihmm {
 		_str_to_id[L"<unk>"] = ID_UNK;
 		_autoincrement = ID_UNK + 1;
 	}
-	id Dictionary::add_word_string(std::wstring word){
+	int Dictionary::add_word_string(std::wstring word){
 		auto itr = _str_to_id.find(word);
 		if(itr == _str_to_id.end()){
 			_id_to_str[_autoincrement] = word;
@@ -23,21 +23,21 @@ namespace ihmm {
 		}
 		return itr->second;
 	}
-	id Dictionary::string_to_word_id(std::wstring word){
+	int Dictionary::string_to_word_id(std::wstring word){
 		auto itr = _str_to_id.find(word);
 		if(itr == _str_to_id.end()){
 			return ID_UNK;
 		}
 		return itr->second;
 	}
-	std::wstring Dictionary::word_id_to_string(id word_id){
+	std::wstring Dictionary::word_id_to_string(int word_id){
 		auto itr = _id_to_str.find(word_id);
 		assert(itr != _id_to_str.end());
 		return itr->second;
 	}
 	// <unk>に置き換える
-	void Dictionary::remove_ids(std::unordered_set<id> word_ids){
-		for(id word_id: word_ids){
+	void Dictionary::remove_ids(std::unordered_set<int> word_ids){
+		for(int word_id: word_ids){
 			std::wstring word = word_id_to_string(word_id);
 			_id_to_str[word_id] = L"<unk>";
 			_str_to_id[word] = ID_UNK;
@@ -47,7 +47,7 @@ namespace ihmm {
 		return _str_to_id.size();
 	}
 	bool Dictionary::is_unk(std::wstring word){
-		id word_id = string_to_word_id(word);
+		int word_id = string_to_word_id(word);
 		return word_id == ID_UNK;
 	}
 	bool Dictionary::load(std::string filename){

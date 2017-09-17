@@ -18,7 +18,7 @@ namespace ihmm {
 	class InfiniteHMM {
 	public:
 		int _initial_num_tags;
-		id _num_words;
+		int _num_words;
 		int _prev_num_tags;
 		std::vector<std::vector<Table*>> _n_ij_tables;	// 品詞bigramの出現頻度
 		std::vector<Table**> _m_iq_tables;	// 品詞と単語のペアの出現頻度
@@ -38,6 +38,7 @@ namespace ihmm {
 		InfiniteHMM(int initial_num_tags, int num_words);
 		~InfiniteHMM();
 		void initialize_with_training_dataset(std::vector<std::vector<Word*>> &dataset);
+		void _remove_all_training_dataset(std::vector<std::vector<Word*>> &dataset);
 		int get_num_tags();
 		int get_num_valid_tags();
 		int get_num_words();
@@ -46,13 +47,13 @@ namespace ihmm {
 		int get_oracle_sum_n_over_j();
 		int get_oracle_n_j(int tag);
 		int get_sum_m_i_over_q(int tag);
-		int get_m_iq(int tag, id word_id);
+		int get_m_iq(int tag, int word_id);
 		int get_oracle_sum_m_over_q();
-		int get_oracle_m_q(id word_id);
+		int get_oracle_m_q(int word_id);
 		int _get_new_tag();
 		bool is_tag_new(int tag);
 		double compute_p_tag_given_context(int tag, int context_tag);
-		double compute_p_word_given_tag(id word_id, int tag);
+		double compute_p_word_given_tag(int word_id, int tag);
 		bool save(std::string filename);
 		bool load(std::string filename);
 		// void _add_special_tag();
@@ -60,13 +61,13 @@ namespace ihmm {
 		void _delete_tag(int tag);
 		void _increment_tag_bigram_count(int context_tag, int tag);
 		void _decrement_tag_bigram_count(int context_tag, int tag);
-		void _increment_tag_word_count(int tag, id word_id);
+		void _increment_tag_word_count(int tag, int word_id);
 		void _decrement_tag_word_count(int tag, int word_id);
 		void _increment_oracle_tag_count(int tag);
 		void _decrement_oracle_tag_count(int tag);
 		void _increment_oracle_word_count(int word_id);
 		void _decrement_oracle_word_count(int word_id);
-		int _perform_gibbs_sampling_on_markov_blanket(int ti_1, int ti1, id wi);
+		int _perform_gibbs_sampling_on_markov_blanket(int ti_1, int ti1, int wi);
 		void perform_gibbs_sampling_with_sequence(std::vector<Word*> &word_vec);
 	};
 }

@@ -43,6 +43,7 @@ namespace ihmm {
 				delete word;
 			}
 		}
+		delete[] _dict;
 	}
 	void Dataset::_add_words_to_dataset(std::vector<std::wstring> &word_str_vec, std::vector<std::vector<Word*>> &dataset, Corpus* corpus, int unknown_count){
 		assert(word_str_vec.size() > 0);
