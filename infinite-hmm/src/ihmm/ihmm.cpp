@@ -63,7 +63,7 @@ namespace ihmm {
 		for(int data_index = 0;data_index < dataset.size();data_index++){
 			std::vector<Word*> &word_ids = dataset[data_index];
 			int ti_1 = 0;
-			for(int i = 0;i < word_ids.size();i++){
+			for(int i = 1;i < word_ids.size() - 1;i++){
 				Word* word = word_ids[i];
 				int ti = sampler::uniform_int(1, _initial_num_tags);
 				int wi = word->_id;
@@ -79,7 +79,7 @@ namespace ihmm {
 		for(int data_index = 0;data_index < dataset.size();data_index++){
 			std::vector<Word*> &word_ids = dataset[data_index];
 			int ti_1 = 0;
-			for(int i = 0;i < word_ids.size();i++){
+			for(int i = 1;i < word_ids.size() - 1;i++){
 				Word* word = word_ids[i];
 				int ti = word->_tag;
 				int wi = word->_id;
@@ -87,7 +87,7 @@ namespace ihmm {
 				_decrement_tag_word_count(ti, wi);
 				ti_1 = ti;
 			}
-			_decrement_tag_word_count(ti_1, 0);	// </s>への遷移
+			_decrement_tag_bigram_count(ti_1, 0);	// </s>への遷移
 		}
 	}
 	// void InfiniteHMM::_add_special_tag(){
@@ -123,7 +123,7 @@ namespace ihmm {
 		for(int context_tag = 0;context_tag < new_num_tags;context_tag++){
 			std::vector<Table*> &table_vec = _n_ij_tables[context_tag];
 			assert(table_vec.size() == new_num_tags);
-			table_vec.push_back(new Table(context_tag));
+			table_vec.push_back(new Table(new_num_tags));
 		}
 		// tagと単語のペアの出現頻度
 		Table** table_array = new Table*[_num_words];
@@ -206,6 +206,7 @@ namespace ihmm {
 		_sum_n_i_over_j[context_tag] += 1;
 		Table* table = _n_ij_tables[context_tag][tag];
 		assert(table != NULL);
+		assert(table->_identifier == tag);
 		bool new_table_generated = false;
 		table->add_customer(_beta, new_table_generated);
 		if(new_table_generated){
@@ -219,6 +220,7 @@ namespace ihmm {
 		assert(_sum_n_i_over_j[context_tag] >= 0);
 		Table* table = _n_ij_tables[context_tag][tag];
 		assert(table != NULL);
+		assert(table->_identifier == tag);
 		bool empty_table_deleted = false;
 		table->remove_customer(empty_table_deleted);
 		if(empty_table_deleted){
@@ -230,6 +232,8 @@ namespace ihmm {
 		assert(0 <= word_id < _num_words);
 		_sum_m_i_over_q[tag] += 1;
 		Table* table = _m_iq_tables[tag][word_id];
+		assert(table != NULL);
+		assert(table->_identifier == word_id);
 		bool new_table_generated = false;
 		table->add_customer(_beta_emission, new_table_generated);
 		if(new_table_generated){
@@ -241,6 +245,8 @@ namespace ihmm {
 		assert(0 <= word_id < _num_words);
 		_sum_m_i_over_q[tag] += 1;
 		Table* table = _m_iq_tables[tag][word_id];
+		assert(table != NULL);
+		assert(table->_identifier == word_id);
 		bool empty_table_deleted = false;
 		table->remove_customer(empty_table_deleted);
 		if(empty_table_deleted){
@@ -253,7 +259,7 @@ namespace ihmm {
 		_oracle_sum_n_over_j += 1;
 	}
 	void InfiniteHMM::_decrement_oracle_tag_count(int tag){
-		assert(1 <= tag && tag <= get_num_tags());
+		assert(0 <= tag && tag <= get_num_tags());
 		_oracle_n_j_counts[tag] -= 1;
 		_oracle_sum_n_over_j -= 1;
 		assert(_oracle_n_j_counts[tag] >= 0);
@@ -289,6 +295,7 @@ namespace ihmm {
 		assert(0 <= context_tag && context_tag <= get_num_tags());
 		Table* table = _n_ij_tables[context_tag][tag];
 		assert(table != NULL);
+		assert(table->_identifier == tag);
 		return table->get_num_customers();
 	}
 	int InfiniteHMM::get_oracle_sum_n_over_j(){
@@ -316,6 +323,7 @@ namespace ihmm {
 		assert(0 <= word_id && word_id < get_num_words());
 		Table* table = _m_iq_tables[tag][word_id];
 		assert(table != NULL);
+		assert(table->_identifier == word_id);
 		return table->get_num_customers();
 	}
 	int InfiniteHMM::get_oracle_sum_m_over_q(){

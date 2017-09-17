@@ -113,22 +113,29 @@ void test4(){
 	corpus->add_textfile(filename);
 	Dataset* dataset = new Dataset(corpus, 0.9, 1, 0);
 	Model* model = new Model(num_tags, dataset);
-	Trainer* trainer = new Trainer(dataset, model);
-
-
 	model->_hmm->_remove_all_training_dataset(dataset->_word_sequences_train);
 
 	delete corpus;
 	delete dataset;
 	delete model;
-	delete trainer;
+}
+
+void test5(){
+	Table* table = new Table();
+	bool a = true;
+	for(int i = 0;i < 1000;i++){
+		table->add_customer(1, a);
+	}
+	for(int i = 0;i < 1000;i++){
+		table->remove_customer(a);
+	}
 }
 
 int main(){
-	for(int i = 0;i < 10;i++){
-		test1();
-	}
-	test2();
+	// for(int i = 0;i < 10;i++){
+	// 	test1();
+	// }
+	// test2();
 	// test3(1000000);
 	test4();
 	return 0;
