@@ -291,7 +291,7 @@ namespace ihmm {
 		if(context_tag > get_num_tags()){
 			return 0;
 		}
-		assert(1 <= tag && tag <= get_num_tags());
+		assert(0 <= tag && tag <= get_num_tags());
 		assert(0 <= context_tag && context_tag <= get_num_tags());
 		Table* table = _n_ij_tables[context_tag][tag];
 		assert(table != NULL);
@@ -305,7 +305,7 @@ namespace ihmm {
 		if(tag > get_num_tags()){
 			return 0;
 		}
-		assert(1 <= tag && tag <= get_num_tags());
+		assert(0 <= tag && tag <= get_num_tags());
 		return _oracle_n_j_counts[tag];
 	}
 	int InfiniteHMM::get_sum_m_i_over_q(int tag){
@@ -426,6 +426,7 @@ namespace ihmm {
 				return tag;
 			}
 		}
+		assert(false);
 		return stack_size;
 	}
 	void InfiniteHMM::perform_gibbs_sampling_with_sequence(std::vector<Word*> &word_vec){

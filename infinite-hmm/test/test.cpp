@@ -131,12 +131,81 @@ void test5(){
 	}
 }
 
+void test6(){
+	std::vector<Word*> word_vec_1;
+	{
+		Word* word = new Word();
+		word->_id = 0;
+		word->_tag = 0;
+		word_vec_1.push_back(word);
+	}
+	{
+		Word* word = new Word();
+		word->_id = 1;
+		word->_tag = 1;
+		word_vec_1.push_back(word);
+	}
+	{
+		Word* word = new Word();
+		word->_id = 2;
+		word->_tag = 2;
+		word_vec_1.push_back(word);
+	}
+	{
+		Word* word = new Word();
+		word->_id = 0;
+		word->_tag = 0;
+		word_vec_1.push_back(word);
+	}
+	std::vector<Word*> word_vec_2;
+	{
+		Word* word = new Word();
+		word->_id = 0;
+		word->_tag = 0;
+		word_vec_2.push_back(word);
+	}
+	{
+		Word* word = new Word();
+		word->_id = 3;
+		word->_tag = 3;
+		word_vec_2.push_back(word);
+	}
+	{
+		Word* word = new Word();
+		word->_id = 4;
+		word->_tag = 4;
+		word_vec_2.push_back(word);
+	}
+	{
+		Word* word = new Word();
+		word->_id = 0;
+		word->_tag = 0;
+		word_vec_2.push_back(word);
+	}
+	std::vector<std::vector<Word*>> word_sequences;
+	for(int i = 0;i < 100;i++){
+		word_sequences.push_back(word_vec_1);
+	}
+	for(int i = 0;i < 50;i++){
+		word_sequences.push_back(word_vec_2);
+	}
+
+	InfiniteHMM* hmm = new InfiniteHMM(10, 5);
+	hmm->initialize_with_training_dataset(word_sequences);
+
+	std::vector<Word*> &word_vec = word_sequences[0];
+	hmm->perform_gibbs_sampling_with_sequence(word_vec);
+	for(int i = 1;i < word_vec.size() - 1;i++){
+		cout << word_vec[i]->_tag << endl;
+	}
+}
+
 int main(){
 	// for(int i = 0;i < 10;i++){
 	// 	test1();
 	// }
 	// test2();
 	// test3(1000000);
-	test4();
+	test6();
 	return 0;
 }
