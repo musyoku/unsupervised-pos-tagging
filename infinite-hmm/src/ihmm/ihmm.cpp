@@ -65,11 +65,62 @@ namespace ihmm {
 			int ti_1 = 0;
 			for(int i = 1;i < word_ids.size() - 1;i++){
 				Word* word = word_ids[i];
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 				int ti = sampler::uniform_int(1, _initial_num_tags);
+
+
+				ti = word->_tag;
+
+
+
+
 				int wi = word->_id;
 				_increment_tag_bigram_count(ti_1, ti);
 				_increment_tag_word_count(ti, wi);
-				word->_tag = ti;
+				// word->_tag = ti;
 				ti_1 = ti;
 			}
 			_increment_tag_bigram_count(ti_1, 0);	// </s>への遷移
@@ -243,7 +294,7 @@ namespace ihmm {
 	void InfiniteHMM::_decrement_tag_word_count(int tag, int word_id){
 		assert(1 <= tag && tag <= get_num_tags());
 		assert(0 <= word_id < _num_words);
-		_sum_m_i_over_q[tag] += 1;
+		_sum_m_i_over_q[tag] -= 1;
 		Table* table = _m_iq_tables[tag][word_id];
 		assert(table != NULL);
 		assert(table->_identifier == word_id);
@@ -365,6 +416,9 @@ namespace ihmm {
 		double T = get_num_tags();
 		double g0 = 1.0 / (T + 1);
 		double oracle_p = (n_oj + _gamma * g0) / (n_o + _gamma);
+		std::cout << "		compute_p_tag_given_context(" << tag << ", " << context_tag << std::endl;
+		std::cout << "		n_i=" << n_i << ", n_ij=" << n_ij << ", empirical_p=" << empirical_p << ", coeff_oracle_p=" << coeff_oracle_p << std::endl;
+		std::cout << "		n_o=" << n_o << ", n_oj=" << n_oj << ", T=" << T << ", oracle_p=" << oracle_p << std::endl;
 		return empirical_p + coeff_oracle_p * oracle_p;
 	}
 	// P(y_t|s_t)
@@ -383,10 +437,16 @@ namespace ihmm {
 		// cout << "m_o = " << m_o << ", m_oq = " << m_oq << endl;
 		double oracle_p = (m_oq + _gamma_emission * g0) / (m_o + _gamma_emission);
 		// cout << "empirical_p = " << empirical_p << ", coeff_oracle_p = " << coeff_oracle_p << ", oracle_p = " << oracle_p << endl;
+
+		std::cout << "		compute_p_word_given_tag(" << word_id << ", " << tag << std::endl;
+		std::cout << "		m_i=" << m_i << ", m_iq=" << m_iq << ", empirical_p=" << empirical_p << ", coeff_oracle_p=" << coeff_oracle_p << std::endl;
+		std::cout << "		m_o=" << m_o << ", m_oq=" << m_oq << ", W=" << W << ", oracle_p=" << oracle_p << std::endl;
+
 		return empirical_p + coeff_oracle_p * oracle_p;
 	}
 	// ギブスサンプリング
 	int InfiniteHMM::_perform_gibbs_sampling_on_markov_blanket(int ti_1, int ti1, int wi){
+		std::cout << "_perform_gibbs_sampling_on_markov_blanket(" << ti_1 << ", " << ti1 << ", " << wi << std::endl;
 		double sum = 0;
 		for(int tag = 1;tag <= get_num_tags();tag++){
 			double p_emission = compute_p_word_given_tag(wi, tag);
@@ -399,6 +459,7 @@ namespace ihmm {
 			assert(p_likelihood > 0);
 			double conditional_p = p_emission * p_generation * p_likelihood;
 			_gibbs_sampling_table[tag] = conditional_p;
+			std::cout << "	_gibbs_sampling_table[" << tag << "] = " << conditional_p << std::endl;
 			sum += conditional_p;
 		}
 		int stack_size = get_num_tags();
@@ -413,6 +474,7 @@ namespace ihmm {
 			assert(p_likelihood > 0);
 			double conditional_p = p_emission * p_generation * p_likelihood;
 			_gibbs_sampling_table[new_tag] = conditional_p;
+			std::cout << "	_gibbs_sampling_table[" << new_tag << "] = " << conditional_p << std::endl;
 			sum += conditional_p;
 			stack_size += 1;
 		}
@@ -420,6 +482,7 @@ namespace ihmm {
 		double normalizer = 1.0 / sum;
 		double bernoulli = sampler::uniform(0, 1);
 		double stack = 0;
+		std::cout << "bernoulli = " << bernoulli << std::endl;
 		for(int tag = 1;tag <= stack_size;tag++){
 			stack += _gibbs_sampling_table[tag] * normalizer;
 			if(bernoulli <= stack){
@@ -441,6 +504,7 @@ namespace ihmm {
 			_decrement_tag_word_count(ti, wi);
 			// t_iを再サンプリング
 			int new_ti = _perform_gibbs_sampling_on_markov_blanket(ti_1, ti1, wi);
+			std::cout << "new_ti = " << new_ti << std::endl;
 			assert(1 <= new_ti && new_ti <= get_num_tags() + 1);	// 新しいタグも許可
 			if(new_ti == get_num_tags() + 1){
 				_add_new_tag();

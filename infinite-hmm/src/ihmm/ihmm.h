@@ -23,8 +23,8 @@ namespace ihmm {
 		std::vector<std::vector<Table*>> _n_ij_tables;	// 品詞bigramの出現頻度
 		std::vector<Table**> _m_iq_tables;	// 品詞と単語のペアの出現頻度
 		int* _oracle_m_q_counts;
-		int _oracle_sum_n_over_j;			// \sum_j{n_j^oj}
-		int _oracle_sum_m_over_q;			// \sum_j{m_q^oj}
+		int _oracle_sum_n_over_j;			// \sum_j{n_j^o}
+		int _oracle_sum_m_over_q;			// \sum_j{m_q^o}
 		std::vector<int> _sum_n_i_over_j;	// \sum_j{n_ij}の計算用
 		std::vector<int> _oracle_n_j_counts;
 		std::vector<int> _sum_m_i_over_q;

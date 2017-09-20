@@ -10,6 +10,40 @@
 using namespace ihmm;
 using namespace std;
 
+void test_tag_word_count(){
+	InfiniteHMM* ihmm = new InfiniteHMM(10, 100);
+	for(int tag = 1;tag <= ihmm->get_num_tags();tag++){
+		for(int word_id = 0;word_id < 100;word_id++){
+			for(int i = 0;i < 100;i++){
+				ihmm->_increment_tag_word_count(tag, word_id);
+			}
+			for(int i = 0;i < 100;i++){
+				ihmm->_decrement_tag_word_count(tag, word_id);
+			}
+			assert(ihmm->_oracle_sum_m_over_q == 0);
+			assert(ihmm->_sum_m_i_over_q[tag] == 0);
+			assert(ihmm->_m_iq_tables[tag][word_id]->get_num_customers() == 0);
+		}
+	}
+}
+
+void test_tag_bigram_count(){
+	InfiniteHMM* ihmm = new InfiniteHMM(10, 100);
+	for(int tag = 1;tag <= ihmm->get_num_tags();tag++){
+		for(int context_tag = 1;context_tag <= ihmm->get_num_tags();context_tag++){
+			for(int i = 0;i < 100;i++){
+				ihmm->_increment_tag_bigram_count(context_tag, tag);
+			}
+			for(int i = 0;i < 100;i++){
+				ihmm->_decrement_tag_bigram_count(context_tag, tag);
+			}
+			assert(ihmm->_oracle_sum_n_over_j == 0);
+			assert(ihmm->_sum_n_i_over_j[tag] == 0);
+			assert(ihmm->_n_ij_tables[context_tag][tag]->get_num_customers() == 0);
+		}
+	}
+}
+
 void test1(){
 	InfiniteHMM* ihmm = new InfiniteHMM(10, 100);
 	int num_tags = ihmm->get_num_tags();
@@ -183,20 +217,27 @@ void test6(){
 		word_vec_2.push_back(word);
 	}
 	std::vector<std::vector<Word*>> word_sequences;
-	for(int i = 0;i < 100;i++){
+	for(int i = 0;i < 10;i++){
 		word_sequences.push_back(word_vec_1);
 	}
-	for(int i = 0;i < 50;i++){
+	for(int i = 0;i < 5;i++){
 		word_sequences.push_back(word_vec_2);
 	}
 
 	InfiniteHMM* hmm = new InfiniteHMM(10, 5);
 	hmm->initialize_with_training_dataset(word_sequences);
 
-	std::vector<Word*> &word_vec = word_sequences[0];
-	hmm->perform_gibbs_sampling_with_sequence(word_vec);
-	for(int i = 1;i < word_vec.size() - 1;i++){
-		cout << word_vec[i]->_tag << endl;
+	cout << "oracle:" << endl;
+	for(int tag = 0;tag <= hmm->get_num_tags();tag++){
+		cout << tag << ":" << hmm->_oracle_n_j_counts[tag] << endl;
+	}
+
+	for(int i = 0;i < 2;i++){
+		std::vector<Word*> &word_vec = word_sequences[i];
+		hmm->perform_gibbs_sampling_with_sequence(word_vec);
+		for(int i = 1;i < word_vec.size() - 1;i++){
+			cout << word_vec[i]->_tag << endl;
+		}
 	}
 }
 
@@ -206,6 +247,8 @@ int main(){
 	// }
 	// test2();
 	// test3(1000000);
+	test_tag_word_count();
+	test_tag_bigram_count();
 	test6();
 	return 0;
 }
