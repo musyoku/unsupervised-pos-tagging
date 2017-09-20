@@ -114,7 +114,7 @@ void test2(){
 }
 
 void test3(int num_iterations){
-	int num_tags = 1;
+	int num_tags = 10;
 	std::string filename = "../../text/test.txt";
 	Corpus* corpus = new Corpus();
 	corpus->add_textfile(filename);
@@ -132,6 +132,7 @@ void test3(int num_iterations){
 			cout << trainer->compute_log_p_dataset_train() << ", " << trainer->compute_log_p_dataset_dev() << endl;
 			model->save("ihmm.model");
 			cout << model->_hmm->get_num_valid_tags() << endl;
+			model->print_typical_words_assigned_to_each_tag(10, dictionary);
 		}
 	}
 	delete corpus;
@@ -246,9 +247,9 @@ int main(){
 	// 	test1();
 	// }
 	// test2();
-	// test3(1000000);
 	test_tag_word_count();
 	test_tag_bigram_count();
-	test6();
+	// test6();
+	test3(1000000);
 	return 0;
 }

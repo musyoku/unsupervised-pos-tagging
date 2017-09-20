@@ -209,35 +209,41 @@ namespace ihmm {
 		std::reverse(sampled_state_sequence.begin(), sampled_state_sequence.end());
 		assert(sampled_state_sequence.size() == sentence.size() - 2);
 	}
-	// struct value_comparator {
-	// 	bool operator()(const std::pair<int, int> &a, const std::pair<int, int> &b) {
-	// 		return a.second > b.second;
-	// 	}   
-	// };
-	// void Model::print_typical_words_assigned_to_each_tag(int number_to_show, Dictionary* dict){
-	// 	using std::wcout;
-	// 	using std::endl;
-	// 	for(int tag = 1;tag <= _hmm->get_num_tags();tag++){
-	// 		int n = 0;
-	// 		wcout << "\x1b[32;1m" << "[" << tag << "]" << "\x1b[0m" << std::endl;
-	// 		std::multiset<std::pair<int, int>, value_comparator> ranking;
-	// 		for(int word_id = 0;word_id < _hmm->_num_words;word_id++){
-	// 			int count = _hmm->_tag_word_counts[tag][word_id];
-	// 			if(count > 0){
-	// 				ranking.insert(std::make_pair(word_id, count));
-	// 			}
-	// 		}
-	// 		for(auto elem: ranking){
-	// 			std::wstring word = dict->word_id_to_string(elem.first);
-	// 			wcout << "\x1b[1m" << word << "\x1b[0m" << L"(" << elem.second << L") ";
-	// 			n++;
-	// 			if(n > number_to_show){
-	// 				break;
-	// 			}
-	// 		}
-	// 		wcout << endl;
-	// 	}
-	// }
+	struct value_comparator {
+		bool operator()(const std::pair<int, int> &a, const std::pair<int, int> &b) {
+			return a.second > b.second;
+		}   
+	};
+	void Model::print_typical_words_assigned_to_each_tag(int number_to_show, Dictionary* dict){
+		using std::wcout;
+		using std::endl;
+		for(int tag = 1;tag <= _hmm->get_num_tags();tag++){
+			if(_hmm->is_tag_new(tag)){
+				continue;
+			}
+			int n = 0;
+			wcout << "\x1b[32;1m" << "[" << tag << "]" << "\x1b[0m" << std::endl;
+			std::multiset<std::pair<int, int>, value_comparator> ranking;
+			for(int word_id = 0;word_id < _hmm->get_num_words();word_id++){
+				if(dict->is_unk(word_id)){
+					continue;
+				}
+				int count = _hmm->_m_iq_tables[tag][word_id]->get_num_customers();
+				if(count > 0){
+					ranking.insert(std::make_pair(word_id, count));
+				}
+			}
+			for(auto elem: ranking){
+				std::wstring word = dict->word_id_to_string(elem.first);
+				wcout << "\x1b[1m" << word << "\x1b[0m" << L"(" << elem.second << L") ";
+				n++;
+				if(n > number_to_show){
+					break;
+				}
+			}
+			wcout << endl;
+		}
+	}
 	// void Model::print_alpha_and_beta(){
 	// 	using std::cout;
 	// 	using std::endl;
