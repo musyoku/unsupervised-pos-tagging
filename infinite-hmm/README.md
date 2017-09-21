@@ -6,64 +6,135 @@
 
 #### Todo:
 
-- [ ] 日本語学習用のPythonコード
 - [ ] ハイパーパラメータのサンプリング
-- [ ] Viterbiデコード
 - [ ] ビームサンプリング
 
-## ビルド
+## 準備
+
+### macOS
+
+macOSの場合、PythonとBoostはともにbrewでインストールする必要があります。
+
+#### Python 3のインストール
+
+```
+brew install python3
+```
+
+`PYTHONPATH`を変更する必要があるかもしれません。
+
+#### Boostのインストール
+
+```
+brew install boost-python --with-python3
+```
+
+### Linux
+
+#### Boostのインストール
+
+```
+./bootstrap.sh --with-libraries=python --with-python=python3 --with-python-root=YOUR_PYTHON_ROOT
+./b2 python=3.6 -d2 -j4
+```
+
+### ビルド
+
+以下のコマンドで`bhmm.so`が生成され、Pythonから利用できるようになります。
 
 ```
 make install
 ```
 
+`makefile`のBoostのincludeパスを自分の環境に合わせて書き換えてください。
+
+### MeCabのインストール
+
+```
+pip install mecab-python3
+```
+
 ## 学習
 
-### 英語
+英語のテキストファイルの場合は以下のコマンドで学習できます。
 
 ```
-python train_en.py -f ../alice.txt -n 2 -e 100000 -u 1
+python3 train_en.py  -f ../../text/ptb.txt -split 1 -tags 1 -e 40000
 ```
+
+日本語のテキストファイルの場合は以下のコマンドで学習できます。
+
+```
+python3 train_ja.py  -f ../../text/neko.txt -split 1 -tags 1 -e 40000
+```
+
+## 結果の可視化
+
+各予測タグとそれに割り当てられた単語を表示するには以下のコマンドを実行します。
+
+```
+python3 tags.py -n 200
+```
+
+混同行列をプロットするには以下のコマンドを実行します。
+
+```
+python3 plot_ja.py -f ../../text/kokoro.txt
+```
+
+学習時に使用したテキストファイルを指定します。
 
 ## 結果
 
+### こゝろ
+
+`kokoro.txt`の学習結果です。
+
 ```
-tag 1:
-	<eos>/1397, 
-tag 2:
-	./1209, !/115, ?/74, 
-tag 3:
-	queen/75, king/64, head/60, hatter/57, gryphon/55, mouse/48, duchess/42, dormouse/40, eye/36, door/32, moment/31, caterpillar/27, hand/26, jury/22, arm/21, other/21, face/20, word/20, house/19, cat/19, court/18, table/18, air/16, tree/15, footman/15, baby/14, sea/14, game/14, dance/14, mouth/14, lobster/13, life/13, cook/13, dodo/13, tail/12, dear/12, majesty/12, slate/12, pigeon/12, name/12, trial/11, bottle/10, hedgehog/10, soldier/10, reason/10, pool/10, rate/9, knave/9, history/8, direction/8, window/8, shoulder/8, distance/8, wood/8, whiting/8, middle/7, low/7, well/7, while/7, tart/7, story/7, song/7, subject/7, chimney/7, lory/7, world/7, pardon/7, puppy/7, oop/7, procession/6, answer/6, lizard/6, youth/6, roof/6, executioner/6, glad/5, watch/5, argument/5, arch/5, case/5, officer/5, morning/5, clock/5, knee/5, teacup/5, back/5, corner/5, sky/5, finger/5, friend/5, hookah/5, flamingo/5, grass/4, fire/4, number/4, age/4, thimble/4, week/4, master/4, fancy/4, sigh/4, 
-tag 4:
-	,/2419, !/335, '/197, ?/126, and/47, than/11, sob/4, since/4, grave/3, curtsey/2, edition/2, shore/1, bright/1, 
-tag 5:
-	go/179, <unk>/161, get/108, look/106, come/78, make/76, very/53, turn/42, tell/42, take/39, all/37, not/37, sit/36, as/34, put/34, grow/32, talk/31, give/30, leave/27, too/26, rather/25, so/25, call/25, run/22, quite/21, write/21, repeat/20, keep/20, walk/19, hold/17, find/17, open/17, finish/17, eat/16, nothing/16, fall/15, let/15, live/15, read/14, once/13, shake/13, lie/13, follow/13, swim/12, manage/12, learn/12, matter/11, move/11, play/11, cry/11, interrupt/11, explain/11, please/10, hand/10, help/10, stop/10, sneeze/10, jump/10, drink/10, consider/10, break/10, sing/10, order/9, bring/9, hurry/9, sigh/8, throw/8, watch/8, become/8, drop/7, fetch/7, shut/7, cross/6, miss/6, trouble/6, mark/6, stay/6, deny/6, nurse/6, carry/6, fly/5, choke/5, wave/5, rise/5, dig/5, fast/5, reach/5, shout/5, lead/5, puzzle/5, attend/5, cut/5, set/5, point/5, settle/5, mutter/5, lose/5, bow/5, send/5, show/5, nibble/5, 
-tag 6:
-	<unk>/262, thing/80, time/74, turtle/60, way/57, voice/51, rabbit/50, one/44, tone/42, day/33, minute/32, hare/31, cat/30, sort/23, child/21, question/21, side/21, end/19, foot/18, remark/17, soup/16, garden/16, pig/16, high/16, use/15, bit/15, idea/15, creature/14, size/14, silence/14, book/13, room/13, bird/12, serpent/12, fan/12, rest/12, deal/12, word/11, conversation/11, ear/11, surprise/11, hurry/11, glove/11, sister/11, place/11, witness/10, hall/9, tea/9, fish/9, party/9, top/9, dream/9, moral/9, key/9, piece/9, nose/8, mushroom/8, sound/8, verse/8, gardener/8, opportunity/8, hair/7, puzzle/7, bat/7, people/7, pepper/7, bread/7, rule/7, temper/7, business/7, ground/7, pocket/7, shriek/7, chin/7, shoe/7, neck/7, paw/7, crowd/7, girl/7, kind/7, sentence/6, egg/6, dog/6, English/6, evidence/6, water/6, politely/6, thought/6, adventure/6, smile/6, cake/6, animal/6, man/6, dish/6, pair/6, fear/5, judge/5, hour/5, juror/5, likely/5, meaning/5, 
-tag 7:
-	be/411, have/274, n't/217, to/159, do/134, will/99, not/79, could/78, would/75, must/44, seem/40, never/39, all/37, should/32, only/30, can/30, ca/28, might/28, begin/26, quite/21, shall/20, just/20, ever/17, ought/14, may/14, soon/13, wo/12, hardly/12, always/11, even/9, like/7, certainly/7, well/7, venture/7, keep/6, hastily/6, almost/6, remember/6, instantly/5, dare/5, get/5, suddenly/4, ready/4, both/4, simply/3, decide/3, sha/3, immediately/3, really/3, oblige/3, possibly/3, Sha/3, need/3, six/2, dip/2, cautiously/2, nowhere/2, still/2, usually/2, mine/2, thoroughly/2, number/1, cat/1, promise/1, angry/1, next/1, 
-tag 8:
-	on/127, out/117, it/115, up/100, down/86, off/73, you/59, <unk>/59, me/54, much/51, about/47, over/40, them/39, back/35, her/32, more/31, well/29, so/29, him/29, round/27, away/25, one/23, in/22, herself/22, enough/18, to/17, something/16, close/14, itself/14, mad/14, us/14, half/13, large/13, far/13, anxiously/13, soon/12, with/11, long/11, dry/10, yourself/10, some/10, near/10, else/10, small/10, timidly/9, any/9, from/9, together/9, angrily/9, lesson/9, late/8, slowly/8, asleep/8, suddenly/7, silent/7, croquet/7, myself/7, right/7, taste/6, through/6, nonsense/6, frighten/6, present/6, hard/6, home/5, these/5, sadly/5, nearly/5, across/5, tired/5, different/5, wrong/5, somebody/5, upset/4, true/4, thoughtfully/4, care/4, splash/4, ready/4, glass/4, violently/4, solemnly/4, severely/4, people/4, deeply/4, alone/4, pale/4, many/3, everything/3, trot/3, bend/3, whatever/3, loudly/3, hunt/3, instead/3, em/3, stare/3, dull/3, certain/3, themselves/3, below/3, 
-tag 9:
-	she/553, i/544, you/321, it/300, alice/169, they/152, he/125, there/70, who/55, to/38, that/35, what/35, we/34, which/26, this/23, then/17, how/16, do/13, wo/12, without/8, would/8, everybody/8, nobody/5, often/5, half/4, seven/4, one/3, nothing/3, nearly/3, mustard/3, soup/2, something/2, latitude/2, else/2, somebody/2, merely/2, hurriedly/2, people/2, ferret/2, attempt/1, crumb/1, 
-tag 10:
-	and/350, say/333, S/103, s/94, with/24, thought/17, cry/15, think/10, after/7, add/7, half/6, shout/6, continue/6, please/5, father/4, yer/4, scream/4, feel/3, '/3, exclaim/3, rub/3, plead/3, everything/2, mostly/2, rule/1, William/1, frown/1, use/1, busily/1, 
-tag 11:
-	the/1635, a/627, her/162, his/96, this/70, no/67, your/62, my/58, an/57, its/57, their/52, very/51, some/41, one/35, any/30, that/27, another/21, all/17, every/12, those/10, two/9, what/8, four/8, our/8, which/8, each/8, soo/7, these/7, o/6, both/5, catch/4, beau/4, several/4, gently/3, nine/3, personal/2, always/2, whose/2, course/1, quite/1, 
-tag 12:
-	little/127, <unk>/108, mock/55, good/39, very/39, great/39, march/35, white/30, large/28, other/26, three/26, same/24, first/22, long/22, curious/21, right/20, more/18, poor/17, next/16, last/14, queer/13, whole/13, old/11, foot/11, beautiful/10, low/10, own/10, tea/9, many/9, few/9, deep/8, most/8, stupid/7, hot/7, bright/7, golden/7, cheshire/7, loud/7, dreadfully/6, guinea/6, two/6, glass/6, sharp/6, melancholy/6, inch/6, nice/6, e/6, shrill/5, simple/5, small/5, young/5, only/5, kid/5, offend/5, strange/5, mile/5, tremble/5, sudden/5, new/5, dear/4, ten/4, flower/4, second/4, capital/4, tiny/4, dead/4, short/4, different/4, lesson/4, confusing/3, dark/3, bark/3, croquet/3, sleepy/3, real/3, really/3, sulky/3, bad/3, grand/3, unfortunate/3, proper/3, hurried/3, timid/3, lovely/3, solemn/3, general/3, red/3, complain/2, clever/2, never/2, wonder/2, open/2, railway/2, quiet/2, coax/2, parchment/2, important/2, feeble/2, crimson/2, encouraging/2, least/2, 
-tag 13:
-	to/515, of/513, in/345, at/212, and/176, with/146, for/107, into/67, on/66, by/58, about/47, like/43, or/41, after/36, all/34, that/29, from/26, upon/26, such/24, as/20, take/18, without/18, under/16, round/14, than/13, behind/13, quite/12, among/12, poor/10, near/10, against/9, here/8, through/8, eat/6, along/6, between/6, both/5, shrink/5, except/4, blow/4, toss/4, past/3, above/3, raise/3, examine/3, around/3, nine/2, beautifully/2, heavy/2, hide/2, within/2, 
-tag 14:
-	be/530, say/199, think/107, know/107, see/96, have/70, begin/66, do/64, try/45, hear/45, like/42, find/40, speak/37, reply/34, feel/34, ask/33, wonder/24, mean/23, change/22, happen/21, wish/21, wait/20, such/17, add/17, want/15, stand/14, remember/14, suppose/14, forget/13, afraid/12, join/12, draw/12, appear/11, notice/11, listen/10, believe/10, remark/9, beg/9, could/8, mind/8, execute/8, answer/8, understand/7, grin/7, pass/7, generally/7, box/7, hope/7, offend/6, whisper/6, guess/6, run/6, fancy/6, sound/5, vanish/5, quietly/5, laugh/5, grunt/5, remain/5, prove/5, fit/5, meet/5, catch/5, hole/4, teach/4, worth/4, expect/4, fold/4, growl/3, bite/3, sleep/3, win/3, continue/3, address/3, advance/3, check/3, impossible/3, mention/3, exclaim/3, choose/3, breathe/3, hate/3, tuck/3, cheer/3, bear/3, clear/2, share/2, encourage/2, conclude/2, kindly/2, signify/2, annoy/2, murder/2, advisable/2, pour/2, kneel/2, ornament/2, occur/2, steal/2, 
-tag 15:
-	and/297, as/209, but/170, that/131, so/97, if/96, what/92, when/79, then/56, how/52, do/47, for/46, or/36, just/32, sure/24, till/21, <unk>/21, while/19, perhaps/17, now/15, because/15, where/15, only/15, would/13, anything/13, before/13, will/12, still/11, though/11, whether/11, either/10, yet/10, all/9, even/9, exactly/8, who/7, can/6, glad/6, why/5, ti/5, which/5, until/5, thank/5, shall/5, label/3, nor/3, suddenly/2, mary/2, stamp/2, luckily/2, wherever/2, unless/2, presently/2, pennyworth/2, ]/2, weak/2, Mary/2, funny/2, longitude/2, nonsense/1, ?/1, 
-tag 16:
-	again/83, <unk>/74, it/64, that/53, oh/45, now/45, here/43, why/35, well/34, there/29, not/28, before/25, no/23, then/21, however/20, first/18, come/18, indeed/16, dear/16, bill/16, yet/15, down/15, dinah/14, next/13, yes/13, please/11, old/11, hastily/10, twinkle/9, two/8, eagerly/8, five/8, never/7, sir/7, really/7, let/7, certainly/7, prise/6, wow/6, altogether/5, impatiently/5, usual/5, important/5, ah/5, aloud/5, unimportant/5, decidedly/4, indignantly/4, outside/4, sharply/4, behead/4, stuff/4, pat/4, yawn/4, besides/4, alas/4, otherwise/4, beautiful/3, ma/3, frown/3, music/3, pant/3, tortoise/3, riddle/3, stair/3, growl/3, love/3, quadrille/3, pray/3, fury/3, hush/3, Ann/3, flamingo/2, twelve/2, treacle/2, uglification/2, remove/2, three/2, doubtfully/2, already/2, chain/2, mystery/2, goose/2, sh/2, rude/2, sooner/2, triumphantly/2, ugh/2, patiently/2, thump/2, morcar/2, tut/2, inside/2, French/2, contemptuously/2, Edwin/2, useful/2, afterwards/1, 
-tag 17:
-	alice/225, it/116, herself/61, her/54, them/49, all/47, <unk>/45, this/41, that/40, you/31, course/25, once/21, last/21, two/17, nothing/15, him/14, me/14, sight/10, tear/10, which/10, heart/10, everything/9, work/9, do/9, first/9, mine/8, least/7, butter/6, what/6, himself/6, school/6, fact/6, right/5, delight/5, sob/5, knock/5, twice/5, William/5, execution/5, ever/5, sometimes/5, anything/4, particular/4, green/4, honour/4, confusion/4, none/4, hers/4, nobody/3, curl/3, yours/3, apple/3, hearing/3, hungry/3, passion/3, mabel/3, livery/3, whisker/3, instance/3, card/3, mark/2, angry/2, giddy/2, directly/2, shilling/2, flat/2, knot/2, whistle/2, couple/2, wag/2, sell/2, law/2, uglify/2, rapidly/2, tiptoe/2, wonderland/2, secondly/2, custody/2, furrow/2, paris/2, front/2, mercia/2, william/2, argue/2, northumbria/2, fright/2, pretend/2, dinn/2, another/1, not/1, cupboard/1, 
-tag 18:
-	use/17, set/10, rattle/3, alice/2, care/2, hard/2, lap/2, picture/1, alarm/1, sneeze/1, share/1, 
-tag 19:
-	these/2, ten/2, first/2, afterwards/1, verdict/1, hour/1, <unk>/1, carry/1, come/1, soldier/1, sentence/1, 
+python3 train_ja.py  -f ../../text/neko.txt -split 1 -tags 1 -e 40000 -cwd neko
+```
+
+![result](https://raw.githubusercontent.com/musyoku/images/master/pos_tagging/ihmm/kokoro.png)
+
+```
+[1]
+と(57) 
+[2]
+の(4221) な(537) に(81) という(63) と(44) が(39) に対する(38) や(31) とも(30) ##(27) らしい(16) か(10) 々(10) とか(5) とかいう(5) しい(5) やら(4) 込む(3) っぽい(2) 臭い(2) つん(2) 始め(1) 
+[3]
+。(4654) 」(459) 
+[4]
+事(557) よう(473) もの(273) 方(200) 前(155) 気(145) 中(144) 顔(135) 言葉(127) ため(127) うち(118) 上(108) だけ(97) 間(87) 心(86) 室(76) 眼(74) 所(69) 意味(69) ところ(67) 病気(63) 後(63) 様子(61) 声(60) 問題(55) 話(54) 態度(54) 心持(53) 返事(53) 手紙(51) 人間(45) 口(45) 訳(45) 頭(43) 点(43) など(43) 風(42) 傍(41) 胸(40) 家(39) 調子(39) 場合(38) ばかり(36) 身体(34) 過去(34) 気分(33) 下(28) 先(28) 機会(28) 力(27) まで(26) 
+[5]
+まし(1033) い(571) し(532) なかっ(414) ませ(369) れ(279) 来(106) られ(83) なけれ(81) せ(68) 出し(68) くれ(43) しまっ(38) でし(37) み(36) 行っ(33) なっ(29) ましょ(29) 始め(26) たかっ(20) なかろ(18) なくっ(18) っ(17) おい(17) 付け(15) おき(14) き(13) もらっ(13) つけ(12) え(11) なく(10) 留まっ(10) 切っ(10) させ(8) 直し(8) しよ(8) みよ(7) たろ(7) 返し(7) なり(6) だろ(6) 上っ(6) かけ(6) り(5) 浮べ(5) 込ん(4) 移っ(4) せよ(4) 廻り(4) しかっ(4) わし(4) 
+[6]
+私(2693) 先生(568) Ｋ(353) 奥さん(327) 彼(273) 父(269) それ(176) あなた(156) 母(156) お嬢さん(124) これ(85) 自分(78) 妻(77) 兄(62) 叔父(41) 他(41) 医者(35) 誰(34) 例(32) いつも(32) 君(32) 今(31) お前(30) 心(30) おれ(30) 彼ら(30) 我々(28) お父さん(27) 人間(26) 少し(25) 子供(23) 普通(23) 平生(22) 世間(22) 今度(20) 元(20) こっち(18) 始め(18) 下女(18) 恋(16) 次(16) そこ(15) 最初(15) お母さん(15) 妹(15) 相当(15) 友達(14) 無理(14) 固(13) 笑い(12) 坊さん(12) 
+[7]
+た(5392) です(1052) う(541) ん(374) ます(245) ない(100) だ(80) ね(47) られる(37) たい(25) てる(18) よ(14) さ(13) ちゃ(11) まい(10) なさい(7) な(5) 得る(5) ）(5) 始める(4) すか(4) 尋ねる(3) みえる(3) にくい(2) いおう(2) 通し(1) 
+[8]
+、(3643) も(150) いる(75) さえ(13) たった(8) ますます(7) 横たわる(6) 絶えず(6) 高等(6) ぼんやり(5) 心持(4) 否や(4) 疑い深い(3) かつ(3) 大して(3) 遠慮なく(3) 待ち受ける(3) 毎年(2) 紅茶(2) 住む(2) 生憎(2) 慰める(2) 度々(2) 護謨(2) ひとり(2) 編(2) ほどなく(2) 拙い(2) 宜しく(2) 馬鹿馬鹿しい(2) こりゃ(2) 尊(2) もし(1) 推測(1) こそ(1) 
+[9]
+あり(231) い(207) も(131) は(111) いい(110) なら(99) し(80) 知れ(78) なり(75) でき(71) 思い(59) いわ(58) さ(54) 来(53) 思わ(52) 知ら(51) 聞き(44) 答え(42) どう(41) 死ん(38) 聞か(35) 卒業(30) 見え(30) 解ら(29) 違い(27) しまい(26) くれ(26) 帰り(26) 行き(26) 分ら(25) いけ(24) なれ(22) 心配(22) やり(22) 歩き(21) 行か(21) 判然(21) 想像(20) 構わ(19) じゃ(17) 考え(17) 笑い(17) 気の毒(17) 大丈夫(16) いえ(16) 見せ(16) 立ち(15) 悪く(15) 解釈(15) 分り(15) 知り(14) 
+[10]
+の(1577) と(1307) か(472) から(371) でし(306) が(278) ん(205) でしょ(148) 時(137) だろ(134) ので(95) よ(88) もの(80) かも(59) ね(57) けれども(56) だっ(46) 通り(40) し(38) くらい(36) のに(34) なら(33) よう(30) じゃ(26) って(26) つもり(24) らしかっ(24) ごとく(24) ほど(23) …(22) や(21) わ(21) です(19) だけ(19) まま(19) はず(19) 事(18) 結果(18) とか(17) そう(16) 以上(15) 後(15) なり(13) 男(12) として(12) かい(12) とも(11) がっ(9) 限り(8) せい(6) かしら(6) 
+[11]
+ない(891) だ(514) いる(411) する(318) ある(228) いう(142) なる(126) な(117) れる(84) 来る(71) 好い(66) 思う(61) です(60) 行く(60) 見る(59) 同じ(53) 悪い(36) 死ぬ(34) 下さい(33) 出る(33) せる(31) 何(30) 帰る(30) いい(30) どこ(27) 」(26) 聞く(25) みる(25) できる(25) くれる(25) たい(23) …(22) 出す(22) 立つ(21) くれ(19) 見える(17) やる(17) 起る(16) 淋しい(15) 答える(13) 強い(13) ？(13) どう(12) 過ぎる(12) る(12) 考える(12) 困る(11) 買う(11) 話す(11) しまう(11) 済まない(11) 
+[12]
+人(388) 時(236) 日(117) そう(110) 女(77) 家(56) 的(55) 男(53) 通り(51) 頃(47) くらい(44) 年(43) 向う(36) 度(33) あなた(31) さ(28) 時間(28) 先生(27) 代り(27) 金(26) 机(25) 一種(25) さん(24) ##(23) どっち(23) 時分(23) 町(23) 晩(23) 覚悟(22) 海(22) 田舎(22) 一つ(21) 関係(21) 自由(20) 不安(20) 下宿(20) 事件(19) 目的(19) 供(19) 幸福(18) 簡単(18) 生活(18) 愉快(17) 物(17) 昔(16) 夏(16) 目(16) 大学(16) 茶の間(16) 何(15) 分(15) 
+[13]
+「(707) その(685) ##(561) しかし(214) この(166) そうして(131) けれども(78) すると(62) それから(56) ただ(48) それで(43) あの(40) だから(39) 実際(37) ある(36) もし(35) 上(33) ――(32) 若い(32) それでも(31) そういう(27) こういう(26) ことに(25) あるいは(24) ところが(23) 新しい(23) ご(22) もっとも(22) 小(22) つまり(21) 同時に(20) 強い(19) しかも(18) そんな(16) それでいて(16) どの(15) とにかく(15) どうも(15) 卒業(14) 広い(14) みんな(14) やはり(13) そうした(13) でも(12) おそらく(12) 無論(12) たった(12) 常に(12) やがて(12) 己(11) （(11) 
+[14]
+て(3368) ば(230) ず(112) ながら(86) たり(73) たら(71) なく(60) さ(36) たく(31) ない(30) られ(30) ちゃ(15) ら(13) つつ(11) 得(9) って(9) だら(7) つ(7) と共に(6) がち(5) やし(5) 談(5) 気遣い(3) 次第(3) がたい(3) とう(3) うた(3) 向い(2) なさい(2) たって(2) べから(2) 合い(2) かる(2) 繰り返し(1) 
+[15]
+し(585) あっ(349) いっ(270) なっ(219) 見(157) 出(141) 聞い(110) 思っ(109) い(107) 帰っ(95) 考え(90) 来(88) 行っ(69) もっ(55) なかっ(50) 見え(50) 立っ(50) でき(48) 書い(47) 話し(43) 坐っ(42) 出し(40) 知っ(39) 持っ(38) 黙っ(38) 答え(37) 信じ(35) 得(35) 眺め(34) 違っ(34) 向っ(31) 付い(31) 生き(30) 忘れ(27) 取っ(27) 与え(27) 生れ(26) 受け(26) やっ(26) 開け(26) 置い(25) 掛け(24) 寝(23) 入れ(23) すれ(22) 着い(22) 歩い(22) 笑っ(22) 感じ(20) 繰り返し(20) 始め(20) 
+[16]
+また(265) まだ(109) すぐ(106) よく(92) もう(79) ただ(74) そう(70) こう(69) この(68) お(61) 少し(59) 今(57) 同じ(56) そんな(53) 突然(47) なぜ(47) まるで(47) むしろ(43) ほとんど(42) どう(42) 全く(41) ちょっと(38) こんな(38) かえって(37) 決して(35) 時々(35) とうとう(31) 段々(30) それほど(30) 大きな(28) 落ち(28) いくら(27) どうして(27) これから(27) ついに(26) 大変(26) きっと(26) もっと(26) ああ(24) まあ(23) わざわざ(22) 何とも(22) どうしても(22) 黒い(21) 早く(21) 信用(21) どんな(21) 長い(21) しばらく(21) なお(20) 無論(20) 
+[17]
+に(4006) を(3214) で(1497) が(1252) へ(518) も(423) から(336) と(326) まで(140) でも(110) として(91) について(64) は(60) じゃ(46) だけ(42) さえ(41) ばかり(39) より(35) なら(30) らしく(22) しか(20) ほど(20) だの(20) ぎり(12) において(12) など(11) たち(11) ッ(10) ずつ(9) と共に(9) ぐらい(9) こそ(8) り(7) って(6) 以後(6) に関して(6) によって(5) つき(5) にかけて(4) 置(3) 化(3) はまる(3) 戯(3) なんぞ(3) めかし(2) ぎ(2) 何もかも(2) だり(2) むずかしく(2) かた(2) 生き(1) 
+[18]
+それ(227) 自分(186) 何(174) そこ(103) 東京(74) 今(61) 奥さん(61) どこ(60) 宅(59) Ｋ(58) 口(57) 手(55) 急(54) 眼(49) 仕方(45) お嬢さん(44) 変(43) 彼(41) いつ(40) いっしょ(40) 外(38) ここ(37) 学校(37) 世の中(34) 頭(30) 厭(29) 叔父(29) 妻(28) 静か(26) 先(25) 国(23) 手紙(23) 自然(23) 読ん(22) 最後(22) 書物(21) 床(21) 凝(21) すべて(20) 足(20) 今日(20) 座敷(20) 真面目(19) 満足(19) 世話(19) 呼ん(18) 相手(18) 飯(18) 席(18) 玄関(18) 平気(18) 
+[19]
+は(3973) が(624) も(602) と(246) から(133) より(67) に対して(46) なく(44) や(33) でも(22) にとって(19) だって(17) ほど(12) ながら(10) すら(9) なんか(8) 以来(7) なら(6) 自身(6) のみ(4) 蠅(4) せよ(3) 寛(3) 大変(2) 悪く(2) いまだ(2) 代る代る(2) 憎らしく(2) 生(2) 悲しく(2) 更(2) 私語(2) しも(2) そう(1) ら(1) 
+[21]
+という(258) か(179) 」(167) より(54) べき(45) な(42) もの(39) といった(38) と(32) らしい(31) から(24) がる(20) だけ(16) まで(15) まい(14) 大きな(6) さ(6) とかいう(6) のに(5) 限り(5) 好奇(5) べく(5) 掛(4) ぎり(4) 辛い(4) ものの(4) なり(3) 時分(3) 尊い(3) 軽い(3) 杉(3) 四月(3) 打ち明け(2) 渇く(2) っていう(2) に関する(2) 痕(2) 幹(2) いち(2) 社交(2) 汚い(2) 厳しい(2) 絵(2) 男らしい(2) 軽(2) 伽藍(2) ほど(1) 時代(1) 
 ```
