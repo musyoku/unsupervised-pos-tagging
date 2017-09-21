@@ -47,9 +47,6 @@ namespace ihmm {
 	void Model::set_initial_beta_emission(double beta_emission){
 		_hmm->_beta_emission = beta_emission;
 	}
-	int Model::get_num_tags(){
-		return _hmm->get_num_tags();
-	}
 	// 文の確率
 	// 前向きアルゴリズム
 	double Model::compute_p_sentence(std::vector<Word*> &sentence, double** forward_table){
@@ -106,6 +103,16 @@ namespace ihmm {
 		}
 		delete[] forward_table;
 		delete[] decode_table;
+	}
+	boost::python::list Model::python_get_valid_tags(){
+		boost::python::list tags;
+		for(int tag = 1;tag <= _hmm->get_num_tags();tag++){
+			if(_hmm->is_tag_new(tag)){
+				continue;
+			}
+			tags.append(tag);
+		}
+		return tags;
 	}
 	boost::python::list Model::python_viterbi_decode(boost::python::list py_word_ids){
 		// デコード用のテーブルを確保

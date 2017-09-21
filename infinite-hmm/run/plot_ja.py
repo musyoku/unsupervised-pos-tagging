@@ -72,12 +72,12 @@ def main():
 
 	num_true_tags = len(true_tag_to_id)
 	confusion_mat = np.zeros((num_true_tags, model.get_num_tags()), dtype=int)
-	for tag, occurrence in num_true_tags_of_found_tag.items():
+	for found_tag, occurrence in num_true_tags_of_found_tag.items():
 		for true_tag in true_tag_set:
 			num = 0
 			if true_tag in occurrence:
 				num = occurrence[true_tag]
-			confusion_mat[true_tag_to_id[true_tag]][tag - 1] = num
+			confusion_mat[true_tag_to_id[true_tag]][found_tag - 1] = num
 	normalized_confusion_mat = confusion_mat / np.sum(confusion_mat, axis=0)
 
 	fig = pylab.gcf()

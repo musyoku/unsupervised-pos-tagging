@@ -28,7 +28,7 @@ BOOST_PYTHON_MODULE(ihmm){
 
 	boost::python::class_<Model>("model", boost::python::init<int, Dataset*>())
 	.def(boost::python::init<std::string>())
-	.def("get_num_tags", &Model::get_num_tags)
+	.def("get_tags", &Model::python_get_valid_tags)
 	.def("set_initial_alpha", &Model::set_initial_alpha)
 	.def("set_initial_beta", &Model::set_initial_beta)
 	.def("set_initial_gamma", &Model::set_initial_gamma)
