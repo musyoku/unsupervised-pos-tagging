@@ -46,11 +46,11 @@ namespace ihmm {
 	int Dictionary::get_vocabrary_size(){
 		return _str_to_id.size();
 	}
-	bool Dictionary::is_unk(std::wstring word){
+	bool Dictionary::is_string_unk(std::wstring word){
 		int word_id = string_to_word_id(word);
 		return word_id == ID_UNK;
 	}
-	bool Dictionary::is_unk(int word_id){
+	bool Dictionary::is_id_unk(int word_id){
 		return (word_id == ID_UNK);
 	}
 	bool Dictionary::load(std::string filename){

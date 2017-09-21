@@ -228,7 +228,7 @@ namespace ihmm {
 			wcout << "\x1b[32;1m" << "[" << tag << "]" << "\x1b[0m" << std::endl;
 			std::multiset<std::pair<int, int>, value_comparator> ranking;
 			for(int word_id = 0;word_id < _hmm->get_num_words();word_id++){
-				if(dict->is_unk(word_id)){
+				if(dict->is_id_unk(word_id)){
 					continue;
 				}
 				int count = _hmm->_m_iq_tables[tag][word_id]->get_num_customers();

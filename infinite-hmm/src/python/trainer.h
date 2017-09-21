@@ -29,5 +29,6 @@ namespace ihmm {
 		// boost::python::list python_get_all_words_of_each_tag(int threshold = 0);
 		double compute_log_p_dataset_train();
 		double compute_log_p_dataset_dev();
+		void set_model(Model* model);
 	};
 }

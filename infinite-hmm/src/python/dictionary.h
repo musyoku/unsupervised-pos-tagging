@@ -18,8 +18,8 @@ namespace ihmm {
 		std::wstring word_id_to_string(int word_id);
 		void remove_ids(std::unordered_set<int> word_ids);
 		int get_vocabrary_size();
-		bool is_unk(std::wstring word);
-		bool is_unk(int word_id);
+		bool is_string_unk(std::wstring word);
+		bool is_id_unk(int word_id);
 		bool load(std::string filename);
 		bool save(std::string filename);
 	};

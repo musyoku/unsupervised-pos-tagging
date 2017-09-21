@@ -180,4 +180,7 @@ namespace ihmm {
 		_after_compute_log_p_dataset();
 		return log_p_dataset;
 	}
+	void Trainer::set_model(Model* model){
+		_model = model;
+	}
 }

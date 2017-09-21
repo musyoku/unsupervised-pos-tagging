@@ -59,11 +59,15 @@ void test_save_load(){
 	}
 	cout << trainer->compute_log_p_dataset_train() << ", " << trainer->compute_log_p_dataset_dev() << endl;
 	model->save("ihmm.model");
-	model->load("ihmm.model");
-	cout << trainer->compute_log_p_dataset_train() << ", " << trainer->compute_log_p_dataset_dev() << endl;
+	delete model;
+	for(int i = 0;i < 100;i++){
+		Model* model = new Model("ihmm.model");
+		trainer->set_model(model);
+		cout << trainer->compute_log_p_dataset_train() << ", " << trainer->compute_log_p_dataset_dev() << endl;
+		delete model;
+	}
 	delete corpus;
 	delete dataset;
-	delete model;
 	delete trainer;
 }
 
@@ -274,6 +278,6 @@ int main(){
 	test_tag_bigram_count();
 	test_save_load();
 	// test6();
-	// test3(1000000);
+	test3(1000000);
 	return 0;
 }

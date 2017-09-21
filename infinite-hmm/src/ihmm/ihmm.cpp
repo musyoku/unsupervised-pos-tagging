@@ -6,7 +6,6 @@
 #include <boost/serialization/split_free.hpp>
 #include <iostream>
 #include <fstream>
-#include <iostream>
 #include <set>
 #include "ihmm.h"
 
@@ -557,6 +556,7 @@ namespace boost {
 			assert(num_tags > 0);
 			assert(num_words > 0);
 
+			hmm._m_iq_tables.clear();
 			hmm._m_iq_tables.push_back(NULL);
 			for(int tag = 1;tag <= num_tags;tag++){
 				ihmm::Table** table_array = new ihmm::Table*[num_words];
@@ -566,8 +566,6 @@ namespace boost {
 				}
 				hmm._m_iq_tables.push_back(table_array);
 			}
-			std::cout << hmm._m_iq_tables.size() << std::endl;
-			std::cout << num_tags << std::endl;
 			assert(hmm._m_iq_tables.size() == num_tags + 1);
 
 			hmm._oracle_m_q_counts = new int[num_words];
