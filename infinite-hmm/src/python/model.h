@@ -29,6 +29,5 @@ namespace ihmm {
 		boost::python::list python_viterbi_decode(boost::python::list py_word_ids);
 		double compute_p_sentence(std::vector<Word*> &sentence, double** forward_table);
 		void print_typical_words_assigned_to_each_tag(int number_to_show, Dictionary* dict);
-		// void print_alpha_and_beta();
 	};
 }

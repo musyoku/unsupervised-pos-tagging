@@ -221,6 +221,9 @@ namespace ihmm {
 			if(_hmm->is_tag_new(tag)){
 				continue;
 			}
+			if(_hmm->_oracle_n_j_counts[tag] == 0){
+				continue;
+			}
 			int n = 0;
 			wcout << "\x1b[32;1m" << "[" << tag << "]" << "\x1b[0m" << std::endl;
 			std::multiset<std::pair<int, int>, value_comparator> ranking;
@@ -244,12 +247,4 @@ namespace ihmm {
 			wcout << endl;
 		}
 	}
-	// void Model::print_alpha_and_beta(){
-	// 	using std::cout;
-	// 	using std::endl;
-	// 	cout << "\x1b[1m" << "alpha" << "\x1b[0m " << _hmm->_alpha << std::endl;
-	// 	for(int tag = 1;tag <= _hmm->get_num_tags();tag++){
-	// 		cout << "\x1b[1m" << "beta[" << tag << "]" << "\x1b[0m " << _hmm->_beta[tag] << std::endl;
-	// 	}
-	// }
 }

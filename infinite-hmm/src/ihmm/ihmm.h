@@ -1,11 +1,5 @@
 #pragma once
 #include <boost/serialization/serialization.hpp>
-#include <boost/serialization/base_object.hpp>
-#include <boost/archive/binary_iarchive.hpp>
-#include <boost/archive/binary_oarchive.hpp>
-#include <boost/serialization/unordered_map.hpp>
-#include <boost/serialization/vector.hpp>
-#include <unordered_map>
 #include <vector>
 #include "common.h"
 #include "sampler.h"
@@ -39,9 +33,9 @@ namespace ihmm {
 		~InfiniteHMM();
 		void initialize_with_training_dataset(std::vector<std::vector<Word*>> &dataset);
 		void _remove_all_training_dataset(std::vector<std::vector<Word*>> &dataset);
-		int get_num_tags();
-		int get_num_valid_tags();
-		int get_num_words();
+		int get_num_tags() const;
+		int get_num_valid_tags() const;
+		int get_num_words() const;
 		int get_sum_n_i_over_j(int tag);
 		int get_n_ij(int context_tag, int tag);
 		int get_oracle_sum_n_over_j();
@@ -54,9 +48,6 @@ namespace ihmm {
 		bool is_tag_new(int tag);
 		double compute_p_tag_given_context(int tag, int context_tag);
 		double compute_p_word_given_tag(int word_id, int tag);
-		bool save(std::string filename);
-		bool load(std::string filename);
-		// void _add_special_tag();
 		int _add_new_tag();
 		void _delete_tag(int tag);
 		void _increment_tag_bigram_count(int context_tag, int tag);
@@ -69,9 +60,21 @@ namespace ihmm {
 		void _decrement_oracle_word_count(int word_id);
 		int _perform_gibbs_sampling_on_markov_blanket(int ti_1, int ti1, int wi);
 		void perform_gibbs_sampling_with_sequence(std::vector<Word*> &word_vec);
+		bool save(std::string filename);
+		bool load(std::string filename);
+		template <class Archive>
+		void serialize(Archive &ar, unsigned int version);
 	};
 }
 
+namespace boost { 
+	namespace serialization {
+		template<class Archive>
+		void save(Archive &ar, const ihmm::InfiniteHMM &hmm, unsigned int version);
+		template<class Archive>
+		void load(Archive &ar, ihmm::InfiniteHMM &hmm, unsigned int version);
+	}
+}
 // class InfiniteHMM{
 // 	bool is_tag_new(int tag_id){
 // 		assert(tag_id != EOS);

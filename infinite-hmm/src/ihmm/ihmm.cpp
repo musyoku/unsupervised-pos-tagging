@@ -1,4 +1,11 @@
 #include <cassert>
+#include <boost/serialization/base_object.hpp>
+#include <boost/archive/binary_iarchive.hpp>
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/serialization/vector.hpp>
+#include <boost/serialization/split_free.hpp>
+#include <iostream>
+#include <fstream>
 #include <iostream>
 #include <set>
 #include "ihmm.h"
@@ -42,13 +49,13 @@ namespace ihmm {
 		}
 	}
 	// <s></s>を除いたタグの数を返す
-	int InfiniteHMM::get_num_tags(){
+	int InfiniteHMM::get_num_tags() const{
 		return _oracle_n_j_counts.size() - 1;
 	}
-	int InfiniteHMM::get_num_words(){
+	int InfiniteHMM::get_num_words() const{
 		return _num_words;
 	}
-	int InfiniteHMM::get_num_valid_tags(){
+	int InfiniteHMM::get_num_valid_tags() const{
 		int num_tags = 0;
 		for(int tag = 1;tag <= get_num_tags();tag++){
 			int count = _oracle_n_j_counts[tag];
@@ -465,10 +472,108 @@ namespace ihmm {
 			word_vec[i]->_tag = new_ti;
 		}
 	}
+	template <class Archive>
+	void InfiniteHMM::serialize(Archive &ar, unsigned int version){
+		boost::serialization::split_free(ar, *this, version);
+	}
 	bool InfiniteHMM::save(std::string filename){
-		return true;
+		bool success = false;
+		std::ofstream ofs(filename);
+		if(ofs.good()){
+			boost::archive::binary_oarchive oarchive(ofs);
+			oarchive << *this;
+			success = true;
+		}
+		ofs.close();
+		return success;
 	}
 	bool InfiniteHMM::load(std::string filename){
-		return true;
+		bool success = false;
+		std::ifstream ifs(filename);
+		if(ifs.good()){
+			boost::archive::binary_iarchive iarchive(ifs);
+			iarchive >> *this;
+			success = true;
+		}
+		ifs.close();
+		return success;
+	}
+}
+
+namespace boost { 
+	namespace serialization {
+		template<class Archive>
+		void save(Archive &ar, const ihmm::InfiniteHMM &hmm, unsigned int version) {
+			ar & hmm._initial_num_tags;
+			ar & hmm._num_words;
+			ar & hmm._prev_num_tags;
+			ar & hmm._n_ij_tables;
+			ar & hmm._oracle_sum_n_over_j;
+			ar & hmm._oracle_sum_m_over_q;
+			ar & hmm._sum_n_i_over_j;
+			ar & hmm._oracle_n_j_counts;
+			ar & hmm._sum_m_i_over_q;
+			ar & hmm._alpha;
+			ar & hmm._beta;
+			ar & hmm._gamma;
+			ar & hmm._beta_emission;
+			ar & hmm._gamma_emission;
+
+			int num_tags = hmm.get_num_tags();
+			int num_words = hmm.get_num_words();
+			assert(num_tags > 0);
+			assert(num_words > 0);
+
+			for(int tag = 1;tag <= num_tags;tag++){
+				ihmm::Table** const &tables = hmm._m_iq_tables[tag];
+				for(int word_id = 0;word_id < num_words;word_id++){
+					ar & tables[word_id];
+				}
+			}
+
+			for(int word_id = 0;word_id < num_words;word_id++){
+				ar & hmm._oracle_m_q_counts[word_id];
+			}
+		}
+		template<class Archive>
+		void load(Archive &ar, ihmm::InfiniteHMM &hmm, unsigned int version) {
+			ar & hmm._initial_num_tags;
+			ar & hmm._num_words;
+			ar & hmm._prev_num_tags;
+			ar & hmm._n_ij_tables;
+			ar & hmm._oracle_sum_n_over_j;
+			ar & hmm._oracle_sum_m_over_q;
+			ar & hmm._sum_n_i_over_j;
+			ar & hmm._oracle_n_j_counts;
+			ar & hmm._sum_m_i_over_q;
+			ar & hmm._alpha;
+			ar & hmm._beta;
+			ar & hmm._gamma;
+			ar & hmm._beta_emission;
+			ar & hmm._gamma_emission;
+
+			int num_tags = hmm.get_num_tags();
+			int num_words = hmm.get_num_words();
+			assert(num_tags > 0);
+			assert(num_words > 0);
+
+			hmm._m_iq_tables.push_back(NULL);
+			for(int tag = 1;tag <= num_tags;tag++){
+				ihmm::Table** table_array = new ihmm::Table*[num_words];
+				for(int word_id = 0;word_id < num_words;word_id++){
+					table_array[word_id] = new ihmm::Table(word_id);
+					ar & table_array[word_id];
+				}
+				hmm._m_iq_tables.push_back(table_array);
+			}
+			std::cout << hmm._m_iq_tables.size() << std::endl;
+			std::cout << num_tags << std::endl;
+			assert(hmm._m_iq_tables.size() == num_tags + 1);
+
+			hmm._oracle_m_q_counts = new int[num_words];
+			for(int word_id = 0;word_id < num_words;word_id++){
+				ar & hmm._oracle_m_q_counts[word_id];
+			}
+		}
 	}
 }

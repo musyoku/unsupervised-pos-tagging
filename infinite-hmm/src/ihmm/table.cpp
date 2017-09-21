@@ -1,16 +1,21 @@
+#include <boost/serialization/base_object.hpp>
+#include <boost/archive/binary_iarchive.hpp>
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/serialization/vector.hpp>
 #include <numeric>
-#include <iostream>
 #include "table.h"
 #include "sampler.h"
 
 namespace ihmm {
 	template <class Archive>
-	void Table::serialize(Archive& archive, unsigned int version)
+	void Table::serialize(Archive & ar, unsigned int version)
 	{
-		archive & _arrangement;
-		archive & _num_customers;
-		archive & _identifier;
+		ar & _arrangement;
+		ar & _num_customers;
+		ar & _identifier;
 	}
+	template void Table::serialize<boost::archive::binary_iarchive>(boost::archive::binary_iarchive & ar, unsigned int version);
+	template void Table::serialize<boost::archive::binary_oarchive>(boost::archive::binary_oarchive & ar, unsigned int version);
 	Table::Table(){
 		_num_customers = 0;
 		_identifier = 0;

@@ -44,6 +44,29 @@ void test_tag_bigram_count(){
 	}
 }
 
+void test_save_load(){
+	int num_tags = 10;
+	std::string filename = "../../text/test.txt";
+	Corpus* corpus = new Corpus();
+	corpus->add_textfile(filename);
+	Dataset* dataset = new Dataset(corpus, 0.9, 1, 0);
+	Model* model = new Model(num_tags, dataset);
+	Trainer* trainer = new Trainer(dataset, model);
+
+	for(int i = 1;i <= 100;i++){
+		trainer->perform_gibbs_sampling();
+		cout << "\r" << i << flush;
+	}
+	cout << trainer->compute_log_p_dataset_train() << ", " << trainer->compute_log_p_dataset_dev() << endl;
+	model->save("ihmm.model");
+	model->load("ihmm.model");
+	cout << trainer->compute_log_p_dataset_train() << ", " << trainer->compute_log_p_dataset_dev() << endl;
+	delete corpus;
+	delete dataset;
+	delete model;
+	delete trainer;
+}
+
 void test1(){
 	InfiniteHMM* ihmm = new InfiniteHMM(10, 100);
 	int num_tags = ihmm->get_num_tags();
@@ -115,7 +138,7 @@ void test2(){
 
 void test3(int num_iterations){
 	int num_tags = 10;
-	std::string filename = "../../text/test.txt";
+	std::string filename = "../../text/alice.txt";
 	Corpus* corpus = new Corpus();
 	corpus->add_textfile(filename);
 	Dataset* dataset = new Dataset(corpus, 0.9, 1, 0);
@@ -249,7 +272,8 @@ int main(){
 	// test2();
 	test_tag_word_count();
 	test_tag_bigram_count();
+	test_save_load();
 	// test6();
-	test3(1000000);
+	// test3(1000000);
 	return 0;
 }

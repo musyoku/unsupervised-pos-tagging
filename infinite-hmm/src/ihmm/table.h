@@ -1,8 +1,4 @@
 #include <boost/serialization/serialization.hpp>
-#include <boost/serialization/base_object.hpp>
-#include <boost/archive/binary_iarchive.hpp>
-#include <boost/archive/binary_oarchive.hpp>
-#include <boost/serialization/vector.hpp>
 
 // 中華料理店過程のテーブル
 namespace ihmm {
@@ -10,7 +6,7 @@ namespace ihmm {
 	private:
 		friend class boost::serialization::access;
 		template <class Archive>
-		void serialize(Archive& archive, unsigned int version);
+		void serialize(Archive & ar, unsigned int version);
 	public:
 		std::vector<int> _arrangement;
 		int _num_customers;
