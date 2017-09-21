@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-import bhmm
+import ihmm
 from train_ja import printr, printb
 
 # フォントをセット
@@ -13,11 +13,11 @@ sns.set(font=["MS Gothic"], font_scale=2, style="ticks")
 
 def main():
 	# 辞書
-	dictionary = bhmm.dictionary()
-	dictionary.load(os.path.join(args.working_directory, "bhmm.dict"))
+	dictionary = ihmm.dictionary()
+	dictionary.load(os.path.join(args.working_directory, "ihmm.dict"))
 
 	# モデル
-	model = bhmm.model(os.path.join(args.working_directory, "bhmm.model"))
+	model = ihmm.model(os.path.join(args.working_directory, "ihmm.model"))
 
 	# 訓練データを形態素解析して集計
 	num_true_tags_of_found_tag = {}
@@ -45,7 +45,7 @@ def main():
 				word_id_seq.append(dictionary.string_to_word_id(word))
 				true_tag_seq.append(pos_major)
 
-				if dictionary.is_unk(word):	# <unk>は無視
+				if dictionary.is_string_unk(word):	# <unk>は無視
 					pass
 				else:
 					true_tag_set.add(pos_major)
