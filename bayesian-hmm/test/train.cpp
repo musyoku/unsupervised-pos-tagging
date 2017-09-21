@@ -16,7 +16,7 @@ void train(int num_iterations){
 	std::string filename = "../../text/alice.txt";
 	Corpus* corpus = new Corpus();
 	corpus->add_textfile(filename);
-	Dataset* dataset = new Dataset(corpus, 0.01, 1);
+	Dataset* dataset = new Dataset(corpus, 0.9, 1);
 	Dictionary* dictionary = dataset->_dict;
 	dictionary->save("bhmm.dict");
 	std::vector<int> Wt;
@@ -48,7 +48,6 @@ void train(int num_iterations){
 	}
 	delete corpus;
 	delete dataset;
-	delete dictionary;
 	delete model;
 	delete trainer;
 }

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import argparse, codecs, re
 import numpy as np
 
@@ -21,15 +20,15 @@ def main(args):
 	B[3] = 0.0, 0.0, 0.0, 0.0, 0.7, 0.3
 
 	with codecs.open("text/test.txt", "w", "utf-8") as f:
-		for n in xrange(args.num_seq):
+		for n in range(args.num_seq):
 			state = 0
 			sequence = ""
-			for l in xrange(args.seq_length):
+			for l in range(args.seq_length):
 				state = int(np.argwhere(np.random.multinomial(1, A[state]) == 1))
 				emission = int(np.argwhere(np.random.multinomial(1, B[state]) == 1))
 				sequence += str(emission) + " "
 			sequence = re.sub(r" $", "", sequence)
-			print sequence
+			print(sequence)
 			f.write(sequence + "\n")
 
 if __name__ == "__main__":

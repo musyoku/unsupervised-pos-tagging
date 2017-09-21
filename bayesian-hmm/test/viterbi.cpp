@@ -13,7 +13,7 @@ int main(){
 	std::string filename = "../../text/alice.txt";
 	Corpus* corpus = new Corpus();
 	corpus->add_textfile(filename);
-	Dataset* dataset = new Dataset(corpus, 0.01, 1);
+	Dataset* dataset = new Dataset(corpus, 0.9, 1);
 	Dictionary* dictionary = new Dictionary();
 	dictionary->load("bhmm.dict");
 	Model* model = new Model("bhmm.model");
