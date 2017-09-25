@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-import bhmm
+import ihmm
 from train_en import collapse_true_tag, printr, printb
 
 # フォントをセット
@@ -13,14 +13,19 @@ sns.set(font=["MS Gothic"], font_scale=2, style="ticks")
 
 def main():
 	# 辞書
-	dictionary = bhmm.dictionary()
-	dictionary.load(os.path.join(args.working_directory, "bhmm.dict"))
+	dictionary = ihmm.dictionary()
+	dictionary.load(os.path.join(args.working_directory, "ihmm.dict"))
 
 	# モデル
-	model = bhmm.model(os.path.join(args.working_directory, "bhmm.model"))
+	model = ihmm.model(os.path.join(args.working_directory, "ihmm.model"))
 
 	# 訓練データを形態素解析して集計
+	found_tags = model.get_tags()
+	found_tags_to_id = {}
 	num_true_tags_of_found_tag = {}
+	for tag in found_tags:
+		found_tags_to_id[tag] = len(found_tags_to_id)
+		num_true_tags_of_found_tag[tag] = {}
 	words_of_true_tag = {}
 	true_tag_set = set()
 	tagger = treetaggerwrapper.TreeTagger(TAGLANG="en")
@@ -42,7 +47,7 @@ def main():
 				word_id_seq.append(dictionary.string_to_word_id(lowercase))
 				true_tag_seq.append(true_tag)
 
-				if dictionary.is_unk(lowercase):	# <unk>は無視
+				if dictionary.is_string_unk(lowercase):	# <unk>は無視
 					pass
 				else:
 					true_tag_set.add(true_tag)
@@ -55,8 +60,7 @@ def main():
 				if word_id == 0:	# <unk>は無視
 					pass
 				else:
-					if found_tag not in num_true_tags_of_found_tag:
-						num_true_tags_of_found_tag[found_tag] = {}
+					assert found_tag in num_true_tags_of_found_tag
 					if true_tag not in num_true_tags_of_found_tag[found_tag]:
 						num_true_tags_of_found_tag[found_tag][true_tag] = 0
 					num_true_tags_of_found_tag[found_tag][true_tag] += 1
@@ -66,17 +70,17 @@ def main():
 		true_tag_to_id[true_tag] = len(true_tag_to_id)
 
 	num_true_tags = len(true_tag_to_id)
-	confusion_mat = np.zeros((num_true_tags, model.get_num_tags()), dtype=int)
-	for tag, occurrence in num_true_tags_of_found_tag.items():
+	confusion_mat = np.zeros((num_true_tags, len(found_tags)), dtype=int)
+	for found_tag, occurrence in num_true_tags_of_found_tag.items():
 		for true_tag in true_tag_set:
 			num = 0
 			if true_tag in occurrence:
 				num = occurrence[true_tag]
-			confusion_mat[true_tag_to_id[true_tag]][tag - 1] = num
+			confusion_mat[true_tag_to_id[true_tag]][found_tags_to_id[found_tag]] = num
 	normalized_confusion_mat = confusion_mat / np.sum(confusion_mat, axis=0)
 
 	fig = pylab.gcf()
-	fig.set_size_inches(model.get_num_tags() + 1, len(true_tag_set))
+	fig.set_size_inches(len(found_tags) + 1, len(true_tag_set))
 	pylab.clf()
 	dataframe = pd.DataFrame(normalized_confusion_mat)
 	yticks = np.arange(0, num_true_tags)
@@ -84,7 +88,7 @@ def main():
 	for true_tag, index in true_tag_to_id.items():
 		yticks_labeles[index] = true_tag
 	ax = sns.heatmap(dataframe, annot=confusion_mat, annot_kws={"size": 14}, fmt="d", linewidths=0, cmap="gray_r", 
-		yticklabels=yticks_labeles, xticklabels=np.arange(1, model.get_num_tags() + 1), cbar=False, square=True)
+		yticklabels=yticks_labeles, xticklabels=found_tags, cbar=False, square=True)
 	for _, spine in ax.spines.items():
 		spine.set_visible(True)	# 枠線を表示
 	ax.tick_params(labelsize=20)

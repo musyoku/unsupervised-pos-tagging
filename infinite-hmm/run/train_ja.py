@@ -22,14 +22,10 @@ def build_corpus(filename):
 	with codecs.open(filename, "r", "utf-8") as f:
 		for sentence_str in f:
 			sentence_list.append(sentence_str)
-	random.seed(args.seed)
-	random.shuffle(sentence_list)	# データをシャッフル
-	train_split = int(len(sentence_list) * args.train_split)
-
 	tagger = MeCab.Tagger()
 	for i, sentence_str in enumerate(sentence_list):
 		sentence_str = sentence_str.strip()
-		if i % 10 == 0:
+		if (i + 1) % 10 == 0:
 			printr("データを準備しています ... {}".format(i + 1))
 		m = tagger.parseToNode(sentence_str)	# 形態素解析
 		words = []

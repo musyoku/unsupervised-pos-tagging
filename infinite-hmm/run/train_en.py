@@ -1,6 +1,6 @@
 import argparse, sys, os, time, codecs, random
 import treetaggerwrapper
-import bhmm
+import ihmm
 
 class stdout:
 	BOLD = "\033[1m"
@@ -69,22 +69,17 @@ def collapse_true_tag(tag, word):
 	return tag
 
 def build_corpus(filename):
-	corpus = bhmm.corpus()
+	corpus = ihmm.corpus()
 	# 訓練データを形態素解析して各品詞ごとにその品詞になりうる単語の総数を求めておく
 	sentence_list = []
 	with codecs.open(filename, "r", "utf-8") as f:
 		for sentence_str in f:
 			sentence_list.append(sentence_str)
-	random.shuffle(sentence_list)	# データをシャッフル
-	train_split = int(len(sentence_list) * args.train_split)
-
-	word_count = set()	# 単語の種類の総数
-	Wt_count = {}
 	with codecs.open(filename, "r", "utf-8") as f:
 		tagger = treetaggerwrapper.TreeTagger(TAGLANG="en")
 		for i, sentence_str in enumerate(f):
 			sentence_str = sentence_str.strip()
-			if i % 10 == 0:
+			if (i + 1) % 10 == 0:
 				printr("データを準備しています ... {}".format(i + 1))
 			result = tagger.tag_text(sentence_str)
 			if len(result) == 0:
@@ -99,27 +94,13 @@ def build_corpus(filename):
 				if len(metadata) == 3:
 					word, true_tag, lowercase = metadata
 					true_tag = collapse_true_tag(true_tag, lowercase)
-					if true_tag not in Wt_count:
-						Wt_count[true_tag] = {}
-					if lowercase not in Wt_count[true_tag]:
-						Wt_count[true_tag][lowercase] = 1
-					else:
-						Wt_count[true_tag][lowercase] += 1
 				else:
 					lowercase = metadata[0]
-				word_count.add(lowercase)
 				words.append(lowercase)
 			# データを追加
 			corpus.add_words(words)
 
-	if args.supervised:
-		# Wtは各品詞について、その品詞になりうる単語の数が入っている
-		Wt = [len(words) for tag, words in Wt_count.items()]
-	else:
-		# Wtに制限をかけない場合
-		Wt = [int(len(word_count) / args.num_tags)] * args.num_tags
-
-	return corpus, Wt
+	return corpus
 
 def main():
 	assert args.train_filename is not None
@@ -129,59 +110,55 @@ def main():
 		pass
 
 	# 訓練データを追加
-	corpus, Wt = build_corpus(args.train_filename)
-	dataset = bhmm.dataset(corpus, args.train_split, args.unknown_threshold)	# 低頻度語を全て<unk>に置き換える
+	corpus = build_corpus(args.train_filename)
+	dataset = ihmm.dataset(corpus, args.train_split, args.unknown_threshold, args.seed)	# 低頻度語を全て<unk>に置き換える
 
 	# 単語辞書を保存
 	dictionary = dataset.get_dict()
-	dictionary.save(os.path.join(args.working_directory, "bhmm.dict"))
+	dictionary.save(os.path.join(args.working_directory, "ihmm.dict"))
 
 	# モデル
-	num_tags = len(Wt) if args.supervised else args.num_tags
-	model = bhmm.model(num_tags, dataset, Wt)
+	model = ihmm.model(args.initial_num_tags, dataset)
 
 	# ハイパーパラメータの設定
-	model.set_temperature(args.start_temperature)		# 温度の初期設定
-	model.set_minimum_temperature(args.min_temperature)	# 温度の下限
 	model.set_initial_alpha(args.initial_alpha)
 	model.set_initial_beta(args.initial_beta)
+	model.set_initial_gamma(args.initial_gamma)
+	model.set_initial_gamma_emission(args.initial_gamma_emission)
+	model.set_initial_beta_emission(args.initial_beta_emission)
 
 	# 学習の準備
-	trainer = bhmm.trainer(dataset, model)
+	trainer = ihmm.trainer(dataset, model)
 
 	# 学習ループ
-	decay = (args.start_temperature - args.min_temperature) / args.epochs 
 	for epoch in range(1, args.epochs + 1):
 		start = time.time()
 		trainer.perform_gibbs_sampling()	# 新しい状態系列をギブスサンプリング
-		trainer.anneal_temperature(decay)	# 温度を下げる
 
 		# ログ
 		elapsed_time = time.time() - start
-		printr("Iteration {} / {} - temp {:.3f} - {:.3f} sec".format(epoch, args.epochs, model.get_temperature(), elapsed_time))
+		printr("Iteration {} / {} - {:.3f} sec".format(epoch, args.epochs, elapsed_time))
 		if epoch % 1000 == 0:
 			printr("")
 			model.print_typical_words_assigned_to_each_tag(20, dictionary)
 		if epoch % 100 == 0:
-			printr("ハイパーパラメータのサンプリング ...")
-			trainer.update_hyperparameters()	# ハイパーパラメータをサンプリング
 			printr("")
 			print("log_likelihood: train {} - dev {}".format(trainer.compute_log_p_dataset_train(), trainer.compute_log_p_dataset_dev()))
-			model.save(os.path.join(args.working_directory, "bhmm.model"))
+			model.save(os.path.join(args.working_directory, "ihmm.model"))
 
 if __name__ == "__main__":
 	parser = argparse.ArgumentParser()
-	parser.add_argument("-file", "--train-filename", type=str, default=None, help="訓練用のテキストファイルのパス.")
-	parser.add_argument("-epochs", "--epochs", type=int, default=100000, help="総イテレーション.")
-	parser.add_argument("-cwd", "--working-directory", type=str, default="out", help="ワーキングディレクトリ.")
-	parser.add_argument("--supervised", dest="supervised", default=False, action="store_true", help="各タグのWtを訓練データで制限するかどうか.指定した場合num_tagsは無視される.")
-	parser.add_argument("--unsupervised", dest="supervised", action="store_false", help="各タグのWtを訓練データで制限するかどうか.")
-	parser.add_argument("-tags", "--num-tags", type=int, default=20, help="タグの種類（semi_supervisedがFalseの時のみ有効）.")
-	parser.add_argument("-unk", "--unknown-threshold", type=int, default=1, help="出現回数がこの値以下の単語は<unk>に置き換える.")
-	parser.add_argument("-split", "--train-split", type=float, default=0.9, help="テキストデータの何割を訓練データにするか.")
-	parser.add_argument("--start-temperature", type=float, default=1.5, help="開始温度.")
-	parser.add_argument("--min-temperature", type=float, default=0.08, help="最小温度.")
-	parser.add_argument("--initial-alpha", "-alpha", type=float, default=0.003, help="alphaの初期値.")
-	parser.add_argument("--initial-beta", "-beta", type=float, default=1.0, help="betaの初期値.")
+	parser.add_argument("--train-filename", "-file", type=str, default=None, help="訓練用のテキストファイルのパス..")
+	parser.add_argument("--seed", type=int, default=1)
+	parser.add_argument("--epochs", "-e", type=int, default=100000, help="総epoch.")
+	parser.add_argument("--working-directory", "-cwd", type=str, default="out", help="ワーキングディレクトリ.")
+	parser.add_argument("--initial-num-tags", "-tags", type=int, default=20, help="タグの種類（semi_supervisedがFalseの時のみ有効）.")
+	parser.add_argument("--unknown-threshold", "-unk",  type=int, default=1, help="出現回数がこの値以下の単語は<unk>に置き換える.")
+	parser.add_argument("--train-split", "-split", type=float, default=0.9, help="テキストデータの何割を訓練データにするか.")
+	parser.add_argument("--initial-alpha", "-alpha", type=int, default=1, help="alphaの初期値.")
+	parser.add_argument("--initial-beta", "-beta", type=int, default=1, help="betaの初期値.")
+	parser.add_argument("--initial-gamma", "-gamma", type=int, default=1, help="gammaの初期値.")
+	parser.add_argument("--initial-gamma-emission", "-egamma", type=int, default=1, help="gamma_emissionの初期値.")
+	parser.add_argument("--initial-beta-emission", "-ebeta", type=int, default=1, help="beta_emissionの初期値.")
 	args = parser.parse_args()
 	main()

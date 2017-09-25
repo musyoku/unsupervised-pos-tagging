@@ -160,9 +160,13 @@ namespace ihmm {
 		_free_viterbi_tables(sentence.size(), forward_table, decode_table);
 	}
 	void Model::viterbi_decode(std::vector<Word*> &sentence, std::vector<int> &sampled_state_sequence, double** forward_table, double** decode_table){
-		assert(sentence.size() > 4);	// <s>と</s>それぞれ2つづつ
+		assert(sentence.size() > 2);	// <s>と</s>
 		int tag_bos = 0;	// <s>
 		for(int ti = 1;ti <= _hmm->get_num_tags();ti++){
+			if(_hmm->is_tag_new(ti)){
+				forward_table[1][ti] = -1000000;
+				continue;
+			}
 			int ti_1 = tag_bos;	// <s>
 			int wi = sentence[1]->_id;
 			double p_transition = _hmm->compute_p_tag_given_context(ti, ti_1);
@@ -176,6 +180,11 @@ namespace ihmm {
 		}
 		for(int i = 2;i < sentence.size() - 1;i++){
 			for(int ti = 1;ti <= _hmm->get_num_tags();ti++){
+				if(_hmm->is_tag_new(ti)){
+					forward_table[i][ti] = -1000000;
+					decode_table[i][ti] = 0;
+					continue;
+				}
 				int wi = sentence[i]->_id;
 				double p_emission = _hmm->compute_p_word_given_tag(wi, ti);
 				double log_p_emission = -1000000;
@@ -210,6 +219,7 @@ namespace ihmm {
 		int ti = argmax_ti;
 		for(int i = sentence.size() - 2;i >= 2;i--){
 			int ti_1 = decode_table[i][ti];
+			assert(1 <= ti_1 && ti_1 <= _hmm->get_num_tags());
 			sampled_state_sequence.push_back(ti_1);
 			ti = ti_1;
 		}
