@@ -23,12 +23,10 @@ namespace ithmm {
 		static int _auto_increment;
 		int _identifier;		// ノードID
 		int _owner_id_in_structure;
-		Node* _owner_in_structure;		// このHTSSBは木構造のどのノードが持っているか
+		Node* _owner_in_structure;		// このHTSSBを木構造のどのノードが持っているか
 		Node* _parent;			// 親ノード
 		int _depth_v;			// 縦の深さ。 論文中の|s|に相当
 		int _depth_h;			// 横の深さ。 論文中のkに相当
-		// 各ノードの遷移確率TSSBは自己同型になっている必要があるため、構造を共有する
-		// カウントは各ノードのIDごとに管理
 		int _pass_count_v;		// 通過回数。 縦方向のCDP
 		int _stop_count_v;		// 停止回数。 縦方向のCDP
 		int _pass_count_h;		// 通過回数。 横方向のCDP

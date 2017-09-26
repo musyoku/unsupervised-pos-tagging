@@ -72,6 +72,13 @@ void test_parent_child(){
 		}
 		assert(child_hpylm->_num_customers == 10000);
 		assert(parent_hpylm->_num_customers == child_hpylm->_num_tables);
+
+		double p_w_1 = child_hpylm->compute_p_w(0, g0, d_m, theta_m);
+		double p_w_2 = child_hpylm->compute_p_w(100, g0, d_m, theta_m);
+		assert(p_w_1 > p_w_2);
+		p_w_1 = parent_hpylm->compute_p_w(0, g0, d_m, theta_m);
+		p_w_2 = parent_hpylm->compute_p_w(100, g0, d_m, theta_m);
+		assert(p_w_1 > p_w_2);
 		for(int n = 0;n < 100;n++){
 			for(id token_id = 0;token_id < 100;token_id++){
 				child_hpylm->remove_customer(token_id);

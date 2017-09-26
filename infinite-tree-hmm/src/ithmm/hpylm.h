@@ -24,7 +24,6 @@ namespace ithmm {
 		HPYLM();
 		HPYLM(Node* node);
 		bool child_exists(id token_id);
-		bool need_to_remove_from_parent();
 		int get_num_tables_serving_word(id token_id);
 		int get_num_customers_eating_word(id token_id);
 		HPYLM* find_child_node(id token_id, bool generate_if_not_exist = false);
