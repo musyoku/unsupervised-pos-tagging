@@ -1,12 +1,6 @@
 #pragma once
 #include <boost/serialization/serialization.hpp>
-#include <boost/serialization/base_object.hpp>
-#include <boost/archive/binary_iarchive.hpp>
-#include <boost/archive/binary_oarchive.hpp>
-#include <boost/serialization/unordered_map.hpp>
-#include <boost/serialization/map.hpp>
 #include <vector>
-#include <unordered_map>
 #include <map>
 #include "common.h"
 
@@ -17,9 +11,9 @@ namespace ithmm {
 		friend class boost::serialization::access;
 		template <class Archive>
 		void serialize(Archive &ar, unsigned int version);
-		bool add_customer_to_table(id token_id, int table_k, double parent_Pw, std::vector<double> &d_m, std::vector<double> &theta_m);
-		bool add_customer_to_new_table(id token_id, double parent_Pw, std::vector<double> &d_m, std::vector<double> &theta_m);
-		bool remove_customer_from_table(id token_id, int table_k, std::vector<int> &num_customers_at_table);
+		bool _add_customer_to_table(id token_id, int table_k, double parent_Pw, std::vector<double> &d_m, std::vector<double> &theta_m);
+		bool _add_customer_to_new_table(id token_id, double parent_Pw, std::vector<double> &d_m, std::vector<double> &theta_m);
+		bool _remove_customer_from_table(id token_id, int table_k, std::vector<int> &num_customers_at_table);
 	public:
 		std::map<id, std::vector<int>> _arrangement;	// 客の配置 std::vector<int>のk番目の要素がテーブルkの客数を表す
 		int _num_tables;					// 総テーブル数
@@ -36,7 +30,7 @@ namespace ithmm {
 		HPYLM* find_child_node(id token_id, bool generate_if_not_exist = false);
 		bool add_customer(id token_id, double g0, std::vector<double> &d_m, std::vector<double> &theta_m);
 		bool remove_customer(id token_id);
-		double compute_Pw(id token_id, double g0, std::vector<double> &d_m, std::vector<double> &theta_m);
+		double compute_p_w(id token_id, double g0, std::vector<double> &d_m, std::vector<double> &theta_m);
 		bool remove_from_parent();
 		void delete_child_node(id token_id);
 		id sample_token(double g0, std::vector<double> &d_m, std::vector<double> &theta_m);

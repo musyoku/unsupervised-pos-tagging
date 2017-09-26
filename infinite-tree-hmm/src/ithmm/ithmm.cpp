@@ -1352,7 +1352,7 @@ namespace ithmm {
 		assert(_hpylm_d_m.size() > node_in_structure->_depth_v);
 		assert(_hpylm_theta_m.size() > node_in_structure->_depth_v);
 		assert(_word_g0 > 0);
-		return node_in_structure->_hpylm->compute_Pw(token_id, _word_g0, _hpylm_d_m, _hpylm_theta_m);
+		return node_in_structure->_hpylm->compute_p_w(token_id, _word_g0, _hpylm_d_m, _hpylm_theta_m);
 	}
 	// TSSBの全ての棒の長さを計算
 	void iTHMM::update_stick_length_of_tssb(TSSB* tssb, double total_stick_length, bool htssb_mode){
@@ -1548,7 +1548,7 @@ namespace ithmm {
 		std::pair<id, double> pair = std::make_pair(0, 0);
 		for(const auto &elem: node_in_structure->_num_word_assignment){
 			id word_id = elem.first;
-			double Pw = hpylm->compute_Pw(word_id, _word_g0, _hpylm_d_m, _hpylm_theta_m);
+			double Pw = hpylm->compute_p_w(word_id, _word_g0, _hpylm_d_m, _hpylm_theta_m);
 			pair.first = word_id;
 			pair.second = Pw;
 			ranking.insert(pair);

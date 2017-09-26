@@ -1,6 +1,12 @@
+#include <boost/serialization/base_object.hpp>
+#include <boost/archive/binary_iarchive.hpp>
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/serialization/unordered_map.hpp>
+#include <boost/serialization/map.hpp>
 #include <boost/format.hpp>
 #include <iostream>
 #include <cassert>
+#include <iostream>
 #include "cprintf.h"
 #include "sampler.h"
 #include "node.h"
@@ -41,7 +47,7 @@ namespace ithmm {
 	template void HPYLM::serialize(boost::archive::binary_iarchive &ar, unsigned int version);
 	template void HPYLM::serialize(boost::archive::binary_oarchive &ar, unsigned int version);
 	// 客をテーブルに追加
-	bool HPYLM::add_customer_to_table(id token_id, int table_k, double g0, vector<double> &d_m, vector<double> &theta_m){
+	bool HPYLM::_add_customer_to_table(id token_id, int table_k, double g0, vector<double> &d_m, vector<double> &theta_m){
 		auto itr = _arrangement.find(token_id);
 		assert(itr != _arrangement.end());
 		vector<int> &num_customers_at_table = itr->second;
@@ -50,7 +56,7 @@ namespace ithmm {
 		_num_customers++;
 		return true;
 	}
-	bool HPYLM::add_customer_to_new_table(id token_id, double g0, vector<double> &d_m, vector<double> &theta_m){
+	bool HPYLM::_add_customer_to_new_table(id token_id, double g0, vector<double> &d_m, vector<double> &theta_m){
 		auto itr = _arrangement.find(token_id);
 		if(itr == _arrangement.end()){
 			vector<int> tables = {1};
@@ -67,7 +73,7 @@ namespace ithmm {
 		}
 		return true;
 	}
-	bool HPYLM::remove_customer_from_table(id token_id, int table_k, vector<int> &num_customers_at_table){
+	bool HPYLM::_remove_customer_from_table(id token_id, int table_k, vector<int> &num_customers_at_table){
 		assert(table_k < num_customers_at_table.size());
 		num_customers_at_table[table_k]--;
 		_num_customers--;
@@ -109,13 +115,13 @@ namespace ithmm {
 		assert(_depth < d_m.size());
 		double d_u = d_m[_depth];
 		double theta_u = theta_m[_depth];
-		double parent_Pw = g0;
+		double parent_p_w = g0;
 		if(_parent){
-			parent_Pw = _parent->compute_Pw(token_id, g0, d_m, theta_m);
+			parent_p_w = _parent->compute_p_w(token_id, g0, d_m, theta_m);
 		}
 		auto itr = _arrangement.find(token_id);
 		if(itr == _arrangement.end()){
-			add_customer_to_new_table(token_id, g0, d_m, theta_m);
+			_add_customer_to_new_table(token_id, g0, d_m, theta_m);
 			return true;
 		}
 		vector<int> &num_customers_at_table = itr->second;
@@ -124,18 +130,18 @@ namespace ithmm {
 			sum += std::max(0.0, num_customers_at_table[k] - d_u);
 		}
 		double t_u = _num_tables;
-		sum += (theta_u + d_u * t_u) * parent_Pw;
+		sum += (theta_u + d_u * t_u) * parent_p_w;
 		double normalizer = 1.0 / sum;
 		double r = sampler::uniform(0, 1);
 		sum = 0;
 		for(int k = 0;k < num_customers_at_table.size();k++){
 			sum += std::max(0.0, num_customers_at_table[k] - d_u) * normalizer;
 			if(r <= sum){
-				add_customer_to_table(token_id, k, g0, d_m, theta_m);
+				_add_customer_to_table(token_id, k, g0, d_m, theta_m);
 				return true;
 			}
 		}
-		add_customer_to_new_table(token_id, g0, d_m, theta_m);
+		_add_customer_to_new_table(token_id, g0, d_m, theta_m);
 		return true;
 	}
 	bool HPYLM::remove_customer(id token_id){
@@ -149,14 +155,16 @@ namespace ithmm {
 		for(int k = 0;k < num_customers_at_table.size();k++){
 			sum += num_customers_at_table[k] * normalizer;
 			if(r <= sum){
-				remove_customer_from_table(token_id, k, num_customers_at_table);
+				_remove_customer_from_table(token_id, k, num_customers_at_table);
 				return true;
 			}
 		}
-		remove_customer_from_table(token_id, num_customers_at_table.size() - 1, num_customers_at_table);
+		_remove_customer_from_table(token_id, num_customers_at_table.size() - 1, num_customers_at_table);
 		return true;
 	}
-	double HPYLM::compute_Pw(id token_id, double g0, vector<double> &d_m, vector<double> &theta_m){
+	double HPYLM::compute_p_w(id token_id, double g0, vector<double> &d_m, vector<double> &theta_m){
+		assert(_depth < d_m.size());
+		assert(_depth < theta_m.size());
 		double d_u = d_m[_depth];
 		double theta_u = theta_m[_depth];
 		double t_u = _num_tables;
@@ -165,20 +173,20 @@ namespace ithmm {
 		if(itr == _arrangement.end()){
 			double coeff = (theta_u + d_u * t_u) / (theta_u + c_u);
 			if(_parent != NULL){
-				return _parent->compute_Pw(token_id, g0, d_m, theta_m) * coeff;
+				return _parent->compute_p_w(token_id, g0, d_m, theta_m) * coeff;
 			}
 			return g0 * coeff;
 		}
-		double parent_Pw = g0;
+		double parent_p_w = g0;
 		if(_parent != NULL){
-			parent_Pw = _parent->compute_Pw(token_id, g0, d_m, theta_m);
+			parent_p_w = _parent->compute_p_w(token_id, g0, d_m, theta_m);
 		}
 		vector<int> &num_customers_at_table = itr->second;
 		double c_uw = std::accumulate(num_customers_at_table.begin(), num_customers_at_table.end(), 0);
 		double t_uw = num_customers_at_table.size();
-		double first_coeff = std::max(0.0, c_uw - d_u * t_uw) / (theta_u + c_u);
-		double second_coeff = (theta_u + d_u * t_u) / (theta_u + c_u);
-		return first_coeff + second_coeff * parent_Pw;
+		double first_term = std::max(0.0, c_uw - d_u * t_uw) / (theta_u + c_u);
+		double coeff = (theta_u + d_u * t_u) / (theta_u + c_u);
+		return first_term + coeff * parent_p_w;
 	}
 	int HPYLM::get_num_tables(){
 		int num = 0;

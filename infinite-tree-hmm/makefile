@@ -1,16 +1,21 @@
 CC = g++
-INCLUDE = -I`python -c 'from distutils.sysconfig import *; print get_python_inc()'` -I /usr/local/include
-CFLAGS = -std=c++11 -L/usr/local/lib -lboost_serialization -lboost_python -lpython2.7 -O0 -g
-SOFLAGS = -shared -fPIC -std=c++11 -L/usr/local/lib -lboost_serialization -lboost_python -lpython2.7 -O3
+BOOST = /usr/local/Cellar/boost/1.65.0/include
+INCLUDE = `python3-config --includes` -std=c++11 -I$(BOOST)
+LDFLAGS = `python3-config --ldflags` -lboost_serialization -lboost_python3
+SOFLAGS = -shared -fPIC
 
-install: ## Python用ライブラリをビルドします.
-	$(CC) src/python.cpp src/ithmm/*.cpp src/python/*.cpp -o run/ithmm.so $(INCLUDE) $(SOFLAGS)
+install: ## Python用ライブラリをコンパイル
+	$(CC) $(INCLUDE) $(LDFLAGS) $(SOFLAGS) src/python.cpp src/ithmm/*.cpp src/python/*.cpp -o run/ithmm.so -O3
 
-debug: ## LLDB用.
-	$(CC) test/debug.cpp src/ithmm/*.cpp src/python/*.cpp -o test/debug $(INCLUDE) $(CFLAGS)
+check_includes:	## Python.hの場所を確認
+	python3-config --includes
 
-cpp: ## LLDB用.
-	$(CC) test/train.cpp src/ithmm/*.cpp src/python/*.cpp -o test/train $(INCLUDE) $(CFLAGS)
+check_ldflags:	## libpython3の場所を確認
+	python3-config --ldflags
+
+.PHONY: test
+module_tests: ## 各モジュールのテスト.
+	$(CC) test/module_tests/hpylm.cpp src/ithmm/*.cpp -o test/module_tests/hpylm $(INCLUDE) $(LDFLAGS) -O0 -g
 
 .PHONY: help
 help:
