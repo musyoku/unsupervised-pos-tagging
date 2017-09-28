@@ -36,37 +36,44 @@ namespace ithmm {
 			return;
 		}
 		new_table_generated = false;
-		double sum = std::accumulate(_arrangement.begin(), _arrangement.end(), 0);
-		double scale = num_total_customers / sum;
+		double sum_arrangement = std::accumulate(_arrangement.begin(), _arrangement.end(), 0);
 		// g0を掛けるかどうかがよく分からない
-		sum = num_total_customers + concentration_parameter * g0;
-		// sum = num_total_customers + concentration_parameter;
-		double normalizer = 1.0 / sum;
+		// double total_counts = num_total_customers + concentration_parameter * g0;
+		double total_counts = num_total_customers + concentration_parameter;
 		double bernoulli = sampler::uniform(0, 1);
-		sum = 0;
+		// まず親から生成されたかどうかを判定
+		if(bernoulli >= (num_total_customers / total_counts)){
+			_arrangement.push_back(1);
+			new_table_generated = true;
+			_last_added_index = _arrangement.size() - 1;
+			return;
+		}
+		// 自身のテーブルのどこに座るかを決定
+		bernoulli = sampler::uniform(0, 1);
+		double normalizer = 1.0 / sum_arrangement;
+		double stack = 0;
 		for(int i = 0;i < _arrangement.size();i++){
-			sum += _arrangement[i] * scale * normalizer;
-			if(bernoulli <= sum){
+			stack += _arrangement[i] * normalizer;
+			if(bernoulli <= stack){
 				_arrangement[i] += 1;
 				_last_added_index = i;
 				return;
 			}
 		}
-		_arrangement.push_back(1);
-		new_table_generated = true;
-		_last_added_index = _arrangement.size() - 1;
+		assert(false);
 	}
 	void Table::remove_customer(bool &empty_table_deleted){
 		assert(_arrangement.size() > 0);
 		empty_table_deleted = false;
 		_num_customers -= 1;
-		int sum = std::accumulate(_arrangement.begin(), _arrangement.end(), 0);
-		int bernoulli = sampler::uniform_int(0, sum);
-		sum = 0;
+		int sum_arrangement = std::accumulate(_arrangement.begin(), _arrangement.end(), 0);
+		double normalizer = 1.0 / sum_arrangement;
+		int bernoulli = sampler::uniform_int(0, 1);
+		double stack = 0;
 		int target_index = _arrangement.size() - 1;
 		for(int i = 0;i < _arrangement.size();i++){
-			sum += _arrangement[i];
-			if(bernoulli <= sum){
+			stack += _arrangement[i] * normalizer;
+			if(bernoulli <= stack){
 				target_index = i;
 				break;
 			}

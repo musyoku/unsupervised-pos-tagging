@@ -354,6 +354,43 @@ void test_remove_customer_to_horizontal_crp_recursively(){
 	}
 }
 
+void test_increment_decrement(){
+	Node* node = new Node();
+	for(int i = 0;i < 100;i++){
+		node->increment_vertical_stop_count();
+	}
+	assert(node->get_vertical_stop_count() == 100);
+	for(int i = 0;i < 100;i++){
+		node->decrement_vertical_stop_count();
+	}
+	assert(node->get_vertical_stop_count() == 0);
+	for(int i = 0;i < 100;i++){
+		node->increment_vertical_pass_count();
+	}
+	assert(node->get_vertical_pass_count() == 100);
+	for(int i = 0;i < 100;i++){
+		node->decrement_vertical_pass_count();
+	}
+	assert(node->get_vertical_pass_count() == 0);
+
+	for(int i = 0;i < 100;i++){
+		node->increment_horizontal_stop_count();
+	}
+	assert(node->get_horizontal_stop_count() == 100);
+	for(int i = 0;i < 100;i++){
+		node->decrement_horizontal_stop_count();
+	}
+	assert(node->get_horizontal_stop_count() == 0);
+	for(int i = 0;i < 100;i++){
+		node->increment_horizontal_pass_count();
+	}
+	assert(node->get_horizontal_pass_count() == 100);
+	for(int i = 0;i < 100;i++){
+		node->decrement_horizontal_pass_count();
+	}
+	assert(node->get_horizontal_pass_count() == 0);
+}
+
 int main(){
 	test_depth_v();
 	cout << "OK" << endl;
@@ -374,6 +411,8 @@ int main(){
 	test_remove_customer_to_horizontal_crp();
 	cout << "OK" << endl;
 	test_remove_customer_to_horizontal_crp_recursively();
+	cout << "OK" << endl;
+	test_increment_decrement();
 	cout << "OK" << endl;
 	return 0;
 }
