@@ -77,6 +77,24 @@ def main():
 			if true_tag in occurrence:
 				num = occurrence[true_tag]
 			confusion_mat[true_tag_to_id[true_tag]][found_tags_to_id[found_tag]] = num
+	sum_counts = np.sum(confusion_mat, axis=0)
+	delete_indices = []
+	for index, count in enumerate(sum_counts):
+		if count == 0:
+			delete_indices.append(index)
+	num_nonzero_found_tags = len(found_tags) - len(delete_indices)
+	if num_nonzero_found_tags > 0:
+		new_confusion_mat = np.zeros((num_true_tags, num_nonzero_found_tags), dtype=int)
+		new_found_tags = []
+		pointer = 0
+		for tag_index, found_tag in enumerate(found_tags):
+			if tag_index in delete_indices:
+				continue
+			new_confusion_mat[:, pointer] = confusion_mat[:, tag_index]
+			new_found_tags.append(found_tag)
+			pointer += 1
+		confusion_mat = new_confusion_mat
+		found_tags = new_found_tags
 	normalized_confusion_mat = confusion_mat / np.sum(confusion_mat, axis=0)
 
 	fig = pylab.gcf()
