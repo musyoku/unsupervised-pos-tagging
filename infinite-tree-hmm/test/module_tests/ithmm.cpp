@@ -43,10 +43,20 @@ void test_copy_children_in_structure_to_transition_tssb(){
 
 void test_generate_transition_tssb_belonging_to(){
 	iTHMM* ithmm = new iTHMM();
-	TSSB* tssb = ithmm->generate_transition_tssb_belonging_to(ithmm->_root_in_structure);
-	assert(tssb->_owner == ithmm->_root_in_structure);
-	assert(tssb->_root->_identifier == ithmm->_root_in_structure->_identifier);
-	assert(tssb->_root->get_htssb_owner_node_id() == ithmm->_root_in_structure->_identifier);
+	Node* root_in_structure = ithmm->_root_in_structure;
+	for(int i = 0;i < 100;i++){
+		root_in_structure->generate_child();
+	}
+	TSSB* tssb = ithmm->generate_transition_tssb_belonging_to(root_in_structure);
+	Node* root_in_htssb = tssb->_root;
+	assert(root_in_structure->_children.size() == 100);
+	assert(root_in_htssb->_children.size() == 100);
+	assert(root_in_htssb != NULL);
+	for(int i = 0;i < 100;i++){
+		assert(root_in_structure->_children[i]->_identifier == root_in_htssb->_children[i]->_identifier);
+	}
+
+	ithmm->generate_and_add_new_child_to(root_in_structure);
 }
 
 void test_generate_and_add_new_child_to(){
@@ -57,6 +67,8 @@ void test_generate_and_add_new_child_to(){
 
 int main(){
 	test_copy_children_in_structure_to_transition_tssb();
+	cout << "OK" << endl;
+	test_generate_transition_tssb_belonging_to();
 	cout << "OK" << endl;
 	return 0;
 }
