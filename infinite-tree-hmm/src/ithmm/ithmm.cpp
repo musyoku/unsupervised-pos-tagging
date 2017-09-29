@@ -50,7 +50,7 @@ namespace ithmm {
 		_root_in_htssb->_myself_in_structure_tssb = _root_in_structure;
 		_root_in_structure->_transition_tssb = new TSSB(_root_in_htssb);
 		_root_in_structure->_transition_tssb->_owner_id = _root_in_structure->_identifier;
-		_root_in_structure->_transition_tssb_myself = _root_in_htssb;
+		_root_in_structure->_myself_in_transition_tssb = _root_in_htssb;
 
 		_root_in_bos = new Node(NULL, _root_in_structure->_identifier);
 		_root_in_bos->_is_bos_tssb_node = true;
@@ -175,7 +175,7 @@ namespace ithmm {
 		generated_child_in_structure->_transition_tssb = generate_transition_tssb_belonging_to(generated_child_in_structure);
 		Node* myself_in_htssb = generated_child_in_structure->find_same_node_in_transition_tssb();
 		assert(myself_in_htssb != NULL);
-		generated_child_in_structure->_transition_tssb_myself = myself_in_htssb;
+		generated_child_in_structure->_myself_in_transition_tssb = myself_in_htssb;
 		// HPYLM
 		generated_child_in_structure->init_hpylm();
 
@@ -188,7 +188,7 @@ namespace ithmm {
 		// 木構造上の全ノードのHTSSBにノードを追加
 		_generate_and_add_new_child_to_all_htssb(_structure_tssb->_root, parent, generated_child_in_structure, return_child);
 		// ポインタを張る
-		Node* generated_child_in_htssb = generated_child_in_structure->_transition_tssb_myself;
+		Node* generated_child_in_htssb = generated_child_in_structure->_myself_in_transition_tssb;
 		assert(generated_child_in_htssb != NULL);
 		// generated_child_in_htssb->_myself_in_structure_tssb = generated_child_in_structure;
 		//// 木構造上の親ノードのHTSSBの自分と同じ位置のノードへのポインタ
@@ -197,12 +197,12 @@ namespace ithmm {
 		Node* iterator_in_htssb = generated_child_in_htssb;
 		Node* iterator_in_parent_htssb = NULL;
 		while(parent_in_structure != NULL){
-			assert(iterator_in_structure->_transition_tssb_myself != NULL);
+			assert(iterator_in_structure->_myself_in_transition_tssb != NULL);
 			// 木構造上での親ノードが持つHTSSBにある対応するノードを取る
 			iterator_in_parent_htssb = parent_in_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(generated_child_in_structure);
 			assert(iterator_in_parent_htssb != NULL);
 			// ポインタを張る
-			iterator_in_htssb->_parent_transition_tssb_myself = iterator_in_parent_htssb;
+			iterator_in_htssb->_myself_in_parent_transition_tssb = iterator_in_parent_htssb;
 			iterator_in_htssb->_myself_in_structure_tssb = generated_child_in_structure;
 			assert(iterator_in_htssb->_myself_in_structure_tssb->_identifier == generated_child_in_structure->_identifier);
 			// 木構造上で次の親ノードへ
@@ -263,7 +263,7 @@ namespace ithmm {
 		child->_is_bos_tssb_node = true;
 		parent->add_child(child);
 		// ポインタを張る
-		generated_child_in_structure->_bos_tssb_myself = child;
+		generated_child_in_structure->_myself_in_bos_tssb = child;
 		child->_myself_in_structure_tssb = generated_child_in_structure;
 		return child;
 	}
@@ -272,10 +272,10 @@ namespace ithmm {
 		assert(is_node_in_structure_tssb(owner_in_structure));
 		Node* root_in_htssb = new Node(NULL, _root_in_structure->_identifier);
 		root_in_htssb->_htssb_owner_node_in_structure = owner_in_structure;
-		root_in_htssb->_parent_transition_tssb_myself = NULL;
+		root_in_htssb->_myself_in_parent_transition_tssb = NULL;
 		root_in_htssb->_is_htssb_node = true;
 		if(owner_in_structure->_parent != NULL){
-			root_in_htssb->_parent_transition_tssb_myself = owner_in_structure->_parent->_transition_tssb->_root;
+			root_in_htssb->_myself_in_parent_transition_tssb = owner_in_structure->_parent->_transition_tssb->_root;
 		}
 		root_in_htssb->_myself_in_structure_tssb = _root_in_structure;
 		copy_children_in_structure_to_transition_tssb(_root_in_structure, root_in_htssb, owner_in_structure);
@@ -972,7 +972,7 @@ namespace ithmm {
 	void iTHMM::_add_customer_to_htssb_vertical_crp(double alpha, Node* iterator){
 		assert(iterator != NULL);
 		assert(is_node_in_htssb(iterator));
-		Node* iterator_in_parent_htssb = iterator->_parent_transition_tssb_myself;
+		Node* iterator_in_parent_htssb = iterator->_myself_in_parent_transition_tssb;
 		double ratio_v = 0;	// 親の場合はテーブルの増加は無視してよい
 		if(iterator_in_parent_htssb != NULL){
 			ratio_v = compute_expectation_of_vertical_htssb_sbr_ratio(iterator_in_parent_htssb);	// g0は親の停止確率なので注意
@@ -998,7 +998,7 @@ namespace ithmm {
 	void iTHMM::_add_customer_to_htssb_horizontal_crp(double gamma, Node* iterator){
 		assert(iterator != NULL);
 		assert(is_node_in_htssb(iterator));
-		Node* iterator_in_parent_htssb = iterator->_parent_transition_tssb_myself;
+		Node* iterator_in_parent_htssb = iterator->_myself_in_parent_transition_tssb;
 		double ratio_h = 0;	// 親の場合はテーブルの増加は無視してよい
 		if(iterator_in_parent_htssb != NULL){
 			ratio_h = compute_expectation_of_horizontal_htssb_sbr_ratio(iterator_in_parent_htssb);	// g0は親の停止確率なので注意
@@ -1077,7 +1077,7 @@ namespace ithmm {
 		assert(iterator_in_structure != NULL);
 		iterator_in_structure->decrement_ref_count();
 		// 親TSSBから代理客を削除
-		Node* iterator_in_parent_htssb = iterator->_parent_transition_tssb_myself;
+		Node* iterator_in_parent_htssb = iterator->_myself_in_parent_transition_tssb;
 		if(empty_table_deleted && iterator_in_parent_htssb != NULL){
 			_remove_customer_from_htssb_vertical_crp(iterator_in_parent_htssb, remove_last_customer);
 		}
@@ -1104,7 +1104,7 @@ namespace ithmm {
 		assert(iterator_in_structure != NULL);
 		iterator_in_structure->decrement_ref_count();
 		// 親TSSBから代理客を削除
-		Node* iterator_in_parent_htssb = iterator->_parent_transition_tssb_myself;
+		Node* iterator_in_parent_htssb = iterator->_myself_in_parent_transition_tssb;
 		if(empty_table_deleted && iterator_in_parent_htssb != NULL){
 			_remove_customer_from_htssb_horizontal_crp(iterator_in_parent_htssb, remove_last_customer);
 		}

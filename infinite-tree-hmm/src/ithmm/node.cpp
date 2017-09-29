@@ -53,11 +53,11 @@ namespace ithmm {
 		ar & _sum_probability;
 		ar & _hpylm;
 		ar & _transition_tssb;
-		ar & _transition_tssb_myself;
-		ar & _parent_transition_tssb_myself;
+		ar & _myself_in_transition_tssb;
+		ar & _myself_in_parent_transition_tssb;
 		ar & _ref_count;
 		ar & _myself_in_structure_tssb;
-		ar & _bos_tssb_myself;
+		ar & _myself_in_bos_tssb;
 	}
 	template void Node::serialize(boost::archive::binary_iarchive &ar, unsigned int version);
 	template void Node::serialize(boost::archive::binary_oarchive &ar, unsigned int version);
@@ -76,10 +76,10 @@ namespace ithmm {
 		_num_transitions_to_eos = 0;
 		_num_transitions_to_other = 0;
 		_transition_tssb = NULL;
-		_transition_tssb_myself = NULL;
-		_parent_transition_tssb_myself = NULL;
+		_myself_in_transition_tssb = NULL;
+		_myself_in_parent_transition_tssb = NULL;
 		_myself_in_structure_tssb = NULL;
-		_bos_tssb_myself = NULL;
+		_myself_in_bos_tssb = NULL;
 		_htssb_owner_node_in_structure = (_parent != NULL) ? _parent->_htssb_owner_node_in_structure : NULL;
 		_table_v = new Table();
 		_table_h = new Table();

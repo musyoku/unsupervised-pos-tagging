@@ -17,7 +17,7 @@ void test_copy_children_in_structure_to_transition_tssb(){
 
 	root_in_structure->_transition_tssb = new TSSB(root_in_htssb);
 	root_in_structure->_transition_tssb->_owner_id = root_in_structure->_identifier;
-	root_in_structure->_transition_tssb_myself = root_in_htssb;
+	root_in_structure->_myself_in_transition_tssb = root_in_htssb;
 
 }
 

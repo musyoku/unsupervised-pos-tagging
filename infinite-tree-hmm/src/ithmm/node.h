@@ -51,11 +51,11 @@ namespace ithmm {
 		// ポインタを張る
 		//// 木構造上のノードの場合は以下のみ有効
 		TSSB* _transition_tssb;					// 遷移確率を表すTSSBのルート
-		Node* _transition_tssb_myself;			// 遷移確率を表すTSSBの自分と同じ位置のノード
-		Node* _bos_tssb_myself;					// <bos>TSSBでの自分と同じ位置のノード
+		Node* _myself_in_transition_tssb;			// 遷移確率を表すTSSBの自分と同じ位置のノード
+		Node* _myself_in_bos_tssb;					// <bos>TSSBでの自分と同じ位置のノード
 		int _ref_count;							// 参照カウント
 		//// HTSSB上のノードの場合は以下のみ有効
-		Node* _parent_transition_tssb_myself;	// 木構造上の親ノードが持つ遷移確率TSSBの自分と同じ位置のノード
+		Node* _myself_in_parent_transition_tssb;	// 木構造上の親ノードが持つ遷移確率TSSBの自分と同じ位置のノード
 		Node* _myself_in_structure_tssb;			// 木構造上の自分と同じ位置のノード
 		bool _is_structure_node;
 		bool _is_htssb_node;
