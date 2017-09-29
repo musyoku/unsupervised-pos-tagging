@@ -9,15 +9,19 @@ namespace ithmm {
 	TSSB::TSSB(){
 		_root = new Node(NULL);
 		_root->_stick_length = 1;
-		_owner_id = 0;
 		_owner = NULL;
 		_num_customers = 0;
+		_is_bos = false;
+		_is_structure = false;
+		_is_htssb = false;
 	}
 	TSSB::TSSB(Node* root){
 		_root = root;
-		_owner_id = 0;
 		_owner = NULL;
 		_num_customers = 0;
+		_is_bos = false;
+		_is_structure = false;
+		_is_htssb = false;
 	}
 	TSSB::~TSSB(){
 		_delete_children(_root);
@@ -26,11 +30,14 @@ namespace ithmm {
 		}
 		delete _root;
 	}
+	int TSSB::get_owner_node_id(){
+		assert(_owner != NULL);
+		return _owner->_identifier;
+	}
 	template <class Archive>
 	void TSSB::serialize(Archive & ar, unsigned int version)
 	{
 		ar & _root;
-		ar & _owner_id;
 		ar & _owner;
 		ar & _num_customers;
 	}
@@ -133,7 +140,7 @@ namespace ithmm {
 		assert(_num_customers >= 0);
 	}
 	void TSSB::dump(){
-		cout << (boost::format("TSSB[ow:$%d,#c:%d,#ct:%d]") % _owner_id % _num_customers % get_num_customers()).str() << endl;
+		cout << (boost::format("TSSB[ow:$%d,#c:%d,#ct:%d]") % get_owner_node_id() % _num_customers % get_num_customers()).str() << endl;
 		_dump(_root);
 	}
 	void TSSB::_dump(Node* node){

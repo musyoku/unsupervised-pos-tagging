@@ -25,7 +25,7 @@ namespace ithmm {
 			return a.second > b.second;
 		}   
 	};
-	void copy_children_in_structure_to_transition_tssb(Node* source_in_structure, Node* target_in_htssb, Node* owner_in_structure);
+	void copy_children_in_structure_to_transition_tssb(Node* source_in_structure, Node* target_in_htssb);
 	class iTHMM {
 	private:
 		friend class boost::serialization::access;

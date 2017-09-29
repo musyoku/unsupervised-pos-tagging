@@ -15,9 +15,11 @@ namespace ithmm {
 		void serialize(Archive &ar, unsigned int version);
 	public:
 		Node* _root;
-		int _owner_id;		// HTSSBの場合は木構造上でこのTSSBを持っているノードのID
 		Node* _owner;
 		int _num_customers;
+		bool _is_bos;
+		bool _is_structure;
+		bool _is_htssb;
 		TSSB();
 		TSSB(Node* root);
 		~TSSB();
@@ -27,6 +29,7 @@ namespace ithmm {
 		Node* find_node_by_tracing_horizontal_indices(Node* base);
 		Node* find_node_with_id(int identifier);
 		Node* _find_node_with_id(int identifier,  Node* node);
+		int get_owner_node_id();
 		int get_num_nodes();
 		int _get_num_children(Node* node);
 		int get_max_depth();
