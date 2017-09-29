@@ -12,9 +12,6 @@
 #include "tssb.h"
 #include "node.h"
 #include "hpylm.h"
-#include "sampler.h"
-#include "cprintf.h"
-#include "utils.h"
 #include "common.h"
 #include "hyperparameters.h"
 
@@ -28,7 +25,7 @@ namespace ithmm {
 			return a.second > b.second;
 		}   
 	};
-
+	void copy_children_in_structure_to_transition_tssb(Node* source_in_structure, Node* target_in_htssb, Node* owner_in_structure);
 	class iTHMM {
 	private:
 		friend class boost::serialization::access;
@@ -57,6 +54,10 @@ namespace ithmm {
 		// 統計
 		int _num_mh_acceptance;
 		int _num_mh_rejection;
+		// デバッグ用
+		Node* _root_in_structure;
+		Node* _root_in_htssb;
+		Node* _root_in_bos;
 		iTHMM();
 		~iTHMM();
 		void initialize_with_training_dataset(std::vector<std::vector<Word*>> &dataset);
@@ -75,7 +76,6 @@ namespace ithmm {
 		void _generate_and_add_new_child_to_all_htssb(Node* iterator_in_structure, Node* parent, Node* generated_child_in_structure, Node* &return_child);
 		Node* _generate_and_add_new_child_to_bos_tssb(Node* generated_child_in_structure);
 		TSSB* generate_transition_tssb_belonging_to(Node* owner_in_structure);
-		void copy_children_in_structure_to_transition_tssb(Node* source_in_structure, Node* target_in_htssb, Node* owner_in_structure);
 		Node* sample_node_in_tssb(TSSB* tssb, bool ignore_root = false);
 		Node* sample_node_in_htssb(TSSB* tssb, bool ignore_root = false);
 		Node* _sample_node_in_tssb_by_iterating_node(Node* iterator, bool htssb_mode, bool ignore_root = false);

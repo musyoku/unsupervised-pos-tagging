@@ -1,4 +1,7 @@
 #include "ithmm.h"
+#include "sampler.h"
+#include "cprintf.h"
+#include "utils.h"
 
 namespace ithmm {
 	template <class Archive>
@@ -35,22 +38,24 @@ namespace ithmm {
 		_word_g0 = -1;
 
 		_structure_tssb = new TSSB();
-		_structure_tssb->_root->_owner_id_in_structure = TSSB_STRUCTURE_ID;
+		_structure_tssb->_root->_is_structure_node = true;
 		_structure_tssb->_owner_id = TSSB_STRUCTURE_ID;
-		Node* root_in_structure = _structure_tssb->_root;
-		root_in_structure->init_hpylm();
-		Node* root_in_htssb = new Node(NULL, root_in_structure->_identifier);
-		root_in_htssb->_owner_id_in_structure = root_in_structure->_identifier;
-		root_in_htssb->_owner_in_structure = root_in_structure;
-		root_in_htssb->_structure_tssb_myself = root_in_structure;
-		root_in_structure->_transition_tssb = new TSSB(root_in_htssb);
-		root_in_structure->_transition_tssb->_owner_id = root_in_structure->_identifier;
-		root_in_structure->_transition_tssb_myself = root_in_htssb;
+		_root_in_structure = _structure_tssb->_root;
+		_root_in_structure->_is_structure_node = true;
+		_root_in_structure->init_hpylm();
 
-		Node* root_in_bos = new Node(NULL, root_in_structure->_identifier);
-		root_in_bos->_owner_id_in_structure = TSSB_BOS_ID;		// そもそも木構造上に所有者がいないが気にしない
-		root_in_bos->_structure_tssb_myself = root_in_structure;
-		_bos_tssb = new TSSB(root_in_bos);
+		_root_in_htssb = new Node(NULL, _root_in_structure->_identifier);
+		_root_in_htssb->_is_htssb_node = true;
+		_root_in_htssb->_htssb_owner_node_in_structure = _root_in_structure;
+		_root_in_htssb->_myself_in_structure_tssb = _root_in_structure;
+		_root_in_structure->_transition_tssb = new TSSB(_root_in_htssb);
+		_root_in_structure->_transition_tssb->_owner_id = _root_in_structure->_identifier;
+		_root_in_structure->_transition_tssb_myself = _root_in_htssb;
+
+		_root_in_bos = new Node(NULL, _root_in_structure->_identifier);
+		_root_in_bos->_is_bos_tssb_node = true;
+		_root_in_bos->_myself_in_structure_tssb = _root_in_structure;
+		_bos_tssb = new TSSB(_root_in_bos);
 		_bos_tssb->_owner_id = TSSB_BOS_ID;
 
 		_hpylm_d_m.push_back(HPYLM_D);
@@ -118,15 +123,15 @@ namespace ithmm {
 	}
 	bool iTHMM::is_node_in_bos_tssb(Node* node){
 		assert(node != NULL);
-		return node->_owner_id_in_structure == TSSB_BOS_ID;
+		return node->_is_bos_tssb_node;
 	}
 	bool iTHMM::is_node_in_structure_tssb(Node* node){
 		assert(node != NULL);
-		return node->_owner_id_in_structure == TSSB_STRUCTURE_ID;
+		return node->_is_structure_node;
 	}
 	bool iTHMM::is_node_in_htssb(Node* node){
 		assert(node != NULL);
-		return is_node_in_bos_tssb(node) == false && is_node_in_structure_tssb(node) == false;
+		return node->_is_htssb_node;
 	}
 	bool iTHMM::is_node_root(Node* node){
 		return node->_depth_v == 0;
@@ -160,7 +165,9 @@ namespace ithmm {
 		if(is_node_in_structure_tssb(parent)){	// parentが木構造上のノードの場合
 			generated_child_in_structure = parent->generate_child();
 		}else{	// parentが別のノードの遷移確率用TSSB上のノードだった場合
-			Node* parent_in_structure = _structure_tssb->find_node_by_tracing_horizontal_indices(parent);
+			// Node* parent_in_structure = _structure_tssb->find_node_by_tracing_horizontal_indices(parent);
+			Node* parent_in_structure = parent->_myself_in_structure_tssb;
+			assert(parent_in_structure->_identifier == parent->get_htssb_owner_node_id());
 			generated_child_in_structure = parent_in_structure->generate_child();
 		}
 		assert(generated_child_in_structure != NULL);
@@ -183,7 +190,7 @@ namespace ithmm {
 		// ポインタを張る
 		Node* generated_child_in_htssb = generated_child_in_structure->_transition_tssb_myself;
 		assert(generated_child_in_htssb != NULL);
-		// generated_child_in_htssb->_structure_tssb_myself = generated_child_in_structure;
+		// generated_child_in_htssb->_myself_in_structure_tssb = generated_child_in_structure;
 		//// 木構造上の親ノードのHTSSBの自分と同じ位置のノードへのポインタ
 		Node* iterator_in_structure = generated_child_in_structure;
 		Node* parent_in_structure = iterator_in_structure->_parent;
@@ -196,8 +203,8 @@ namespace ithmm {
 			assert(iterator_in_parent_htssb != NULL);
 			// ポインタを張る
 			iterator_in_htssb->_parent_transition_tssb_myself = iterator_in_parent_htssb;
-			iterator_in_htssb->_structure_tssb_myself = generated_child_in_structure;
-			assert(iterator_in_htssb->_structure_tssb_myself->_identifier == generated_child_in_structure->_identifier);
+			iterator_in_htssb->_myself_in_structure_tssb = generated_child_in_structure;
+			assert(iterator_in_htssb->_myself_in_structure_tssb->_identifier == generated_child_in_structure->_identifier);
 			// 木構造上で次の親ノードへ
 			iterator_in_structure = parent_in_structure;
 			parent_in_structure = iterator_in_structure->_parent;
@@ -231,15 +238,15 @@ namespace ithmm {
 		// iteratorとgenerated_childが同一の場合はすでに追加されているのでスキップ
 		if(iterator_in_structure->_identifier != generated_child_in_structure->_identifier){
 			assert(iterator_in_structure->_transition_tssb != NULL);
-			int owner_id_of_htssb_parent_belongs = parent->_owner_id_in_structure;
+			int owner_node_id_of_htssb_parent_belongs = parent->get_htssb_owner_node_id();
 			int child_id_to_generate = generated_child_in_structure->_identifier;
 			// 遷移確率用TSSBの同じ位置に子ノードを挿入
 			Node* parent_in_htssb = iterator_in_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(parent);
 			assert(parent_in_htssb != NULL);
 			assert(parent_in_htssb->_identifier == generated_child_in_structure->_parent->_identifier);
 			Node* child_in_htssb = new Node(parent_in_htssb, child_id_to_generate);
-			child_in_htssb->_structure_tssb_myself = generated_child_in_structure;
-			if(child_in_htssb->_owner_id_in_structure == owner_id_of_htssb_parent_belongs){	// 親と同じTSSB上の子ノードを返す
+			child_in_htssb->_myself_in_structure_tssb = generated_child_in_structure;
+			if(child_in_htssb->get_htssb_owner_node_id() == owner_node_id_of_htssb_parent_belongs){	// 親と同じTSSB上の子ノードを返す
 				return_child = child_in_htssb;
 			}
 			parent_in_htssb->add_child(child_in_htssb);
@@ -253,39 +260,37 @@ namespace ithmm {
 		Node* parent = _bos_tssb->find_node_by_tracing_horizontal_indices(generated_child_in_structure->_parent);
 		assert(parent != NULL);
 		Node* child = new Node(parent, generated_child_in_structure->_identifier);
-		child->_owner_id_in_structure = TSSB_BOS_ID;
+		child->_is_bos_tssb_node = true;
 		parent->add_child(child);
 		// ポインタを張る
 		generated_child_in_structure->_bos_tssb_myself = child;
-		child->_structure_tssb_myself = generated_child_in_structure;
+		child->_myself_in_structure_tssb = generated_child_in_structure;
 		return child;
 	}
 	// 木構造上のノードにHTSSBを追加
 	TSSB* iTHMM::generate_transition_tssb_belonging_to(Node* owner_in_structure){
 		assert(is_node_in_structure_tssb(owner_in_structure));
-		Node* root_in_structure = _structure_tssb->_root;
-		Node* root_in_htssb = new Node(NULL, root_in_structure->_identifier);
-		root_in_htssb->_owner_id_in_structure = owner_in_structure->_identifier;
-		root_in_htssb->_owner_in_structure = owner_in_structure;
+		Node* root_in_htssb = new Node(NULL, _root_in_structure->_identifier);
+		root_in_htssb->_htssb_owner_node_in_structure = owner_in_structure;
 		root_in_htssb->_parent_transition_tssb_myself = NULL;
+		root_in_htssb->_is_htssb_node = true;
 		if(owner_in_structure->_parent != NULL){
 			root_in_htssb->_parent_transition_tssb_myself = owner_in_structure->_parent->_transition_tssb->_root;
 		}
-		root_in_htssb->_structure_tssb_myself = root_in_structure;
-		copy_children_in_structure_to_transition_tssb(root_in_structure, root_in_htssb, owner_in_structure);
-		TSSB* target = new TSSB(root_in_htssb);
-		target->_owner_id = owner_in_structure->_identifier;
-		target->_owner = owner_in_structure;
-		return target;
+		root_in_htssb->_myself_in_structure_tssb = _root_in_structure;
+		copy_children_in_structure_to_transition_tssb(_root_in_structure, root_in_htssb, owner_in_structure);
+		TSSB* tssb = new TSSB(root_in_htssb);
+		tssb->_owner_id = owner_in_structure->_identifier;
+		tssb->_owner = owner_in_structure;
+		return tssb;
 	}
 	// 生成したHTSSBを木構造と同一の形状にするために子ノードを生成・追加
-	void iTHMM::copy_children_in_structure_to_transition_tssb(Node* source_in_structure, Node* target_in_htssb, Node* owner_in_structure){
+	void copy_children_in_structure_to_transition_tssb(Node* source_in_structure, Node* target_in_htssb, Node* owner_in_structure){
 		for(const auto source_child_in_structure: source_in_structure->_children){
 			Node* child = new Node(target_in_htssb, source_child_in_structure->_identifier);
-			child->_owner_id_in_structure = owner_in_structure->_identifier;
-			child->_owner_in_structure = owner_in_structure;
-			child->_structure_tssb_myself = source_child_in_structure;
-			// child->_owner_id_in_structure = owner_in_structure;
+			child->_is_htssb_node = true;
+			child->_htssb_owner_node_in_structure = owner_in_structure;
+			child->_myself_in_structure_tssb = source_child_in_structure;
 			target_in_htssb->add_child(child);
 			copy_children_in_structure_to_transition_tssb(source_child_in_structure, child, owner_in_structure);
 		}
@@ -300,7 +305,7 @@ namespace ithmm {
 	Node* iTHMM::sample_node_in_htssb(TSSB* tssb, bool ignore_root){
 		assert(is_tssb_htssb(tssb));
 		Node* node = _sample_node_in_tssb_by_iterating_node(tssb->_root, true, ignore_root);
-		assert(node->_owner_id_in_structure == tssb->_owner_id);
+		assert(node->get_htssb_owner_node_id() == tssb->_owner_id);
 		return node;
 	}
 	// 止まるノードを決定する
@@ -729,7 +734,7 @@ namespace ithmm {
 			// assert(st <= u && u < ed);
 			Node* new_state_in_prev_htssb = retrospective_sampling(u, prev_state_in_structure->_transition_tssb, 1.0, true);
 			assert(new_state_in_prev_htssb != NULL);
-			Node* new_state_in_structure = new_state_in_prev_htssb->_structure_tssb_myself;
+			Node* new_state_in_structure = new_state_in_prev_htssb->_myself_in_structure_tssb;
 			assert(new_state_in_structure != NULL);
 			assert(new_state_in_structure->_transition_tssb != NULL);
 
@@ -841,7 +846,7 @@ namespace ithmm {
 			Node* new_state_in_bos = retrospective_sampling(u, _bos_tssb, 1.0, false);
 			assert(is_node_in_bos_tssb(new_state_in_bos));
 			assert(new_state_in_bos != NULL);
-			Node* new_state_in_structure = new_state_in_bos->_structure_tssb_myself;
+			Node* new_state_in_structure = new_state_in_bos->_myself_in_structure_tssb;
 			assert(new_state_in_structure != NULL);
 			assert(new_state_in_structure->_transition_tssb != NULL);
 
@@ -900,7 +905,7 @@ namespace ithmm {
 			// cout << u << endl;
 			// new_state_in_htssb->dump();
 			assert(new_state_in_htssb != NULL);
-			Node* new_state_in_structure = new_state_in_htssb->_structure_tssb_myself;
+			Node* new_state_in_structure = new_state_in_htssb->_myself_in_structure_tssb;
 			assert(new_state_in_structure != NULL);
 			assert(new_state_in_structure->_transition_tssb != NULL);
 
@@ -953,7 +958,7 @@ namespace ithmm {
 		// 参照カウントのインクリメント
 		//// <s>からの接続のカウント
 		if(is_node_in_bos_tssb(target_in_tssb)){
-			Node* target_in_structure = target_in_tssb->_structure_tssb_myself;
+			Node* target_in_structure = target_in_tssb->_myself_in_structure_tssb;
 			assert(target_in_structure != NULL);
 			target_in_structure->increment_ref_count();
 		}
@@ -975,14 +980,14 @@ namespace ithmm {
 		bool new_table_generated = false;
 		iterator->add_customer_to_vertical_crp(alpha, ratio_v, new_table_generated);
 		// 総客数のインクリメント
-		Node* owner_in_structure = iterator->_owner_in_structure;
+		Node* owner_in_structure = iterator->_htssb_owner_node_in_structure;
 		assert(owner_in_structure != NULL);
 		TSSB* htssb = owner_in_structure->_transition_tssb;
 		assert(htssb != NULL);
-		assert(htssb->_owner_id == iterator->_owner_id_in_structure);
+		assert(htssb->_owner_id == iterator->get_htssb_owner_node_id());
 		htssb->increment_num_customers();
 		// 参照カウントのインクリメント
-		Node* iterator_in_structure = iterator->_structure_tssb_myself;
+		Node* iterator_in_structure = iterator->_myself_in_structure_tssb;
 		assert(iterator_in_structure != NULL);
 		iterator_in_structure->increment_ref_count();
 		// 親TSSBに代理客を追加
@@ -1001,16 +1006,16 @@ namespace ithmm {
 		bool new_table_generated = false;
 		iterator->add_customer_to_horizontal_crp(gamma, ratio_h, new_table_generated);
 		// 総客数のインクリメント
-		Node* owner_in_structure = iterator->_owner_in_structure;
+		Node* owner_in_structure = iterator->_htssb_owner_node_in_structure;
 		assert(owner_in_structure != NULL);
 		TSSB* htssb = owner_in_structure->_transition_tssb;
 		assert(htssb != NULL);
-		assert(htssb->_owner_id == iterator->_owner_id_in_structure);
+		assert(htssb->_owner_id == iterator->get_htssb_owner_node_id());
 		for(int d = 0;d <= iterator->_depth_v;d++){	// 水平方向には深さの数だけ別のSBRがあり、別の客が追加されることに注意
 			htssb->increment_num_customers();
 		}
 		// 参照カウントのインクリメント
-		Node* iterator_in_structure = iterator->_structure_tssb_myself;
+		Node* iterator_in_structure = iterator->_myself_in_structure_tssb;
 		assert(iterator_in_structure != NULL);
 		iterator_in_structure->increment_ref_count();
 		// 親TSSBに代理客を追加
@@ -1040,7 +1045,7 @@ namespace ithmm {
 		// 参照カウントのインクリメント
 		//// <s>からの接続のカウント
 		if(is_node_in_bos_tssb(target_in_tssb)){
-			Node* target_in_structure = target_in_tssb->_structure_tssb_myself;
+			Node* target_in_structure = target_in_tssb->_myself_in_structure_tssb;
 			assert(target_in_structure != NULL);
 			target_in_structure->decrement_ref_count();
 		}
@@ -1061,14 +1066,14 @@ namespace ithmm {
 			iterator->remove_customer_from_vertical_crp(empty_table_deleted);
 		}
 		// 総客数のインクリメント
-		Node* owner_in_structure = iterator->_owner_in_structure;
+		Node* owner_in_structure = iterator->_htssb_owner_node_in_structure;
 		assert(owner_in_structure != NULL);
 		TSSB* htssb = owner_in_structure->_transition_tssb;
 		assert(htssb != NULL);
-		assert(htssb->_owner_id == iterator->_owner_id_in_structure);
+		assert(htssb->_owner_id == iterator->get_htssb_owner_node_id());
 		htssb->decrement_num_customers();
 		// 参照カウントのインクリメント
-		Node* iterator_in_structure = iterator->_structure_tssb_myself;
+		Node* iterator_in_structure = iterator->_myself_in_structure_tssb;
 		assert(iterator_in_structure != NULL);
 		iterator_in_structure->decrement_ref_count();
 		// 親TSSBから代理客を削除
@@ -1086,16 +1091,16 @@ namespace ithmm {
 			iterator->remove_customer_from_horizontal_crp(empty_table_deleted);
 		}
 		// 総客数のインクリメント
-		Node* owner_in_structure = iterator->_owner_in_structure;
+		Node* owner_in_structure = iterator->_htssb_owner_node_in_structure;
 		assert(owner_in_structure != NULL);
 		TSSB* htssb = owner_in_structure->_transition_tssb;
 		assert(htssb != NULL);
-		assert(htssb->_owner_id == iterator->_owner_id_in_structure);
+		assert(htssb->_owner_id == iterator->get_htssb_owner_node_id());
 		for(int d = 0;d <= iterator->_depth_v;d++){	// 水平方向には深さの数だけ別のSBRがあり、別の客が追加されることに注意
 			htssb->decrement_num_customers();
 		}
 		// 参照カウントのインクリメント
-		Node* iterator_in_structure = iterator->_structure_tssb_myself;
+		Node* iterator_in_structure = iterator->_myself_in_structure_tssb;
 		assert(iterator_in_structure != NULL);
 		iterator_in_structure->decrement_ref_count();
 		// 親TSSBから代理客を削除
@@ -1106,7 +1111,7 @@ namespace ithmm {
 	}
 	// update_stick_length_of_tssbは全ノードを更新するのに対しこっちは対象ノードのみ正確に計算する
 	double iTHMM::compute_node_probability_in_tssb(TSSB* tssb, Node* node, double total_stick_length){
-		assert(tssb->_owner_id == node->_owner_id_in_structure);
+		assert(tssb->_owner_id == node->get_htssb_owner_node_id());
 		bool htssb_mode = is_tssb_htssb(tssb);
 		Node* iterator = tssb->_root;
 		iterator->_stick_length = total_stick_length;
@@ -1177,7 +1182,7 @@ namespace ithmm {
 		// c_printf("[*]%s\n", "compute_expectation_of_vertical_htssb_sbr_ratio");
 		assert(target_in_htssb != NULL);
 		assert(is_node_in_htssb(target_in_htssb));	// 木構造上のノードだった場合は計算できない
-		Node* owner_in_structure = target_in_htssb->_owner_in_structure;
+		Node* owner_in_structure = target_in_htssb->_htssb_owner_node_in_structure;
 		assert(owner_in_structure != NULL);
 		double sbr_ratio = -1;
 		// target_in_htssb->dump();
@@ -1273,7 +1278,7 @@ namespace ithmm {
 		if(target_in_htssb->_depth_v == 0){	// ルートノードなら必ず止まる
 			return 1;
 		}
-		Node* owner_in_structure = target_in_htssb->_owner_in_structure;
+		Node* owner_in_structure = target_in_htssb->_htssb_owner_node_in_structure;
 		assert(owner_in_structure != NULL);
 		int num_itr_in_structure = owner_in_structure->_depth_v + 1;
 		int num_itr_horizontal = target_in_htssb->_depth_h + 1;

@@ -5,9 +5,9 @@
 #include <boost/archive/binary_oarchive.hpp>
 #include <vector>
 #include <iostream>
-#include "node.h"
 
 namespace ithmm {
+	class Node;
 	class TSSB {
 	private:
 		friend class boost::serialization::access;

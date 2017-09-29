@@ -33,8 +33,7 @@ namespace ithmm {
 	{
 		ar & _auto_increment;;
 		ar & _identifier;
-		ar & _owner_id_in_structure;
-		ar & _owner_in_structure;
+		ar & _htssb_owner_node_in_structure;
 		ar & _parent;
 		ar & _depth_v;
 		ar & _depth_h;
@@ -57,7 +56,7 @@ namespace ithmm {
 		ar & _transition_tssb_myself;
 		ar & _parent_transition_tssb_myself;
 		ar & _ref_count;
-		ar & _structure_tssb_myself;
+		ar & _myself_in_structure_tssb;
 		ar & _bos_tssb_myself;
 	}
 	template void Node::serialize(boost::archive::binary_iarchive &ar, unsigned int version);
@@ -65,7 +64,6 @@ namespace ithmm {
 	void Node::init(){
 		_depth_v = (_parent != NULL) ? _parent->_depth_v + 1 : 0;
 		_depth_h = (_parent != NULL) ? _parent->_children.size() : 0;
-		_owner_id_in_structure = (_parent != NULL) ? _parent->_owner_id_in_structure : 0;
 		_stick_length = 0;
 		_children_stick_length = 0;
 		_probability = 0;
@@ -80,9 +78,9 @@ namespace ithmm {
 		_transition_tssb = NULL;
 		_transition_tssb_myself = NULL;
 		_parent_transition_tssb_myself = NULL;
-		_structure_tssb_myself = NULL;
+		_myself_in_structure_tssb = NULL;
 		_bos_tssb_myself = NULL;
-		_owner_in_structure = (_parent != NULL) ? _parent->_owner_in_structure : 0;
+		_htssb_owner_node_in_structure = (_parent != NULL) ? _parent->_htssb_owner_node_in_structure : NULL;
 		_table_v = new Table();
 		_table_h = new Table();
 		_hpylm = NULL;
@@ -141,6 +139,11 @@ namespace ithmm {
 	}
 	Node* Node::find_same_node_in_transition_tssb(){
 		return _transition_tssb->find_node_by_tracing_horizontal_indices(this);
+	}
+	int Node::get_htssb_owner_node_id(){
+		assert(_is_htssb_node == true);
+		assert(_htssb_owner_node_in_structure != NULL);
+		return _htssb_owner_node_in_structure->_identifier;
 	}
 	int Node::get_vertical_stop_count(){
 		return _stop_count_v;
@@ -390,7 +393,7 @@ namespace ithmm {
 		}
 		return (boost::format("$%d [vp:%d,vs:%d,hp:%d,hs:%d,ref:%d][len:%f,p:%f,ch:%f,p:%f,sp:%f][ow:$%d,dv:%d,dh:%d][%s]%s[eos:%d,other:%d]") 
 			% _identifier % _pass_count_v % _stop_count_v % _pass_count_h % _stop_count_h % _ref_count % _stick_length 
-			% (_stick_length - _children_stick_length) % _children_stick_length % _probability % _sum_probability % _owner_id_in_structure 
+			% (_stick_length - _children_stick_length) % _children_stick_length % _probability % _sum_probability % get_htssb_owner_node_id() 
 			% _depth_v % _depth_h % indices_str.c_str() % hpylm_str.c_str() % _num_transitions_to_eos % _num_transitions_to_other).str();
 	}
 

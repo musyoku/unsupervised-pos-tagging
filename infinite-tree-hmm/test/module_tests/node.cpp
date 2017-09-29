@@ -216,7 +216,7 @@ void test_add_customer_to_horizontal_crp_recursively(){
 	assert(child->_children[3]->_stop_count_h == 0);
 }
 
-void test_remove_customer_to_vertical_crp(){
+void test_remove_customer_from_vertical_crp(){
 	Node* node = new Node();
 	double concentration = 0.2;
 	double g0 = 0.001;
@@ -238,7 +238,7 @@ void test_remove_customer_to_vertical_crp(){
 	assert(node->_table_v->_num_customers == 0);
 }
 
-void test_remove_customer_to_vertical_crp_recursively(){
+void test_remove_customer_from_vertical_crp_recursively(){
 	Node* parent = new Node();
 	parent->generate_child();
 	parent->generate_child();
@@ -285,7 +285,7 @@ void test_remove_customer_to_vertical_crp_recursively(){
 	}
 }
 
-void test_remove_customer_to_horizontal_crp(){
+void test_remove_customer_from_horizontal_crp(){
 	Node* node = new Node();
 	double concentration = 0.2;
 	double g0 = 0.001;
@@ -307,7 +307,7 @@ void test_remove_customer_to_horizontal_crp(){
 	assert(node->_table_h->_num_customers == 0);
 }
 
-void test_remove_customer_to_horizontal_crp_recursively(){
+void test_remove_customer_from_horizontal_crp_recursively(){
 	Node* parent = new Node();
 	parent->generate_child();
 	parent->generate_child();
@@ -404,13 +404,13 @@ int main(){
 	cout << "OK" << endl;
 	test_add_customer_to_horizontal_crp_recursively();
 	cout << "OK" << endl;
-	test_remove_customer_to_vertical_crp();
+	test_remove_customer_from_vertical_crp();
 	cout << "OK" << endl;
-	test_remove_customer_to_vertical_crp_recursively();
+	test_remove_customer_from_vertical_crp_recursively();
 	cout << "OK" << endl;
-	test_remove_customer_to_horizontal_crp();
+	test_remove_customer_from_horizontal_crp();
 	cout << "OK" << endl;
-	test_remove_customer_to_horizontal_crp_recursively();
+	test_remove_customer_from_horizontal_crp_recursively();
 	cout << "OK" << endl;
 	test_increment_decrement();
 	cout << "OK" << endl;

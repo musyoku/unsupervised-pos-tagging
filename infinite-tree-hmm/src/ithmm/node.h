@@ -22,8 +22,7 @@ namespace ithmm {
 	public:
 		static int _auto_increment;
 		int _identifier;		// ノードID
-		int _owner_id_in_structure;
-		Node* _owner_in_structure;		// このHTSSBを木構造のどのノードが持っているか
+		Node* _htssb_owner_node_in_structure;	// このHTSSBを木構造のどのノードが持っているか
 		Node* _parent;			// 親ノード
 		int _depth_v;			// 縦の深さ。 論文中の|s|に相当
 		int _depth_h;			// 横の深さ。 論文中のkに相当
@@ -41,7 +40,7 @@ namespace ithmm {
 		double _probability;				// このノードの確率
 		double _sum_probability;			// 自分より左側にある全ての棒の長さの合計
 		HPYLM* _hpylm;						// 出力分布
-		std::map<id, int> _num_word_assignment;	// 単語がこのノードに割り当てられた回数。結果表示用でiTHMMとは無関係。
+		std::unordered_map<id, int> _num_word_assignment;	// 単語がこのノードに割り当てられた回数。結果表示用でiTHMMとは無関係。
 		// 計算時に使う配列
 		Node** _nodes_from_root_to_myself;
 		double* _stop_probability_v_over_parent;
@@ -57,7 +56,10 @@ namespace ithmm {
 		int _ref_count;							// 参照カウント
 		//// HTSSB上のノードの場合は以下のみ有効
 		Node* _parent_transition_tssb_myself;	// 木構造上の親ノードが持つ遷移確率TSSBの自分と同じ位置のノード
-		Node* _structure_tssb_myself;			// 木構造上の自分と同じ位置のノード
+		Node* _myself_in_structure_tssb;			// 木構造上の自分と同じ位置のノード
+		bool _is_structure_node;
+		bool _is_htssb_node;
+		bool _is_bos_tssb_node;
 		Node();
 		Node(Node* parent);
 		Node(Node* parent, int identifier);
@@ -70,6 +72,7 @@ namespace ithmm {
 		Node* generate_child();
 		void add_child(Node* node);
 		Node* find_same_node_in_transition_tssb();
+		int get_htssb_owner_node_id();
 		int get_vertical_stop_count();
 		int get_vertical_pass_count();
 		int get_horizontal_stop_count();
