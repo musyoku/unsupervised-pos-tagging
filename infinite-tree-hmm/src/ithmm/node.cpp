@@ -148,7 +148,7 @@ namespace ithmm {
 		return _myself_in_parent_transition_tssb;
 	}
 	Node* Node::get_myself_in_structure_tssb(){
-		assert(is_htssb_node());
+		assert(is_htssb_node() || is_bos_tssb_node());
 		return _myself_in_structure_tssb;
 	}
 	Node* Node::get_htssb_owner_node_in_structure(){
