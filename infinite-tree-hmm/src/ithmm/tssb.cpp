@@ -25,9 +25,11 @@ namespace ithmm {
 	}
 	TSSB::~TSSB(){
 		_delete_children(_root);
-		TSSB* transition_tssb = _root->get_transition_tssb();
-		if(transition_tssb != NULL){
-			delete transition_tssb;
+		if(_root->is_structure_node()){
+			TSSB* transition_tssb = _root->get_transition_tssb();
+			if(transition_tssb != NULL){
+				delete transition_tssb;
+			}
 		}
 		delete _root;
 	}
@@ -49,9 +51,11 @@ namespace ithmm {
 			if(child->has_child()){
 				_delete_children(child);
 			}
-			TSSB* transition_tssb = child->get_transition_tssb();
-			if(transition_tssb != NULL){
-				delete transition_tssb;
+			if(child->is_structure_node()){
+				TSSB* transition_tssb = child->get_transition_tssb();
+				if(transition_tssb != NULL){
+					delete transition_tssb;
+				}
 			}
 			delete child;
 		}

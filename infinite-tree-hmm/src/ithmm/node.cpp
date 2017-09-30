@@ -182,7 +182,7 @@ namespace ithmm {
 	void Node::set_myself_in_structure_tssb(Node* node){
 		assert(node != NULL);
 		assert(node->is_structure_node());
-		assert(is_htssb_node());
+		assert(is_htssb_node() || is_bos_tssb_node());
 		_myself_in_structure_tssb = node;
 	}
 	void Node::set_htssb_owner_node_in_structure(Node* node){

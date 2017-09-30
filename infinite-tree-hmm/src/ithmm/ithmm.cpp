@@ -236,8 +236,8 @@ namespace ithmm {
 			assert(transition_tssb != NULL);
 			iterator_in_parent_htssb = transition_tssb->find_node_by_tracing_horizontal_indices(generated_child_in_structure);
 			assert(iterator_in_parent_htssb != NULL);
-			assert(iterator_in_parent_htssb->_depth_v + 1 == iterator_in_htssb->_depth_v);
-			assert(iterator_in_parent_htssb->_identifier == parent_in_structure->_identifier);
+			assert(iterator_in_parent_htssb->_depth_v == iterator_in_htssb->_depth_v);
+			assert(iterator_in_parent_htssb->_identifier == generated_child_in_structure->_identifier);
 			// ポインタを張る
 			iterator_in_htssb->set_myself_in_parent_transition_tssb(iterator_in_parent_htssb);
 			iterator_in_htssb->set_myself_in_structure_tssb(generated_child_in_structure);
@@ -288,7 +288,8 @@ namespace ithmm {
 				assert(parent_htssb != NULL);
 				Node* myself_in_parent_htssb = parent_htssb->find_node_by_tracing_horizontal_indices(child_in_htssb);
 				assert(myself_in_parent_htssb != NULL);
-				assert(myself_in_parent_htssb->_depth_v + 1 == child_in_htssb->_depth_v);
+				assert(myself_in_parent_htssb->_depth_v == child_in_htssb->_depth_v);
+				assert(myself_in_parent_htssb->_identifier == child_in_htssb->_identifier);
 				child_in_htssb->set_myself_in_parent_transition_tssb(myself_in_parent_htssb);
 			}
 			// 親と同じTSSB上の子ノードを返す
@@ -318,9 +319,8 @@ namespace ithmm {
 	TSSB* iTHMM::generate_transition_tssb_belonging_to(Node* owner_in_structure){
 		assert(is_node_in_structure_tssb(owner_in_structure));
 		Node* root_in_htssb = new Node(NULL, _root_in_structure->_identifier);
-		root_in_htssb->set_htssb_owner_node_in_structure(owner_in_structure);
-		root_in_htssb->set_myself_in_parent_transition_tssb(NULL);
 		root_in_htssb->set_as_htssb_node();
+		root_in_htssb->set_htssb_owner_node_in_structure(owner_in_structure);
 		if(owner_in_structure->_parent != NULL){
 			TSSB* transition_tssb = owner_in_structure->_parent->get_transition_tssb();
 			assert(transition_tssb != NULL);
