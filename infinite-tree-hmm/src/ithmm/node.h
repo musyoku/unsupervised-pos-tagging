@@ -69,7 +69,7 @@ namespace ithmm {
 		void init_pointers_from_root_to_myself();
 		void init_hpylm();
 		~Node();
-		Node* generate_and_add_child();
+		Node* generate_child();
 		void add_child(Node* node);
 		Node* find_same_node_in_transition_tssb();
 		int get_htssb_owner_node_id();

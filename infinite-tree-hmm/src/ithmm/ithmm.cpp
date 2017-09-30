@@ -7,6 +7,7 @@ namespace ithmm {
 	// 生成したHTSSBを木構造と同一の形状にするために子ノードを生成・追加
 	void copy_children_in_structure_to_transition_tssb(Node* source_in_structure, Node* target_in_htssb){
 		for(const auto source_child_in_structure: source_in_structure->_children){
+			assert(source_child_in_structure->is_structure_node());
 			Node* child = new Node(target_in_htssb, source_child_in_structure->_identifier);
 			child->set_as_htssb_node();
 			child->set_htssb_owner_node_in_structure(target_in_htssb->get_htssb_owner_node_in_structure());
@@ -172,23 +173,28 @@ namespace ithmm {
 	}
 	// 親ノードに対応する木構造上のノードに子を追加して返す
 	Node* iTHMM::_generate_and_add_child_to_parent_in_structure(Node* parent){
-		Node* generated_child_in_structure = NULL;
+		Node* child = NULL;
 		if(is_node_in_structure_tssb(parent)){	// parentが木構造上のノードの場合
-			generated_child_in_structure = parent->generate_and_add_child();
+			child = parent->generate_child();
+			child->set_as_structure_node();
+			parent->add_child(child);
 		}else if(is_node_in_htssb(parent)){	// parentが別のノードの遷移確率用TSSB上のノードだった場合
 			// Node* parent_in_structure = _structure_tssb->find_node_by_tracing_horizontal_indices(parent);
 			Node* parent_in_structure = parent->get_myself_in_structure_tssb();
 			assert(parent_in_structure->_identifier == parent->get_htssb_owner_node_id());
 			assert(is_node_in_structure_tssb(parent_in_structure));
-			generated_child_in_structure = parent_in_structure->generate_and_add_child();
+			child = parent_in_structure->generate_child();
+			child->set_as_structure_node();
+			parent_in_structure->add_child(child);
 		}else if(is_node_in_bos_tssb(parent)){
 			Node* parent_in_structure = _structure_tssb->find_node_by_tracing_horizontal_indices(parent);
 			assert(is_node_in_structure_tssb(parent_in_structure));
-			generated_child_in_structure = parent_in_structure->generate_and_add_child();
+			child = parent_in_structure->generate_child();
+			child->set_as_structure_node();
+			parent_in_structure->add_child(child);
 		}
-		assert(generated_child_in_structure != NULL);
-		generated_child_in_structure->set_as_structure_node();
-		return generated_child_in_structure;
+		assert(child != NULL);
+		return child;
 	}
 	// 木構造で子ノードを生成した際に全てのHTSSBの同じ位置に子ノードを生成する
 	Node* iTHMM::generate_and_add_new_child_to(Node* parent){

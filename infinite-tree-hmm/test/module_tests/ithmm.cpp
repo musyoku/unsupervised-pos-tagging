@@ -12,8 +12,10 @@ using std::unique_ptr;
 
 void test_copy_children_in_structure_to_transition_tssb(){
 	Node* root_in_structure = new Node(NULL);
+	root_in_structure->set_as_structure_node();
 
 	Node* root_in_htssb = new Node(NULL, root_in_structure->_identifier);
+	root_in_htssb->set_as_htssb_node();
 	root_in_htssb->set_htssb_owner_node_in_structure(root_in_structure);
 	root_in_htssb->set_myself_in_structure_tssb(root_in_structure);
 
@@ -24,12 +26,16 @@ void test_copy_children_in_structure_to_transition_tssb(){
 	root_in_structure->set_myself_in_transition_tssb(root_in_htssb);
 
 	for(int i = 0;i < 100;i++){
-		root_in_structure->generate_and_add_child();
+		Node* child = root_in_structure->generate_child();
+		child->set_as_structure_node();
+		root_in_structure->add_child(child);
 	}
 
 	Node* child_in_structure = root_in_structure->_children[50];
 	for(int i = 0;i < 100;i++){
-		child_in_structure->generate_and_add_child();
+		Node* grandson = child_in_structure->generate_child();
+		grandson->set_as_structure_node();
+		child_in_structure->add_child(grandson);
 	}
 
 	copy_children_in_structure_to_transition_tssb(root_in_structure, root_in_htssb);

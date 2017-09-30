@@ -218,9 +218,8 @@ namespace ithmm {
 		assert(_is_bos_tssb_node == false);
 		_is_bos_tssb_node = true;
 	}
-	Node* Node::generate_and_add_child(){
+	Node* Node::generate_child(){
 		Node* child = new Node(this);
-		add_child(child);
 		return child;
 	}
 	void Node::add_child(Node* node){
