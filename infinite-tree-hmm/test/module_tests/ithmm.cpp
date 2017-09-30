@@ -160,6 +160,13 @@ void test_generate_transition_tssb_belonging_to(){
 		assert(child_1_in_structure->_children[i]->_identifier == child_2_tssb->_root->_children[0]->_children[i]->_identifier);
 		assert(child_1_in_structure->_children[i]->_identifier == child_3_tssb->_root->_children[0]->_children[i]->_identifier);
 	}
+
+	assert(root_in_structure->_hpylm != NULL);
+	assert(child_1_in_structure->_hpylm != NULL);
+	assert(child_2_in_structure->_hpylm != NULL);
+	assert(child_3_in_structure->_hpylm != NULL);
+	assert(grandson_1_in_structure->_hpylm != NULL);
+
 	delete ithmm;
 }
 
@@ -198,15 +205,98 @@ void test_pointers(){
 	assert(grandson_1_in_htssb->get_myself_in_structure_tssb() == grandson_1_in_structure);
 	assert(grandson_1_in_htssb->get_myself_in_parent_transition_tssb() == grandson_1_in_structure->_parent->get_transition_tssb()->find_node_by_tracing_horizontal_indices(grandson_1_in_structure));
 	assert(grandson_1_in_structure->get_transition_tssb() != NULL);
-
-
 	delete ithmm;
 }
 
-void test_generate_and_add_new_child_to(){
+void test_add_customer_to_hpylm(){
 	iTHMM* ithmm = new iTHMM();
-	Node* node = ithmm->generate_and_add_new_child_to(ithmm->_root_in_htssb);
-	assert(node->_depth_v == 1);
+	ithmm->set_word_g0(0.001);
+	Node* root_in_structure = ithmm->_root_in_structure;
+	Node* root_in_htssb = ithmm->_root_in_htssb;
+	Node* root_in_bos = ithmm->_root_in_bos;
+	Node* child_in_structure = ithmm->generate_and_add_new_child_to(root_in_structure);
+	Node* grandson_in_structure = ithmm->generate_and_add_new_child_to(child_in_structure);
+	ithmm->add_customer_to_hpylm(grandson_in_structure, 1);
+	assert(grandson_in_structure->_hpylm->get_num_customers() == 1);
+	assert(child_in_structure->_hpylm->get_num_customers() == 1);
+	assert(root_in_structure->_hpylm->get_num_customers() == 1);
+	delete ithmm;
+}
+
+void test_remove_customer_from_hpylm(){
+	iTHMM* ithmm = new iTHMM();
+	ithmm->set_word_g0(0.001);
+	Node* root_in_structure = ithmm->_root_in_structure;
+	Node* root_in_htssb = ithmm->_root_in_htssb;
+	Node* root_in_bos = ithmm->_root_in_bos;
+	Node* child_in_structure = ithmm->generate_and_add_new_child_to(root_in_structure);
+	Node* grandson_in_structure = ithmm->generate_and_add_new_child_to(child_in_structure);
+	ithmm->add_customer_to_hpylm(grandson_in_structure, 1);
+	ithmm->remove_customer_from_hpylm(grandson_in_structure, 1);
+	assert(grandson_in_structure->_hpylm->get_num_customers() == 0);
+	assert(child_in_structure->_hpylm->get_num_customers() == 0);
+	assert(root_in_structure->_hpylm->get_num_customers() == 0);
+	assert(grandson_in_structure->_hpylm->get_num_tables() == 0);
+	assert(child_in_structure->_hpylm->get_num_tables() == 0);
+	assert(root_in_structure->_hpylm->get_num_tables() == 0);
+	delete ithmm;
+}
+
+void test_hpylm_concentration(){
+	iTHMM* ithmm = new iTHMM();
+	ithmm->set_word_g0(0.001);
+	Node* root_in_structure = ithmm->_root_in_structure;
+	Node* root_in_htssb = ithmm->_root_in_htssb;
+	Node* root_in_bos = ithmm->_root_in_bos;
+	Node* child_in_structure = ithmm->generate_and_add_new_child_to(root_in_structure);
+	Node* grandson_in_structure = ithmm->generate_and_add_new_child_to(child_in_structure);
+	ithmm->_hpylm_d_m[0] = 0.1;
+	ithmm->_hpylm_d_m[1] = 0.1;
+	ithmm->_hpylm_d_m[2] = 0.1;
+
+	ithmm->_hpylm_theta_m[0] = 10000;
+	ithmm->_hpylm_theta_m[1] = 10000;
+	ithmm->_hpylm_theta_m[2] = 10000;
+	for(int i = 0;i < 100;i++){
+		ithmm->add_customer_to_hpylm(grandson_in_structure, 1);
+	}
+	assert(grandson_in_structure->_hpylm->get_num_customers() == 100);
+	assert(child_in_structure->_hpylm->get_num_customers() == grandson_in_structure->_hpylm->get_num_tables());
+	assert(root_in_structure->_hpylm->get_num_customers() == child_in_structure->_hpylm->get_num_tables());
+	int num_tables_in_child_huge = child_in_structure->_hpylm->get_num_tables();
+	int num_tables_in_grandson_huge = grandson_in_structure->_hpylm->get_num_tables();
+	for(int i = 0;i < 100;i++){
+		ithmm->remove_customer_from_hpylm(grandson_in_structure, 1);
+	}
+	assert(grandson_in_structure->_hpylm->get_num_customers() == 0);
+	assert(child_in_structure->_hpylm->get_num_customers() == 0);
+	assert(root_in_structure->_hpylm->get_num_customers() == 0);
+	assert(grandson_in_structure->_hpylm->get_num_tables() == 0);
+	assert(child_in_structure->_hpylm->get_num_tables() == 0);
+	assert(root_in_structure->_hpylm->get_num_tables() == 0);
+
+	ithmm->_hpylm_theta_m[0] = 1;
+	ithmm->_hpylm_theta_m[1] = 1;
+	ithmm->_hpylm_theta_m[2] = 1;
+	for(int i = 0;i < 100;i++){
+		ithmm->add_customer_to_hpylm(grandson_in_structure, 1);
+	}
+	assert(grandson_in_structure->_hpylm->get_num_customers() == 100);
+	assert(child_in_structure->_hpylm->get_num_customers() == grandson_in_structure->_hpylm->get_num_tables());
+	assert(root_in_structure->_hpylm->get_num_customers() == child_in_structure->_hpylm->get_num_tables());
+	int num_tables_in_child_small = child_in_structure->_hpylm->get_num_tables();
+	int num_tables_in_grandson_small = grandson_in_structure->_hpylm->get_num_tables();
+	for(int i = 0;i < 100;i++){
+		ithmm->remove_customer_from_hpylm(grandson_in_structure, 1);
+	}
+	assert(grandson_in_structure->_hpylm->get_num_customers() == 0);
+	assert(child_in_structure->_hpylm->get_num_customers() == 0);
+	assert(root_in_structure->_hpylm->get_num_customers() == 0);
+	assert(grandson_in_structure->_hpylm->get_num_tables() == 0);
+	assert(child_in_structure->_hpylm->get_num_tables() == 0);
+	assert(root_in_structure->_hpylm->get_num_tables() == 0);
+	assert(num_tables_in_child_huge > num_tables_in_child_small);
+	assert(num_tables_in_grandson_huge > num_tables_in_grandson_small);
 	delete ithmm;
 }
 
@@ -218,6 +308,12 @@ int main(){
 	test_generate_transition_tssb_belonging_to();
 	cout << "OK" << endl;
 	test_pointers();
+	cout << "OK" << endl;
+	test_add_customer_to_hpylm();
+	cout << "OK" << endl;
+	test_remove_customer_from_hpylm();
+	cout << "OK" << endl;
+	test_hpylm_concentration();
 	cout << "OK" << endl;
 	return 0;
 }

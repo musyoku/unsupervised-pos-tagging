@@ -133,10 +133,10 @@ namespace ithmm {
 		sum += (theta_u + d_u * t_u) * parent_p_w;
 		double normalizer = 1.0 / sum;
 		double r = sampler::uniform(0, 1);
-		sum = 0;
+		double stack = 0;
 		for(int k = 0;k < num_customers_at_table.size();k++){
-			sum += std::max(0.0, num_customers_at_table[k] - d_u) * normalizer;
-			if(r <= sum){
+			stack += std::max(0.0, num_customers_at_table[k] - d_u) * normalizer;
+			if(r <= stack){
 				_add_customer_to_table(token_id, k, g0, d_m, theta_m);
 				return true;
 			}
