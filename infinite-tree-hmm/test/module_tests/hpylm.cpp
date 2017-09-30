@@ -1,6 +1,6 @@
-#include  <iostream>
-#include  <cassert>
-#include  <string>
+#include <iostream>
+#include <cassert>
+#include <string>
 #include "../../src/ithmm/hpylm.h"
 #include "../../src/ithmm/node.h"
 using namespace ithmm;
@@ -23,6 +23,8 @@ void test_add_customer(){
 	double p_w_1 = hpylm->compute_p_w(0, g0, d_m, theta_m);
 	double p_w_2 = hpylm->compute_p_w(100, g0, d_m, theta_m);
 	assert(p_w_1 > p_w_2);
+	delete node;
+	delete hpylm;
 }
 
 void test_remove_customer(){
@@ -51,6 +53,8 @@ void test_remove_customer(){
 			assert(p_w == g0);
 		}
 	}
+	delete node;
+	delete hpylm;
 }
 
 void test_parent_child(){
@@ -89,7 +93,10 @@ void test_parent_child(){
 		assert(parent_hpylm->_num_customers == 0);
 		assert(parent_hpylm->_num_tables == 0);
 	}
-
+	delete parent_node;
+	delete parent_hpylm;
+	delete child_node;
+	delete child_hpylm;
 }
 
 int main(){

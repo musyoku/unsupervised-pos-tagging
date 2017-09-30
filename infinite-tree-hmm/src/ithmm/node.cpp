@@ -12,14 +12,14 @@ namespace ithmm {
 	using std::endl;
 
 	Node::Node(){
-		_identifier = _auto_increment;
 		_auto_increment++;
+		_identifier = _auto_increment;
 		_parent = NULL;
 		init();
 	}
 	Node::Node(Node* parent){
-		_identifier = _auto_increment;
 		_auto_increment++;
+		_identifier = _auto_increment;
 		_parent = parent;
 		init();
 	}
@@ -84,6 +84,9 @@ namespace ithmm {
 		_table_v = new Table();
 		_table_h = new Table();
 		_hpylm = NULL;
+		_is_structure_node = false;
+		_is_htssb_node = false;
+		_is_bos_tssb_node = false;
 		init_arrays();
 		init_horizontal_indices();
 		init_pointers_from_root_to_myself();
@@ -128,7 +131,94 @@ namespace ithmm {
 			delete _hpylm;
 		}
 	}
-	Node* Node::generate_child(){
+	TSSB* Node::get_transition_tssb(){
+		assert(is_structure_node());
+		return _transition_tssb;
+	}
+	Node* Node::get_myself_in_transition_tssb(){
+		assert(is_structure_node());
+		return _myself_in_transition_tssb;
+	}
+	Node* Node::get_myself_in_bos_tssb(){
+		assert(is_structure_node());
+		return _myself_in_bos_tssb;
+	}
+	Node* Node::get_myself_in_parent_transition_tssb(){
+		assert(is_htssb_node());
+		return _myself_in_parent_transition_tssb;
+	}
+	Node* Node::get_myself_in_structure_tssb(){
+		assert(is_htssb_node());
+		return _myself_in_structure_tssb;
+	}
+	Node* Node::get_htssb_owner_node_in_structure(){
+		assert(is_htssb_node());
+		assert(_htssb_owner_node_in_structure != NULL);
+		return _htssb_owner_node_in_structure;
+	}
+	void Node::set_transition_tssb(TSSB* tssb){
+		assert(tssb != NULL);
+		assert(is_structure_node());
+		_transition_tssb = tssb;
+	}
+	void Node::set_myself_in_transition_tssb(Node* node){
+		assert(node != NULL);
+		assert(node->is_htssb_node());
+		assert(is_structure_node());
+		_myself_in_transition_tssb = node;
+	}
+	void Node::set_myself_in_bos_tssb(Node* node){
+		assert(node != NULL);
+		assert(node->is_bos_tssb_node());
+		assert(is_structure_node());
+		_myself_in_bos_tssb = node;
+	}
+	void Node::set_myself_in_parent_transition_tssb(Node* node){
+		assert(node != NULL);
+		assert(node->is_htssb_node());
+		assert(is_htssb_node());
+		_myself_in_parent_transition_tssb = node;
+	}
+	void Node::set_myself_in_structure_tssb(Node* node){
+		assert(node != NULL);
+		assert(node->is_structure_node());
+		assert(is_htssb_node());
+		_myself_in_structure_tssb = node;
+	}
+	void Node::set_htssb_owner_node_in_structure(Node* node){
+		assert(is_htssb_node());
+		assert(node != NULL);
+		assert(node->is_structure_node());
+		_htssb_owner_node_in_structure = node;
+	}
+	bool Node::is_structure_node(){
+		return _is_structure_node;
+	}
+	bool Node::is_htssb_node(){
+		return _is_htssb_node;
+	}
+	bool Node::is_bos_tssb_node(){
+		return _is_bos_tssb_node;
+	}
+	void Node::set_as_structure_node(){
+		assert(_is_structure_node == false);
+		assert(_is_htssb_node == false);
+		assert(_is_bos_tssb_node == false);
+		_is_structure_node = true;
+	}
+	void Node::set_as_htssb_node(){
+		assert(_is_structure_node == false);
+		assert(_is_htssb_node == false);
+		assert(_is_bos_tssb_node == false);
+		_is_htssb_node = true;
+	}
+	void Node::set_as_bos_tssb_node(){
+		assert(_is_structure_node == false);
+		assert(_is_htssb_node == false);
+		assert(_is_bos_tssb_node == false);
+		_is_bos_tssb_node = true;
+	}
+	Node* Node::generate_and_add_child(){
 		Node* child = new Node(this);
 		add_child(child);
 		return child;
@@ -168,6 +258,9 @@ namespace ithmm {
 	}
 	bool Node::has_child(){
 		return _children.size() != 0;
+	}
+	bool Node::has_parent(){
+		return _parent != NULL;
 	}
 	// 遷移確率TSSBに客を追加
 	void Node::add_customer_to_vertical_crp(double concentration, double g0, bool &new_table_generated){
@@ -366,6 +459,14 @@ namespace ithmm {
 		}
 		return return_node;
 	}
+	void Node::_delete_all_children(Node* parent){
+		while(parent->_children.size() > 0){
+			Node* child = parent->_children.back();
+			_delete_all_children(child);
+			delete child;
+			parent->_children.pop_back();
+		}
+	}
 	void Node::dump(){
 		cout << _dump() << endl;
 	}
@@ -391,9 +492,13 @@ namespace ithmm {
 		if(_hpylm != NULL){
 			hpylm_str = (boost::format("HPY[#c:%d,#t:%d,d:%d]") % _hpylm->_num_customers % _hpylm->_num_tables % _hpylm->_depth).str();
 		}
+		int owner_node_id = -1;
+		if(_is_htssb_node){
+			owner_node_id = get_htssb_owner_node_id();
+		}
 		return (boost::format("$%d [vp:%d,vs:%d,hp:%d,hs:%d,ref:%d][len:%f,p:%f,ch:%f,p:%f,sp:%f][ow:$%d,dv:%d,dh:%d][%s]%s[eos:%d,other:%d]") 
 			% _identifier % _pass_count_v % _stop_count_v % _pass_count_h % _stop_count_h % _ref_count % _stick_length 
-			% (_stick_length - _children_stick_length) % _children_stick_length % _probability % _sum_probability % get_htssb_owner_node_id() 
+			% (_stick_length - _children_stick_length) % _children_stick_length % _probability % _sum_probability % owner_node_id 
 			% _depth_v % _depth_h % indices_str.c_str() % hpylm_str.c_str() % _num_transitions_to_eos % _num_transitions_to_other).str();
 	}
 

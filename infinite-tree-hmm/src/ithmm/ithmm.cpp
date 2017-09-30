@@ -8,9 +8,9 @@ namespace ithmm {
 	void copy_children_in_structure_to_transition_tssb(Node* source_in_structure, Node* target_in_htssb){
 		for(const auto source_child_in_structure: source_in_structure->_children){
 			Node* child = new Node(target_in_htssb, source_child_in_structure->_identifier);
-			child->_is_htssb_node = true;
-			child->_htssb_owner_node_in_structure = target_in_htssb->_htssb_owner_node_in_structure;
-			child->_myself_in_structure_tssb = source_child_in_structure;
+			child->set_as_htssb_node();
+			child->set_htssb_owner_node_in_structure(target_in_htssb->get_htssb_owner_node_in_structure());
+			child->set_myself_in_structure_tssb(source_child_in_structure);
 			target_in_htssb->add_child(child);
 			copy_children_in_structure_to_transition_tssb(source_child_in_structure, child);
 		}
@@ -49,24 +49,24 @@ namespace ithmm {
 		_word_g0 = -1;
 
 		_structure_tssb = new TSSB();
-		_structure_tssb->_root->_is_structure_node = true;
 		_structure_tssb->_is_structure = true;
 		_root_in_structure = _structure_tssb->_root;
-		_root_in_structure->_is_structure_node = true;
+		_root_in_structure->set_as_structure_node();
 		_root_in_structure->init_hpylm();
 
 		_root_in_htssb = new Node(NULL, _root_in_structure->_identifier);
-		_root_in_htssb->_is_htssb_node = true;
-		_root_in_htssb->_htssb_owner_node_in_structure = _root_in_structure;
-		_root_in_htssb->_myself_in_structure_tssb = _root_in_structure;
-		_root_in_structure->_transition_tssb = new TSSB(_root_in_htssb);
-		_root_in_structure->_transition_tssb->_owner = _root_in_structure;
-		_root_in_structure->_transition_tssb->_is_htssb = true;
-		_root_in_structure->_myself_in_transition_tssb = _root_in_htssb;
+		_root_in_htssb->set_as_htssb_node();
+		_root_in_htssb->set_htssb_owner_node_in_structure(_root_in_structure);
+		_root_in_htssb->set_myself_in_structure_tssb(_root_in_structure);
+		TSSB* transition_tssb = new TSSB(_root_in_htssb);
+		_root_in_structure->set_transition_tssb(transition_tssb);
+		transition_tssb->_owner = _root_in_structure;
+		transition_tssb->_is_htssb = true;
+		_root_in_structure->set_myself_in_transition_tssb(_root_in_htssb);
 
 		_root_in_bos = new Node(NULL, _root_in_structure->_identifier);
-		_root_in_bos->_is_bos_tssb_node = true;
-		_root_in_bos->_myself_in_structure_tssb = _root_in_structure;
+		_root_in_bos->set_as_bos_tssb_node();
+		_root_in_bos->set_myself_in_structure_tssb(_root_in_structure);
 		_bos_tssb = new TSSB(_root_in_bos);
 		_bos_tssb->_is_bos = true;
 
@@ -135,15 +135,15 @@ namespace ithmm {
 	}
 	bool iTHMM::is_node_in_bos_tssb(Node* node){
 		assert(node != NULL);
-		return node->_is_bos_tssb_node;
+		return node->is_bos_tssb_node();
 	}
 	bool iTHMM::is_node_in_structure_tssb(Node* node){
 		assert(node != NULL);
-		return node->_is_structure_node;
+		return node->is_structure_node();
 	}
 	bool iTHMM::is_node_in_htssb(Node* node){
 		assert(node != NULL);
-		return node->_is_htssb_node;
+		return node->is_htssb_node();
 	}
 	bool iTHMM::is_node_root(Node* node){
 		return node->_depth_v == 0;
@@ -170,54 +170,72 @@ namespace ithmm {
 		}
 		return left->_depth_v < right->_depth_v;
 	}
+	// 親ノードに対応する木構造上のノードに子を追加して返す
+	Node* iTHMM::_generate_and_add_child_to_parent_in_structure(Node* parent){
+		Node* generated_child_in_structure = NULL;
+		if(is_node_in_structure_tssb(parent)){	// parentが木構造上のノードの場合
+			generated_child_in_structure = parent->generate_and_add_child();
+		}else if(is_node_in_htssb(parent)){	// parentが別のノードの遷移確率用TSSB上のノードだった場合
+			// Node* parent_in_structure = _structure_tssb->find_node_by_tracing_horizontal_indices(parent);
+			Node* parent_in_structure = parent->get_myself_in_structure_tssb();
+			assert(parent_in_structure->_identifier == parent->get_htssb_owner_node_id());
+			assert(is_node_in_structure_tssb(parent_in_structure));
+			generated_child_in_structure = parent_in_structure->generate_and_add_child();
+		}else if(is_node_in_bos_tssb(parent)){
+			Node* parent_in_structure = _structure_tssb->find_node_by_tracing_horizontal_indices(parent);
+			assert(is_node_in_structure_tssb(parent_in_structure));
+			generated_child_in_structure = parent_in_structure->generate_and_add_child();
+		}
+		assert(generated_child_in_structure != NULL);
+		generated_child_in_structure->set_as_structure_node();
+		return generated_child_in_structure;
+	}
 	// 木構造で子ノードを生成した際に全てのHTSSBの同じ位置に子ノードを生成する
 	Node* iTHMM::generate_and_add_new_child_to(Node* parent){
 		assert(parent != NULL);
 		// まず木構造上で子ノードを作る
-		Node* generated_child_in_structure = NULL;
-		if(is_node_in_structure_tssb(parent)){	// parentが木構造上のノードの場合
-			generated_child_in_structure = parent->generate_child();
-		}else{	// parentが別のノードの遷移確率用TSSB上のノードだった場合
-			// Node* parent_in_structure = _structure_tssb->find_node_by_tracing_horizontal_indices(parent);
-			Node* parent_in_structure = parent->_myself_in_structure_tssb;
-			assert(parent_in_structure->_identifier == parent->get_htssb_owner_node_id());
-			generated_child_in_structure = parent_in_structure->generate_child();
-		}
-		assert(generated_child_in_structure != NULL);
+		Node* generated_child_in_structure = _generate_and_add_child_to_parent_in_structure(parent);
 		// HTSSBをセット
-		generated_child_in_structure->_transition_tssb = generate_transition_tssb_belonging_to(generated_child_in_structure);
+		generated_child_in_structure->set_transition_tssb(generate_transition_tssb_belonging_to(generated_child_in_structure));
 		Node* myself_in_htssb = generated_child_in_structure->find_same_node_in_transition_tssb();
 		assert(myself_in_htssb != NULL);
-		generated_child_in_structure->_myself_in_transition_tssb = myself_in_htssb;
+		generated_child_in_structure->set_myself_in_transition_tssb(myself_in_htssb);
 		// HPYLM
 		generated_child_in_structure->init_hpylm();
-
-		Node* return_child = generated_child_in_structure;	// 実際に返すノード
 		// <s>TSSB上で子ノードを作成
 		Node* generated_child_in_bos = _generate_and_add_new_child_to_bos_tssb(generated_child_in_structure);
+
+		Node* return_child = NULL;	// 実際に返すノード
 		if(is_node_in_bos_tssb(parent)){
 			return_child = generated_child_in_bos;
+		}else if(is_node_in_structure_tssb(parent)){
+			return_child = generated_child_in_structure;
 		}
 		// 木構造上の全ノードのHTSSBにノードを追加
 		_generate_and_add_new_child_to_all_htssb(_structure_tssb->_root, parent, generated_child_in_structure, return_child);
+		assert(return_child != NULL);
 		// ポインタを張る
-		Node* generated_child_in_htssb = generated_child_in_structure->_myself_in_transition_tssb;
+		Node* generated_child_in_htssb = generated_child_in_structure->get_myself_in_transition_tssb();
 		assert(generated_child_in_htssb != NULL);
-		// generated_child_in_htssb->_myself_in_structure_tssb = generated_child_in_structure;
+		// generated_child_in_htssb->set_myself_in_structure_tssb(generated_child_in_structure);
 		//// 木構造上の親ノードのHTSSBの自分と同じ位置のノードへのポインタ
+		Node* parent_in_structure = generated_child_in_structure->_parent;
 		Node* iterator_in_structure = generated_child_in_structure;
-		Node* parent_in_structure = iterator_in_structure->_parent;
 		Node* iterator_in_htssb = generated_child_in_htssb;
 		Node* iterator_in_parent_htssb = NULL;
 		while(parent_in_structure != NULL){
-			assert(iterator_in_structure->_myself_in_transition_tssb != NULL);
+			assert(iterator_in_structure->get_myself_in_transition_tssb() != NULL);
 			// 木構造上での親ノードが持つHTSSBにある対応するノードを取る
-			iterator_in_parent_htssb = parent_in_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(generated_child_in_structure);
+			TSSB* transition_tssb = parent_in_structure->get_transition_tssb();
+			assert(transition_tssb != NULL);
+			iterator_in_parent_htssb = transition_tssb->find_node_by_tracing_horizontal_indices(generated_child_in_structure);
 			assert(iterator_in_parent_htssb != NULL);
+			assert(iterator_in_parent_htssb->_depth_v + 1 == iterator_in_htssb->_depth_v);
+			assert(iterator_in_parent_htssb->_identifier == parent_in_structure->_identifier);
 			// ポインタを張る
-			iterator_in_htssb->_myself_in_parent_transition_tssb = iterator_in_parent_htssb;
-			iterator_in_htssb->_myself_in_structure_tssb = generated_child_in_structure;
-			assert(iterator_in_htssb->_myself_in_structure_tssb->_identifier == generated_child_in_structure->_identifier);
+			iterator_in_htssb->set_myself_in_parent_transition_tssb(iterator_in_parent_htssb);
+			iterator_in_htssb->set_myself_in_structure_tssb(generated_child_in_structure);
+			assert(iterator_in_htssb->get_myself_in_structure_tssb()->_identifier == generated_child_in_structure->_identifier);
 			// 木構造上で次の親ノードへ
 			iterator_in_structure = parent_in_structure;
 			parent_in_structure = iterator_in_structure->_parent;
@@ -247,25 +265,35 @@ namespace ithmm {
 		}
 		return return_child;
 	}
-	void iTHMM::_generate_and_add_new_child_to_all_htssb(Node* iterator_in_structure, Node* parent, Node* generated_child_in_structure, Node* &return_child){
+	void iTHMM::_generate_and_add_new_child_to_all_htssb(Node* iterator_in_structure, Node* parent_to_be_added, Node* generated_child_in_structure, Node* &return_child){
 		// iteratorとgenerated_childが同一の場合はすでに追加されているのでスキップ
 		if(iterator_in_structure->_identifier != generated_child_in_structure->_identifier){
-			assert(iterator_in_structure->_transition_tssb != NULL);
-			int owner_node_id_of_htssb_parent_belongs = parent->get_htssb_owner_node_id();
-			int child_id_to_generate = generated_child_in_structure->_identifier;
+			TSSB* transition_tssb = iterator_in_structure->get_transition_tssb();
+			assert(transition_tssb != NULL);
 			// 遷移確率用TSSBの同じ位置に子ノードを挿入
-			Node* parent_in_htssb = iterator_in_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(parent);
-			assert(parent_in_htssb != NULL);
-			assert(parent_in_htssb->_identifier == generated_child_in_structure->_parent->_identifier);
-			Node* child_in_htssb = new Node(parent_in_htssb, child_id_to_generate);
-			child_in_htssb->_myself_in_structure_tssb = generated_child_in_structure;
-			if(child_in_htssb->get_htssb_owner_node_id() == owner_node_id_of_htssb_parent_belongs){	// 親と同じTSSB上の子ノードを返す
+			Node* iterator_in_htssb = transition_tssb->find_node_by_tracing_horizontal_indices(parent_to_be_added);
+			assert(iterator_in_htssb != NULL);
+			assert(iterator_in_htssb->_identifier == generated_child_in_structure->_parent->_identifier);
+			Node* child_in_htssb = new Node(iterator_in_htssb, generated_child_in_structure->_identifier);
+			child_in_htssb->set_as_htssb_node();
+			child_in_htssb->set_myself_in_structure_tssb(generated_child_in_structure);
+			if(iterator_in_structure->has_parent()){
+				TSSB* parent_htssb = iterator_in_structure->_parent->get_transition_tssb();
+				assert(parent_htssb != NULL);
+				Node* myself_in_parent_htssb = parent_htssb->find_node_by_tracing_horizontal_indices(child_in_htssb);
+				assert(myself_in_parent_htssb != NULL);
+				assert(myself_in_parent_htssb->_depth_v + 1 == child_in_htssb->_depth_v);
+				child_in_htssb->set_myself_in_parent_transition_tssb(myself_in_parent_htssb);
+			}
+			// 親と同じTSSB上の子ノードを返す
+			// 木構造上の各ノードがHTSSBを持っているため、同じ状態を表すノードが異なるHTSSB上に複数個存在する
+			if(parent_to_be_added->is_htssb_node() && iterator_in_htssb == parent_to_be_added){
 				return_child = child_in_htssb;
 			}
-			parent_in_htssb->add_child(child_in_htssb);
+			iterator_in_htssb->add_child(child_in_htssb);
 		}
 		for(const auto &child: iterator_in_structure->_children){
-			_generate_and_add_new_child_to_all_htssb(child, parent, generated_child_in_structure, return_child);
+			_generate_and_add_new_child_to_all_htssb(child, parent_to_be_added, generated_child_in_structure, return_child);
 		}
 	}
 	Node* iTHMM::_generate_and_add_new_child_to_bos_tssb(Node* generated_child_in_structure){
@@ -273,24 +301,26 @@ namespace ithmm {
 		Node* parent = _bos_tssb->find_node_by_tracing_horizontal_indices(generated_child_in_structure->_parent);
 		assert(parent != NULL);
 		Node* child = new Node(parent, generated_child_in_structure->_identifier);
-		child->_is_bos_tssb_node = true;
+		child->set_as_bos_tssb_node();
 		parent->add_child(child);
 		// ポインタを張る
-		generated_child_in_structure->_myself_in_bos_tssb = child;
-		child->_myself_in_structure_tssb = generated_child_in_structure;
+		generated_child_in_structure->set_myself_in_bos_tssb(child);
+		child->set_myself_in_structure_tssb(generated_child_in_structure);
 		return child;
 	}
 	// 木構造上のノードにHTSSBを追加
 	TSSB* iTHMM::generate_transition_tssb_belonging_to(Node* owner_in_structure){
 		assert(is_node_in_structure_tssb(owner_in_structure));
 		Node* root_in_htssb = new Node(NULL, _root_in_structure->_identifier);
-		root_in_htssb->_htssb_owner_node_in_structure = owner_in_structure;
-		root_in_htssb->_myself_in_parent_transition_tssb = NULL;
-		root_in_htssb->_is_htssb_node = true;
+		root_in_htssb->set_htssb_owner_node_in_structure(owner_in_structure);
+		root_in_htssb->set_myself_in_parent_transition_tssb(NULL);
+		root_in_htssb->set_as_htssb_node();
 		if(owner_in_structure->_parent != NULL){
-			root_in_htssb->_myself_in_parent_transition_tssb = owner_in_structure->_parent->_transition_tssb->_root;
+			TSSB* transition_tssb = owner_in_structure->_parent->get_transition_tssb();
+			assert(transition_tssb != NULL);
+			root_in_htssb->set_myself_in_parent_transition_tssb(transition_tssb->_root);
 		}
-		root_in_htssb->_myself_in_structure_tssb = _root_in_structure;
+		root_in_htssb->set_myself_in_structure_tssb(_root_in_structure);
 		copy_children_in_structure_to_transition_tssb(_root_in_structure, root_in_htssb);
 		TSSB* tssb = new TSSB(root_in_htssb);
 		tssb->_is_htssb = true;
@@ -436,7 +466,7 @@ namespace ithmm {
 		// <s>からの遷移を含む場合
 		if(prev_state_in_structure == NULL){
 			assert(state_in_structure != NULL);
-			assert(state_in_structure->_transition_tssb != NULL);
+			assert(state_in_structure->get_transition_tssb() != NULL);
 			assert(is_node_in_structure_tssb(state_in_structure));
 			Node* state_in_bos = _bos_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
 			assert(state_in_bos);
@@ -448,19 +478,21 @@ namespace ithmm {
 		// </s>への遷移を含む場合
 		if(state_in_structure == NULL){
 			assert(prev_state_in_structure != NULL);
-			assert(prev_state_in_structure->_transition_tssb != NULL);
+			assert(prev_state_in_structure->get_transition_tssb() != NULL);
 			assert(is_node_in_structure_tssb(prev_state_in_structure));
 			prev_state_in_structure->increment_transition_count_to_eos();
 			return;
 		}
 		assert(prev_state_in_structure != NULL);
-		assert(prev_state_in_structure->_transition_tssb != NULL);
+		assert(prev_state_in_structure->get_transition_tssb() != NULL);
 		assert(state_in_structure != NULL);
-		assert(state_in_structure->_transition_tssb != NULL);
+		assert(state_in_structure->get_transition_tssb() != NULL);
 		assert(is_node_in_structure_tssb(prev_state_in_structure));
 		assert(is_node_in_structure_tssb(state_in_structure));
 
-		Node* state_in_prev_state_htssb = prev_state_in_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
+		TSSB* prev_state_tssb = prev_state_in_structure->get_transition_tssb();
+		assert(prev_state_tssb != NULL);
+		Node* state_in_prev_state_htssb = prev_state_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
 		assert(state_in_prev_state_htssb != NULL);
 		assert(state_in_structure->_identifier == state_in_prev_state_htssb->_identifier);
 		add_customer_to_htssb_node(state_in_prev_state_htssb);
@@ -471,12 +503,14 @@ namespace ithmm {
 	void iTHMM::add_temporal_parameters(Node* prev_state_in_structure, Node* state_in_structure){
 		assert(prev_state_in_structure != NULL);
 		assert(state_in_structure != NULL);
-		assert(prev_state_in_structure->_transition_tssb != NULL);
-		assert(state_in_structure->_transition_tssb != NULL);
+		assert(prev_state_in_structure->get_transition_tssb() != NULL);
+		assert(state_in_structure->get_transition_tssb() != NULL);
 		assert(is_node_in_structure_tssb(prev_state_in_structure));
 		assert(is_node_in_structure_tssb(state_in_structure));
 
-		Node* state_in_prev_state_htssb = prev_state_in_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
+		TSSB* prev_state_tssb = prev_state_in_structure->get_transition_tssb();
+		assert(prev_state_tssb != NULL);
+		Node* state_in_prev_state_htssb = prev_state_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
 		assert(state_in_prev_state_htssb != NULL);
 		assert(state_in_structure->_identifier == state_in_prev_state_htssb->_identifier);
 		add_customer_to_htssb_node(state_in_prev_state_htssb);
@@ -487,7 +521,7 @@ namespace ithmm {
 		// <s>からの遷移を含む場合
 		if(prev_state_in_structure == NULL){
 			assert(state_in_structure != NULL);
-			assert(state_in_structure->_transition_tssb != NULL);
+			assert(state_in_structure->get_transition_tssb() != NULL);
 			assert(next_state_in_structure != NULL);
 			assert(is_node_in_structure_tssb(state_in_structure));
 			assert(is_node_in_structure_tssb(next_state_in_structure));
@@ -495,7 +529,10 @@ namespace ithmm {
 			assert(state_in_bos);
 			add_customer_to_tssb_node(state_in_bos);
 			add_customer_to_tssb_node(state_in_structure);			// 参照カウント用
-			Node* next_state_in_state_htssb = state_in_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(next_state_in_structure);
+
+			TSSB* next_state_tssb = state_in_structure->get_transition_tssb();
+			assert(next_state_tssb != NULL);
+			Node* next_state_in_state_htssb = next_state_tssb->find_node_by_tracing_horizontal_indices(next_state_in_structure);
 			assert(next_state_in_state_htssb != NULL);
 			assert(next_state_in_structure->_identifier == next_state_in_state_htssb->_identifier);
 			add_customer_to_htssb_node(next_state_in_state_htssb);
@@ -507,11 +544,14 @@ namespace ithmm {
 		// </s>への遷移を含む場合
 		if(next_state_in_structure == NULL){
 			assert(prev_state_in_structure != NULL);
-			assert(prev_state_in_structure->_transition_tssb != NULL);
+			assert(prev_state_in_structure->get_transition_tssb() != NULL);
 			assert(state_in_structure != NULL);
 			assert(is_node_in_structure_tssb(prev_state_in_structure));
 			assert(is_node_in_structure_tssb(state_in_structure));
-			Node* state_in_prev_state_htssb = prev_state_in_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
+
+			TSSB* prev_state_tssb = prev_state_in_structure->get_transition_tssb();
+			assert(prev_state_tssb != NULL);
+			Node* state_in_prev_state_htssb = prev_state_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
 			assert(state_in_prev_state_htssb != NULL);
 			assert(state_in_structure->_identifier == state_in_prev_state_htssb->_identifier);
 			add_customer_to_htssb_node(state_in_prev_state_htssb);
@@ -534,21 +574,26 @@ namespace ithmm {
 			return;
 		}
 		assert(prev_state_in_structure != NULL);
-		assert(prev_state_in_structure->_transition_tssb != NULL);
+		assert(prev_state_in_structure->get_transition_tssb() != NULL);
 		assert(state_in_structure != NULL);
-		assert(state_in_structure->_transition_tssb != NULL);
+		assert(state_in_structure->get_transition_tssb() != NULL);
 		assert(next_state_in_structure != NULL);
 		assert(is_node_in_structure_tssb(prev_state_in_structure));
 		assert(is_node_in_structure_tssb(state_in_structure));
 		assert(is_node_in_structure_tssb(next_state_in_structure));
 
-		Node* state_in_prev_state_htssb = prev_state_in_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
+
+		TSSB* prev_state_tssb = prev_state_in_structure->get_transition_tssb();
+		assert(prev_state_tssb != NULL);
+		Node* state_in_prev_state_htssb = prev_state_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
 		assert(state_in_prev_state_htssb != NULL);
 		assert(state_in_structure->_identifier == state_in_prev_state_htssb->_identifier);
 		add_customer_to_htssb_node(state_in_prev_state_htssb);
 		add_customer_to_tssb_node(state_in_structure);			// 参照カウント用
 
-		Node* next_state_in_state_htssb = state_in_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(next_state_in_structure);
+		TSSB* next_state_tssb = state_in_structure->get_transition_tssb();
+		assert(next_state_tssb != NULL);
+		Node* next_state_in_state_htssb = next_state_tssb->find_node_by_tracing_horizontal_indices(next_state_in_structure);
 		assert(next_state_in_state_htssb != NULL);
 		assert(next_state_in_structure->_identifier == next_state_in_state_htssb->_identifier);
 		add_customer_to_htssb_node(next_state_in_state_htssb);
@@ -563,7 +608,7 @@ namespace ithmm {
 		// <s>からの遷移を含む場合
 		if(prev_state_in_structure == NULL){
 			assert(state_in_structure != NULL);
-			assert(state_in_structure->_transition_tssb != NULL);
+			assert(state_in_structure->get_transition_tssb() != NULL);
 			assert(is_node_in_structure_tssb(state_in_structure));
 			Node* state_in_bos = _bos_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
 			assert(state_in_bos);
@@ -575,19 +620,22 @@ namespace ithmm {
 		// </s>への遷移を含む場合
 		if(state_in_structure == NULL){
 			assert(prev_state_in_structure != NULL);
-			assert(prev_state_in_structure->_transition_tssb != NULL);
+			assert(prev_state_in_structure->get_transition_tssb() != NULL);
 			assert(is_node_in_structure_tssb(prev_state_in_structure));
 			prev_state_in_structure->decrement_transition_count_to_eos();
 			return;
 		}
 		assert(prev_state_in_structure != NULL);
-		assert(prev_state_in_structure->_transition_tssb != NULL);
+		assert(prev_state_in_structure->get_transition_tssb() != NULL);
 		assert(state_in_structure != NULL);
-		assert(state_in_structure->_transition_tssb != NULL);
+		assert(state_in_structure->get_transition_tssb() != NULL);
 		assert(is_node_in_structure_tssb(prev_state_in_structure));
 		assert(is_node_in_structure_tssb(state_in_structure));
 
-		Node* state_in_prev_state_htssb = prev_state_in_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
+
+		TSSB* prev_state_tssb = prev_state_in_structure->get_transition_tssb();
+		assert(prev_state_tssb != NULL);
+		Node* state_in_prev_state_htssb = prev_state_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
 		assert(state_in_prev_state_htssb != NULL);
 		assert(state_in_structure->_identifier == state_in_prev_state_htssb->_identifier);
 		remove_customer_from_htssb_node(state_in_prev_state_htssb);
@@ -598,11 +646,14 @@ namespace ithmm {
 	void iTHMM::remove_temporal_parameters(Node* prev_state_in_structure, Node* state_in_structure){
 		assert(prev_state_in_structure != NULL);
 		assert(state_in_structure != NULL);
-		assert(prev_state_in_structure->_transition_tssb != NULL);
-		assert(state_in_structure->_transition_tssb != NULL);
+		assert(prev_state_in_structure->get_transition_tssb() != NULL);
+		assert(state_in_structure->get_transition_tssb() != NULL);
 		assert(is_node_in_structure_tssb(prev_state_in_structure));
 		assert(is_node_in_structure_tssb(state_in_structure));
-		Node* state_in_prev_state_htssb = prev_state_in_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
+
+		TSSB* prev_state_tssb = prev_state_in_structure->get_transition_tssb();
+		assert(prev_state_tssb != NULL);
+		Node* state_in_prev_state_htssb = prev_state_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
 		assert(state_in_prev_state_htssb != NULL);
 		assert(state_in_structure->_identifier == state_in_prev_state_htssb->_identifier);
 		remove_customer_from_htssb_node(state_in_prev_state_htssb, true);
@@ -625,7 +676,7 @@ namespace ithmm {
 		// <s>からの遷移を含む場合
 		if(prev_state_in_structure == NULL){
 			assert(state_in_structure != NULL);
-			assert(state_in_structure->_transition_tssb != NULL);
+			assert(state_in_structure->get_transition_tssb() != NULL);
 			assert(next_state_in_structure != NULL);
 			assert(is_node_in_structure_tssb(state_in_structure));
 			assert(is_node_in_structure_tssb(next_state_in_structure));
@@ -633,7 +684,9 @@ namespace ithmm {
 			assert(state_in_bos);
 			remove_customer_from_tssb_node(state_in_bos);
 			remove_customer_from_tssb_node(state_in_structure);			// 参照カウント用
-			Node* next_state_in_state_htssb = state_in_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(next_state_in_structure);
+			TSSB* next_state_tssb = state_in_structure->get_transition_tssb();
+			assert(next_state_tssb != NULL);
+			Node* next_state_in_state_htssb = next_state_tssb->find_node_by_tracing_horizontal_indices(next_state_in_structure);
 			assert(next_state_in_state_htssb != NULL);
 			remove_customer_from_htssb_node(next_state_in_state_htssb);
 			remove_customer_from_tssb_node(next_state_in_structure);		// 参照カウント用
@@ -644,11 +697,14 @@ namespace ithmm {
 		// </s>への遷移を含む場合
 		if(next_state_in_structure == NULL){
 			assert(prev_state_in_structure != NULL);
-			assert(prev_state_in_structure->_transition_tssb != NULL);
+			assert(prev_state_in_structure->get_transition_tssb() != NULL);
 			assert(state_in_structure != NULL);
 			assert(is_node_in_structure_tssb(prev_state_in_structure));
 			assert(is_node_in_structure_tssb(state_in_structure));
-			Node* state_in_prev_state_htssb = prev_state_in_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
+
+			TSSB* prev_state_tssb = prev_state_in_structure->get_transition_tssb();
+			assert(prev_state_tssb != NULL);
+			Node* state_in_prev_state_htssb = prev_state_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
 			assert(state_in_prev_state_htssb != NULL);
 			remove_customer_from_htssb_node(state_in_prev_state_htssb);
 			remove_customer_from_tssb_node(state_in_structure);		// 参照カウント用
@@ -658,20 +714,25 @@ namespace ithmm {
 			return;
 		}
 		assert(prev_state_in_structure != NULL);
-		assert(prev_state_in_structure->_transition_tssb != NULL);
+		assert(prev_state_in_structure->get_transition_tssb() != NULL);
 		assert(state_in_structure != NULL);
-		assert(state_in_structure->_transition_tssb != NULL);
+		assert(state_in_structure->get_transition_tssb() != NULL);
 		assert(next_state_in_structure != NULL);
 		assert(is_node_in_structure_tssb(prev_state_in_structure));
 		assert(is_node_in_structure_tssb(state_in_structure));
 		assert(is_node_in_structure_tssb(next_state_in_structure));
 
-		Node* state_in_prev_state_htssb = prev_state_in_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
+
+		TSSB* prev_state_tssb = prev_state_in_structure->get_transition_tssb();
+		assert(prev_state_tssb != NULL);
+		Node* state_in_prev_state_htssb = prev_state_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
 		assert(state_in_prev_state_htssb != NULL);
 		remove_customer_from_htssb_node(state_in_prev_state_htssb);
 		remove_customer_from_tssb_node(state_in_structure);			// 参照カウント用
 
-		Node* next_state_in_state_htssb = state_in_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(next_state_in_structure);
+		TSSB* next_state_tssb = state_in_structure->get_transition_tssb();
+		assert(next_state_tssb != NULL);
+		Node* next_state_in_state_htssb = next_state_tssb->find_node_by_tracing_horizontal_indices(next_state_in_structure);
 		assert(next_state_in_state_htssb != NULL);
 		remove_customer_from_htssb_node(next_state_in_state_htssb);
 		remove_customer_from_tssb_node(next_state_in_structure);		// 参照カウント用
@@ -703,8 +764,10 @@ namespace ithmm {
 		assert(0 < p_w_given_s && p_w_given_s <= 1);
 		// 遷移確率
 		// s_tから</s>へ接続する確率
-		assert(state_in_structure->_transition_tssb != NULL);
-		Node* next_state_in_htssb = state_in_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(next_state_in_structure);
+		assert(state_in_structure->get_transition_tssb() != NULL);
+		TSSB* next_state_tssb = state_in_structure->get_transition_tssb();
+		assert(next_state_tssb != NULL);
+		Node* next_state_in_htssb = next_state_tssb->find_node_by_tracing_horizontal_indices(next_state_in_structure);
 		assert(next_state_in_htssb != NULL);
 		assert(next_state_in_htssb->_identifier == next_state_in_structure->_identifier);
 		// </s>以外に接続する確率を棒全体の長さとする
@@ -714,7 +777,9 @@ namespace ithmm {
 			add_temporal_parameters(prev_state_in_structure, state_in_structure);
 		// }
 		double p_eos_given_s = state_in_structure->compute_transition_probability_to_eos(_tau0, _tau1);
-		double p_next_given_s = (1.0 - p_eos_given_s) * compute_node_probability_in_tssb(state_in_structure->_transition_tssb, next_state_in_htssb, 1.0);
+		TSSB* transition_tssb = state_in_structure->get_transition_tssb();
+		assert(transition_tssb != NULL);
+		double p_next_given_s = (1.0 - p_eos_given_s) * compute_node_probability_in_tssb(transition_tssb, next_state_in_htssb, 1.0);
 		assert(0 < p_next_given_s && p_next_given_s <= 1);
 
 		// if(state_in_structure->_identifier == next_state_in_structure->_identifier){
@@ -734,11 +799,14 @@ namespace ithmm {
 				return state_in_structure;
 			}
 			// assert(st <= u && u < ed);
-			Node* new_state_in_prev_htssb = retrospective_sampling(u, prev_state_in_structure->_transition_tssb, 1.0, true);
+
+			TSSB* prev_state_tssb = prev_state_in_structure->get_transition_tssb();
+			assert(prev_state_tssb != NULL);
+			Node* new_state_in_prev_htssb = retrospective_sampling(u, prev_state_tssb, 1.0, true);
 			assert(new_state_in_prev_htssb != NULL);
-			Node* new_state_in_structure = new_state_in_prev_htssb->_myself_in_structure_tssb;
+			Node* new_state_in_structure = new_state_in_prev_htssb->get_myself_in_structure_tssb();
 			assert(new_state_in_structure != NULL);
-			assert(new_state_in_structure->_transition_tssb != NULL);
+			assert(new_state_in_structure->get_transition_tssb() != NULL);
 
 			// 出力確率
 			double new_p_w_given_s = compute_p_w_given_s(word_id, new_state_in_structure);
@@ -748,7 +816,9 @@ namespace ithmm {
 			}
 			// 遷移確率
 			//// s_{new}からs_{t+1}へ接続する確率
-			Node* next_state_in_new_state_htssb = new_state_in_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(next_state_in_structure);
+			TSSB* new_state_tssb = new_state_in_structure->get_transition_tssb();
+			assert(new_state_tssb != NULL);
+			Node* next_state_in_new_state_htssb = new_state_tssb->find_node_by_tracing_horizontal_indices(next_state_in_structure);
 			//// </s>以外に接続する確率を棒全体の長さとし、TSSBで分配
 			double new_p_next_given_s;
 			double new_p_eos_given_s;
@@ -758,7 +828,8 @@ namespace ithmm {
 			}else{
 				add_temporal_parameters(prev_state_in_structure, new_state_in_structure);
 				new_p_eos_given_s = new_state_in_structure->compute_transition_probability_to_eos(_tau0, _tau1);
-				new_p_next_given_s = (1.0 - new_p_eos_given_s) * compute_node_probability_in_tssb(new_state_in_structure->_transition_tssb, next_state_in_new_state_htssb, 1.0);
+				TSSB* new_state_tssb = new_state_in_structure->get_transition_tssb();
+				new_p_next_given_s = (1.0 - new_p_eos_given_s) * compute_node_probability_in_tssb(new_state_tssb, next_state_in_new_state_htssb, 1.0);
 				remove_temporal_parameters(prev_state_in_structure, new_state_in_structure);
 			}
 			assert(0 < new_p_next_given_s && new_p_next_given_s <= 1);
@@ -775,21 +846,25 @@ namespace ithmm {
 				// 未完成なためサンプリングした新しい品詞をそのまま返す
 				_num_mh_acceptance += 1;
 				return new_state_in_structure;
-				Node* state_in_prev_htssb = prev_state_in_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
+
+				TSSB* prev_state_tssb = prev_state_in_structure->get_transition_tssb();
+				assert(prev_state_tssb != NULL);
+				Node* state_in_prev_htssb = prev_state_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
 				assert(state_in_prev_htssb != NULL);
 				assert(state_in_prev_htssb->_identifier == state_in_structure->_identifier);
 				double Peos_given_prev = prev_state_in_structure->compute_transition_probability_to_eos(_tau0, _tau1);
-				double p_s_given_prev = (1.0 - Peos_given_prev) * compute_node_probability_in_tssb(prev_state_in_structure->_transition_tssb, state_in_prev_htssb, 1.0);
-				double Pnew_s_given_prev = (1.0 - Peos_given_prev) * compute_node_probability_in_tssb(prev_state_in_structure->_transition_tssb, new_state_in_prev_htssb, 1.0);
-
-				Node* state_in_root_htssb = _structure_tssb->_root->_transition_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
+				double p_s_given_prev = (1.0 - Peos_given_prev) * compute_node_probability_in_tssb(prev_state_tssb, state_in_prev_htssb, 1.0);
+				double Pnew_s_given_prev = (1.0 - Peos_given_prev) * compute_node_probability_in_tssb(prev_state_tssb, new_state_in_prev_htssb, 1.0);
+				TSSB* root_tssb = _structure_tssb->_root->get_transition_tssb();
+				assert(root_tssb != NULL);
+				Node* state_in_root_htssb = root_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
 				assert(state_in_root_htssb != NULL);
 				assert(state_in_root_htssb->_identifier == state_in_structure->_identifier);
-				Node* new_state_in_root_htssb = _structure_tssb->_root->_transition_tssb->find_node_by_tracing_horizontal_indices(new_state_in_structure);
+				Node* new_state_in_root_htssb = root_tssb->find_node_by_tracing_horizontal_indices(new_state_in_structure);
 				assert(new_state_in_root_htssb != NULL);
 				assert(new_state_in_root_htssb->_identifier == new_state_in_structure->_identifier);
-				compute_node_probability_in_tssb(_structure_tssb->_root->_transition_tssb, state_in_root_htssb, 1.0);
-				compute_node_probability_in_tssb(_structure_tssb->_root->_transition_tssb, new_state_in_root_htssb, 1.0);
+				compute_node_probability_in_tssb(root_tssb, state_in_root_htssb, 1.0);
+				compute_node_probability_in_tssb(root_tssb, new_state_in_root_htssb, 1.0);
 				double p_s = state_in_root_htssb->_probability;
 				double p_new_s = new_state_in_root_htssb->_probability;
 				double p_w_given_new_s = compute_p_w_given_s(word_id, new_state_in_structure);
@@ -828,12 +903,16 @@ namespace ithmm {
 		// 遷移確率
 		//// s_tから</s>へ接続する確率
 		double p_eos_given_s = state_in_structure->compute_transition_probability_to_eos(_tau0, _tau1);
-		assert(state_in_structure->_transition_tssb != NULL);
-		Node* next_state_in_htssb = state_in_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(next_state_in_structure);
+		assert(state_in_structure->get_transition_tssb() != NULL);
+		TSSB* next_state_tssb = state_in_structure->get_transition_tssb();
+		assert(next_state_tssb != NULL);
+		Node* next_state_in_htssb = next_state_tssb->find_node_by_tracing_horizontal_indices(next_state_in_structure);
 		assert(next_state_in_htssb != NULL);
 		//// </s>以外に接続する確率を棒全体の長さとし、TSSBで分配
 		double stick_length = 1.0 - p_eos_given_s;
-		double p_t_given_s = compute_node_probability_in_tssb(state_in_structure->_transition_tssb, next_state_in_htssb, 1.0);
+		TSSB* transition_tssb = state_in_structure->get_transition_tssb();
+		assert(transition_tssb != NULL);
+		double p_t_given_s = compute_node_probability_in_tssb(transition_tssb, next_state_in_htssb, 1.0);
 		p_t_given_s *= stick_length;
 		assert(0 < p_t_given_s && p_t_given_s <= 1);
 		// スライス
@@ -848,18 +927,20 @@ namespace ithmm {
 			Node* new_state_in_bos = retrospective_sampling(u, _bos_tssb, 1.0, false);
 			assert(is_node_in_bos_tssb(new_state_in_bos));
 			assert(new_state_in_bos != NULL);
-			Node* new_state_in_structure = new_state_in_bos->_myself_in_structure_tssb;
+			Node* new_state_in_structure = new_state_in_bos->get_myself_in_structure_tssb();
 			assert(new_state_in_structure != NULL);
-			assert(new_state_in_structure->_transition_tssb != NULL);
+			assert(new_state_in_structure->get_transition_tssb() != NULL);
 
 			// 出力確率
 			double new_p_w_given_s = compute_p_w_given_s(word_id, new_state_in_structure);
 			assert(0 < new_p_w_given_s && new_p_w_given_s <= 1);
 			// 遷移確率
 			//// s_{new}からs_{t+1}へ接続する確率
-			Node* next_state_in_new_state_htssb = new_state_in_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(next_state_in_structure);
+			TSSB* new_state_tssb = new_state_in_structure->get_transition_tssb();
+			assert(new_state_tssb != NULL);
+			Node* next_state_in_new_state_htssb = new_state_tssb->find_node_by_tracing_horizontal_indices(next_state_in_structure);
 			double p_eos_given_new_s = new_state_in_structure->compute_transition_probability_to_eos(_tau0, _tau1);
-			double new_p_next_given_s = compute_node_probability_in_tssb(new_state_in_structure->_transition_tssb, next_state_in_new_state_htssb, 1.0);
+			double new_p_next_given_s = compute_node_probability_in_tssb(new_state_tssb, next_state_in_new_state_htssb, 1.0);
 			//// </s>以外に接続する確率を棒全体の長さとし、TSSBで分配
 			double total_stick_length_of_new_tssb = 1.0 - p_eos_given_new_s;
 			new_p_next_given_s *= total_stick_length_of_new_tssb;
@@ -902,14 +983,17 @@ namespace ithmm {
 		while(true){
 			double u = sampler::uniform(st, ed);
 			assert(st <= u && u < ed);
-			Node* new_state_in_htssb = retrospective_sampling(u, prev_state_in_structure->_transition_tssb, 1.0, true);
-			// prev_state_in_structure->_transition_tssb->dump();
+
+			TSSB* prev_state_tssb = prev_state_in_structure->get_transition_tssb();
+			assert(prev_state_tssb != NULL);
+			Node* new_state_in_htssb = retrospective_sampling(u, prev_state_tssb, 1.0, true);
+			// prev_state_tssb->dump();
 			// cout << u << endl;
 			// new_state_in_htssb->dump();
 			assert(new_state_in_htssb != NULL);
-			Node* new_state_in_structure = new_state_in_htssb->_myself_in_structure_tssb;
+			Node* new_state_in_structure = new_state_in_htssb->get_myself_in_structure_tssb();
 			assert(new_state_in_structure != NULL);
-			assert(new_state_in_structure->_transition_tssb != NULL);
+			assert(new_state_in_structure->get_transition_tssb() != NULL);
 
 			// 出力確率
 			double new_p_w_given_s = compute_p_w_given_s(word_id, new_state_in_structure);
@@ -960,7 +1044,7 @@ namespace ithmm {
 		// 参照カウントのインクリメント
 		//// <s>からの接続のカウント
 		if(is_node_in_bos_tssb(target_in_tssb)){
-			Node* target_in_structure = target_in_tssb->_myself_in_structure_tssb;
+			Node* target_in_structure = target_in_tssb->get_myself_in_structure_tssb();
 			assert(target_in_structure != NULL);
 			target_in_structure->increment_ref_count();
 		}
@@ -974,7 +1058,7 @@ namespace ithmm {
 	void iTHMM::_add_customer_to_htssb_vertical_crp(double alpha, Node* iterator){
 		assert(iterator != NULL);
 		assert(is_node_in_htssb(iterator));
-		Node* iterator_in_parent_htssb = iterator->_myself_in_parent_transition_tssb;
+		Node* iterator_in_parent_htssb = iterator->get_myself_in_parent_transition_tssb();
 		double ratio_v = 0;	// 親の場合はテーブルの増加は無視してよい
 		if(iterator_in_parent_htssb != NULL){
 			ratio_v = compute_expectation_of_vertical_htssb_sbr_ratio(iterator_in_parent_htssb);	// g0は親の停止確率なので注意
@@ -982,14 +1066,14 @@ namespace ithmm {
 		bool new_table_generated = false;
 		iterator->add_customer_to_vertical_crp(alpha, ratio_v, new_table_generated);
 		// 総客数のインクリメント
-		Node* owner_in_structure = iterator->_htssb_owner_node_in_structure;
+		Node* owner_in_structure = iterator->get_htssb_owner_node_in_structure();
 		assert(owner_in_structure != NULL);
-		TSSB* htssb = owner_in_structure->_transition_tssb;
+		TSSB* htssb = owner_in_structure->get_transition_tssb();
 		assert(htssb != NULL);
 		assert(htssb->get_owner_node_id() == iterator->get_htssb_owner_node_id());
 		htssb->increment_num_customers();
 		// 参照カウントのインクリメント
-		Node* iterator_in_structure = iterator->_myself_in_structure_tssb;
+		Node* iterator_in_structure = iterator->get_myself_in_structure_tssb();
 		assert(iterator_in_structure != NULL);
 		iterator_in_structure->increment_ref_count();
 		// 親TSSBに代理客を追加
@@ -1000,7 +1084,7 @@ namespace ithmm {
 	void iTHMM::_add_customer_to_htssb_horizontal_crp(double gamma, Node* iterator){
 		assert(iterator != NULL);
 		assert(is_node_in_htssb(iterator));
-		Node* iterator_in_parent_htssb = iterator->_myself_in_parent_transition_tssb;
+		Node* iterator_in_parent_htssb = iterator->get_myself_in_parent_transition_tssb();
 		double ratio_h = 0;	// 親の場合はテーブルの増加は無視してよい
 		if(iterator_in_parent_htssb != NULL){
 			ratio_h = compute_expectation_of_horizontal_htssb_sbr_ratio(iterator_in_parent_htssb);	// g0は親の停止確率なので注意
@@ -1008,16 +1092,16 @@ namespace ithmm {
 		bool new_table_generated = false;
 		iterator->add_customer_to_horizontal_crp(gamma, ratio_h, new_table_generated);
 		// 総客数のインクリメント
-		Node* owner_in_structure = iterator->_htssb_owner_node_in_structure;
+		Node* owner_in_structure = iterator->get_htssb_owner_node_in_structure();
 		assert(owner_in_structure != NULL);
-		TSSB* htssb = owner_in_structure->_transition_tssb;
+		TSSB* htssb = owner_in_structure->get_transition_tssb();
 		assert(htssb != NULL);
 		assert(htssb->get_owner_node_id() == iterator->get_htssb_owner_node_id());
 		for(int d = 0;d <= iterator->_depth_v;d++){	// 水平方向には深さの数だけ別のSBRがあり、別の客が追加されることに注意
 			htssb->increment_num_customers();
 		}
 		// 参照カウントのインクリメント
-		Node* iterator_in_structure = iterator->_myself_in_structure_tssb;
+		Node* iterator_in_structure = iterator->get_myself_in_structure_tssb();
 		assert(iterator_in_structure != NULL);
 		iterator_in_structure->increment_ref_count();
 		// 親TSSBに代理客を追加
@@ -1047,7 +1131,7 @@ namespace ithmm {
 		// 参照カウントのインクリメント
 		//// <s>からの接続のカウント
 		if(is_node_in_bos_tssb(target_in_tssb)){
-			Node* target_in_structure = target_in_tssb->_myself_in_structure_tssb;
+			Node* target_in_structure = target_in_tssb->get_myself_in_structure_tssb();
 			assert(target_in_structure != NULL);
 			target_in_structure->decrement_ref_count();
 		}
@@ -1068,18 +1152,18 @@ namespace ithmm {
 			iterator->remove_customer_from_vertical_crp(empty_table_deleted);
 		}
 		// 総客数のインクリメント
-		Node* owner_in_structure = iterator->_htssb_owner_node_in_structure;
+		Node* owner_in_structure = iterator->get_htssb_owner_node_in_structure();
 		assert(owner_in_structure != NULL);
-		TSSB* htssb = owner_in_structure->_transition_tssb;
+		TSSB* htssb = owner_in_structure->get_transition_tssb();
 		assert(htssb != NULL);
 		assert(htssb->get_owner_node_id() == iterator->get_htssb_owner_node_id());
 		htssb->decrement_num_customers();
 		// 参照カウントのインクリメント
-		Node* iterator_in_structure = iterator->_myself_in_structure_tssb;
+		Node* iterator_in_structure = iterator->get_myself_in_structure_tssb();
 		assert(iterator_in_structure != NULL);
 		iterator_in_structure->decrement_ref_count();
 		// 親TSSBから代理客を削除
-		Node* iterator_in_parent_htssb = iterator->_myself_in_parent_transition_tssb;
+		Node* iterator_in_parent_htssb = iterator->get_myself_in_parent_transition_tssb();
 		if(empty_table_deleted && iterator_in_parent_htssb != NULL){
 			_remove_customer_from_htssb_vertical_crp(iterator_in_parent_htssb, remove_last_customer);
 		}
@@ -1093,20 +1177,20 @@ namespace ithmm {
 			iterator->remove_customer_from_horizontal_crp(empty_table_deleted);
 		}
 		// 総客数のインクリメント
-		Node* owner_in_structure = iterator->_htssb_owner_node_in_structure;
+		Node* owner_in_structure = iterator->get_htssb_owner_node_in_structure();
 		assert(owner_in_structure != NULL);
-		TSSB* htssb = owner_in_structure->_transition_tssb;
+		TSSB* htssb = owner_in_structure->get_transition_tssb();
 		assert(htssb != NULL);
 		assert(htssb->get_owner_node_id() == iterator->get_htssb_owner_node_id());
 		for(int d = 0;d <= iterator->_depth_v;d++){	// 水平方向には深さの数だけ別のSBRがあり、別の客が追加されることに注意
 			htssb->decrement_num_customers();
 		}
 		// 参照カウントのインクリメント
-		Node* iterator_in_structure = iterator->_myself_in_structure_tssb;
+		Node* iterator_in_structure = iterator->get_myself_in_structure_tssb();
 		assert(iterator_in_structure != NULL);
 		iterator_in_structure->decrement_ref_count();
 		// 親TSSBから代理客を削除
-		Node* iterator_in_parent_htssb = iterator->_myself_in_parent_transition_tssb;
+		Node* iterator_in_parent_htssb = iterator->get_myself_in_parent_transition_tssb();
 		if(empty_table_deleted && iterator_in_parent_htssb != NULL){
 			_remove_customer_from_htssb_horizontal_crp(iterator_in_parent_htssb, remove_last_customer);
 		}
@@ -1184,7 +1268,7 @@ namespace ithmm {
 		// c_printf("[*]%s\n", "compute_expectation_of_vertical_htssb_sbr_ratio");
 		assert(target_in_htssb != NULL);
 		assert(is_node_in_htssb(target_in_htssb));	// 木構造上のノードだった場合は計算できない
-		Node* owner_in_structure = target_in_htssb->_htssb_owner_node_in_structure;
+		Node* owner_in_structure = target_in_htssb->get_htssb_owner_node_in_structure();
 		assert(owner_in_structure != NULL);
 		double sbr_ratio = -1;
 		// target_in_htssb->dump();
@@ -1205,11 +1289,13 @@ namespace ithmm {
 			// nが増えるごとに木構造を下に降りていく
 			Node* iterator_in_structure = owner_in_structure->_nodes_from_root_to_myself[n];
 			assert(iterator_in_structure != NULL);
-			assert(iterator_in_structure->_transition_tssb != NULL);
+			assert(iterator_in_structure->get_transition_tssb() != NULL);
 			// iterator_in_structure->dump();
 			// トップレベルのノードから順に停止確率を計算
 			double sum_parent_stop_probability = 0;
-			Node* iterator_in_htssb = iterator_in_structure->_transition_tssb->_root;
+			TSSB* transition_tssb = iterator_in_structure->get_transition_tssb();
+			assert(transition_tssb != NULL);
+			Node* iterator_in_htssb = transition_tssb->_root;
 			assert(iterator_in_htssb != NULL);
 			for(int m = 0;m < num_itr_in_htssb;m++){
 				assert(iterator_in_htssb != NULL);
@@ -1280,7 +1366,7 @@ namespace ithmm {
 		if(target_in_htssb->_depth_v == 0){	// ルートノードなら必ず止まる
 			return 1;
 		}
-		Node* owner_in_structure = target_in_htssb->_htssb_owner_node_in_structure;
+		Node* owner_in_structure = target_in_htssb->get_htssb_owner_node_in_structure();
 		assert(owner_in_structure != NULL);
 		int num_itr_in_structure = owner_in_structure->_depth_v + 1;
 		int num_itr_horizontal = target_in_htssb->_depth_h + 1;
@@ -1292,7 +1378,9 @@ namespace ithmm {
 			// cout << "n = " << n << endl;
 			// トップレベルのノードから順に停止確率を計算
 			Node* iterator_in_structure = owner_in_structure->_nodes_from_root_to_myself[n];
-			Node* iterator_in_htssb = iterator_in_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(target_in_htssb);
+			TSSB* transition_tssb = iterator_in_structure->get_transition_tssb();
+			assert(transition_tssb != NULL);
+			Node* iterator_in_htssb = transition_tssb->find_node_by_tracing_horizontal_indices(target_in_htssb);
 			assert(iterator_in_htssb != NULL);
 			double sum_parent_stop_probability = 0;
 			Node* parent_contains_target_in_htssb = iterator_in_htssb->_parent;
@@ -1445,7 +1533,7 @@ namespace ithmm {
 		Node* parent_in_structure = target_in_structure->_parent;
 		Node* delete_node = target_in_structure->_parent->delete_child_node(delete_id);
 		if(delete_node != NULL){
-			TSSB* delete_tssb = delete_node->_transition_tssb;
+			TSSB* delete_tssb = delete_node->get_transition_tssb();
 			delete delete_node;
 			delete delete_tssb;
 		}
@@ -1457,7 +1545,7 @@ namespace ithmm {
 		assert(is_node_in_bos_tssb(parent_in_bos));
 		delete_node = parent_in_bos->delete_child_node(delete_id);
 		if(delete_node != NULL){
-			TSSB* delete_tssb = delete_node->_transition_tssb;
+			TSSB* delete_tssb = delete_node->get_transition_tssb();
 			delete delete_node;
 			delete delete_tssb;
 		}
@@ -1465,14 +1553,16 @@ namespace ithmm {
 	}
 	void iTHMM::_delete_node_in_all_htssb(int delete_id, Node* iterator_in_structure, Node* target_parent_in_structure){
 		assert(target_parent_in_structure != NULL);
-		assert(iterator_in_structure->_transition_tssb != NULL);
+		assert(iterator_in_structure->get_transition_tssb() != NULL);
 		// 遷移確率用TSSBでの同じ位置の子ノードを削除
-		Node* parent_in_htssb = iterator_in_structure->_transition_tssb->find_node_by_tracing_horizontal_indices(target_parent_in_structure);
+		TSSB* transition_tssb = iterator_in_structure->get_transition_tssb();
+		assert(transition_tssb != NULL);
+		Node* parent_in_htssb = transition_tssb->find_node_by_tracing_horizontal_indices(target_parent_in_structure);
 		assert(parent_in_htssb != NULL);
 		assert(is_node_in_htssb(parent_in_htssb));
 		Node* delete_node = parent_in_htssb->delete_child_node(delete_id);
 		if(delete_node != NULL){
-			TSSB* delete_tssb = delete_node->_transition_tssb;
+			TSSB* delete_tssb = delete_node->get_transition_tssb();
 			delete delete_node;
 			delete delete_tssb;
 		}
@@ -1588,7 +1678,9 @@ namespace ithmm {
 				node->init_horizontal_indices();
 				node->init_pointers_from_root_to_myself();
 				std::vector<Node*> nodes_in_htssb;
-				node->_transition_tssb->enumerate_nodes_from_left_to_right(nodes_in_htssb);
+				TSSB* transition_tssb = node->get_transition_tssb();
+				assert(transition_tssb != NULL);
+				transition_tssb->enumerate_nodes_from_left_to_right(nodes_in_htssb);
 				for(auto node_in_htssb: nodes_in_htssb){
 					// 配列を確保
 					node_in_htssb->init_arrays();

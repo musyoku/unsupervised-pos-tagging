@@ -19,6 +19,10 @@ module_tests: ## 各モジュールのテスト.
 	$(CC) test/module_tests/node.cpp src/ithmm/*.cpp -o test/module_tests/node $(INCLUDE) $(LDFLAGS) -O0 -g
 	$(CC) test/module_tests/table.cpp src/ithmm/*.cpp -o test/module_tests/table $(INCLUDE) $(LDFLAGS) -O0 -g
 	$(CC) test/module_tests/hpylm.cpp src/ithmm/*.cpp -o test/module_tests/hpylm $(INCLUDE) $(LDFLAGS) -O0 -g
+	./test/module_tests/hpylm
+	./test/module_tests/table
+	./test/module_tests/node
+	./test/module_tests/ithmm
 
 .PHONY: help
 help:

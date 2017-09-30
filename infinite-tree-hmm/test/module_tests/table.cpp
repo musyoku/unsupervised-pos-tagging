@@ -1,6 +1,6 @@
-#include  <iostream>
-#include  <cassert>
-#include  <string>
+#include <iostream>
+#include <cassert>
+#include <string>
 #include "../../src/ithmm/table.h"
 using namespace ithmm;
 using std::cout;
@@ -17,6 +17,7 @@ void test_add_customer(){
 		table->add_customer(concentration_parameter, g0, i * 2, new_table_generated);
 	}
 	assert(table->_num_customers == 100);
+	delete table;
 }
 
 void test_remove_customer(){
@@ -32,6 +33,7 @@ void test_remove_customer(){
 	}
 	assert(table->_num_customers == 0);
 	assert(table->_arrangement.size() == 0);
+	delete table;
 }
 
 int main(){

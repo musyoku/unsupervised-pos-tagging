@@ -73,6 +73,7 @@ namespace ithmm {
 		bool is_tssb_htssb(TSSB* tssb);
 		bool is_node_to_the_left_of_node(Node* left, Node* right);
 		Node* generate_and_add_new_child_to(Node* parent);
+		Node* _generate_and_add_child_to_parent_in_structure(Node* parent);
 		void _generate_and_add_new_child_to_all_htssb(Node* iterator_in_structure, Node* parent, Node* generated_child_in_structure, Node* &return_child);
 		Node* _generate_and_add_new_child_to_bos_tssb(Node* generated_child_in_structure);
 		TSSB* generate_transition_tssb_belonging_to(Node* owner_in_structure);

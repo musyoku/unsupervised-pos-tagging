@@ -1,6 +1,6 @@
-#include  <iostream>
-#include  <cassert>
-#include  <string>
+#include <iostream>
+#include <cassert>
+#include <string>
 #include "../../src/ithmm/node.h"
 using namespace ithmm;
 using std::cout;
@@ -15,17 +15,22 @@ void test_depth_v(){
 	assert(node_1->_depth_v == 0);
 	assert(node_2->_depth_v == 1);
 	assert(node_3->_depth_v == 2);
+	delete node_1;
+	delete node_2;
+	delete node_3;
 }
 void test_depth_h(){
 	Node* node = new Node();
 	for(int i = 0 ;i < 100;i++){
-		node->generate_child();
+		node->generate_and_add_child();
 	}
 	assert(node->_children.size() == 100);	
 	for(int i = 0 ;i < 100;i++){
 		Node* child = node->_children[i];
 		assert(child->_depth_h == i);
 	}
+	Node::_delete_all_children(node);
+	delete node;
 }
 
 void test_add_customer_to_vertical_crp(){
@@ -41,15 +46,16 @@ void test_add_customer_to_vertical_crp(){
 	assert(node->_stop_count_v == 100);
 	assert(node->_stop_count_h == 0);
 	assert(node->_table_v->_num_customers == 100);
+	delete node;
 }
 
 void test_add_customer_to_vertical_crp_recursively(){
 	Node* parent = new Node();
-	parent->generate_child();
-	parent->generate_child();
+	parent->generate_and_add_child();
+	parent->generate_and_add_child();
 	Node* child = new Node(parent);
 	parent->add_child(child);
-	parent->generate_child();
+	parent->generate_and_add_child();
 	double concentration = 0.2;
 	double g0 = 0.001;
 	bool new_table_generated;
@@ -76,11 +82,11 @@ void test_add_customer_to_vertical_crp_recursively(){
 	assert(parent->_children[3]->_pass_count_h == 0);
 	assert(parent->_children[3]->_stop_count_v == 0);
 	assert(parent->_children[3]->_stop_count_h == 0);
-	child->generate_child();
-	child->generate_child();
+	child->generate_and_add_child();
+	child->generate_and_add_child();
 	Node* grandson = new Node(child);
 	child->add_child(grandson);
-	child->generate_child();
+	child->generate_and_add_child();
 	for(int i = 0 ;i < 100;i++){
 		grandson->add_customer_to_vertical_crp(concentration, g0, new_table_generated);
 	}
@@ -120,6 +126,8 @@ void test_add_customer_to_vertical_crp_recursively(){
 	assert(child->_children[3]->_pass_count_h == 0);
 	assert(child->_children[3]->_stop_count_v == 0);
 	assert(child->_children[3]->_stop_count_h == 0);
+	Node::_delete_all_children(parent);
+	delete parent;
 }
 
 void test_add_customer_to_horizontal_crp(){
@@ -135,15 +143,16 @@ void test_add_customer_to_horizontal_crp(){
 	assert(node->_stop_count_v == 0);
 	assert(node->_stop_count_h == 100);
 	assert(node->_table_h->_num_customers == 100);
+	delete node;
 }
 
 void test_add_customer_to_horizontal_crp_recursively(){
 	Node* parent = new Node();
-	parent->generate_child();
-	parent->generate_child();
+	parent->generate_and_add_child();
+	parent->generate_and_add_child();
 	Node* child = new Node(parent);
 	parent->add_child(child);
-	parent->generate_child();
+	parent->generate_and_add_child();
 	double concentration = 0.2;
 	double g0 = 0.001;
 	bool new_table_generated;
@@ -170,11 +179,11 @@ void test_add_customer_to_horizontal_crp_recursively(){
 	assert(parent->_children[3]->_pass_count_h == 0);
 	assert(parent->_children[3]->_stop_count_v == 0);
 	assert(parent->_children[3]->_stop_count_h == 0);
-	child->generate_child();
-	child->generate_child();
+	child->generate_and_add_child();
+	child->generate_and_add_child();
 	Node* grandson = new Node(child);
 	child->add_child(grandson);
-	child->generate_child();
+	child->generate_and_add_child();
 	for(int i = 0 ;i < 100;i++){
 		grandson->add_customer_to_horizontal_crp(concentration, g0, new_table_generated);
 	}
@@ -214,6 +223,8 @@ void test_add_customer_to_horizontal_crp_recursively(){
 	assert(child->_children[3]->_pass_count_h == 0);
 	assert(child->_children[3]->_stop_count_v == 0);
 	assert(child->_children[3]->_stop_count_h == 0);
+	Node::_delete_all_children(parent);
+	delete parent;
 }
 
 void test_remove_customer_from_vertical_crp(){
@@ -236,26 +247,27 @@ void test_remove_customer_from_vertical_crp(){
 	assert(node->_stop_count_v == 0);
 	assert(node->_stop_count_h == 0);
 	assert(node->_table_v->_num_customers == 0);
+	delete node;
 }
 
 void test_remove_customer_from_vertical_crp_recursively(){
 	Node* parent = new Node();
-	parent->generate_child();
-	parent->generate_child();
+	parent->generate_and_add_child();
+	parent->generate_and_add_child();
 	Node* child = new Node(parent);
 	parent->add_child(child);
-	parent->generate_child();
+	parent->generate_and_add_child();
 	double concentration = 0.2;
 	double g0 = 0.001;
 	bool new_table_generated;
 	for(int i = 0 ;i < 100;i++){
 		child->add_customer_to_vertical_crp(concentration, g0, new_table_generated);
 	}
-	child->generate_child();
-	child->generate_child();
+	child->generate_and_add_child();
+	child->generate_and_add_child();
 	Node* grandson = new Node(child);
 	child->add_child(grandson);
-	child->generate_child();
+	child->generate_and_add_child();
 	for(int i = 0 ;i < 100;i++){
 		grandson->add_customer_to_vertical_crp(concentration, g0, new_table_generated);
 	}
@@ -283,6 +295,8 @@ void test_remove_customer_from_vertical_crp_recursively(){
 		assert(child->_children[i]->_table_v->_num_customers == 0);
 		assert(child->_children[i]->_table_h->_num_customers == 0);
 	}
+	Node::_delete_all_children(parent);
+	delete parent;
 }
 
 void test_remove_customer_from_horizontal_crp(){
@@ -305,26 +319,27 @@ void test_remove_customer_from_horizontal_crp(){
 	assert(node->_stop_count_v == 0);
 	assert(node->_stop_count_h == 0);
 	assert(node->_table_h->_num_customers == 0);
+	delete node;
 }
 
 void test_remove_customer_from_horizontal_crp_recursively(){
 	Node* parent = new Node();
-	parent->generate_child();
-	parent->generate_child();
+	parent->generate_and_add_child();
+	parent->generate_and_add_child();
 	Node* child = new Node(parent);
 	parent->add_child(child);
-	parent->generate_child();
+	parent->generate_and_add_child();
 	double concentration = 0.2;
 	double g0 = 0.001;
 	bool new_table_generated;
 	for(int i = 0 ;i < 100;i++){
 		child->add_customer_to_horizontal_crp(concentration, g0, new_table_generated);
 	}
-	child->generate_child();
-	child->generate_child();
+	child->generate_and_add_child();
+	child->generate_and_add_child();
 	Node* grandson = new Node(child);
 	child->add_child(grandson);
-	child->generate_child();
+	child->generate_and_add_child();
 	for(int i = 0 ;i < 100;i++){
 		grandson->add_customer_to_horizontal_crp(concentration, g0, new_table_generated);
 	}
@@ -352,6 +367,8 @@ void test_remove_customer_from_horizontal_crp_recursively(){
 		assert(child->_children[i]->_table_v->_num_customers == 0);
 		assert(child->_children[i]->_table_h->_num_customers == 0);
 	}
+	Node::_delete_all_children(parent);
+	delete parent;
 }
 
 void test_increment_decrement(){
@@ -389,6 +406,7 @@ void test_increment_decrement(){
 		node->decrement_horizontal_pass_count();
 	}
 	assert(node->get_horizontal_pass_count() == 0);
+	delete node;
 }
 
 int main(){
