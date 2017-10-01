@@ -300,6 +300,81 @@ void test_hpylm_concentration(){
 	delete ithmm;
 }
 
+void test_add_customer_to_tssb_node(){
+	iTHMM* ithmm = new iTHMM();
+	ithmm->set_word_g0(0.001);
+	Node* root_in_structure = ithmm->_root_in_structure;
+	Node* root_in_htssb = ithmm->_root_in_htssb;
+	Node* root_in_bos = ithmm->_root_in_bos;
+	Node* child_in_structure = ithmm->generate_and_add_new_child_to(root_in_structure);
+	Node* grandson_in_structure = ithmm->generate_and_add_new_child_to(child_in_structure);
+	for(int i = 0;i < 100;i++){
+		ithmm->add_customer_to_tssb_node(grandson_in_structure);
+	}
+	assert(ithmm->_structure_tssb->get_num_customers() == 200);
+	assert(ithmm->_structure_tssb->_num_customers == 200);
+	assert(ithmm->_bos_tssb->get_num_customers() == 0);
+	Node* grandson_in_bos = ithmm->_bos_tssb->find_node_by_tracing_horizontal_indices(grandson_in_structure);
+	for(int i = 0;i < 100;i++){
+		ithmm->add_customer_to_tssb_node(grandson_in_bos);
+	}
+	assert(ithmm->_structure_tssb->get_num_customers() == 200);
+	assert(ithmm->_structure_tssb->_num_customers == 200);
+	assert(ithmm->_bos_tssb->get_num_customers() == 200);
+	assert(ithmm->_bos_tssb->_num_customers == 200);
+}
+
+void test_remove_customer_from_tssb_node(){
+	iTHMM* ithmm = new iTHMM();
+	Node* root_in_structure = ithmm->_root_in_structure;
+	Node* root_in_htssb = ithmm->_root_in_htssb;
+	Node* root_in_bos = ithmm->_root_in_bos;
+	Node* child_in_structure = ithmm->generate_and_add_new_child_to(root_in_structure);
+	Node* grandson_in_structure = ithmm->generate_and_add_new_child_to(child_in_structure);
+	for(int i = 0;i < 100;i++){
+		ithmm->add_customer_to_tssb_node(grandson_in_structure);
+	}
+	Node* grandson_in_bos = ithmm->_bos_tssb->find_node_by_tracing_horizontal_indices(grandson_in_structure);
+	for(int i = 0;i < 100;i++){
+		ithmm->add_customer_to_tssb_node(grandson_in_bos);
+	}
+	assert(ithmm->_structure_tssb->get_num_customers() == 200);
+	assert(ithmm->_structure_tssb->_num_customers == 200);
+	assert(ithmm->_bos_tssb->get_num_customers() == 200);
+	assert(ithmm->_bos_tssb->_num_customers == 200);
+	for(int i = 0;i < 100;i++){
+		ithmm->remove_customer_from_tssb_node(grandson_in_structure);
+		ithmm->remove_customer_from_tssb_node(grandson_in_bos);
+	}
+	assert(ithmm->_structure_tssb->get_num_customers() == 0);
+	assert(ithmm->_structure_tssb->_num_customers == 0);
+	assert(ithmm->_bos_tssb->get_num_customers() == 0);
+	assert(ithmm->_bos_tssb->_num_customers == 0);
+}
+
+void test_htssb_concentration(){
+	iTHMM* ithmm = new iTHMM();
+	Node* root_in_structure = ithmm->_root_in_structure;
+	Node* root_in_htssb = ithmm->_root_in_htssb;
+	Node* root_in_bos = ithmm->_root_in_bos;
+	Node* child_in_structure = ithmm->generate_and_add_new_child_to(root_in_structure);
+	Node* grandson_in_structure = ithmm->generate_and_add_new_child_to(child_in_structure);
+	for(int i = 0;i < 100;i++){
+		ithmm->add_customer_to_tssb_node(grandson_in_structure);
+	}
+	assert(ithmm->_structure_tssb->get_num_customers() == 200);
+	assert(ithmm->_structure_tssb->_num_customers == 200);
+	assert(ithmm->_bos_tssb->get_num_customers() == 0);
+	Node* grandson_in_bos = ithmm->_bos_tssb->find_node_by_tracing_horizontal_indices(grandson_in_structure);
+	for(int i = 0;i < 100;i++){
+		ithmm->add_customer_to_tssb_node(grandson_in_bos);
+	}
+	assert(ithmm->_structure_tssb->get_num_customers() == 200);
+	assert(ithmm->_structure_tssb->_num_customers == 200);
+	assert(ithmm->_bos_tssb->get_num_customers() == 200);
+	assert(ithmm->_bos_tssb->_num_customers == 200);
+}
+
 int main(){
 	test_copy_children_in_structure_to_transition_tssb();
 	cout << "OK" << endl;
@@ -314,6 +389,10 @@ int main(){
 	test_remove_customer_from_hpylm();
 	cout << "OK" << endl;
 	test_hpylm_concentration();
+	cout << "OK" << endl;
+	test_add_customer_to_tssb_node();
+	cout << "OK" << endl;
+	test_remove_customer_from_tssb_node();
 	cout << "OK" << endl;
 	return 0;
 }

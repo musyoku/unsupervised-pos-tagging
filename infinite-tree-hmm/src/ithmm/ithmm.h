@@ -38,7 +38,8 @@ namespace ithmm {
 		double _gamma;
 		double _lambda_alpha;	// 縦のTSSBの減衰率. 論文のlambdaに該当
 		double _lambda_gamma;	// 横のTSSBの減衰率
-		double _strength;		// HTSSBにおいて親の情報をどの程度受け継ぐかをコントロール
+		double _strength_h;		// HTSSBの横方向のSBPにおいて親の情報をどの程度受け継ぐかをコントロール
+		double _strength_v;		// HTSSBの縦方向のSBPにおいて親の情報をどの程度受け継ぐかをコントロール
 		double _tau0;
 		double _tau1;
 		double _word_g0;
@@ -80,8 +81,8 @@ namespace ithmm {
 		void add_customer_to_hpylm(Node* target_in_structure, id token_id);
 		void add_customer_to_tssb_node(Node* target_in_tssb);
 		void add_customer_to_htssb_node(Node* target_in_htssb);
-		void _add_customer_to_htssb_vertical_crp(double alpha, Node* iterator);
-		void _add_customer_to_htssb_horizontal_crp(double gamma, Node* iterator);
+		void _add_customer_to_htssb_vertical_crp(Node* iterator);
+		void _add_customer_to_htssb_horizontal_crp(Node* iterator);
 		void remove_customer_from_hpylm(Node* target_in_structure, id token_id);
 		void remove_customer_from_tssb_node(Node* target_in_tssb);
 		void remove_customer_from_htssb_node(Node* target_in_htssb, bool remove_last_customer = false);

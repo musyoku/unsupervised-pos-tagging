@@ -23,6 +23,8 @@ namespace ithmm {
 		Table();
 		Table(int token_id);
 		bool is_empty();
+		int get_num_customers();
+		int get_num_tables();
 		void add_customer(double concentration_parameter, double g0, int num_total_customers, bool &new_table_generated);
 		void remove_customer(bool &empty_table_deleted);
 		void remove_last_customer(bool &empty_table_deleted);

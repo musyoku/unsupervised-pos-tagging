@@ -43,7 +43,8 @@ namespace ithmm {
 		_gamma = sampler::uniform(iTHMM_GAMMA_MIN, iTHMM_GAMMA_MAX);
 		_lambda_alpha = sampler::uniform(iTHMM_LAMBDA_ALPHA_MIN, iTHMM_LAMBDA_ALPHA_MAX);
 		_lambda_gamma = sampler::uniform(iTHMM_LAMBDA_GAMMA_MAX, iTHMM_LAMBDA_GAMMA_MAX);
-		_strength = sampler::uniform(iTHMM_STRENGTH_MIN, iTHMM_STRENGTH_MAX);
+		_strength_h = sampler::uniform(ITHMM_SBP_CONCENTRATION_HORIZONTAL_STRENGTH_MIN, ITHMM_SBP_CONCENTRATION_HORIZONTAL_STRENGTH_MAX);
+		_strength_v = sampler::uniform(ITHMM_SBP_CONCENTRATION_VERTICAL_STRENGTH_MIN, ITHMM_SBP_CONCENTRATION_VERTICAL_STRENGTH_MAX);
 		_tau0 = iTHMM_TAU_0;
 		_tau1 = iTHMM_TAU_1;
 		_current_max_depth = 0;
@@ -1031,20 +1032,21 @@ namespace ithmm {
 		target_in_structure->_hpylm->add_customer(token_id, _word_g0, _hpylm_d_m, _hpylm_theta_m);
 		target_in_structure->increment_word_assignment(token_id);	// 参照カウント用
 	}
+	// 木構造とBOSに客を追加する場合
+	// 階層的TSSBではないので親がいない
 	void iTHMM::add_customer_to_tssb_node(Node* target_in_tssb){
 		assert(target_in_tssb != NULL);
 		assert(is_node_in_htssb(target_in_tssb) == false);
-		double alpha = _alpha * pow(_lambda_alpha, target_in_tssb->_depth_v);
-		double gamma = _gamma * pow(_lambda_gamma, std::max(0, target_in_tssb->_depth_v - 1));
-		bool new_table_generated = false;
-		// double ratio_v = compute_expectation_of_vertical_tssb_sbr_ratio(target_in_tssb);		// 特に計算しても意味はない
-		target_in_tssb->add_customer_to_vertical_crp(alpha, 0, new_table_generated);
-		// double ratio_h = compute_expectation_of_horizontal_tssb_sbr_ratio(target_in_tssb);		// 特に計算しても意味はない
-		target_in_tssb->add_customer_to_horizontal_crp(gamma, 0, new_table_generated);
+		bool new_table_generated = false;	// テーブルが生成されても無視
+		target_in_tssb->add_customer_to_vertical_crp(_strength_v, 0, new_table_generated);		// g0が存在しない
+		target_in_tssb->add_customer_to_horizontal_crp(_strength_h, 0, new_table_generated);
 		// 総客数のインクリメント
+		// 縦と横の2回
 		if(is_node_in_structure_tssb(target_in_tssb)){
 			_structure_tssb->increment_num_customers();
+			_structure_tssb->increment_num_customers();
 		}else if(is_node_in_bos_tssb(target_in_tssb)){
+			_bos_tssb->increment_num_customers();
 			_bos_tssb->increment_num_customers();
 		}
 		// 参照カウントのインクリメント
@@ -1055,13 +1057,15 @@ namespace ithmm {
 			target_in_structure->increment_ref_count();
 		}
 	}
+	// 階層的TSSBに客を追加する場合
+	// 親へ代理客を再帰的に送る必要がある
 	void iTHMM::add_customer_to_htssb_node(Node* target_in_htssb){
 		assert(target_in_htssb != NULL);
 		assert(is_node_in_htssb(target_in_htssb));
-		_add_customer_to_htssb_vertical_crp(_strength, target_in_htssb);
-		_add_customer_to_htssb_horizontal_crp(_gamma, target_in_htssb);
+		_add_customer_to_htssb_vertical_crp(target_in_htssb);
+		_add_customer_to_htssb_horizontal_crp(target_in_htssb);
 	}
-	void iTHMM::_add_customer_to_htssb_vertical_crp(double alpha, Node* iterator){
+	void iTHMM::_add_customer_to_htssb_vertical_crp(Node* iterator){
 		assert(iterator != NULL);
 		assert(is_node_in_htssb(iterator));
 		Node* iterator_in_parent_htssb = iterator->get_myself_in_parent_transition_tssb();
@@ -1070,7 +1074,7 @@ namespace ithmm {
 			ratio_v = compute_expectation_of_vertical_htssb_sbr_ratio(iterator_in_parent_htssb);	// g0は親の停止確率なので注意
 		}
 		bool new_table_generated = false;
-		iterator->add_customer_to_vertical_crp(alpha, ratio_v, new_table_generated);
+		iterator->add_customer_to_vertical_crp(_strength_v, ratio_v, new_table_generated);
 		// 総客数のインクリメント
 		Node* owner_in_structure = iterator->get_htssb_owner_node_in_structure();
 		assert(owner_in_structure != NULL);
@@ -1084,10 +1088,10 @@ namespace ithmm {
 		iterator_in_structure->increment_ref_count();
 		// 親TSSBに代理客を追加
 		if(new_table_generated && iterator_in_parent_htssb != NULL){
-			_add_customer_to_htssb_vertical_crp(alpha, iterator_in_parent_htssb);
+			_add_customer_to_htssb_vertical_crp(iterator_in_parent_htssb);
 		}
 	}
-	void iTHMM::_add_customer_to_htssb_horizontal_crp(double gamma, Node* iterator){
+	void iTHMM::_add_customer_to_htssb_horizontal_crp(Node* iterator){
 		assert(iterator != NULL);
 		assert(is_node_in_htssb(iterator));
 		Node* iterator_in_parent_htssb = iterator->get_myself_in_parent_transition_tssb();
@@ -1096,7 +1100,7 @@ namespace ithmm {
 			ratio_h = compute_expectation_of_horizontal_htssb_sbr_ratio(iterator_in_parent_htssb);	// g0は親の停止確率なので注意
 		}
 		bool new_table_generated = false;
-		iterator->add_customer_to_horizontal_crp(gamma, ratio_h, new_table_generated);
+		iterator->add_customer_to_horizontal_crp(_strength_h, ratio_h, new_table_generated);
 		// 総客数のインクリメント
 		Node* owner_in_structure = iterator->get_htssb_owner_node_in_structure();
 		assert(owner_in_structure != NULL);
@@ -1112,7 +1116,7 @@ namespace ithmm {
 		iterator_in_structure->increment_ref_count();
 		// 親TSSBに代理客を追加
 		if(new_table_generated && iterator_in_parent_htssb != NULL){
-			_add_customer_to_htssb_horizontal_crp(gamma, iterator_in_parent_htssb);
+			_add_customer_to_htssb_horizontal_crp(iterator_in_parent_htssb);
 		}
 	}
 	void iTHMM::remove_customer_from_hpylm(Node* target_in_structure, id token_id){
@@ -1129,9 +1133,12 @@ namespace ithmm {
 		target_in_tssb->remove_customer_from_vertical_crp(empty_table_deleted);
 		target_in_tssb->remove_customer_from_horizontal_crp(empty_table_deleted);
 		// 総客数のインクリメント
+		// 縦と横の2回
 		if(is_node_in_structure_tssb(target_in_tssb)){
 			_structure_tssb->decrement_num_customers();
+			_structure_tssb->decrement_num_customers();
 		}else if(is_node_in_bos_tssb(target_in_tssb)){
+			_bos_tssb->decrement_num_customers();
 			_bos_tssb->decrement_num_customers();
 		}
 		// 参照カウントのインクリメント
@@ -1271,7 +1278,6 @@ namespace ithmm {
 		return (1.0 + stop_count) / (1.0 + gamma + stop_count + pass_count);
 	}
 	double iTHMM::compute_expectation_of_vertical_htssb_sbr_ratio(Node* target_in_htssb){
-		// c_printf("[*]%s\n", "compute_expectation_of_vertical_htssb_sbr_ratio");
 		assert(target_in_htssb != NULL);
 		assert(is_node_in_htssb(target_in_htssb));	// 木構造上のノードだった場合は計算できない
 		Node* owner_in_structure = target_in_htssb->get_htssb_owner_node_in_structure();
@@ -1329,7 +1335,7 @@ namespace ithmm {
 					// cout << "parent_stop_probability = " << parent_stop_probability << endl;
 					// cout << "sum_parent_stop_probability = " << sum_parent_stop_probability << endl;
 					// ここでのαは集中度であることに注意
-					double ratio_v = (_strength * parent_stop_probability + stop_count) / (_strength * (1.0 - sum_parent_stop_probability) + stop_count + pass_count + EPS);
+					double ratio_v = (_strength_h * parent_stop_probability + stop_count) / (_strength_h * (1.0 - sum_parent_stop_probability) + stop_count + pass_count + EPS);
 					assert(ratio_v >= 0);
 					// cout << "ratio_v = " << ratio_v << endl;
 					// assert(ratio_v < 1);
@@ -1416,7 +1422,7 @@ namespace ithmm {
 					// cout << "parent_stop_probability = " << parent_stop_probability << endl;
 					// cout << "sum_parent_stop_probability = " << sum_parent_stop_probability << endl;
 					// ルートノードではガンマを使うがそれ以外は集中度を使う
-					double ratio_h = (_strength * parent_stop_probability + stop_count) / (_strength * (1.0 - sum_parent_stop_probability) + stop_count + pass_count + EPS);
+					double ratio_h = (_strength_h * parent_stop_probability + stop_count) / (_strength_h * (1.0 - sum_parent_stop_probability) + stop_count + pass_count + EPS);
 					assert(ratio_h >= 0);
 					// assert(ratio_h < 1);
 					// cout << "ratio_h = " << ratio_h << endl;

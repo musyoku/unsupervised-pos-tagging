@@ -27,6 +27,12 @@ namespace ithmm {
 	bool Table::is_empty(){
 		return _arrangement.size() == 0;
 	}
+	int Table::get_num_customers(){
+		return _num_customers;
+	}
+	int Table::get_num_tables(){
+		return _arrangement.size();
+	}
 	void Table::add_customer(double concentration_parameter, double g0, int num_total_customers, bool &new_table_generated){
 		_num_customers += 1;
 		if(_arrangement.size() == 0){
