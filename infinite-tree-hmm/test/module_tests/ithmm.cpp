@@ -1123,7 +1123,7 @@ void test_retrospective_sampling(){
 	}
 }
 
-void test_add_parameters(){
+void test_add_and_remove_parameters(){
 	iTHMM* ithmm = new iTHMM();
 	ithmm->set_word_g0(0.001);
 	Node* root_in_structure = ithmm->_root_in_structure;
@@ -1177,6 +1177,88 @@ void test_add_parameters(){
 	assert(grandson_in_bos->_stop_count_v == 2);
 	assert(grandson_in_bos->_pass_count_h == 0);
 	assert(grandson_in_bos->_stop_count_h == 2);
+
+	ithmm->add_parameters(child_in_structure, grandson_in_structure, root_in_structure, 1);
+	assert(child_in_structure->_num_transitions_to_other == 1);
+	assert(child_in_structure->_num_transitions_to_eos == 0);
+	assert(grandson_in_structure->_num_transitions_to_other == 2);
+	assert(grandson_in_structure->_num_transitions_to_eos == 2);
+	assert(root_in_structure->_num_transitions_to_other == 1);
+	assert(root_in_structure->_num_transitions_to_eos == 0);
+
+	ithmm->remove_parameters(child_in_structure, grandson_in_structure, root_in_structure, 1);
+	assert(child_in_structure->_num_transitions_to_other == 0);
+	assert(child_in_structure->_num_transitions_to_eos == 0);
+	assert(grandson_in_structure->_num_transitions_to_other == 1);
+	assert(grandson_in_structure->_num_transitions_to_eos == 2);
+	assert(root_in_structure->_num_transitions_to_other == 1);
+	assert(root_in_structure->_num_transitions_to_eos == 0);
+
+	ithmm->remove_parameters(root_in_structure, grandson_in_structure, NULL, 1);
+	assert(child_in_structure->_num_transitions_to_other == 0);
+	assert(child_in_structure->_num_transitions_to_eos == 0);
+	assert(grandson_in_structure->_num_transitions_to_other == 1);
+	assert(grandson_in_structure->_num_transitions_to_eos == 1);
+	assert(root_in_structure->_num_transitions_to_other == 0);
+	assert(root_in_structure->_num_transitions_to_eos == 0);
+
+	ithmm->remove_parameters(NULL, grandson_in_structure, NULL, 1);
+	assert(child_in_structure->_num_transitions_to_other == 0);
+	assert(child_in_structure->_num_transitions_to_eos == 0);
+	assert(grandson_in_structure->_num_transitions_to_other == 1);
+	assert(grandson_in_structure->_num_transitions_to_eos == 0);
+	assert(root_in_structure->_num_transitions_to_other == 0);
+	assert(root_in_structure->_num_transitions_to_eos == 0);
+
+	ithmm->remove_parameters(NULL, grandson_in_structure, root_in_structure, 1);
+	assert(child_in_structure->_num_transitions_to_other == 0);
+	assert(child_in_structure->_num_transitions_to_eos == 0);
+	assert(grandson_in_structure->_num_transitions_to_other == 0);
+	assert(grandson_in_structure->_num_transitions_to_eos == 0);
+	assert(root_in_structure->_num_transitions_to_other == 0);
+	assert(root_in_structure->_num_transitions_to_eos == 0);
+
+	assert(root_in_structure->get_transition_tssb()->get_num_customers() == 0);
+	assert(child_in_structure->get_transition_tssb()->get_num_customers() == 0);
+	assert(grandson_in_structure->get_transition_tssb()->get_num_customers() == 0);
+}
+
+void test_compute_p_w_given_s(){
+	iTHMM* ithmm = new iTHMM();
+	ithmm->set_word_g0(0.0001);
+	Node* root_in_structure = ithmm->_root_in_structure;
+	Node* root_in_htssb = ithmm->_root_in_htssb;
+	Node* root_in_bos = ithmm->_root_in_bos;
+	ithmm->generate_and_add_new_child_to(root_in_structure);
+	ithmm->generate_and_add_new_child_to(root_in_structure);
+	Node* child_in_structure = ithmm->generate_and_add_new_child_to(root_in_structure);
+	ithmm->generate_and_add_new_child_to(child_in_structure);
+	ithmm->generate_and_add_new_child_to(child_in_structure);
+	Node* grandson_in_structure = ithmm->generate_and_add_new_child_to(child_in_structure);
+
+	for(int i = 0;i < 3;i++){
+		ithmm->_hpylm_d_m[i] = 0.1;
+		ithmm->_hpylm_theta_m[i] = 1;
+	}
+	for(int i = 0;i < 100;i++){
+		ithmm->add_customer_to_hpylm(root_in_structure, 1);
+		ithmm->add_customer_to_hpylm(child_in_structure, 1);
+		ithmm->add_customer_to_hpylm(grandson_in_structure, 1);
+	}
+	double p_w_1 = ithmm->compute_p_w_given_s(1, grandson_in_structure);
+	for(int i = 0;i < 3;i++){
+		ithmm->_hpylm_theta_m[i] = 10;
+	}
+	double p_w_2 = ithmm->compute_p_w_given_s(1, grandson_in_structure);
+	for(int i = 0;i < 3;i++){
+		ithmm->_hpylm_theta_m[i] = 100;
+	}
+	double p_w_3 = ithmm->compute_p_w_given_s(1, grandson_in_structure);
+	for(int i = 0;i < 3;i++){
+		ithmm->_hpylm_theta_m[i] = 1000;
+	}
+	double p_w_4 = ithmm->compute_p_w_given_s(1, grandson_in_structure);
+	assert(p_w_1 > p_w_2 && p_w_2 > p_w_3 && p_w_3 > p_w_4);
 }
 
 int main(){
@@ -1218,7 +1300,9 @@ int main(){
 	cout << "OK" << endl;
 	test_retrospective_sampling();
 	cout << "OK" << endl;
-	test_add_parameters();
+	test_add_and_remove_parameters();
+	cout << "OK" << endl;
+	test_compute_p_w_given_s();
 	cout << "OK" << endl;
 	return 0;
 }
