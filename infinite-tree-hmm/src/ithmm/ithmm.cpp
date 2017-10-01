@@ -382,6 +382,9 @@ namespace ithmm {
 	// [0, 1)の一様分布からノードをサンプリング
 	// HTSSBの場合（木構造に対してはそもそも行わない）
 	Node* iTHMM::retrospective_sampling(double uniform, TSSB* tssb, double total_stick_length){
+		if(uniform == total_stick_length){
+			uniform = total_stick_length * 0.9999999999;
+		}
 		assert(uniform < total_stick_length);
 		Node* root = tssb->_root;
 		double ratio_v = compute_expectation_of_vertical_sbr_ratio(root);

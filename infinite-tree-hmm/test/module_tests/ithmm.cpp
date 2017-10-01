@@ -1028,7 +1028,7 @@ void test_update_stick_length_of_tssb(){
 		}
 	}
 
-	double total_stick_length = 1.0;
+	double total_stick_length = 0.5;
 	TSSB* htssb = grandson_in_structure->get_transition_tssb();
 	double* sum_child_length = new double[4];
 	for(int i = 0;i < 4;i++){
@@ -1052,6 +1052,75 @@ void test_update_stick_length_of_tssb(){
 	}
 	assert(sum_child_length[0] > sum_child_length[1] && sum_child_length[1] > sum_child_length[2] && sum_child_length[2] > sum_child_length[3]);
 	delete[] sum_child_length;
+}
+
+void test_retrospective_sampling(){
+	iTHMM* ithmm = new iTHMM();
+	Node* root_in_structure = ithmm->_root_in_structure;
+	Node* root_in_htssb = ithmm->_root_in_htssb;
+	Node* root_in_bos = ithmm->_root_in_bos;
+	ithmm->generate_and_add_new_child_to(root_in_structure);
+	ithmm->generate_and_add_new_child_to(root_in_structure);
+	Node* child_in_structure = ithmm->generate_and_add_new_child_to(root_in_structure);
+	ithmm->generate_and_add_new_child_to(child_in_structure);
+	ithmm->generate_and_add_new_child_to(child_in_structure);
+	Node* grandson_in_structure = ithmm->generate_and_add_new_child_to(child_in_structure);
+	Node* grandson_in_htssb = grandson_in_structure->get_myself_in_transition_tssb();
+	assert(grandson_in_htssb != NULL);
+	Node* grandson_in_child_htssb = child_in_structure->get_transition_tssb()->find_node_by_tracing_horizontal_indices(grandson_in_htssb);
+	assert(grandson_in_child_htssb != NULL);
+	Node* grandson_in_root_htssb = root_in_structure->get_transition_tssb()->find_node_by_tracing_horizontal_indices(grandson_in_htssb);
+	assert(grandson_in_root_htssb != NULL);
+	ithmm->_lambda_alpha = 0.1;
+	ithmm->_lambda_gamma = 1;
+	ithmm->_strength_h = 1;
+	ithmm->_strength_v = 1;
+	bool new_table_generated;
+
+	// vertical
+	for(int i = 0;i < 100;i++){
+		grandson_in_htssb->add_customer_to_vertical_crp(1, 0.5, new_table_generated);
+		grandson_in_root_htssb->_parent->_parent->add_customer_to_vertical_crp(1, 0.5, new_table_generated);
+	}
+	for(int i = 0;i < 10;i++){
+		grandson_in_child_htssb->_parent->add_customer_to_vertical_crp(1, 0.5, new_table_generated);
+		grandson_in_root_htssb->_parent->add_customer_to_vertical_crp(1, 0.5, new_table_generated);
+	}
+	for(int i = 0;i < 1;i++){
+		grandson_in_child_htssb->add_customer_to_vertical_crp(1, 0.5, new_table_generated);
+		grandson_in_root_htssb->add_customer_to_vertical_crp(1, 0.5, new_table_generated);
+	}
+
+	// horizontal
+	for(int i = 0;i < 1;i++){
+		grandson_in_htssb->add_customer_to_horizontal_crp(1, 0.5, new_table_generated);
+	}
+	for(int i = 0;i < 10;i++){
+		grandson_in_child_htssb->add_customer_to_horizontal_crp(1, 0.5, new_table_generated);
+	}
+	for(Node* child: grandson_in_root_htssb->_parent->_children){
+		for(int i = 0;i < 100;i++){
+			child->add_customer_to_horizontal_crp(1, 0.5, new_table_generated);
+		}
+	}
+
+	double total_stick_length = 1.0;
+	for(int depth = 1;depth < 10;depth++){
+		ithmm->_depth_limit = depth;
+		TSSB* htssb = grandson_in_structure->get_transition_tssb();
+		for(int i = 1;i < 1000;i++){
+			double uniform = i / 1000.0;
+			Node* node = ithmm->retrospective_sampling(uniform, htssb, total_stick_length);
+			assert(node->_depth_v <= depth);
+		}
+		double root_length = htssb->_root->_probability;
+		double sum_child_length = 0;
+		for(Node* child: htssb->_root->_children){
+			assert(child->_stick_length > 0);
+			sum_child_length += child->_stick_length;
+		}
+		assert(total_stick_length > root_length + sum_child_length);
+	}
 }
 
 int main(){
@@ -1090,6 +1159,8 @@ int main(){
 	test_sample_node_in_tssb_by_iterating_node();
 	cout << "OK" << endl;
 	test_update_stick_length_of_tssb();
+	cout << "OK" << endl;
+	test_retrospective_sampling();
 	cout << "OK" << endl;
 	return 0;
 }
