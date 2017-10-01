@@ -526,10 +526,21 @@ namespace ithmm {
 		prev_state_in_structure->increment_transition_count_to_other();
 	}
 	void iTHMM::add_parameters(Node* prev_state_in_structure, Node* state_in_structure, Node* next_state_in_structure, id word_id){
+		// <s>と</s>両方を含む場合
+		if(prev_state_in_structure == NULL && next_state_in_structure == NULL){
+			assert(state_in_structure != NULL);
+			assert(is_node_in_structure_tssb(state_in_structure));
+			Node* state_in_bos = _bos_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
+			assert(state_in_bos);
+			add_customer_to_tssb_node(state_in_bos);
+			add_customer_to_tssb_node(state_in_structure);			// 参照カウント用
+			add_customer_to_hpylm(state_in_structure, word_id);
+			state_in_structure->increment_transition_count_to_eos();
+			return;
+		}
 		// <s>からの遷移を含む場合
 		if(prev_state_in_structure == NULL){
 			assert(state_in_structure != NULL);
-			assert(state_in_structure->get_transition_tssb() != NULL);
 			assert(next_state_in_structure != NULL);
 			assert(is_node_in_structure_tssb(state_in_structure));
 			assert(is_node_in_structure_tssb(next_state_in_structure));
@@ -566,18 +577,6 @@ namespace ithmm {
 			add_customer_to_tssb_node(state_in_structure);		// 参照カウント用
 			add_customer_to_hpylm(state_in_structure, word_id);
 			prev_state_in_structure->increment_transition_count_to_other();
-			state_in_structure->increment_transition_count_to_eos();
-			return;
-		}
-		// <s>と</s>両方を含む場合
-		if(prev_state_in_structure == NULL && next_state_in_structure == NULL){
-			assert(state_in_structure != NULL);
-			assert(is_node_in_structure_tssb(state_in_structure));
-			Node* state_in_bos = _bos_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
-			assert(state_in_bos);
-			add_customer_to_tssb_node(state_in_bos);
-			add_customer_to_tssb_node(state_in_structure);			// 参照カウント用
-			add_customer_to_hpylm(state_in_structure, word_id);
 			state_in_structure->increment_transition_count_to_eos();
 			return;
 		}

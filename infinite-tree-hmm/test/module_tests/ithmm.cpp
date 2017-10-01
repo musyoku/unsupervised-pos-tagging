@@ -1123,6 +1123,62 @@ void test_retrospective_sampling(){
 	}
 }
 
+void test_add_parameters(){
+	iTHMM* ithmm = new iTHMM();
+	ithmm->set_word_g0(0.001);
+	Node* root_in_structure = ithmm->_root_in_structure;
+	Node* root_in_htssb = ithmm->_root_in_htssb;
+	Node* root_in_bos = ithmm->_root_in_bos;
+	ithmm->generate_and_add_new_child_to(root_in_structure);
+	ithmm->generate_and_add_new_child_to(root_in_structure);
+	Node* child_in_structure = ithmm->generate_and_add_new_child_to(root_in_structure);
+	ithmm->generate_and_add_new_child_to(child_in_structure);
+	ithmm->generate_and_add_new_child_to(child_in_structure);
+	Node* grandson_in_structure = ithmm->generate_and_add_new_child_to(child_in_structure);
+	Node* grandson_in_htssb = grandson_in_structure->get_myself_in_transition_tssb();
+	Node* grandson_in_bos = ithmm->_bos_tssb->find_node_by_tracing_horizontal_indices(grandson_in_structure);
+
+	ithmm->add_parameters(NULL, grandson_in_structure, root_in_structure, 1);
+	assert(grandson_in_structure->_num_transitions_to_other == 1);
+	assert(grandson_in_structure->_num_transitions_to_eos == 0);
+	TSSB* transition_tssb = grandson_in_structure->get_transition_tssb();
+	assert(transition_tssb->_root->_pass_count_v == 0);
+	assert(transition_tssb->_root->_stop_count_v == 1);
+	assert(transition_tssb->_root->_pass_count_h == 0);
+	assert(transition_tssb->_root->_stop_count_h == 1);
+	assert(grandson_in_bos->_pass_count_v == 0);
+	assert(grandson_in_bos->_stop_count_v == 1);
+	assert(grandson_in_bos->_pass_count_h == 0);
+	assert(grandson_in_bos->_stop_count_h == 1);
+
+	ithmm->add_parameters(NULL, grandson_in_structure, NULL, 1);
+	assert(grandson_in_structure->_num_transitions_to_other == 1);
+	assert(grandson_in_structure->_num_transitions_to_eos == 1);
+	assert(transition_tssb->_root->_pass_count_v == 0);
+	assert(transition_tssb->_root->_stop_count_v == 1);
+	assert(transition_tssb->_root->_pass_count_h == 0);
+	assert(transition_tssb->_root->_stop_count_h == 1);
+	assert(grandson_in_bos->_pass_count_v == 0);
+	assert(grandson_in_bos->_stop_count_v == 2);
+	assert(grandson_in_bos->_pass_count_h == 0);
+	assert(grandson_in_bos->_stop_count_h == 2);
+
+	ithmm->add_parameters(root_in_structure, grandson_in_structure, NULL, 1);
+	assert(grandson_in_structure->_num_transitions_to_other == 1);
+	assert(grandson_in_structure->_num_transitions_to_eos == 2);
+	assert(root_in_structure->_num_transitions_to_other == 1);
+	assert(root_in_structure->_num_transitions_to_eos == 0);
+	transition_tssb = root_in_structure->get_transition_tssb();
+	assert(transition_tssb->_root->_pass_count_v == 1);
+	assert(transition_tssb->_root->_stop_count_v == 1);
+	assert(transition_tssb->_root->_pass_count_h == 0);
+	assert(transition_tssb->_root->_stop_count_h == 2);
+	assert(grandson_in_bos->_pass_count_v == 0);
+	assert(grandson_in_bos->_stop_count_v == 2);
+	assert(grandson_in_bos->_pass_count_h == 0);
+	assert(grandson_in_bos->_stop_count_h == 2);
+}
+
 int main(){
 	test_copy_children_in_structure_to_transition_tssb();
 	cout << "OK" << endl;
@@ -1161,6 +1217,8 @@ int main(){
 	test_update_stick_length_of_tssb();
 	cout << "OK" << endl;
 	test_retrospective_sampling();
+	cout << "OK" << endl;
+	test_add_parameters();
 	cout << "OK" << endl;
 	return 0;
 }
