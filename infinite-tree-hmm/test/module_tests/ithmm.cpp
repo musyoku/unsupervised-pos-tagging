@@ -508,132 +508,136 @@ void test_compute_expectation_of_vertical_htssb_sbr_ratio(){
 	Node* grandson_in_root_htssb = root_in_structure->get_transition_tssb()->find_node_by_tracing_horizontal_indices(grandson_in_htssb);
 	assert(grandson_in_root_htssb != NULL);
 
-	ithmm->_lambda_alpha = 1;
-
-	grandson_in_htssb->_pass_count_v = 20;
-	grandson_in_htssb->_stop_count_v = 40;
-	grandson_in_htssb->_parent->_pass_count_v = 100;
-	grandson_in_htssb->_parent->_stop_count_v = 50;
-	grandson_in_htssb->_parent->_parent->_pass_count_v = 80;
-	grandson_in_htssb->_parent->_parent->_stop_count_v = 160;
-
-	grandson_in_child_htssb->_pass_count_v = 80;
-	grandson_in_child_htssb->_stop_count_v = 40;
-	grandson_in_child_htssb->_parent->_pass_count_v = 60;
-	grandson_in_child_htssb->_parent->_stop_count_v = 120;
-	grandson_in_child_htssb->_parent->_parent->_pass_count_v = 60;
-	grandson_in_child_htssb->_parent->_parent->_stop_count_v = 30;
-
-	grandson_in_root_htssb->_pass_count_v = 10;
-	grandson_in_root_htssb->_stop_count_v = 30;
-	grandson_in_root_htssb->_parent->_pass_count_v = 120;
-	grandson_in_root_htssb->_parent->_stop_count_v = 40;
-	grandson_in_root_htssb->_parent->_parent->_pass_count_v = 50;
-	grandson_in_root_htssb->_parent->_parent->_stop_count_v = 150;
-
 	double* stop_ratio_over_parent = new double[3];
 	double* stop_probability_over_parent = new double[3];
 	double ratio_v, rest_stick_length, stop_probability, sum_parent_stop_probability, parent_stop_probability;
 	int stop_count, pass_count;
-	double alpha = ithmm->_alpha;
-	double strength_v = ithmm->_strength_v;
 
-	// root
-	stop_count = grandson_in_root_htssb->_parent->_parent->_stop_count_v;
-	pass_count = grandson_in_root_htssb->_parent->_parent->_pass_count_v;
-	ratio_v = (1.0 + stop_count) / (1.0 + alpha + stop_count + pass_count);
-	stop_ratio_over_parent[0] = ratio_v;
+	for(int i = 0;i < 10;i++){
+		ithmm->_lambda_alpha = 1;
+		ithmm->_strength_v = sampler::uniform_int(1, 1000) / 10.0;
 
-	stop_count = grandson_in_root_htssb->_parent->_stop_count_v;
-	pass_count = grandson_in_root_htssb->_parent->_pass_count_v;
-	ratio_v = (1.0 + stop_count) / (1.0 + alpha + stop_count + pass_count);
-	stop_ratio_over_parent[1] = ratio_v;
+		double alpha = ithmm->_alpha;
+		double strength_v = ithmm->_strength_v;
 
-	stop_count = grandson_in_root_htssb->_stop_count_v;
-	pass_count = grandson_in_root_htssb->_pass_count_v;
-	ratio_v = (1.0 + stop_count) / (1.0 + alpha + stop_count + pass_count);
-	stop_ratio_over_parent[2] = ratio_v;
-	
-	rest_stick_length = 1;
-	for(int m = 0;m < 3;m++){
-		ratio_v = stop_ratio_over_parent[m];
-		stop_probability = rest_stick_length * ratio_v;
-		rest_stick_length *= 1.0 - ratio_v;
-		stop_probability_over_parent[m] = stop_probability;
+		grandson_in_htssb->_pass_count_v = 20;
+		grandson_in_htssb->_stop_count_v = 40;
+		grandson_in_htssb->_parent->_pass_count_v = 100;
+		grandson_in_htssb->_parent->_stop_count_v = 50;
+		grandson_in_htssb->_parent->_parent->_pass_count_v = 80;
+		grandson_in_htssb->_parent->_parent->_stop_count_v = 160;
+
+		grandson_in_child_htssb->_pass_count_v = 80;
+		grandson_in_child_htssb->_stop_count_v = 40;
+		grandson_in_child_htssb->_parent->_pass_count_v = 60;
+		grandson_in_child_htssb->_parent->_stop_count_v = 120;
+		grandson_in_child_htssb->_parent->_parent->_pass_count_v = 60;
+		grandson_in_child_htssb->_parent->_parent->_stop_count_v = 30;
+
+		grandson_in_root_htssb->_pass_count_v = 10;
+		grandson_in_root_htssb->_stop_count_v = 30;
+		grandson_in_root_htssb->_parent->_pass_count_v = 120;
+		grandson_in_root_htssb->_parent->_stop_count_v = 40;
+		grandson_in_root_htssb->_parent->_parent->_pass_count_v = 50;
+		grandson_in_root_htssb->_parent->_parent->_stop_count_v = 150;
+
+		// root
+		stop_count = grandson_in_root_htssb->_parent->_parent->_stop_count_v;
+		pass_count = grandson_in_root_htssb->_parent->_parent->_pass_count_v;
+		ratio_v = (1.0 + stop_count) / (1.0 + alpha + stop_count + pass_count);
+		stop_ratio_over_parent[0] = ratio_v;
+
+		stop_count = grandson_in_root_htssb->_parent->_stop_count_v;
+		pass_count = grandson_in_root_htssb->_parent->_pass_count_v;
+		ratio_v = (1.0 + stop_count) / (1.0 + alpha + stop_count + pass_count);
+		stop_ratio_over_parent[1] = ratio_v;
+
+		stop_count = grandson_in_root_htssb->_stop_count_v;
+		pass_count = grandson_in_root_htssb->_pass_count_v;
+		ratio_v = (1.0 + stop_count) / (1.0 + alpha + stop_count + pass_count);
+		stop_ratio_over_parent[2] = ratio_v;
+		
+		rest_stick_length = 1;
+		for(int m = 0;m < 3;m++){
+			ratio_v = stop_ratio_over_parent[m];
+			stop_probability = rest_stick_length * ratio_v;
+			rest_stick_length *= 1.0 - ratio_v;
+			stop_probability_over_parent[m] = stop_probability;
+		}
+
+		// child
+		sum_parent_stop_probability = 0;
+
+		stop_count = grandson_in_child_htssb->_parent->_parent->_stop_count_v;
+		pass_count = grandson_in_child_htssb->_parent->_parent->_pass_count_v;
+		parent_stop_probability = stop_probability_over_parent[0];
+		ratio_v = (strength_v * parent_stop_probability + stop_count) / (strength_v * (1.0 - sum_parent_stop_probability) + stop_count + pass_count);
+		assert(ratio_v > 0);
+		stop_ratio_over_parent[0] = ratio_v;
+		sum_parent_stop_probability += parent_stop_probability;
+
+		stop_count = grandson_in_child_htssb->_parent->_stop_count_v;
+		pass_count = grandson_in_child_htssb->_parent->_pass_count_v;
+		parent_stop_probability = stop_probability_over_parent[1];
+		ratio_v = (strength_v * parent_stop_probability + stop_count) / (strength_v * (1.0 - sum_parent_stop_probability) + stop_count + pass_count);
+		assert(ratio_v > 0);
+		stop_ratio_over_parent[1] = ratio_v;
+		sum_parent_stop_probability += parent_stop_probability;
+
+		stop_count = grandson_in_child_htssb->_stop_count_v;
+		pass_count = grandson_in_child_htssb->_pass_count_v;
+		parent_stop_probability = stop_probability_over_parent[2];
+		ratio_v = (strength_v * parent_stop_probability + stop_count) / (strength_v * (1.0 - sum_parent_stop_probability) + stop_count + pass_count);
+		assert(ratio_v > 0);
+		stop_ratio_over_parent[2] = ratio_v;
+		sum_parent_stop_probability += parent_stop_probability;
+
+		rest_stick_length = 1;
+		for(int m = 0;m < 3;m++){
+			ratio_v = stop_ratio_over_parent[m];
+			stop_probability = rest_stick_length * ratio_v;
+			rest_stick_length *= 1.0 - ratio_v;
+			stop_probability_over_parent[m] = stop_probability;
+		}
+
+		// grandson
+		sum_parent_stop_probability = 0;
+
+		stop_count = grandson_in_htssb->_parent->_parent->_stop_count_v;
+		pass_count = grandson_in_htssb->_parent->_parent->_pass_count_v;
+		parent_stop_probability = stop_probability_over_parent[0];
+		ratio_v = (strength_v * parent_stop_probability + stop_count) / (strength_v * (1.0 - sum_parent_stop_probability) + stop_count + pass_count);
+		assert(ratio_v > 0);
+		stop_ratio_over_parent[0] = ratio_v;
+		sum_parent_stop_probability += parent_stop_probability;
+
+		stop_count = grandson_in_htssb->_parent->_stop_count_v;
+		pass_count = grandson_in_htssb->_parent->_pass_count_v;
+		parent_stop_probability = stop_probability_over_parent[1];
+		ratio_v = (strength_v * parent_stop_probability + stop_count) / (strength_v * (1.0 - sum_parent_stop_probability) + stop_count + pass_count);
+		assert(ratio_v > 0);
+		stop_ratio_over_parent[1] = ratio_v;
+		sum_parent_stop_probability += parent_stop_probability;
+
+		stop_count = grandson_in_htssb->_stop_count_v;
+		pass_count = grandson_in_htssb->_pass_count_v;
+		parent_stop_probability = stop_probability_over_parent[2];
+		ratio_v = (strength_v * parent_stop_probability + stop_count) / (strength_v * (1.0 - sum_parent_stop_probability) + stop_count + pass_count);
+		assert(ratio_v > 0);
+		stop_ratio_over_parent[2] = ratio_v;
+		sum_parent_stop_probability += parent_stop_probability;
+
+		rest_stick_length = 1;
+		for(int m = 0;m < 3;m++){
+			ratio_v = stop_ratio_over_parent[m];
+			stop_probability = rest_stick_length * ratio_v;
+			rest_stick_length *= 1.0 - ratio_v;
+			stop_probability_over_parent[m] = stop_probability;
+		}
+
+		double ratio = ithmm->compute_expectation_of_vertical_htssb_sbr_ratio(grandson_in_htssb);
+		assert(ratio == ratio_v);
 	}
-
-	// child
-	sum_parent_stop_probability = 0;
-
-	stop_count = grandson_in_child_htssb->_parent->_parent->_stop_count_v;
-	pass_count = grandson_in_child_htssb->_parent->_parent->_pass_count_v;
-	parent_stop_probability = stop_probability_over_parent[0];
-	ratio_v = (strength_v * parent_stop_probability + stop_count) / (strength_v * (1.0 - sum_parent_stop_probability) + stop_count + pass_count);
-	assert(ratio_v > 0);
-	stop_ratio_over_parent[0] = ratio_v;
-	sum_parent_stop_probability += parent_stop_probability;
-
-	stop_count = grandson_in_child_htssb->_parent->_stop_count_v;
-	pass_count = grandson_in_child_htssb->_parent->_pass_count_v;
-	parent_stop_probability = stop_probability_over_parent[1];
-	ratio_v = (strength_v * parent_stop_probability + stop_count) / (strength_v * (1.0 - sum_parent_stop_probability) + stop_count + pass_count);
-	assert(ratio_v > 0);
-	stop_ratio_over_parent[1] = ratio_v;
-	sum_parent_stop_probability += parent_stop_probability;
-
-	stop_count = grandson_in_child_htssb->_stop_count_v;
-	pass_count = grandson_in_child_htssb->_pass_count_v;
-	parent_stop_probability = stop_probability_over_parent[2];
-	ratio_v = (strength_v * parent_stop_probability + stop_count) / (strength_v * (1.0 - sum_parent_stop_probability) + stop_count + pass_count);
-	assert(ratio_v > 0);
-	stop_ratio_over_parent[2] = ratio_v;
-	sum_parent_stop_probability += parent_stop_probability;
-
-	rest_stick_length = 1;
-	for(int m = 0;m < 3;m++){
-		ratio_v = stop_ratio_over_parent[m];
-		stop_probability = rest_stick_length * ratio_v;
-		rest_stick_length *= 1.0 - ratio_v;
-		stop_probability_over_parent[m] = stop_probability;
-	}
-
-	// grandson
-	sum_parent_stop_probability = 0;
-
-	stop_count = grandson_in_htssb->_parent->_parent->_stop_count_v;
-	pass_count = grandson_in_htssb->_parent->_parent->_pass_count_v;
-	parent_stop_probability = stop_probability_over_parent[0];
-	ratio_v = (strength_v * parent_stop_probability + stop_count) / (strength_v * (1.0 - sum_parent_stop_probability) + stop_count + pass_count);
-	assert(ratio_v > 0);
-	stop_ratio_over_parent[0] = ratio_v;
-	sum_parent_stop_probability += parent_stop_probability;
-
-	stop_count = grandson_in_htssb->_parent->_stop_count_v;
-	pass_count = grandson_in_htssb->_parent->_pass_count_v;
-	parent_stop_probability = stop_probability_over_parent[1];
-	ratio_v = (strength_v * parent_stop_probability + stop_count) / (strength_v * (1.0 - sum_parent_stop_probability) + stop_count + pass_count);
-	assert(ratio_v > 0);
-	stop_ratio_over_parent[1] = ratio_v;
-	sum_parent_stop_probability += parent_stop_probability;
-
-	stop_count = grandson_in_htssb->_stop_count_v;
-	pass_count = grandson_in_htssb->_pass_count_v;
-	parent_stop_probability = stop_probability_over_parent[2];
-	ratio_v = (strength_v * parent_stop_probability + stop_count) / (strength_v * (1.0 - sum_parent_stop_probability) + stop_count + pass_count);
-	assert(ratio_v > 0);
-	stop_ratio_over_parent[2] = ratio_v;
-	sum_parent_stop_probability += parent_stop_probability;
-
-	rest_stick_length = 1;
-	for(int m = 0;m < 3;m++){
-		ratio_v = stop_ratio_over_parent[m];
-		stop_probability = rest_stick_length * ratio_v;
-		rest_stick_length *= 1.0 - ratio_v;
-		stop_probability_over_parent[m] = stop_probability;
-	}
-
-	double ratio = ithmm->compute_expectation_of_vertical_htssb_sbr_ratio(grandson_in_htssb);
-	assert(ratio == ratio_v);
 	delete[] stop_ratio_over_parent;
 	delete[] stop_probability_over_parent;
 	delete ithmm;
@@ -657,135 +661,239 @@ void test_compute_expectation_of_horizontal_htssb_sbr_ratio(){
 	Node* grandson_in_root_htssb = root_in_structure->get_transition_tssb()->find_node_by_tracing_horizontal_indices(grandson_in_htssb);
 	assert(grandson_in_root_htssb != NULL);
 
-	ithmm->_lambda_gamma = 1;
-
-	for(Node* child: grandson_in_htssb->_parent->_children){
-		child->_pass_count_h = sampler::uniform_int(10, 1000);
-		child->_stop_count_h = sampler::uniform_int(10, 1000);
-	}
-	for(Node* child: grandson_in_child_htssb->_parent->_children){
-		child->_pass_count_h = sampler::uniform_int(10, 1000);
-		child->_stop_count_h = sampler::uniform_int(10, 1000);
-	}
-	for(Node* child: grandson_in_root_htssb->_parent->_children){
-		child->_pass_count_h = sampler::uniform_int(10, 1000);
-		child->_stop_count_h = sampler::uniform_int(10, 1000);
-	}
-
 	double* stop_ratio_over_parent = new double[3];
 	double* stop_probability_over_parent = new double[3];
 	double ratio_h, rest_stick_length, stop_probability, sum_parent_stop_probability, parent_stop_probability, parent_ratio_h;
 	int stop_count, pass_count;
-	double gamma = ithmm->_gamma;
-	double strength_h = ithmm->_strength_h;
 	Node* parent_in_htssb;
 	Node* child_in_htssb;
 
-	// root
-	parent_in_htssb = grandson_in_root_htssb->_parent;
+	for(int i = 0;i < 10;i++){
+		ithmm->_lambda_gamma = 1;
+		ithmm->_strength_h = sampler::uniform_int(1, 1000) / 10.0;
 
-	child_in_htssb = parent_in_htssb->_children[0];
-	pass_count = child_in_htssb->_pass_count_h;
-	stop_count = child_in_htssb->_stop_count_h;
-	ratio_h = (1.0 + stop_count) / (1.0 + gamma + stop_count + pass_count);
-	stop_ratio_over_parent[0] = ratio_h;
+		for(Node* child: grandson_in_htssb->_parent->_children){
+			child->_pass_count_h = sampler::uniform_int(10, 1000);
+			child->_stop_count_h = sampler::uniform_int(10, 1000);
+		}
+		for(Node* child: grandson_in_child_htssb->_parent->_children){
+			child->_pass_count_h = sampler::uniform_int(10, 1000);
+			child->_stop_count_h = sampler::uniform_int(10, 1000);
+		}
+		for(Node* child: grandson_in_root_htssb->_parent->_children){
+			child->_pass_count_h = sampler::uniform_int(10, 1000);
+			child->_stop_count_h = sampler::uniform_int(10, 1000);
+		}
 
-	child_in_htssb = parent_in_htssb->_children[1];
-	pass_count = child_in_htssb->_pass_count_h;
-	stop_count = child_in_htssb->_stop_count_h;
-	ratio_h = (1.0 + stop_count) / (1.0 + gamma + stop_count + pass_count);
-	stop_ratio_over_parent[1] = ratio_h;
+		double gamma = ithmm->_gamma;
+		double strength_h = ithmm->_strength_h;
 
-	child_in_htssb = parent_in_htssb->_children[2];
-	assert(child_in_htssb == grandson_in_root_htssb);
-	pass_count = child_in_htssb->_pass_count_h;
-	stop_count = child_in_htssb->_stop_count_h;
-	ratio_h = (1.0 + stop_count) / (1.0 + gamma + stop_count + pass_count);
-	stop_ratio_over_parent[2] = ratio_h;
+		// root
+		parent_in_htssb = grandson_in_root_htssb->_parent;
 
-	rest_stick_length = 1;
-	for(int m = 0;m < 3;m++){
-		double ratio_h = stop_ratio_over_parent[m];
-		double stop_probability = rest_stick_length * ratio_h;
-		rest_stick_length *= 1.0 - ratio_h;
-		stop_probability_over_parent[m] = stop_probability;
+		child_in_htssb = parent_in_htssb->_children[0];
+		pass_count = child_in_htssb->_pass_count_h;
+		stop_count = child_in_htssb->_stop_count_h;
+		ratio_h = (1.0 + stop_count) / (1.0 + gamma + stop_count + pass_count);
+		stop_ratio_over_parent[0] = ratio_h;
+
+		child_in_htssb = parent_in_htssb->_children[1];
+		pass_count = child_in_htssb->_pass_count_h;
+		stop_count = child_in_htssb->_stop_count_h;
+		ratio_h = (1.0 + stop_count) / (1.0 + gamma + stop_count + pass_count);
+		stop_ratio_over_parent[1] = ratio_h;
+
+		child_in_htssb = parent_in_htssb->_children[2];
+		assert(child_in_htssb == grandson_in_root_htssb);
+		pass_count = child_in_htssb->_pass_count_h;
+		stop_count = child_in_htssb->_stop_count_h;
+		ratio_h = (1.0 + stop_count) / (1.0 + gamma + stop_count + pass_count);
+		stop_ratio_over_parent[2] = ratio_h;
+
+		rest_stick_length = 1;
+		for(int m = 0;m < 3;m++){
+			double ratio_h = stop_ratio_over_parent[m];
+			double stop_probability = rest_stick_length * ratio_h;
+			rest_stick_length *= 1.0 - ratio_h;
+			stop_probability_over_parent[m] = stop_probability;
+		}
+
+		// child
+		sum_parent_stop_probability = 0;
+		parent_in_htssb = grandson_in_child_htssb->_parent;
+
+		child_in_htssb = parent_in_htssb->_children[0];
+		pass_count = child_in_htssb->_pass_count_h;
+		stop_count = child_in_htssb->_stop_count_h;
+		parent_stop_probability = stop_probability_over_parent[0];
+		ratio_h = (strength_h * parent_stop_probability + stop_count) / (strength_h * (1.0 - sum_parent_stop_probability) + stop_count + pass_count);
+		assert(ratio_h > 0);
+		stop_ratio_over_parent[0] = ratio_h;
+		sum_parent_stop_probability += parent_stop_probability;
+
+		child_in_htssb = parent_in_htssb->_children[1];
+		pass_count = child_in_htssb->_pass_count_h;
+		stop_count = child_in_htssb->_stop_count_h;
+		parent_stop_probability = stop_probability_over_parent[1];
+		ratio_h = (strength_h * parent_stop_probability + stop_count) / (strength_h * (1.0 - sum_parent_stop_probability) + stop_count + pass_count);
+		assert(ratio_h > 0);
+		stop_ratio_over_parent[1] = ratio_h;
+		sum_parent_stop_probability += parent_stop_probability;
+
+		child_in_htssb = parent_in_htssb->_children[2];
+		pass_count = child_in_htssb->_pass_count_h;
+		stop_count = child_in_htssb->_stop_count_h;
+		parent_stop_probability = stop_probability_over_parent[2];
+		ratio_h = (strength_h * parent_stop_probability + stop_count) / (strength_h * (1.0 - sum_parent_stop_probability) + stop_count + pass_count);
+		assert(ratio_h > 0);
+		stop_ratio_over_parent[2] = ratio_h;
+		sum_parent_stop_probability += parent_stop_probability;
+
+		rest_stick_length = 1;
+		for(int m = 0;m < 3;m++){
+			double ratio_h = stop_ratio_over_parent[m];
+			double stop_probability = rest_stick_length * ratio_h;
+			rest_stick_length *= 1.0 - ratio_h;
+			stop_probability_over_parent[m] = stop_probability;
+		}
+
+		// grandson
+		sum_parent_stop_probability = 0;
+		parent_in_htssb = grandson_in_htssb->_parent;
+
+		child_in_htssb = parent_in_htssb->_children[0];
+		pass_count = child_in_htssb->_pass_count_h;
+		stop_count = child_in_htssb->_stop_count_h;
+		parent_stop_probability = stop_probability_over_parent[0];
+		ratio_h = (strength_h * parent_stop_probability + stop_count) / (strength_h * (1.0 - sum_parent_stop_probability) + stop_count + pass_count);
+		assert(ratio_h > 0);
+		stop_ratio_over_parent[0] = ratio_h;
+		sum_parent_stop_probability += parent_stop_probability;
+
+		child_in_htssb = parent_in_htssb->_children[1];
+		pass_count = child_in_htssb->_pass_count_h;
+		stop_count = child_in_htssb->_stop_count_h;
+		parent_stop_probability = stop_probability_over_parent[1];
+		ratio_h = (strength_h * parent_stop_probability + stop_count) / (strength_h * (1.0 - sum_parent_stop_probability) + stop_count + pass_count);
+		assert(ratio_h > 0);
+		stop_ratio_over_parent[1] = ratio_h;
+		sum_parent_stop_probability += parent_stop_probability;
+
+		child_in_htssb = parent_in_htssb->_children[2];
+		pass_count = child_in_htssb->_pass_count_h;
+		stop_count = child_in_htssb->_stop_count_h;
+		parent_stop_probability = stop_probability_over_parent[2];
+		ratio_h = (strength_h * parent_stop_probability + stop_count) / (strength_h * (1.0 - sum_parent_stop_probability) + stop_count + pass_count);
+		assert(ratio_h > 0);
+		stop_ratio_over_parent[2] = ratio_h;
+		sum_parent_stop_probability += parent_stop_probability;
+		
+		double ratio = ithmm->compute_expectation_of_horizontal_htssb_sbr_ratio(grandson_in_htssb);
+		assert(ratio == ratio_h);
 	}
-
-	// child
-	sum_parent_stop_probability = 0;
-	parent_in_htssb = grandson_in_child_htssb->_parent;
-
-	child_in_htssb = parent_in_htssb->_children[0];
-	pass_count = child_in_htssb->_pass_count_h;
-	stop_count = child_in_htssb->_stop_count_h;
-	parent_stop_probability = stop_probability_over_parent[0];
-	ratio_h = (strength_h * parent_stop_probability + stop_count) / (strength_h * (1.0 - sum_parent_stop_probability) + stop_count + pass_count);
-	assert(ratio_h > 0);
-	stop_ratio_over_parent[0] = ratio_h;
-	sum_parent_stop_probability += parent_stop_probability;
-
-	child_in_htssb = parent_in_htssb->_children[1];
-	pass_count = child_in_htssb->_pass_count_h;
-	stop_count = child_in_htssb->_stop_count_h;
-	parent_stop_probability = stop_probability_over_parent[1];
-	ratio_h = (strength_h * parent_stop_probability + stop_count) / (strength_h * (1.0 - sum_parent_stop_probability) + stop_count + pass_count);
-	assert(ratio_h > 0);
-	stop_ratio_over_parent[1] = ratio_h;
-	sum_parent_stop_probability += parent_stop_probability;
-
-	child_in_htssb = parent_in_htssb->_children[2];
-	pass_count = child_in_htssb->_pass_count_h;
-	stop_count = child_in_htssb->_stop_count_h;
-	parent_stop_probability = stop_probability_over_parent[2];
-	ratio_h = (strength_h * parent_stop_probability + stop_count) / (strength_h * (1.0 - sum_parent_stop_probability) + stop_count + pass_count);
-	assert(ratio_h > 0);
-	stop_ratio_over_parent[2] = ratio_h;
-	sum_parent_stop_probability += parent_stop_probability;
-
-	rest_stick_length = 1;
-	for(int m = 0;m < 3;m++){
-		double ratio_h = stop_ratio_over_parent[m];
-		double stop_probability = rest_stick_length * ratio_h;
-		rest_stick_length *= 1.0 - ratio_h;
-		stop_probability_over_parent[m] = stop_probability;
-	}
-	
-	// grandson
-	sum_parent_stop_probability = 0;
-	parent_in_htssb = grandson_in_htssb->_parent;
-
-	child_in_htssb = parent_in_htssb->_children[0];
-	pass_count = child_in_htssb->_pass_count_h;
-	stop_count = child_in_htssb->_stop_count_h;
-	parent_stop_probability = stop_probability_over_parent[0];
-	ratio_h = (strength_h * parent_stop_probability + stop_count) / (strength_h * (1.0 - sum_parent_stop_probability) + stop_count + pass_count);
-	assert(ratio_h > 0);
-	stop_ratio_over_parent[0] = ratio_h;
-	sum_parent_stop_probability += parent_stop_probability;
-
-	child_in_htssb = parent_in_htssb->_children[1];
-	pass_count = child_in_htssb->_pass_count_h;
-	stop_count = child_in_htssb->_stop_count_h;
-	parent_stop_probability = stop_probability_over_parent[1];
-	ratio_h = (strength_h * parent_stop_probability + stop_count) / (strength_h * (1.0 - sum_parent_stop_probability) + stop_count + pass_count);
-	assert(ratio_h > 0);
-	stop_ratio_over_parent[1] = ratio_h;
-	sum_parent_stop_probability += parent_stop_probability;
-
-	child_in_htssb = parent_in_htssb->_children[2];
-	pass_count = child_in_htssb->_pass_count_h;
-	stop_count = child_in_htssb->_stop_count_h;
-	parent_stop_probability = stop_probability_over_parent[2];
-	ratio_h = (strength_h * parent_stop_probability + stop_count) / (strength_h * (1.0 - sum_parent_stop_probability) + stop_count + pass_count);
-	assert(ratio_h > 0);
-	stop_ratio_over_parent[2] = ratio_h;
-	sum_parent_stop_probability += parent_stop_probability;
-	
-	double ratio = ithmm->compute_expectation_of_horizontal_htssb_sbr_ratio(grandson_in_htssb);
-	assert(ratio == ratio_h);
 
 	delete[] stop_ratio_over_parent;
 	delete[] stop_probability_over_parent;
+	delete ithmm;
+}
+
+void test_compute_concentration_vertical_htssb_sbr_ratio(){
+	iTHMM* ithmm = new iTHMM();
+	Node* root_in_structure = ithmm->_root_in_structure;
+	Node* root_in_htssb = ithmm->_root_in_htssb;
+	Node* root_in_bos = ithmm->_root_in_bos;
+	ithmm->generate_and_add_new_child_to(root_in_structure);
+	ithmm->generate_and_add_new_child_to(root_in_structure);
+	Node* child_in_structure = ithmm->generate_and_add_new_child_to(root_in_structure);
+	ithmm->generate_and_add_new_child_to(child_in_structure);
+	ithmm->generate_and_add_new_child_to(child_in_structure);
+	Node* grandson_in_structure = ithmm->generate_and_add_new_child_to(child_in_structure);
+	Node* grandson_in_htssb = grandson_in_structure->get_myself_in_transition_tssb();
+	assert(grandson_in_htssb != NULL);
+	Node* grandson_in_child_htssb = child_in_structure->get_transition_tssb()->find_node_by_tracing_horizontal_indices(grandson_in_htssb);
+	assert(grandson_in_child_htssb != NULL);
+	Node* grandson_in_root_htssb = root_in_structure->get_transition_tssb()->find_node_by_tracing_horizontal_indices(grandson_in_htssb);
+	assert(grandson_in_root_htssb != NULL);
+
+	ithmm->_lambda_alpha = 1;
+
+	grandson_in_htssb->_pass_count_v = 100;
+	grandson_in_htssb->_stop_count_v = 100;
+	grandson_in_htssb->_parent->_pass_count_v = 100;
+	grandson_in_htssb->_parent->_stop_count_v = 100;
+	grandson_in_htssb->_parent->_parent->_pass_count_v = 100;
+	grandson_in_htssb->_parent->_parent->_stop_count_v = 100;
+
+	grandson_in_child_htssb->_pass_count_v = 10;
+	grandson_in_child_htssb->_stop_count_v = 100;
+	grandson_in_child_htssb->_parent->_pass_count_v = 100;
+	grandson_in_child_htssb->_parent->_stop_count_v = 10;
+	grandson_in_child_htssb->_parent->_parent->_pass_count_v = 100;
+	grandson_in_child_htssb->_parent->_parent->_stop_count_v = 10;
+
+	grandson_in_root_htssb->_pass_count_v = 1;
+	grandson_in_root_htssb->_stop_count_v = 100;
+	grandson_in_root_htssb->_parent->_pass_count_v = 100;
+	grandson_in_root_htssb->_parent->_stop_count_v = 1;
+	grandson_in_root_htssb->_parent->_parent->_pass_count_v = 100;
+	grandson_in_root_htssb->_parent->_parent->_stop_count_v = 1;
+
+	ithmm->_strength_v = 1;
+	double ratio_1 = ithmm->compute_expectation_of_vertical_htssb_sbr_ratio(grandson_in_htssb);
+	ithmm->_strength_v = 10;
+	double ratio_2 = ithmm->compute_expectation_of_vertical_htssb_sbr_ratio(grandson_in_htssb);
+	ithmm->_strength_v = 100;
+	double ratio_3 = ithmm->compute_expectation_of_vertical_htssb_sbr_ratio(grandson_in_htssb);
+	ithmm->_strength_v = 1000;
+	double ratio_4 = ithmm->compute_expectation_of_vertical_htssb_sbr_ratio(grandson_in_htssb);
+	assert(ratio_4 > ratio_3 && ratio_3 > ratio_2 && ratio_2 > ratio_1);
+
+	delete ithmm;
+}
+
+void test_compute_concentration_horizontal_htssb_sbr_ratio(){
+	iTHMM* ithmm = new iTHMM();
+	Node* root_in_structure = ithmm->_root_in_structure;
+	Node* root_in_htssb = ithmm->_root_in_htssb;
+	Node* root_in_bos = ithmm->_root_in_bos;
+	ithmm->generate_and_add_new_child_to(root_in_structure);
+	ithmm->generate_and_add_new_child_to(root_in_structure);
+	Node* child_in_structure = ithmm->generate_and_add_new_child_to(root_in_structure);
+	ithmm->generate_and_add_new_child_to(child_in_structure);
+	ithmm->generate_and_add_new_child_to(child_in_structure);
+	Node* grandson_in_structure = ithmm->generate_and_add_new_child_to(child_in_structure);
+	Node* grandson_in_htssb = grandson_in_structure->get_myself_in_transition_tssb();
+	assert(grandson_in_htssb != NULL);
+	Node* grandson_in_child_htssb = child_in_structure->get_transition_tssb()->find_node_by_tracing_horizontal_indices(grandson_in_htssb);
+	assert(grandson_in_child_htssb != NULL);
+	Node* grandson_in_root_htssb = root_in_structure->get_transition_tssb()->find_node_by_tracing_horizontal_indices(grandson_in_htssb);
+	assert(grandson_in_root_htssb != NULL);
+
+	ithmm->_lambda_alpha = 1;
+
+	for(Node* child: grandson_in_htssb->_parent->_children){
+		child->_pass_count_h = 100;
+		child->_stop_count_h = 100;
+	}
+	for(Node* child: grandson_in_child_htssb->_parent->_children){
+		child->_pass_count_h = 10;
+		child->_stop_count_h = 100;
+	}
+	for(Node* child: grandson_in_root_htssb->_parent->_children){
+		child->_pass_count_h = 1;
+		child->_stop_count_h = 100;
+	}
+
+	ithmm->_strength_h = 1;
+	double ratio_1 = ithmm->compute_expectation_of_horizontal_htssb_sbr_ratio(grandson_in_htssb);
+	ithmm->_strength_h = 10;
+	double ratio_2 = ithmm->compute_expectation_of_horizontal_htssb_sbr_ratio(grandson_in_htssb);
+	ithmm->_strength_h = 100;
+	double ratio_3 = ithmm->compute_expectation_of_horizontal_htssb_sbr_ratio(grandson_in_htssb);
+	ithmm->_strength_h = 1000;
+	double ratio_4 = ithmm->compute_expectation_of_horizontal_htssb_sbr_ratio(grandson_in_htssb);
+	assert(ratio_4 > ratio_3 && ratio_3 > ratio_2 && ratio_2 > ratio_1);
+
 	delete ithmm;
 }
 
@@ -817,6 +925,10 @@ int main(){
 	test_compute_expectation_of_vertical_htssb_sbr_ratio();
 	cout << "OK" << endl;
 	test_compute_expectation_of_horizontal_htssb_sbr_ratio();
+	cout << "OK" << endl;
+	test_compute_concentration_vertical_htssb_sbr_ratio();
+	cout << "OK" << endl;
+	test_compute_concentration_horizontal_htssb_sbr_ratio();
 	cout << "OK" << endl;
 	return 0;
 }
