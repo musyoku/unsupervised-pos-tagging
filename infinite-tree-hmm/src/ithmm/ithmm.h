@@ -15,10 +15,6 @@
 #include "common.h"
 #include "hyperparameters.h"
 
-// 10以下ならなんでもいい
-#define TSSB_STRUCTURE_ID 8
-#define TSSB_BOS_ID 7
-
 namespace ithmm {
 	struct multiset_value_comparator {
 		bool operator()(const std::pair<id, double> &a, const std::pair<id, double> &b) {

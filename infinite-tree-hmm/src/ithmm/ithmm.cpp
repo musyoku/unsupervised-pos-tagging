@@ -353,7 +353,7 @@ namespace ithmm {
 	Node* iTHMM::_sample_node_in_tssb_by_iterating_node(Node* iterator, bool htssb_mode, bool ignore_root){
 		assert(iterator != NULL);
 		double head = compute_expectation_of_vertical_sbr_ratio(iterator, htssb_mode);
-		iterator->_children_stick_length = iterator->_stick_length * (1 - head);
+		// iterator->_children_stick_length = iterator->_stick_length * (1 - head);
 		double bernoulli = sampler::uniform(0, 1);
 		if(bernoulli <= head){			// 表が出たらこのノードに降りる
 			if(is_node_root(iterator) == false || (is_node_root(iterator) && ignore_root == false)){
@@ -1274,7 +1274,8 @@ namespace ithmm {
 	double iTHMM::compute_expectation_of_horizontal_tssb_sbr_ratio(Node* target_in_tssb){
 		int pass_count = target_in_tssb->_pass_count_h;
 		int stop_count = target_in_tssb->_stop_count_h;
-		double gamma = _gamma * pow(_lambda_gamma, std::max(0, target_in_tssb->_depth_v - 1));
+		int depth = target_in_tssb->_depth_v;
+		double gamma = _gamma * pow(_lambda_gamma, std::max(0, depth - 1));	// 論文には載っていない
 		return (1.0 + stop_count) / (1.0 + gamma + stop_count + pass_count);
 	}
 	double iTHMM::compute_expectation_of_vertical_htssb_sbr_ratio(Node* target_in_htssb){
@@ -1287,7 +1288,7 @@ namespace ithmm {
 
 		// 木構造上での基準となるノードを選ぶ
 		assert(owner_in_structure != NULL);
-		// 階層TSSBなので親TSSBのSBPを全て睿珊しないと次ノードのSBPを計算できない
+		// 階層TSSBなので親TSSBのSBPを網羅しないと次ノードのSBPを計算できない
 		int num_itr_in_structure = owner_in_structure->_depth_v + 1;
 		int num_itr_in_htssb = target_in_htssb->_depth_v + 1;
 		// キャッシュ用配列
@@ -1301,10 +1302,9 @@ namespace ithmm {
 			// nが増えるごとに木構造を下に降りていく
 			Node* iterator_in_structure = owner_in_structure->_nodes_from_root_to_myself[n];
 			assert(iterator_in_structure != NULL);
-			assert(iterator_in_structure->get_transition_tssb() != NULL);
 			// iterator_in_structure->dump();
 			// トップレベルのノードから順に停止確率を計算
-			double sum_parent_stop_probability = 0;
+			double sum_parent_stop_probability = 0;	// 棒の長さの総和
 			TSSB* transition_tssb = iterator_in_structure->get_transition_tssb();
 			assert(transition_tssb != NULL);
 			Node* iterator_in_htssb = transition_tssb->_root;
@@ -1320,7 +1320,8 @@ namespace ithmm {
 					// cout << "depth = " << iterator_in_htssb->_depth_v << endl;
 					double alpha = _alpha * pow(_lambda_alpha, iterator_in_htssb->_depth_v);
 					// cout << "alpha = " << alpha << endl;
-					double ratio_v = (1.0 + stop_count) / (1.0 + alpha + stop_count + pass_count + EPS);
+					// ここでのalphaはbeta分布のパラメータであることに注意
+					double ratio_v = (1.0 + stop_count) / (1.0 + alpha + stop_count + pass_count);
 					// cout << "ratio_v = " << ratio_v << endl;
 					// assert(ratio_v < 1);
 					stop_ratio_over_parent[m] = ratio_v;
@@ -1334,9 +1335,13 @@ namespace ithmm {
 					parent_ratio_v = (stop_ratio_over_parent[m] > 0) ?  stop_ratio_over_parent[m] : parent_ratio_v;
 					// cout << "parent_stop_probability = " << parent_stop_probability << endl;
 					// cout << "sum_parent_stop_probability = " << sum_parent_stop_probability << endl;
-					// ここでのαは集中度であることに注意
-					double ratio_v = (_strength_h * parent_stop_probability + stop_count) / (_strength_h * (1.0 - sum_parent_stop_probability) + stop_count + pass_count + EPS);
-					assert(ratio_v >= 0);
+					// ここでのalphaは集中度であることに注意
+					double denominator = _strength_v * (1.0 - sum_parent_stop_probability) + stop_count + pass_count;
+					double ratio_v = 1;
+					if(denominator > 0){
+						ratio_v = (_strength_v * parent_stop_probability + stop_count) / denominator;
+					}
+					assert(ratio_v > 0);
 					// cout << "ratio_v = " << ratio_v << endl;
 					// assert(ratio_v < 1);
 					stop_ratio_over_parent[m] = ratio_v;
@@ -1406,9 +1411,9 @@ namespace ithmm {
 				if(n == 0){		// 親ノードの場合
 					int pass_count = child_in_htssb->_pass_count_h;
 					int stop_count = child_in_htssb->_stop_count_h;
-					double gamma = _gamma * pow(_lambda_gamma, std::max(0, iterator_in_htssb->_depth_v - 1));
+					double gamma = _gamma * pow(_lambda_gamma, std::max(0, iterator_in_htssb->_depth_v - 1));	// 論文には載っていない
 					// cout << "pass_count = " << pass_count << ", stop_count = " << stop_count << endl;
-					double ratio_h = (1.0 + stop_count) / (1.0 + gamma + stop_count + pass_count + EPS);
+					double ratio_h = (1.0 + stop_count) / (1.0 + gamma + stop_count + pass_count);
 					// assert(ratio_h < 1);
 					// cout << "ratio_h = " << ratio_h << endl;
 					stop_ratio_over_parent[m] = ratio_h;
@@ -1421,9 +1426,13 @@ namespace ithmm {
 					parent_ratio_h = (stop_ratio_over_parent[m] > 0) ?  stop_ratio_over_parent[m] : parent_ratio_h;
 					// cout << "parent_stop_probability = " << parent_stop_probability << endl;
 					// cout << "sum_parent_stop_probability = " << sum_parent_stop_probability << endl;
-					// ルートノードではガンマを使うがそれ以外は集中度を使う
-					double ratio_h = (_strength_h * parent_stop_probability + stop_count) / (_strength_h * (1.0 - sum_parent_stop_probability) + stop_count + pass_count + EPS);
-					assert(ratio_h >= 0);
+					// ルートノードではgammaを使うがそれ以外は集中度を使う
+					double denominator = _strength_h * (1.0 - sum_parent_stop_probability) + stop_count + pass_count;
+					double ratio_h = 1;
+					if(denominator > 0){
+						ratio_h = (_strength_h * parent_stop_probability + stop_count) / denominator;
+					}
+					assert(ratio_h > 0);
 					// assert(ratio_h < 1);
 					// cout << "ratio_h = " << ratio_h << endl;
 					stop_ratio_over_parent[m] = ratio_h;
