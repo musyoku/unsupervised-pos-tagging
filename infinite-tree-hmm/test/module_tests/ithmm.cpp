@@ -869,7 +869,7 @@ void test_compute_concentration_horizontal_htssb_sbr_ratio(){
 	Node* grandson_in_root_htssb = root_in_structure->get_transition_tssb()->find_node_by_tracing_horizontal_indices(grandson_in_htssb);
 	assert(grandson_in_root_htssb != NULL);
 
-	ithmm->_lambda_alpha = 1;
+	ithmm->_lambda_gamma = 1;
 
 	for(Node* child: grandson_in_htssb->_parent->_children){
 		child->_pass_count_h = 100;
@@ -895,6 +895,87 @@ void test_compute_concentration_horizontal_htssb_sbr_ratio(){
 	assert(ratio_4 > ratio_3 && ratio_3 > ratio_2 && ratio_2 > ratio_1);
 
 	delete ithmm;
+}
+
+void test_sample_node_in_tssb_by_iterating_node(){
+	iTHMM* ithmm = new iTHMM();
+	Node* root_in_structure = ithmm->_root_in_structure;
+	Node* root_in_htssb = ithmm->_root_in_htssb;
+	Node* root_in_bos = ithmm->_root_in_bos;
+	ithmm->generate_and_add_new_child_to(root_in_structure);
+	ithmm->generate_and_add_new_child_to(root_in_structure);
+	Node* child_in_structure = ithmm->generate_and_add_new_child_to(root_in_structure);
+	ithmm->generate_and_add_new_child_to(child_in_structure);
+	ithmm->generate_and_add_new_child_to(child_in_structure);
+	Node* grandson_in_structure = ithmm->generate_and_add_new_child_to(child_in_structure);
+	Node* grandson_in_htssb = grandson_in_structure->get_myself_in_transition_tssb();
+	assert(grandson_in_htssb != NULL);
+	Node* grandson_in_child_htssb = child_in_structure->get_transition_tssb()->find_node_by_tracing_horizontal_indices(grandson_in_htssb);
+	assert(grandson_in_child_htssb != NULL);
+	Node* grandson_in_root_htssb = root_in_structure->get_transition_tssb()->find_node_by_tracing_horizontal_indices(grandson_in_htssb);
+	assert(grandson_in_root_htssb != NULL);
+	ithmm->_lambda_alpha = 0.1;
+	ithmm->_lambda_gamma = 1;
+	ithmm->_strength_h = 10;
+	ithmm->_strength_v = 10;
+	bool new_table_generated;
+
+	// vertical
+	for(int i = 0;i < 100;i++){
+		grandson_in_htssb->add_customer_to_vertical_crp(1, 0.5, new_table_generated);
+		grandson_in_root_htssb->_parent->_parent->add_customer_to_vertical_crp(1, 0.5, new_table_generated);
+	}
+	for(int i = 0;i < 10;i++){
+		grandson_in_child_htssb->_parent->add_customer_to_vertical_crp(1, 0.5, new_table_generated);
+		grandson_in_root_htssb->_parent->add_customer_to_vertical_crp(1, 0.5, new_table_generated);
+	}
+	for(int i = 0;i < 1;i++){
+		grandson_in_child_htssb->add_customer_to_vertical_crp(1, 0.5, new_table_generated);
+		grandson_in_root_htssb->add_customer_to_vertical_crp(1, 0.5, new_table_generated);
+	}
+
+	// horizontal
+	for(int i = 0;i < 1;i++){
+		grandson_in_htssb->add_customer_to_horizontal_crp(1, 0.5, new_table_generated);
+	}
+	for(int i = 0;i < 10;i++){
+		grandson_in_child_htssb->add_customer_to_horizontal_crp(1, 0.5, new_table_generated);
+	}
+	for(Node* child: grandson_in_root_htssb->_parent->_children){
+		for(int i = 0;i < 100;i++){
+			child->add_customer_to_horizontal_crp(1, 0.5, new_table_generated);
+		}
+	}
+
+	double avg_depth_1 = 0;
+	ithmm->_strength_h = 1;
+	ithmm->_strength_v = 1;
+	for(int i = 0;i < 100;i++){
+		Node* node = ithmm->sample_node_in_htssb(grandson_in_structure->get_transition_tssb(), false);
+		avg_depth_1 += node->_depth_v / 100.0;
+	}
+	double avg_depth_2 = 0;
+	ithmm->_strength_h = 10;
+	ithmm->_strength_v = 10;
+	for(int i = 0;i < 100;i++){
+		Node* node = ithmm->sample_node_in_htssb(grandson_in_structure->get_transition_tssb(), false);
+		avg_depth_2 += node->_depth_v / 100.0;
+	}
+	double avg_depth_3 = 0;
+	ithmm->_strength_h = 100;
+	ithmm->_strength_v = 100;
+	for(int i = 0;i < 100;i++){
+		Node* node = ithmm->sample_node_in_htssb(grandson_in_structure->get_transition_tssb(), false);
+		avg_depth_3 += node->_depth_v / 100.0;
+	}
+	double avg_depth_4 = 0;
+	ithmm->_strength_h = 1000;
+	ithmm->_strength_v = 1000;
+	for(int i = 0;i < 100;i++){
+		Node* node = ithmm->sample_node_in_htssb(grandson_in_structure->get_transition_tssb(), false);
+		avg_depth_4 += node->_depth_v / 100.0;
+	}
+	assert(avg_depth_1 > avg_depth_2 && avg_depth_2 > avg_depth_3 && avg_depth_3 > avg_depth_4);
 }
 
 int main(){
@@ -929,6 +1010,8 @@ int main(){
 	test_compute_concentration_vertical_htssb_sbr_ratio();
 	cout << "OK" << endl;
 	test_compute_concentration_horizontal_htssb_sbr_ratio();
+	cout << "OK" << endl;
+	test_sample_node_in_tssb_by_iterating_node();
 	cout << "OK" << endl;
 	return 0;
 }

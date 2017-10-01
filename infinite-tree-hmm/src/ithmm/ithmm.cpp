@@ -49,6 +49,7 @@ namespace ithmm {
 		_tau1 = iTHMM_TAU_1;
 		_current_max_depth = 0;
 		_word_g0 = -1;
+		_depth_limit = -1;
 
 		_structure_tssb = new TSSB();
 		_structure_tssb->_is_structure = true;
@@ -182,7 +183,7 @@ namespace ithmm {
 		}else if(is_node_in_htssb(parent)){	// parentが別のノードの遷移確率用TSSB上のノードだった場合
 			// Node* parent_in_structure = _structure_tssb->find_node_by_tracing_horizontal_indices(parent);
 			Node* parent_in_structure = parent->get_myself_in_structure_tssb();
-			assert(parent_in_structure->_identifier == parent->get_htssb_owner_node_id());
+			assert(parent_in_structure->_identifier == parent->_identifier);
 			assert(is_node_in_structure_tssb(parent_in_structure));
 			child = parent_in_structure->generate_child();
 			child->set_as_structure_node();
@@ -337,22 +338,20 @@ namespace ithmm {
 	// コインを投げる操作を繰り返して到達したノードを返す
 	Node* iTHMM::sample_node_in_tssb(TSSB* tssb, bool ignore_root){
 		assert(is_tssb_structure(tssb));
-		Node* node = _sample_node_in_tssb_by_iterating_node(tssb->_root, false, ignore_root);
+		Node* node = _sample_node_in_tssb_by_iterating_node(tssb->_root, ignore_root);
 		return node;
 	}
 	// HTSSB上でノードをサンプリング
 	Node* iTHMM::sample_node_in_htssb(TSSB* tssb, bool ignore_root){
 		assert(is_tssb_htssb(tssb));
-		Node* node = _sample_node_in_tssb_by_iterating_node(tssb->_root, true, ignore_root);
+		Node* node = _sample_node_in_tssb_by_iterating_node(tssb->_root, ignore_root);
 		assert(node->get_htssb_owner_node_id() == tssb->get_owner_node_id());
 		return node;
 	}
 	// 止まるノードを決定する
-	// htssb_modeがtrueの場合、停止確率は親のHTSSBから生成する
-	// htssb_modeがfalseの場合は普通のTSSBによるクラスタリング
-	Node* iTHMM::_sample_node_in_tssb_by_iterating_node(Node* iterator, bool htssb_mode, bool ignore_root){
+	Node* iTHMM::_sample_node_in_tssb_by_iterating_node(Node* iterator, bool ignore_root){
 		assert(iterator != NULL);
-		double head = compute_expectation_of_vertical_sbr_ratio(iterator, htssb_mode);
+		double head = compute_expectation_of_vertical_sbr_ratio(iterator);
 		// iterator->_children_stick_length = iterator->_stick_length * (1 - head);
 		double bernoulli = sampler::uniform(0, 1);
 		if(bernoulli <= head){			// 表が出たらこのノードに降りる
@@ -364,40 +363,39 @@ namespace ithmm {
 		for(int i = 0;i < iterator->_children.size();i++){
 			Node* child = iterator->_children[i];
 			assert(child != NULL);
-			double head = compute_expectation_of_horizontal_sbr_ratio(child, htssb_mode);
+			double head = compute_expectation_of_horizontal_sbr_ratio(child);
 			double bernoulli = sampler::uniform(0, 1);
 			if(bernoulli <= head){		// 表が出たら次に止まるかどうかを決める
-				return _sample_node_in_tssb_by_iterating_node(child, htssb_mode, ignore_root);
+				return _sample_node_in_tssb_by_iterating_node(child, ignore_root);
 			}
 		}
 		// ない場合生成しながらコインを投げる
 		while(true){
 			Node* child = generate_and_add_new_child_to(iterator);
-			double head = compute_expectation_of_horizontal_sbr_ratio(child, htssb_mode);
+			double head = compute_expectation_of_horizontal_sbr_ratio(child);
 			double bernoulli = sampler::uniform(0, 1);
 			if(bernoulli <= head){		// 表が出たら次に止まるかどうかを決める
-				return _sample_node_in_tssb_by_iterating_node(child, htssb_mode, ignore_root);
+				return _sample_node_in_tssb_by_iterating_node(child, ignore_root);
 			}
 		}
 	}
 	// [0, 1)の一様分布からノードをサンプリング
 	// HTSSBの場合（木構造に対してはそもそも行わない）
-	Node* iTHMM::retrospective_sampling(double uniform, TSSB* tssb, double total_stick_length, bool htssb_mode){
+	Node* iTHMM::retrospective_sampling(double uniform, TSSB* tssb, double total_stick_length){
 		assert(uniform < total_stick_length);
-		assert( (htssb_mode && is_tssb_htssb(tssb)) || (htssb_mode == false && is_tssb_htssb(tssb) == false) );
 		Node* root = tssb->_root;
-		double ratio_v = compute_expectation_of_vertical_sbr_ratio(root, htssb_mode);
+		double ratio_v = compute_expectation_of_vertical_sbr_ratio(root);
 		double sum_probability = total_stick_length * ratio_v;
 		root->_stick_length = total_stick_length;
 		root->_probability = total_stick_length * ratio_v;
 		root->_children_stick_length = total_stick_length * (1.0 - ratio_v);
 		root->_sum_probability = sum_probability;
 		// uniform = uniform * root->_children_stick_length + sum_probability; // ルートを除外する場合
-		Node* node =  _retrospective_sampling_by_iterating_node(uniform, sum_probability, root, htssb_mode);
+		Node* node =  _retrospective_sampling_by_iterating_node(uniform, sum_probability, root);
 		assert(node != NULL);
 		return node;
 	}
-	Node* iTHMM::_retrospective_sampling_by_iterating_node(double uniform, double &sum_probability, Node* iterator, bool htssb_mode){
+	Node* iTHMM::_retrospective_sampling_by_iterating_node(double uniform, double &sum_probability, Node* iterator){
 		if(uniform < sum_probability){
 			return iterator;
 		}
@@ -412,8 +410,8 @@ namespace ithmm {
 		// Node* last_node = NULL;
 		for(int i = 0;i < iterator->_children.size();i++){
 			Node* child = iterator->_children[i];
-			double ratio_h = compute_expectation_of_horizontal_sbr_ratio(child, htssb_mode);
-			double ratio_v = compute_expectation_of_vertical_sbr_ratio(child, htssb_mode);
+			double ratio_h = compute_expectation_of_horizontal_sbr_ratio(child);
+			double ratio_v = compute_expectation_of_vertical_sbr_ratio(child);
 			child->_stick_length = rest_stick_length * ratio_h;
 			assert(child->_stick_length > 0);
 			child->_probability = child->_stick_length * ratio_v;
@@ -426,7 +424,7 @@ namespace ithmm {
 				if(uniform < sum_probability){
 					return child;
 				}
-				return _retrospective_sampling_by_iterating_node(uniform, sum_probability, child, htssb_mode);
+				return _retrospective_sampling_by_iterating_node(uniform, sum_probability, child);
 			}
 			sum_stick_length_over_children += child->_stick_length;
 			rest_stick_length *= 1.0 - ratio_h;
@@ -436,8 +434,8 @@ namespace ithmm {
 		// 全ての存在する子ノードを通り過ぎた場合は生成
 		while(true){
 			Node* child = generate_and_add_new_child_to(iterator);
-			double ratio_h = compute_expectation_of_horizontal_sbr_ratio(child, htssb_mode);
-			double ratio_v = compute_expectation_of_vertical_sbr_ratio(child, htssb_mode);
+			double ratio_h = compute_expectation_of_horizontal_sbr_ratio(child);
+			double ratio_v = compute_expectation_of_vertical_sbr_ratio(child);
 			child->_stick_length = rest_stick_length * ratio_h;
 			child->_probability = child->_stick_length * ratio_v;
 			child->_children_stick_length = child->_stick_length * (1.0 - ratio_v);
@@ -447,7 +445,7 @@ namespace ithmm {
 				if(uniform < sum_probability){
 					return child;
 				}
-				return _retrospective_sampling_by_iterating_node(uniform, sum_probability, child, htssb_mode);
+				return _retrospective_sampling_by_iterating_node(uniform, sum_probability, child);
 			}
 			sum_stick_length_over_children += child->_stick_length;
 			rest_stick_length *= 1.0 - ratio_h;
@@ -809,7 +807,7 @@ namespace ithmm {
 
 			TSSB* prev_state_tssb = prev_state_in_structure->get_transition_tssb();
 			assert(prev_state_tssb != NULL);
-			Node* new_state_in_prev_htssb = retrospective_sampling(u, prev_state_tssb, 1.0, true);
+			Node* new_state_in_prev_htssb = retrospective_sampling(u, prev_state_tssb, 1.0);
 			assert(new_state_in_prev_htssb != NULL);
 			Node* new_state_in_structure = new_state_in_prev_htssb->get_myself_in_structure_tssb();
 			assert(new_state_in_structure != NULL);
@@ -931,7 +929,7 @@ namespace ithmm {
 		while(true){
 			double u = sampler::uniform(st, ed);
 			assert(st <= u && u < ed);
-			Node* new_state_in_bos = retrospective_sampling(u, _bos_tssb, 1.0, false);
+			Node* new_state_in_bos = retrospective_sampling(u, _bos_tssb, 1.0);
 			assert(is_node_in_bos_tssb(new_state_in_bos));
 			assert(new_state_in_bos != NULL);
 			Node* new_state_in_structure = new_state_in_bos->get_myself_in_structure_tssb();
@@ -993,7 +991,7 @@ namespace ithmm {
 
 			TSSB* prev_state_tssb = prev_state_in_structure->get_transition_tssb();
 			assert(prev_state_tssb != NULL);
-			Node* new_state_in_htssb = retrospective_sampling(u, prev_state_tssb, 1.0, true);
+			Node* new_state_in_htssb = retrospective_sampling(u, prev_state_tssb, 1.0);
 			// prev_state_tssb->dump();
 			// cout << u << endl;
 			// new_state_in_htssb->dump();
@@ -1211,10 +1209,9 @@ namespace ithmm {
 	// update_stick_length_of_tssbは全ノードを更新するのに対しこっちは対象ノードのみ正確に計算する
 	double iTHMM::compute_node_probability_in_tssb(TSSB* tssb, Node* node, double total_stick_length){
 		assert(tssb->get_owner_node_id() == node->get_htssb_owner_node_id());
-		bool htssb_mode = is_tssb_htssb(tssb);
 		Node* iterator = tssb->_root;
 		iterator->_stick_length = total_stick_length;
-		double ratio_v = compute_expectation_of_vertical_sbr_ratio(iterator, htssb_mode);
+		double ratio_v = compute_expectation_of_vertical_sbr_ratio(iterator);
 		iterator->_probability = iterator->_stick_length * ratio_v;
 		iterator->_children_stick_length = iterator->_stick_length * (1.0 - ratio_v);
 		double min_probability = 1;		// 0が返るのを防ぐ
@@ -1223,8 +1220,8 @@ namespace ithmm {
 			double rest_stick_length = iterator->_children_stick_length;
 			for(int m = 0;m <= depth_h;m++){
 				Node* child = iterator->_children[m];
-				double ratio_h = compute_expectation_of_horizontal_sbr_ratio(child, htssb_mode);
-				double ratio_v = compute_expectation_of_vertical_sbr_ratio(child, htssb_mode);
+				double ratio_h = compute_expectation_of_horizontal_sbr_ratio(child);
+				double ratio_v = compute_expectation_of_vertical_sbr_ratio(child);
 				child->_stick_length = rest_stick_length * ratio_h;
 				double probability = child->_stick_length * ratio_v;
 				if(probability == 0){		// ものすごく深いノードがサンプリングされた時にdouble型の限界を超える
@@ -1244,25 +1241,23 @@ namespace ithmm {
 		}
 		return iterator->_probability;
 	}
-	double iTHMM::compute_expectation_of_vertical_sbr_ratio(Node* iterator, bool htssb_mode){
+	double iTHMM::compute_expectation_of_vertical_sbr_ratio(Node* iterator){
 		if(_depth_limit > 0){
 			if(iterator->_depth_v >= _depth_limit){
 				return 1;
 			}
 		}
-		if(htssb_mode){
-			assert(is_node_in_htssb(iterator));
+		if(is_node_in_htssb(iterator)){
 			return compute_expectation_of_vertical_htssb_sbr_ratio(iterator);
 		}
-		assert(is_node_in_htssb(iterator) == false);
+		assert(is_node_in_structure_tssb(iterator) || is_node_in_bos_tssb(iterator));
 		return compute_expectation_of_vertical_tssb_sbr_ratio(iterator);
 	}
-	double iTHMM::compute_expectation_of_horizontal_sbr_ratio(Node* iterator, bool htssb_mode){
-		if(htssb_mode){
-			assert(is_node_in_htssb(iterator));
+	double iTHMM::compute_expectation_of_horizontal_sbr_ratio(Node* iterator){
+		if(is_node_in_htssb(iterator)){
 			return compute_expectation_of_horizontal_htssb_sbr_ratio(iterator);
 		}
-		assert(is_node_in_htssb(iterator) == false);
+		assert(is_node_in_structure_tssb(iterator) || is_node_in_bos_tssb(iterator));
 		return compute_expectation_of_horizontal_tssb_sbr_ratio(iterator);
 	}
 	double iTHMM::compute_expectation_of_vertical_tssb_sbr_ratio(Node* target_in_tssb){
@@ -1471,25 +1466,25 @@ namespace ithmm {
 		return node_in_structure->_hpylm->compute_p_w(token_id, _word_g0, _hpylm_d_m, _hpylm_theta_m);
 	}
 	// TSSBの全ての棒の長さを計算
-	void iTHMM::update_stick_length_of_tssb(TSSB* tssb, double total_stick_length, bool htssb_mode){
+	void iTHMM::update_stick_length_of_tssb(TSSB* tssb, double total_stick_length){
 		// assert(tssb->get_owner_node_id() != 0);	// 木構造の場合は計算しない
 		Node* root = tssb->_root;
-		double ratio_v = compute_expectation_of_vertical_sbr_ratio(root, htssb_mode);
+		double ratio_v = compute_expectation_of_vertical_sbr_ratio(root);
 		double sum_probability = total_stick_length * ratio_v;
 		root->_stick_length = total_stick_length;
 		root->_children_stick_length = total_stick_length * (1.0 - ratio_v);
 		root->_probability = ratio_v * total_stick_length;
 		root->_sum_probability = root->_probability;
-		_update_stick_length_of_parent_node(sum_probability, root, htssb_mode);
+		_update_stick_length_of_parent_node(sum_probability, root);
 	}
-	void iTHMM::_update_stick_length_of_parent_node(double &sum_probability, Node* parent, bool htssb_mode){
+	void iTHMM::_update_stick_length_of_parent_node(double &sum_probability, Node* parent){
 		assert(parent->_children_stick_length > 0);
 		double rest_stick_length = parent->_children_stick_length;	// 親ノードが持っている子ノードに割り当てる棒の長さ
 		double sum_stick_length_from_left_to_current_node = sum_probability;
 		for(int i = 0;i < parent->_children.size();i++){
 			Node* child = parent->_children[i];
-			double ratio_h = compute_expectation_of_horizontal_sbr_ratio(child, htssb_mode);
-			double ratio_v = compute_expectation_of_vertical_sbr_ratio(child, htssb_mode);
+			double ratio_h = compute_expectation_of_horizontal_sbr_ratio(child);
+			double ratio_v = compute_expectation_of_vertical_sbr_ratio(child);
 			child->_stick_length = rest_stick_length * ratio_h;		// このノードかこのノードの子ノードに止まる確率
 			child->_probability = child->_stick_length * ratio_v;	// このノードに止まる確率
 			child->_children_stick_length = child->_stick_length * (1.0 - ratio_v);	// 子ノードに割り当てる長さはこのノードに降りない確率
@@ -1498,7 +1493,7 @@ namespace ithmm {
 			child->_sum_probability = sum_stick_length_from_left_to_current_node - child->_children_stick_length;				// このノードより左側の全ての棒の長さの総和
 			rest_stick_length *= 1.0 - ratio_h;
 			if(child->has_child()){
-				_update_stick_length_of_parent_node(child->_sum_probability, child, htssb_mode);
+				_update_stick_length_of_parent_node(child->_sum_probability, child);
 			}
 		}
 	}
