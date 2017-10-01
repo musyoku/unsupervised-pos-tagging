@@ -352,27 +352,130 @@ void test_remove_customer_from_tssb_node(){
 	assert(ithmm->_bos_tssb->_num_customers == 0);
 }
 
-void test_htssb_concentration(){
+void test_htssb_concentration_vertical(){
 	iTHMM* ithmm = new iTHMM();
 	Node* root_in_structure = ithmm->_root_in_structure;
 	Node* root_in_htssb = ithmm->_root_in_htssb;
 	Node* root_in_bos = ithmm->_root_in_bos;
 	Node* child_in_structure = ithmm->generate_and_add_new_child_to(root_in_structure);
 	Node* grandson_in_structure = ithmm->generate_and_add_new_child_to(child_in_structure);
+	Node* grandson_in_htssb = grandson_in_structure->get_myself_in_transition_tssb();
+	assert(grandson_in_htssb != NULL);
+	Node* grandson_in_child_htssb = child_in_structure->get_transition_tssb()->find_node_by_tracing_horizontal_indices(grandson_in_htssb);
+	assert(grandson_in_child_htssb != NULL);
+	Node* grandson_in_root_htssb = root_in_structure->get_transition_tssb()->find_node_by_tracing_horizontal_indices(grandson_in_htssb);
+	assert(grandson_in_root_htssb != NULL);
+
+	ithmm->_strength_v = 1;
 	for(int i = 0;i < 100;i++){
-		ithmm->add_customer_to_tssb_node(grandson_in_structure);
+		ithmm->_add_customer_to_htssb_vertical_crp(grandson_in_htssb);
 	}
-	assert(ithmm->_structure_tssb->get_num_customers() == 200);
-	assert(ithmm->_structure_tssb->_num_customers == 200);
-	assert(ithmm->_bos_tssb->get_num_customers() == 0);
-	Node* grandson_in_bos = ithmm->_bos_tssb->find_node_by_tracing_horizontal_indices(grandson_in_structure);
+	int num_customers_small_1_small = grandson_in_htssb->_table_v->get_num_customers();
+	int num_customers_small_2_small = grandson_in_child_htssb->_table_v->get_num_customers();
+	int num_customers_small_3_small = grandson_in_root_htssb->_table_v->get_num_customers();
+	assert(grandson_in_htssb->_table_v->get_num_customers() == 100);
+	assert(grandson_in_child_htssb->_table_v->get_num_customers() == grandson_in_htssb->_table_v->get_num_tables());
+	assert(grandson_in_root_htssb->_table_v->get_num_customers() == grandson_in_child_htssb->_table_v->get_num_tables());
+	assert(grandson_in_htssb->_table_h->get_num_customers() == 0);
+	assert(grandson_in_child_htssb->_table_h->get_num_customers() == 0);
+	assert(grandson_in_root_htssb->_table_h->get_num_customers() == 0);
+	assert(grandson_in_htssb->_table_h->get_num_tables() == 0);
+	assert(grandson_in_child_htssb->_table_h->get_num_tables() == 0);
+	assert(grandson_in_root_htssb->_table_h->get_num_tables() == 0);
+
 	for(int i = 0;i < 100;i++){
-		ithmm->add_customer_to_tssb_node(grandson_in_bos);
+		ithmm->_remove_customer_from_htssb_vertical_crp(grandson_in_htssb);
 	}
-	assert(ithmm->_structure_tssb->get_num_customers() == 200);
-	assert(ithmm->_structure_tssb->_num_customers == 200);
-	assert(ithmm->_bos_tssb->get_num_customers() == 200);
-	assert(ithmm->_bos_tssb->_num_customers == 200);
+	assert(grandson_in_htssb->_table_v->get_num_customers() == 0);
+	assert(grandson_in_child_htssb->_table_v->get_num_customers() == 0);
+	assert(grandson_in_root_htssb->_table_v->get_num_customers() == 0);
+	assert(grandson_in_htssb->_table_v->get_num_tables() == 0);
+	assert(grandson_in_child_htssb->_table_v->get_num_tables() == 0);
+	assert(grandson_in_root_htssb->_table_v->get_num_tables() == 0);
+
+	ithmm->_strength_v = 10000;
+	for(int i = 0;i < 100;i++){
+		ithmm->_add_customer_to_htssb_vertical_crp(grandson_in_htssb);
+	}
+	int num_customers_small_1_huge = grandson_in_htssb->_table_v->get_num_customers();
+	int num_customers_small_2_huge = grandson_in_child_htssb->_table_v->get_num_customers();
+	int num_customers_small_3_huge = grandson_in_root_htssb->_table_v->get_num_customers();
+	assert(grandson_in_htssb->_table_v->get_num_customers() == 100);
+	assert(grandson_in_child_htssb->_table_v->get_num_customers() == grandson_in_htssb->_table_v->get_num_tables());
+	assert(grandson_in_root_htssb->_table_v->get_num_customers() == grandson_in_child_htssb->_table_v->get_num_tables());
+	assert(num_customers_small_1_huge == num_customers_small_1_small);
+	assert(num_customers_small_2_huge > num_customers_small_2_small);
+	assert(num_customers_small_3_huge > num_customers_small_3_small);
+	assert(grandson_in_htssb->_table_h->get_num_customers() == 0);
+	assert(grandson_in_child_htssb->_table_h->get_num_customers() == 0);
+	assert(grandson_in_root_htssb->_table_h->get_num_customers() == 0);
+	assert(grandson_in_htssb->_table_h->get_num_tables() == 0);
+	assert(grandson_in_child_htssb->_table_h->get_num_tables() == 0);
+	assert(grandson_in_root_htssb->_table_h->get_num_tables() == 0);
+	delete ithmm;
+}
+
+void test_htssb_concentration_horizontal(){
+	iTHMM* ithmm = new iTHMM();
+	Node* root_in_structure = ithmm->_root_in_structure;
+	Node* root_in_htssb = ithmm->_root_in_htssb;
+	Node* root_in_bos = ithmm->_root_in_bos;
+	Node* child_in_structure = ithmm->generate_and_add_new_child_to(root_in_structure);
+	Node* grandson_in_structure = ithmm->generate_and_add_new_child_to(child_in_structure);
+	Node* grandson_in_htssb = grandson_in_structure->get_myself_in_transition_tssb();
+	assert(grandson_in_htssb != NULL);
+	Node* grandson_in_child_htssb = child_in_structure->get_transition_tssb()->find_node_by_tracing_horizontal_indices(grandson_in_htssb);
+	assert(grandson_in_child_htssb != NULL);
+	Node* grandson_in_root_htssb = root_in_structure->get_transition_tssb()->find_node_by_tracing_horizontal_indices(grandson_in_htssb);
+	assert(grandson_in_root_htssb != NULL);
+
+	ithmm->_strength_h = 1;
+	for(int i = 0;i < 100;i++){
+		ithmm->_add_customer_to_htssb_horizontal_crp(grandson_in_htssb);
+	}
+	int num_customers_small_1_small = grandson_in_htssb->_table_h->get_num_customers();
+	int num_customers_small_2_small = grandson_in_child_htssb->_table_h->get_num_customers();
+	int num_customers_small_3_small = grandson_in_root_htssb->_table_h->get_num_customers();
+	assert(grandson_in_htssb->_table_h->get_num_customers() == 100);
+	assert(grandson_in_child_htssb->_table_h->get_num_customers() == grandson_in_htssb->_table_h->get_num_tables());
+	assert(grandson_in_root_htssb->_table_h->get_num_customers() == grandson_in_child_htssb->_table_h->get_num_tables());
+	assert(grandson_in_htssb->_table_v->get_num_customers() == 0);
+	assert(grandson_in_child_htssb->_table_v->get_num_customers() == 0);
+	assert(grandson_in_root_htssb->_table_v->get_num_customers() == 0);
+	assert(grandson_in_htssb->_table_v->get_num_tables() == 0);
+	assert(grandson_in_child_htssb->_table_v->get_num_tables() == 0);
+	assert(grandson_in_root_htssb->_table_v->get_num_tables() == 0);
+
+	for(int i = 0;i < 100;i++){
+		ithmm->_remove_customer_from_htssb_horizontal_crp(grandson_in_htssb);
+	}
+	assert(grandson_in_htssb->_table_h->get_num_customers() == 0);
+	assert(grandson_in_child_htssb->_table_h->get_num_customers() == 0);
+	assert(grandson_in_root_htssb->_table_h->get_num_customers() == 0);
+	assert(grandson_in_htssb->_table_h->get_num_tables() == 0);
+	assert(grandson_in_child_htssb->_table_h->get_num_tables() == 0);
+	assert(grandson_in_root_htssb->_table_h->get_num_tables() == 0);
+
+	ithmm->_strength_h = 10000;
+	for(int i = 0;i < 100;i++){
+		ithmm->_add_customer_to_htssb_horizontal_crp(grandson_in_htssb);
+	}
+	int num_customers_small_1_huge = grandson_in_htssb->_table_h->get_num_customers();
+	int num_customers_small_2_huge = grandson_in_child_htssb->_table_h->get_num_customers();
+	int num_customers_small_3_huge = grandson_in_root_htssb->_table_h->get_num_customers();
+	assert(grandson_in_htssb->_table_h->get_num_customers() == 100);
+	assert(grandson_in_child_htssb->_table_h->get_num_customers() == grandson_in_htssb->_table_h->get_num_tables());
+	assert(grandson_in_root_htssb->_table_h->get_num_customers() == grandson_in_child_htssb->_table_h->get_num_tables());
+	assert(num_customers_small_1_huge == num_customers_small_1_small);
+	assert(num_customers_small_2_huge > num_customers_small_2_small);
+	assert(num_customers_small_3_huge > num_customers_small_3_small);
+	assert(grandson_in_htssb->_table_v->get_num_customers() == 0);
+	assert(grandson_in_child_htssb->_table_v->get_num_customers() == 0);
+	assert(grandson_in_root_htssb->_table_v->get_num_customers() == 0);
+	assert(grandson_in_htssb->_table_v->get_num_tables() == 0);
+	assert(grandson_in_child_htssb->_table_v->get_num_tables() == 0);
+	assert(grandson_in_root_htssb->_table_v->get_num_tables() == 0);
+	delete ithmm;
 }
 
 int main(){
@@ -393,6 +496,10 @@ int main(){
 	test_add_customer_to_tssb_node();
 	cout << "OK" << endl;
 	test_remove_customer_from_tssb_node();
+	cout << "OK" << endl;
+	test_htssb_concentration_vertical();
+	cout << "OK" << endl;
+	test_htssb_concentration_horizontal();
 	cout << "OK" << endl;
 	return 0;
 }

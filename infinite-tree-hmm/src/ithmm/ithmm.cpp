@@ -1069,12 +1069,12 @@ namespace ithmm {
 		assert(iterator != NULL);
 		assert(is_node_in_htssb(iterator));
 		Node* iterator_in_parent_htssb = iterator->get_myself_in_parent_transition_tssb();
-		double ratio_v = 0;	// 親の場合はテーブルの増加は無視してよい
+		double parent_ratio_v = 0;	// 親の棒を折る比率
 		if(iterator_in_parent_htssb != NULL){
-			ratio_v = compute_expectation_of_vertical_htssb_sbr_ratio(iterator_in_parent_htssb);	// g0は親の停止確率なので注意
+			parent_ratio_v = compute_expectation_of_vertical_htssb_sbr_ratio(iterator_in_parent_htssb);
 		}
 		bool new_table_generated = false;
-		iterator->add_customer_to_vertical_crp(_strength_v, ratio_v, new_table_generated);
+		iterator->add_customer_to_vertical_crp(_strength_v, parent_ratio_v, new_table_generated);
 		// 総客数のインクリメント
 		Node* owner_in_structure = iterator->get_htssb_owner_node_in_structure();
 		assert(owner_in_structure != NULL);
