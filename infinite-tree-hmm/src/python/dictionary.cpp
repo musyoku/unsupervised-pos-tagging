@@ -4,14 +4,16 @@
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/serialization/unordered_map.hpp>
 #include <fstream>
+#include <cassert>
 #include "dictionary.h"
 
 namespace ithmm {
 	Dictionary::Dictionary(){
 		_id_to_str[ID_UNK] = L"<unk>";
+		_str_to_id[L"<unk>"] = ID_UNK;
 		_autoincrement = ID_UNK + 1;
 	}
-	id Dictionary::add_word_string(std::wstring word){
+	int Dictionary::add_word_string(std::wstring word){
 		auto itr = _str_to_id.find(word);
 		if(itr == _str_to_id.end()){
 			_id_to_str[_autoincrement] = word;
@@ -21,18 +23,39 @@ namespace ithmm {
 		}
 		return itr->second;
 	}
-	id Dictionary::string_to_word_id(std::wstring word){
+	int Dictionary::string_to_word_id(std::wstring word){
 		auto itr = _str_to_id.find(word);
 		if(itr == _str_to_id.end()){
 			return ID_UNK;
 		}
 		return itr->second;
 	}
-	int Dictionary::get_vocab_size(){
-		return _id_to_str.size();
+	std::wstring Dictionary::word_id_to_string(int word_id){
+		auto itr = _id_to_str.find(word_id);
+		assert(itr != _id_to_str.end());
+		return itr->second;
+	}
+	// <unk>に置き換える
+	void Dictionary::remove_ids(std::unordered_set<int> word_ids){
+		for(int word_id: word_ids){
+			std::wstring word = word_id_to_string(word_id);
+			_id_to_str[word_id] = L"<unk>";
+			_str_to_id[word] = ID_UNK;
+		}
+	}
+	int Dictionary::get_vocabrary_size(){
+		return _str_to_id.size();
+	}
+	bool Dictionary::is_string_unk(std::wstring word){
+		int word_id = string_to_word_id(word);
+		return word_id == ID_UNK;
+	}
+	bool Dictionary::is_id_unk(int word_id){
+		return (word_id == ID_UNK);
 	}
 	bool Dictionary::load(std::string filename){
-		std::ifstream ifs(filename);
+		std::string dictionary_filename = filename;
+		std::ifstream ifs(dictionary_filename);
 		if(ifs.good()){
 			boost::archive::binary_iarchive iarchive(ifs);
 			iarchive >> _id_to_str;

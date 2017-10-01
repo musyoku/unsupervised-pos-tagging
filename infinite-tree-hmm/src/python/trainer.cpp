@@ -1,65 +1,59 @@
 #include <cassert>
+#include <iostream>
+#include "../ithmm/sampler.h"
+#include "../ithmm/utils.h"
 #include "trainer.h"
 
 namespace ithmm {
 	Trainer::Trainer(Dataset* dataset, Model* model){
-		_dataset = dataset;
 		_model = model;
 		_dict = dataset->_dict;
-		_forward_table = NULL;
-		_decode_table = NULL;
-		_model->_ithmm->set_word_g0(1.0 / _dataset->_word_count.size());
-		_model->_ithmm->initialize_with_training_dataset(_dataset->_word_sequences_train);
-	}
-	void Trainer::remove_all_data(){
-		_model->_ithmm->remove_all_data(_dataset->_word_sequences_train);
-		_model->_ithmm->delete_invalid_children();
+		_dataset = dataset;
 	}
 	void Trainer::perform_gibbs_sampling(){
-		if(_rand_indices.size() != _dataset->_word_sequences_train.size()){
+		std::vector<std::vector<Word*>> &dataset = _dataset->_word_sequences_train;
+		if(_rand_indices.size() != dataset.size()){
 			_rand_indices.clear();
-			for(int data_index = 0;data_index < _dataset->_word_sequences_train.size();data_index++){
+			for(int data_index = 0;data_index < dataset.size();data_index++){
 				_rand_indices.push_back(data_index);
 			}
 		}
-		_model->_ithmm->_num_mh_acceptance = 0;
-		_model->_ithmm->_num_mh_rejection = 0;
 		shuffle(_rand_indices.begin(), _rand_indices.end(), sampler::mt);	// データをシャッフル
-		for(int n = 0;n < _dataset->_word_sequences_train.size();n++){
+		for(int n = 0;n < dataset.size();n++){
 			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
 				return;
 			}
 			int data_index = _rand_indices[n];
-			std::vector<Word*> &sentence = _dataset->_word_sequences_train[data_index];
-			_model->_ithmm->perform_gibbs_sampling_with_sentence(sentence);
+			std::vector<Word*> &word_vec = dataset[data_index];
+			_model->_hmm->perform_gibbs_sampling_with_sequence(word_vec);
+			
 		}
-		_model->_ithmm->delete_invalid_children();
 	}
-	void Trainer::_before_viterbi_decode(std::vector<Node*> &nodes){
-		_before_compute_log_p_dataset(nodes);
+	struct value_comparator {
+		bool operator()(const std::pair<int, int> &a, const std::pair<int, int> &b) {
+			return a.second > b.second;
+		}   
+	};
+	void Trainer::_before_viterbi_decode(){
 		assert(_dataset->_max_num_words_in_line > 0);
 		_decode_table = new double*[_dataset->_max_num_words_in_line];
 		for(int i = 0;i < _dataset->_max_num_words_in_line;i++){
-			_decode_table[i] = new double[nodes.size()];
+			_decode_table[i] = new double[_model->_hmm->get_num_tags() + 1];
 		}
 	}
 	void Trainer::_after_viterbi_decode(){
-		_after_compute_log_p_dataset();
 		assert(_dataset->_max_num_words_in_line > 0);
 		for(int i = 0;i < _dataset->_max_num_words_in_line;i++){
 			delete[] _decode_table[i];
 		}
 		delete[] _decode_table;
 	}
-	void Trainer::_before_compute_log_p_dataset(std::vector<Node*> &nodes){
-		// あらかじめ全HTSSBの棒の長さを計算しておく
-		_model->enumerate_all_states(nodes);
-		_model->precompute_all_stick_lengths(nodes);
+	void Trainer::_before_compute_log_p_dataset(){
 		// 計算用のテーブルを確保
 		assert(_dataset->_max_num_words_in_line > 0);
 		_forward_table = new double*[_dataset->_max_num_words_in_line];
 		for(int i = 0;i < _dataset->_max_num_words_in_line;i++){
-			_forward_table[i] = new double[nodes.size()];
+			_forward_table[i] = new double[_model->_hmm->get_num_tags() + 1];
 		}
 	}
 	void Trainer::_after_compute_log_p_dataset(){
@@ -78,8 +72,7 @@ namespace ithmm {
 		return _compute_log_p_dataset(_dataset->_word_sequences_dev);
 	}
 	double Trainer::_compute_log_p_dataset(std::vector<std::vector<Word*>> &dataset){
-		std::vector<Node*> nodes;
-		_before_compute_log_p_dataset(nodes);
+		_before_compute_log_p_dataset();
 		// データごとの対数尤度を足していく
 		double log_p_dataset = 0;
 		for(int data_index = 0;data_index < dataset.size();data_index++){
@@ -87,7 +80,7 @@ namespace ithmm {
 				return 0;
 			}
 			std::vector<Word*> &sentence = dataset[data_index];
-			double p_x = _model->compute_p_sentence(sentence, nodes, _forward_table);
+			double p_x = _model->compute_p_sentence(sentence, _forward_table);
 			if(p_x > 0){
 				log_p_dataset += log(p_x);
 			}
@@ -95,58 +88,7 @@ namespace ithmm {
 		_after_compute_log_p_dataset();
 		return log_p_dataset;
 	}
-	double Trainer::compute_log2_p_dataset_train(){
-		return _compute_log2_p_dataset(_dataset->_word_sequences_train);
-	}
-	double Trainer::compute_log2_p_dataset_dev(){
-		return _compute_log2_p_dataset(_dataset->_word_sequences_dev);
-	}
-	double Trainer::_compute_log2_p_dataset(std::vector<std::vector<Word*>> &dataset){
-		std::vector<Node*> nodes;
-		_before_compute_log_p_dataset(nodes);
-		// データごとの対数尤度を足していく
-		double log_p_dataset = 0;
-		for(int data_index = 0;data_index < dataset.size();data_index++){
-			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
-				return 0;
-			}
-			std::vector<Word*> &sentence = dataset[data_index];
-			double p_x = _model->compute_p_sentence(sentence, nodes, _forward_table);
-			if(p_x > 0){
-				log_p_dataset += log2(p_x);
-			}
-		}
-		_after_compute_log_p_dataset();
-		return log_p_dataset;
-	}
-	double Trainer::compute_perplexity_train(){
-		return _compute_perplexity(_dataset->_word_sequences_train);
-	}
-	double Trainer::compute_perplexity_dev(){
-		return _compute_perplexity(_dataset->_word_sequences_dev);
-	}
-	double Trainer::_compute_perplexity(std::vector<std::vector<Word*>> &dataset){
-		std::vector<Node*> nodes;
-		_before_compute_log_p_dataset(nodes);
-		// データごとの対数尤度を足していく
-		double log_p_dataset = 0;
-		for(int data_index = 0;data_index < dataset.size();data_index++){
-			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
-				return 0;
-			}
-			std::vector<Word*> &sentence = dataset[data_index];
-			double p_x = _model->compute_p_sentence(sentence, nodes, _forward_table);
-			if(p_x > 0){
-				log_p_dataset += log2(p_x) / sentence.size();
-			}
-		}
-		_after_compute_log_p_dataset();
-		return pow(2.0, -log_p_dataset / (double)dataset.size());
-	}
-	void Trainer::update_hyperparameters(){
-		_model->update_hyperparameters();
-	}
-	void Trainer::show_assigned_words_for_each_tag(Dictionary* dict, int number_to_show_for_each_tag, bool show_probability){
-		_model->show_assigned_words_for_each_tag(dict, number_to_show_for_each_tag, show_probability);
+	void Trainer::set_model(Model* model){
+		_model = model;
 	}
 }

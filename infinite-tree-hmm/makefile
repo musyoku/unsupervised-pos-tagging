@@ -13,7 +13,6 @@ check_includes:	## Python.hの場所を確認
 check_ldflags:	## libpython3の場所を確認
 	python3-config --ldflags
 
-.PHONY: test
 module_tests: ## 各モジュールのテスト.
 	$(CC) test/module_tests/ithmm.cpp src/ithmm/*.cpp -o test/module_tests/ithmm $(INCLUDE) $(LDFLAGS) -O0 -g
 	$(CC) test/module_tests/node.cpp src/ithmm/*.cpp -o test/module_tests/node $(INCLUDE) $(LDFLAGS) -O0 -g
@@ -23,6 +22,9 @@ module_tests: ## 各モジュールのテスト.
 	./test/module_tests/table
 	./test/module_tests/node
 	./test/module_tests/ithmm
+
+running_tests:	## 学習テスト
+	$(CC) test/running_tests/train.cpp src/ithmm/*.cpp src/python/*.cpp -o test/running_tests/train $(INCLUDE) $(LDFLAGS) -O0 -g
 
 .PHONY: help
 help:
