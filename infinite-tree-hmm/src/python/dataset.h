@@ -16,6 +16,7 @@ namespace ithmm {
 		Dictionary* _dict;
 		std::vector<std::vector<Word*>> _word_sequences_train;
 		std::vector<std::vector<Word*>> _word_sequences_dev;
+		std::unordered_map<int, int> _word_count;
 		int _max_num_words_in_line;
 		int _min_num_words_in_line;
 		Dataset(Corpus* corpus, double train_split, int unknown_count);

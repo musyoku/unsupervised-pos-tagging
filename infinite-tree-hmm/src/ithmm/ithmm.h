@@ -30,12 +30,12 @@ namespace ithmm {
 	public:
 		TSSB* _structure_tssb;	// 木構造を表すためだけのTSSB。HTSSBは全てこのノードを基準に成形する
 		TSSB* _bos_tssb;		// <bos>からの遷移を表すTSSB
-		double _alpha;
-		double _gamma;
+		double _alpha;			// TSSBの縦方向のSBPのベータ分布のパラメータ
+		double _gamma;			// TSSBの横方向のSBPのベータ分布のパラメータ
 		double _lambda_alpha;	// 縦のTSSBの減衰率. 論文のlambdaに該当
-		double _lambda_gamma;	// 横のTSSBの減衰率
-		double _strength_h;		// HTSSBの横方向のSBPにおいて親の情報をどの程度受け継ぐかをコントロール
-		double _strength_v;		// HTSSBの縦方向のSBPにおいて親の情報をどの程度受け継ぐかをコントロール
+		double _lambda_gamma;	// 横のTSSBの減衰率. 論文にはない
+		double _conc_v;			// HTSSBの縦方向のSBPの集中度
+		double _conc_h;			// HTSSBの横方向のSBPの集中度
 		double _tau0;
 		double _tau1;
 		double _word_g0;

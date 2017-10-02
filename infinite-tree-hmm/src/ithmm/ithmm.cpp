@@ -43,8 +43,8 @@ namespace ithmm {
 		_gamma = sampler::uniform(iTHMM_GAMMA_MIN, iTHMM_GAMMA_MAX);
 		_lambda_alpha = sampler::uniform(iTHMM_LAMBDA_ALPHA_MIN, iTHMM_LAMBDA_ALPHA_MAX);
 		_lambda_gamma = sampler::uniform(iTHMM_LAMBDA_GAMMA_MAX, iTHMM_LAMBDA_GAMMA_MAX);
-		_strength_h = sampler::uniform(ITHMM_SBP_CONCENTRATION_HORIZONTAL_STRENGTH_MIN, ITHMM_SBP_CONCENTRATION_HORIZONTAL_STRENGTH_MAX);
-		_strength_v = sampler::uniform(ITHMM_SBP_CONCENTRATION_VERTICAL_STRENGTH_MIN, ITHMM_SBP_CONCENTRATION_VERTICAL_STRENGTH_MAX);
+		_conc_h = sampler::uniform(ITHMM_SBP_CONCENTRATION_HORIZONTAL_STRENGTH_MIN, ITHMM_SBP_CONCENTRATION_HORIZONTAL_STRENGTH_MAX);
+		_conc_v = sampler::uniform(ITHMM_SBP_CONCENTRATION_VERTICAL_STRENGTH_MIN, ITHMM_SBP_CONCENTRATION_VERTICAL_STRENGTH_MAX);
 		_tau0 = iTHMM_TAU_0;
 		_tau1 = iTHMM_TAU_1;
 		_current_max_depth = 0;
@@ -1038,8 +1038,8 @@ namespace ithmm {
 		assert(target_in_tssb != NULL);
 		assert(is_node_in_htssb(target_in_tssb) == false);
 		bool new_table_generated = false;	// テーブルが生成されても無視
-		target_in_tssb->add_customer_to_vertical_crp(_strength_v, 0, new_table_generated);		// g0が存在しない
-		target_in_tssb->add_customer_to_horizontal_crp(_strength_h, 0, new_table_generated);
+		target_in_tssb->add_customer_to_vertical_crp(_conc_v, 0, new_table_generated);		// g0が存在しない
+		target_in_tssb->add_customer_to_horizontal_crp(_conc_h, 0, new_table_generated);
 		// 総客数のインクリメント
 		// 縦と横の2回
 		if(is_node_in_structure_tssb(target_in_tssb)){
@@ -1074,7 +1074,7 @@ namespace ithmm {
 			parent_ratio_v = compute_expectation_of_vertical_htssb_sbr_ratio(iterator_in_parent_htssb);
 		}
 		bool new_table_generated = false;
-		iterator->add_customer_to_vertical_crp(_strength_v, parent_ratio_v, new_table_generated);
+		iterator->add_customer_to_vertical_crp(_conc_v, parent_ratio_v, new_table_generated);
 		// 総客数のインクリメント
 		Node* owner_in_structure = iterator->get_htssb_owner_node_in_structure();
 		assert(owner_in_structure != NULL);
@@ -1100,7 +1100,7 @@ namespace ithmm {
 			ratio_h = compute_expectation_of_horizontal_htssb_sbr_ratio(iterator_in_parent_htssb);	// g0は親の停止確率なので注意
 		}
 		bool new_table_generated = false;
-		iterator->add_customer_to_horizontal_crp(_strength_h, ratio_h, new_table_generated);
+		iterator->add_customer_to_horizontal_crp(_conc_h, ratio_h, new_table_generated);
 		// 総客数のインクリメント
 		Node* owner_in_structure = iterator->get_htssb_owner_node_in_structure();
 		assert(owner_in_structure != NULL);
@@ -1333,10 +1333,10 @@ namespace ithmm {
 					// cout << "parent_stop_probability = " << parent_stop_probability << endl;
 					// cout << "sum_parent_stop_probability = " << sum_parent_stop_probability << endl;
 					// ここでのalphaは集中度であることに注意
-					double denominator = _strength_v * (1.0 - sum_parent_stop_probability) + stop_count + pass_count;
+					double denominator = _conc_v * (1.0 - sum_parent_stop_probability) + stop_count + pass_count;
 					double ratio_v = 1;
 					if(denominator > 0){
-						ratio_v = (_strength_v * parent_stop_probability + stop_count) / denominator;
+						ratio_v = (_conc_v * parent_stop_probability + stop_count) / denominator;
 					}
 					assert(ratio_v > 0);
 					// cout << "ratio_v = " << ratio_v << endl;
@@ -1424,10 +1424,10 @@ namespace ithmm {
 					// cout << "parent_stop_probability = " << parent_stop_probability << endl;
 					// cout << "sum_parent_stop_probability = " << sum_parent_stop_probability << endl;
 					// ルートノードではgammaを使うがそれ以外は集中度を使う
-					double denominator = _strength_h * (1.0 - sum_parent_stop_probability) + stop_count + pass_count;
+					double denominator = _conc_h * (1.0 - sum_parent_stop_probability) + stop_count + pass_count;
 					double ratio_h = 1;
 					if(denominator > 0){
-						ratio_h = (_strength_h * parent_stop_probability + stop_count) / denominator;
+						ratio_h = (_conc_h * parent_stop_probability + stop_count) / denominator;
 					}
 					assert(ratio_h > 0);
 					// assert(ratio_h < 1);

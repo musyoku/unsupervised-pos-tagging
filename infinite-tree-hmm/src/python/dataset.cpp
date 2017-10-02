@@ -50,7 +50,7 @@ namespace ithmm {
 		// <s>を2つセット
 		for(int i = 0;i < 2;i++){
 			Word* bos = new Word();
-			bos->_state = 0;
+			bos->_state = NULL;
 			words.push_back(bos);
 		}
 		// 単語列
@@ -64,14 +64,15 @@ namespace ithmm {
 				word->_id = ID_UNK;
 			}else{
 				word->_id = _dict->add_word_string(word_str);
+				_word_count[word->_id] += 1;
 			}
-			word->_state = 1;
+			word->_state = NULL;
 			words.push_back(word);
 		}
 		// </s>を2つセット
 		for(int i = 0;i < 2;i++){
 			Word* eos = new Word();
-			eos->_state = 0;
+			eos->_state = NULL;
 			words.push_back(eos);
 		}
 		// 追加
