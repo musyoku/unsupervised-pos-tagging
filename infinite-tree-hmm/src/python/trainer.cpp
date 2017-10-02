@@ -14,7 +14,7 @@ namespace ithmm {
 	}
 	void Trainer::remove_all_data(){
 		_model->_ithmm->remove_all_data(_dataset->_word_sequences_train);
-		_model->_ithmm->delete_invalid_children();
+		_model->_ithmm->delete_unnecessary_children();
 	}
 	void Trainer::perform_gibbs_sampling(){
 		if(_rand_indices.size() != _dataset->_word_sequences_train.size()){
@@ -34,7 +34,7 @@ namespace ithmm {
 			std::vector<Word*> &sentence = _dataset->_word_sequences_train[data_index];
 			_model->_ithmm->perform_gibbs_sampling_with_sentence(sentence);
 		}
-		_model->_ithmm->delete_invalid_children();
+		_model->_ithmm->delete_unnecessary_children();
 	}
 	void Trainer::_before_viterbi_decode(std::vector<Node*> &nodes){
 		_before_compute_log_p_dataset(nodes);

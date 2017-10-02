@@ -500,8 +500,5 @@ namespace ithmm {
 			% (_stick_length - _children_stick_length) % _children_stick_length % _probability % _sum_probability % owner_node_id 
 			% _depth_v % _depth_h % indices_str.c_str() % hpylm_str.c_str() % _num_transitions_to_eos % _num_transitions_to_other).str();
 	}
-
-	// 特殊なTSSBの識別でもこのIDを使うのでノードのIDの開始を少し大きな値にする
-	// ithmm.hのTSSB_STRUCTURE_IDとTSSB_BOS_IDよりも大きな値にする
-	int Node::_auto_increment = 10;
+	int Node::_auto_increment = 0;
 }

@@ -6,6 +6,7 @@ namespace ithmm {
 	Model::Model(Dataset* dataset){
 		_set_locale();
 		_ithmm = new iTHMM();
+		_ithmm->set_word_g0(1.0 / dataset->_word_count.size());
 		_ithmm->initialize_with_training_dataset(dataset->_word_sequences_train);
 	}
 	Model::Model(std::string filename){

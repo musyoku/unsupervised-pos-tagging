@@ -19,8 +19,14 @@ int main(){
 	dictionary->save("ithmm.dict");
 	Trainer* trainer = new Trainer(dataset, model);
 
-	for(int i = 0;i < 100;i++){
+	model->show_assigned_words_for_each_tag(dictionary, 10);
+
+	for(int i = 0;i < 1000;i++){
 		trainer->perform_gibbs_sampling();
+		cout << "\r" << i << flush;
+		if(i % 10 == 0){
+			model->show_assigned_words_for_each_tag(dictionary, 10);
+		}
 	}
 	return 0;
 }

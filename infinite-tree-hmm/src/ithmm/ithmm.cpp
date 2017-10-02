@@ -1500,19 +1500,19 @@ namespace ithmm {
 		}
 	}
 	// 不要なノードの削除
-	void iTHMM::delete_invalid_children(){
-		_delete_invalid_children_in_structure_tssb(_structure_tssb);
+	void iTHMM::delete_unnecessary_children(){
+		_delete_unnecessary_children_in_structure_tssb(_structure_tssb);
 	}
-	void iTHMM::_delete_invalid_children_in_structure_tssb(TSSB* tssb){
+	void iTHMM::_delete_unnecessary_children_in_structure_tssb(TSSB* tssb){
 		assert(is_tssb_structure(tssb));
-		_delete_invalid_children_of_node_in_structure(tssb->_root);
+		_delete_unnecessary_children_of_node_in_structure(tssb->_root);
 	}
-	void iTHMM::_delete_invalid_children_of_node_in_structure(Node* parent){
+	void iTHMM::_delete_unnecessary_children_of_node_in_structure(Node* parent){
 		assert(is_node_in_structure_tssb(parent));
 		std::vector<Node*> &children = parent->_children;
 		for(int i = children.size() - 1;i >= 0;i--){
 			Node* child = children[i];
-			_delete_invalid_children_of_node_in_structure(child);
+			_delete_unnecessary_children_of_node_in_structure(child);
 			bool success = delete_node_in_structure_if_needed(child);
 			if(success == false){	// 失敗したらそれ以上は消さない
 				// break;
@@ -1563,9 +1563,9 @@ namespace ithmm {
 		assert(is_node_in_bos_tssb(parent_in_bos));
 		delete_node = parent_in_bos->delete_child_node(delete_id);
 		if(delete_node != NULL){
-			TSSB* delete_tssb = delete_node->get_transition_tssb();
+			// TSSB* delete_tssb = delete_node->get_transition_tssb();
 			delete delete_node;
-			delete delete_tssb;
+			// delete delete_tssb;
 		}
 		return true;
 	}
@@ -1580,9 +1580,9 @@ namespace ithmm {
 		assert(is_node_in_htssb(parent_in_htssb));
 		Node* delete_node = parent_in_htssb->delete_child_node(delete_id);
 		if(delete_node != NULL){
-			TSSB* delete_tssb = delete_node->get_transition_tssb();
+			// TSSB* delete_tssb = delete_node->get_transition_tssb();
 			delete delete_node;
-			delete delete_tssb;
+			// delete delete_tssb;
 		}
 		for(const auto &child: iterator_in_structure->_children){
 			_delete_node_in_all_htssb(delete_id, child, target_parent_in_structure);

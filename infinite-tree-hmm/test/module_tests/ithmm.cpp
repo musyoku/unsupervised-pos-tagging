@@ -367,7 +367,7 @@ void test_htssb_concentration_vertical(){
 	Node* grandson_in_root_htssb = root_in_structure->get_transition_tssb()->find_node_by_tracing_horizontal_indices(grandson_in_htssb);
 	assert(grandson_in_root_htssb != NULL);
 
-	ithmm->_strength_v = 1;
+	ithmm->_conc_v = 1;
 	for(int i = 0;i < 100;i++){
 		ithmm->_add_customer_to_htssb_vertical_crp(grandson_in_htssb);
 	}
@@ -394,7 +394,7 @@ void test_htssb_concentration_vertical(){
 	assert(grandson_in_child_htssb->_table_v->get_num_tables() == 0);
 	assert(grandson_in_root_htssb->_table_v->get_num_tables() == 0);
 
-	ithmm->_strength_v = 10000;
+	ithmm->_conc_v = 10000;
 	for(int i = 0;i < 100;i++){
 		ithmm->_add_customer_to_htssb_vertical_crp(grandson_in_htssb);
 	}
@@ -430,7 +430,7 @@ void test_htssb_concentration_horizontal(){
 	Node* grandson_in_root_htssb = root_in_structure->get_transition_tssb()->find_node_by_tracing_horizontal_indices(grandson_in_htssb);
 	assert(grandson_in_root_htssb != NULL);
 
-	ithmm->_strength_h = 1;
+	ithmm->_conc_h = 1;
 	for(int i = 0;i < 100;i++){
 		ithmm->_add_customer_to_htssb_horizontal_crp(grandson_in_htssb);
 	}
@@ -457,7 +457,7 @@ void test_htssb_concentration_horizontal(){
 	assert(grandson_in_child_htssb->_table_h->get_num_tables() == 0);
 	assert(grandson_in_root_htssb->_table_h->get_num_tables() == 0);
 
-	ithmm->_strength_h = 10000;
+	ithmm->_conc_h = 10000;
 	for(int i = 0;i < 100;i++){
 		ithmm->_add_customer_to_htssb_horizontal_crp(grandson_in_htssb);
 	}
@@ -515,10 +515,10 @@ void test_compute_expectation_of_vertical_htssb_sbr_ratio(){
 
 	for(int i = 0;i < 10;i++){
 		ithmm->_lambda_alpha = 1;
-		ithmm->_strength_v = sampler::uniform_int(1, 1000) / 10.0;
+		ithmm->_conc_v = sampler::uniform_int(1, 1000) / 10.0;
 
 		double alpha = ithmm->_alpha;
-		double strength_v = ithmm->_strength_v;
+		double strength_v = ithmm->_conc_v;
 
 		grandson_in_htssb->_pass_count_v = 20;
 		grandson_in_htssb->_stop_count_v = 40;
@@ -670,7 +670,7 @@ void test_compute_expectation_of_horizontal_htssb_sbr_ratio(){
 
 	for(int i = 0;i < 10;i++){
 		ithmm->_lambda_gamma = 1;
-		ithmm->_strength_h = sampler::uniform_int(1, 1000) / 10.0;
+		ithmm->_conc_h = sampler::uniform_int(1, 1000) / 10.0;
 
 		for(Node* child: grandson_in_htssb->_parent->_children){
 			child->_pass_count_h = sampler::uniform_int(10, 1000);
@@ -686,7 +686,7 @@ void test_compute_expectation_of_horizontal_htssb_sbr_ratio(){
 		}
 
 		double gamma = ithmm->_gamma;
-		double strength_h = ithmm->_strength_h;
+		double strength_h = ithmm->_conc_h;
 
 		// root
 		parent_in_htssb = grandson_in_root_htssb->_parent;
@@ -838,13 +838,13 @@ void test_compute_concentration_vertical_htssb_sbr_ratio(){
 	grandson_in_root_htssb->_parent->_parent->_pass_count_v = 100;
 	grandson_in_root_htssb->_parent->_parent->_stop_count_v = 1;
 
-	ithmm->_strength_v = 1;
+	ithmm->_conc_v = 1;
 	double ratio_1 = ithmm->compute_expectation_of_vertical_htssb_sbr_ratio(grandson_in_htssb);
-	ithmm->_strength_v = 10;
+	ithmm->_conc_v = 10;
 	double ratio_2 = ithmm->compute_expectation_of_vertical_htssb_sbr_ratio(grandson_in_htssb);
-	ithmm->_strength_v = 100;
+	ithmm->_conc_v = 100;
 	double ratio_3 = ithmm->compute_expectation_of_vertical_htssb_sbr_ratio(grandson_in_htssb);
-	ithmm->_strength_v = 1000;
+	ithmm->_conc_v = 1000;
 	double ratio_4 = ithmm->compute_expectation_of_vertical_htssb_sbr_ratio(grandson_in_htssb);
 	assert(ratio_4 > ratio_3 && ratio_3 > ratio_2 && ratio_2 > ratio_1);
 
@@ -884,13 +884,13 @@ void test_compute_concentration_horizontal_htssb_sbr_ratio(){
 		child->_stop_count_h = 100;
 	}
 
-	ithmm->_strength_h = 1;
+	ithmm->_conc_h = 1;
 	double ratio_1 = ithmm->compute_expectation_of_horizontal_htssb_sbr_ratio(grandson_in_htssb);
-	ithmm->_strength_h = 10;
+	ithmm->_conc_h = 10;
 	double ratio_2 = ithmm->compute_expectation_of_horizontal_htssb_sbr_ratio(grandson_in_htssb);
-	ithmm->_strength_h = 100;
+	ithmm->_conc_h = 100;
 	double ratio_3 = ithmm->compute_expectation_of_horizontal_htssb_sbr_ratio(grandson_in_htssb);
-	ithmm->_strength_h = 1000;
+	ithmm->_conc_h = 1000;
 	double ratio_4 = ithmm->compute_expectation_of_horizontal_htssb_sbr_ratio(grandson_in_htssb);
 	assert(ratio_4 > ratio_3 && ratio_3 > ratio_2 && ratio_2 > ratio_1);
 
@@ -916,8 +916,8 @@ void test_sample_node_in_tssb_by_iterating_node(){
 	assert(grandson_in_root_htssb != NULL);
 	ithmm->_lambda_alpha = 0.1;
 	ithmm->_lambda_gamma = 1;
-	ithmm->_strength_h = 10;
-	ithmm->_strength_v = 10;
+	ithmm->_conc_h = 10;
+	ithmm->_conc_v = 10;
 	bool new_table_generated;
 
 	// vertical
@@ -948,29 +948,29 @@ void test_sample_node_in_tssb_by_iterating_node(){
 	}
 
 	double avg_depth_1 = 0;
-	ithmm->_strength_h = 1;
-	ithmm->_strength_v = 1;
+	ithmm->_conc_h = 1;
+	ithmm->_conc_v = 1;
 	for(int i = 0;i < 100;i++){
 		Node* node = ithmm->sample_node_in_htssb(grandson_in_structure->get_transition_tssb(), false);
 		avg_depth_1 += node->_depth_v / 100.0;
 	}
 	double avg_depth_2 = 0;
-	ithmm->_strength_h = 10;
-	ithmm->_strength_v = 10;
+	ithmm->_conc_h = 10;
+	ithmm->_conc_v = 10;
 	for(int i = 0;i < 100;i++){
 		Node* node = ithmm->sample_node_in_htssb(grandson_in_structure->get_transition_tssb(), false);
 		avg_depth_2 += node->_depth_v / 100.0;
 	}
 	double avg_depth_3 = 0;
-	ithmm->_strength_h = 100;
-	ithmm->_strength_v = 100;
+	ithmm->_conc_h = 100;
+	ithmm->_conc_v = 100;
 	for(int i = 0;i < 100;i++){
 		Node* node = ithmm->sample_node_in_htssb(grandson_in_structure->get_transition_tssb(), false);
 		avg_depth_3 += node->_depth_v / 100.0;
 	}
 	double avg_depth_4 = 0;
-	ithmm->_strength_h = 1000;
-	ithmm->_strength_v = 1000;
+	ithmm->_conc_h = 1000;
+	ithmm->_conc_v = 1000;
 	for(int i = 0;i < 100;i++){
 		Node* node = ithmm->sample_node_in_htssb(grandson_in_structure->get_transition_tssb(), false);
 		avg_depth_4 += node->_depth_v / 100.0;
@@ -997,8 +997,8 @@ void test_update_stick_length_of_tssb(){
 	assert(grandson_in_root_htssb != NULL);
 	ithmm->_lambda_alpha = 0.1;
 	ithmm->_lambda_gamma = 1;
-	ithmm->_strength_h = 1;
-	ithmm->_strength_v = 1;
+	ithmm->_conc_h = 1;
+	ithmm->_conc_v = 1;
 	bool new_table_generated;
 
 	// vertical
@@ -1032,8 +1032,8 @@ void test_update_stick_length_of_tssb(){
 	TSSB* htssb = grandson_in_structure->get_transition_tssb();
 	double* sum_child_length = new double[4];
 	for(int i = 0;i < 4;i++){
-		ithmm->_strength_h *= 10;
-		ithmm->_strength_v *= 10;
+		ithmm->_conc_h *= 10;
+		ithmm->_conc_v *= 10;
 		ithmm->update_stick_length_of_tssb(htssb, total_stick_length);
 		assert(std::abs(htssb->_root->_probability + htssb->_root->_children_stick_length - total_stick_length) < 1e-8);
 		double root_length = htssb->_root->_probability;
@@ -1073,8 +1073,8 @@ void test_retrospective_sampling(){
 	assert(grandson_in_root_htssb != NULL);
 	ithmm->_lambda_alpha = 0.1;
 	ithmm->_lambda_gamma = 1;
-	ithmm->_strength_h = 1;
-	ithmm->_strength_v = 1;
+	ithmm->_conc_h = 1;
+	ithmm->_conc_v = 1;
 	bool new_table_generated;
 
 	// vertical
@@ -1261,6 +1261,22 @@ void test_compute_p_w_given_s(){
 	assert(p_w_1 > p_w_2 && p_w_2 > p_w_3 && p_w_3 > p_w_4);
 }
 
+void test_delete_unnecessary_children(){
+	iTHMM* ithmm = new iTHMM();
+	ithmm->set_word_g0(0.001);
+	Node* root_in_structure = ithmm->_root_in_structure;
+	Node* root_in_htssb = ithmm->_root_in_htssb;
+	Node* root_in_bos = ithmm->_root_in_bos;
+	ithmm->generate_and_add_new_child_to(root_in_structure);
+	ithmm->generate_and_add_new_child_to(root_in_structure);
+	Node* child_in_structure = ithmm->generate_and_add_new_child_to(root_in_structure);
+	ithmm->generate_and_add_new_child_to(child_in_structure);
+	ithmm->generate_and_add_new_child_to(child_in_structure);
+	Node* grandson_in_structure = ithmm->generate_and_add_new_child_to(child_in_structure);
+	ithmm->delete_unnecessary_children();
+	cout << root_in_structure->_children.size() << endl;
+}
+
 int main(){
 	test_copy_children_in_structure_to_transition_tssb();
 	cout << "OK" << endl;
@@ -1303,6 +1319,8 @@ int main(){
 	test_add_and_remove_parameters();
 	cout << "OK" << endl;
 	test_compute_p_w_given_s();
+	cout << "OK" << endl;
+	test_delete_unnecessary_children();
 	cout << "OK" << endl;
 	return 0;
 }

@@ -110,9 +110,9 @@ namespace ithmm {
 		double compute_expectation_of_vertical_htssb_sbr_ratio(Node* target_in_htssb);
 		double compute_expectation_of_horizontal_htssb_sbr_ratio(Node* target_in_htssb);
 		double compute_p_w_given_s(id token_id, Node* node_in_structure);
-		void delete_invalid_children();
-		void _delete_invalid_children_in_structure_tssb(TSSB* tssb);
-		void _delete_invalid_children_of_node_in_structure(Node* parent);
+		void delete_unnecessary_children();
+		void _delete_unnecessary_children_in_structure_tssb(TSSB* tssb);
+		void _delete_unnecessary_children_of_node_in_structure(Node* parent);
 		bool delete_node_in_structure_if_needed(Node* target_in_structure);
 		void _delete_node_in_all_htssb(int delete_id, Node* iterator_in_structure, Node* target_parent_in_structure);
 		void sum_auxiliary_variables_recursively_for_hpylm(Node* parent, std::vector<double> &sum_log_x_u_m, std::vector<double> &sum_y_ui_m, std::vector<double> &sum_1_y_ui_m, std::vector<double> &sum_1_z_uwkj_m);
