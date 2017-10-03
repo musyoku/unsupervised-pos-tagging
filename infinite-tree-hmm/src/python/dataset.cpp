@@ -47,12 +47,6 @@ namespace ithmm {
 	void Dataset::_add_words_to_dataset(std::vector<std::wstring> &word_str_vec, std::vector<std::vector<Word*>> &dataset, Corpus* corpus, int unknown_count){
 		assert(word_str_vec.size() > 0);
 		std::vector<Word*> words;
-		// <s>を2つセット
-		for(int i = 0;i < 2;i++){
-			Word* bos = new Word();
-			bos->_state = NULL;
-			words.push_back(bos);
-		}
 		// 単語列
 		for(auto word_str: word_str_vec){
 			if(word_str.size() == 0){
@@ -68,12 +62,6 @@ namespace ithmm {
 			}
 			word->_state = NULL;
 			words.push_back(word);
-		}
-		// </s>を2つセット
-		for(int i = 0;i < 2;i++){
-			Word* eos = new Word();
-			eos->_state = NULL;
-			words.push_back(eos);
 		}
 		// 追加
 		dataset.push_back(words);

@@ -454,7 +454,7 @@ namespace ithmm {
 			rest_stick_length *= 1.0 - ratio_h;
 		}
 	}
-	void iTHMM::perform_gibbs_sampling_with_sentence(std::vector<Word*> &sentence){
+	void iTHMM::gibbs(std::vector<Word*> &sentence){
 		assert(sentence.size() > 1);
 		Node* prev_state = NULL;
 		Node* next_state = sentence.size() == 1 ? NULL : sentence[1]->_state;
@@ -835,10 +835,9 @@ namespace ithmm {
 		assert(0 < p_w_given_s && p_w_given_s <= 1);
 		// 遷移確率
 		// s_tから</s>へ接続する確率
-		assert(state_in_structure->get_transition_tssb() != NULL);
-		TSSB* next_state_tssb = state_in_structure->get_transition_tssb();
-		assert(next_state_tssb != NULL);
-		Node* next_state_in_htssb = next_state_tssb->find_node_by_tracing_horizontal_indices(next_state_in_structure);
+		TSSB* transition_tssb = state_in_structure->get_transition_tssb();
+		assert(transition_tssb != NULL);
+		Node* next_state_in_htssb = transition_tssb->find_node_by_tracing_horizontal_indices(next_state_in_structure);
 		assert(next_state_in_htssb != NULL);
 		assert(next_state_in_htssb->_identifier == next_state_in_structure->_identifier);
 		// </s>以外に接続する確率を棒全体の長さとする
@@ -848,8 +847,6 @@ namespace ithmm {
 			add_temporal_parameters(prev_state_in_structure, state_in_structure);
 		// }
 		double p_eos_given_s = state_in_structure->compute_transition_probability_to_eos(_tau0, _tau1);
-		TSSB* transition_tssb = state_in_structure->get_transition_tssb();
-		assert(transition_tssb != NULL);
 		double p_next_given_s = (1.0 - p_eos_given_s) * compute_node_probability_in_tssb(transition_tssb, next_state_in_htssb, 1.0);
 		assert(0 < p_next_given_s && p_next_given_s <= 1);
 
@@ -866,24 +863,24 @@ namespace ithmm {
 
 		while(true){
 			double u = sampler::uniform(st, ed);
-			if( (st <= u && u < ed) == false){	// 見つからなかったら元の状態を返す
+			if( (st <= u && u < ed) == false ){		// 見つからなかったら元の状態を返す
 				return state_in_structure;
 			}
 			// assert(st <= u && u < ed);
 
-			TSSB* prev_state_tssb = prev_state_in_structure->get_transition_tssb();
-			assert(prev_state_tssb != NULL);
-			Node* new_state_in_prev_htssb = retrospective_sampling(u, prev_state_tssb, 1.0);
+			TSSB* prev_state_transition_tssb = prev_state_in_structure->get_transition_tssb();
+			assert(prev_state_transition_tssb != NULL);
+			Node* new_state_in_prev_htssb = retrospective_sampling(u, prev_state_transition_tssb, 1.0);
 			assert(new_state_in_prev_htssb != NULL);
 			Node* new_state_in_structure = new_state_in_prev_htssb->get_myself_in_structure_tssb();
 			assert(new_state_in_structure != NULL);
-			assert(new_state_in_structure->get_transition_tssb() != NULL);
+			assert(is_node_in_structure_tssb(new_state_in_structure));
 
 			// 出力確率
 			double new_p_w_given_s = compute_p_w_given_s(word_id, new_state_in_structure);
 			assert(0 < new_p_w_given_s && new_p_w_given_s <= 1);
 			if(new_state_in_structure->_identifier == state_in_structure->_identifier){
-				assert(new_p_w_given_s == p_w_given_s);	// 一致しないならバグ
+				assert(new_p_w_given_s == p_w_given_s);		// 一致しないならバグ
 			}
 			// 遷移確率
 			//// s_{new}からs_{t+1}へ接続する確率
@@ -893,13 +890,12 @@ namespace ithmm {
 			//// </s>以外に接続する確率を棒全体の長さとし、TSSBで分配
 			double new_p_next_given_s;
 			double new_p_eos_given_s;
-			if(new_state_in_structure->_identifier == state_in_structure->_identifier){
+			if(new_state_in_structure->_identifier == state_in_structure->_identifier){		// 同一ならキャッシュを使う
 				new_p_next_given_s = p_next_given_s;
 				new_p_eos_given_s = p_eos_given_s;
 			}else{
 				add_temporal_parameters(prev_state_in_structure, new_state_in_structure);
 				new_p_eos_given_s = new_state_in_structure->compute_transition_probability_to_eos(_tau0, _tau1);
-				TSSB* new_state_tssb = new_state_in_structure->get_transition_tssb();
 				new_p_next_given_s = (1.0 - new_p_eos_given_s) * compute_node_probability_in_tssb(new_state_tssb, next_state_in_new_state_htssb, 1.0);
 				remove_temporal_parameters(prev_state_in_structure, new_state_in_structure);
 			}
@@ -953,6 +949,26 @@ namespace ithmm {
 			}
 			assert(new_state_in_structure->_identifier != state_in_structure->_identifier);	// 同じになる場合バグっている
 			// 辞書順で前にあるかどうか
+
+
+
+
+
+
+
+
+			compute_node_probability_in_tssb(prev_state_transition_tssb, new_state_in_prev_htssb, 1.0);
+
+
+
+
+
+
+
+
+
+
+
 			if(is_node_to_the_left_of_node(new_state_in_structure, state_in_structure)){
 				assert(new_state_in_prev_htssb->_sum_probability >= u);
 				st = new_state_in_prev_htssb->_sum_probability;
@@ -1282,7 +1298,10 @@ namespace ithmm {
 	}
 	// update_stick_length_of_tssbは全ノードを更新するのに対しこっちは対象ノードのみ正確に計算する
 	double iTHMM::compute_node_probability_in_tssb(TSSB* tssb, Node* node, double total_stick_length){
-		assert(tssb->get_owner_node_id() == node->get_htssb_owner_node_id());
+		if(is_node_in_htssb(node)){
+			assert(is_tssb_htssb(tssb));
+			assert(tssb->get_owner_node_id() == node->get_htssb_owner_node_id());
+		}
 		if(_depth_limit >= 0){
 			assert(node->_depth_v <= _depth_limit);
 		}

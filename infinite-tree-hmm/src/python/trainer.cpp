@@ -16,7 +16,7 @@ namespace ithmm {
 		_model->_ithmm->remove_all_data(_dataset->_word_sequences_train);
 		_model->_ithmm->delete_unnecessary_children();
 	}
-	void Trainer::perform_gibbs_sampling(){
+	void Trainer::gibbs(){
 		if(_rand_indices.size() != _dataset->_word_sequences_train.size()){
 			_rand_indices.clear();
 			for(int data_index = 0;data_index < _dataset->_word_sequences_train.size();data_index++){
@@ -32,7 +32,7 @@ namespace ithmm {
 			}
 			int data_index = _rand_indices[n];
 			std::vector<Word*> &sentence = _dataset->_word_sequences_train[data_index];
-			_model->_ithmm->perform_gibbs_sampling_with_sentence(sentence);
+			_model->_ithmm->gibbs(sentence);
 		}
 		_model->_ithmm->delete_unnecessary_children();
 	}

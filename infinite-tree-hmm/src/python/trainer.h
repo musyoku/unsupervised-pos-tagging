@@ -24,7 +24,7 @@ namespace ithmm {
 	public:
 		Trainer(Dataset* dataset, Model* model);
 		void remove_all_data();
-		void perform_gibbs_sampling();
+		void gibbs();
 		double compute_log_p_dataset_train();
 		double compute_log_p_dataset_dev();
 		double compute_log2_p_dataset_train();

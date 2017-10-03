@@ -91,7 +91,7 @@ namespace ithmm {
 		Node* _retrospective_sampling_by_iterating_node(double uniform, double &sum_probability, Node* iterator);
 		void update_stick_length_of_tssb(TSSB* tssb, double total_stick_length);
 		void _update_stick_length_of_parent_node(double &sum_probability, Node* parent);
-		void perform_gibbs_sampling_with_sentence(std::vector<Word*> &sentence);
+		void gibbs(std::vector<Word*> &sentence);
 		void add_initial_parameters(Node* prev_state_in_structure, Node* state_in_structure, id word_id);
 		void add_temporal_parameters(Node* prev_state_in_structure, Node* state_in_structure);
 		void add_parameters(Node* prev_state_in_structure, Node* state_in_structure, Node* next_state_in_structure, id word_id);

@@ -21,11 +21,11 @@ int main(){
 
 	model->show_assigned_words_for_each_tag(dictionary, 10);
 
-	for(int i = 0;i < 10000;i++){
-		trainer->perform_gibbs_sampling();
+	for(int i = 0;i < 1000000;i++){
+		trainer->gibbs();
 		cout << "\r" << i << flush;
 		if(i % 100 == 0){
-			model->show_assigned_words_for_each_tag(dictionary, 10);
+			model->show_assigned_words_for_each_tag(dictionary, 10, false);
 			cout << trainer->compute_log_p_dataset_train() << endl;
 		}
 	}
