@@ -476,6 +476,9 @@ namespace ithmm {
 			assert(state_in_structure != NULL);
 			assert(state_in_structure->get_transition_tssb() != NULL);
 			assert(is_node_in_structure_tssb(state_in_structure));
+			if(_depth_limit >= 0){
+				assert(state_in_structure->_depth_v <= _depth_limit);
+			}
 			Node* state_in_bos = _bos_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
 			assert(state_in_bos);
 			add_customer_to_tssb_node(state_in_bos);
@@ -488,6 +491,9 @@ namespace ithmm {
 			assert(prev_state_in_structure != NULL);
 			assert(prev_state_in_structure->get_transition_tssb() != NULL);
 			assert(is_node_in_structure_tssb(prev_state_in_structure));
+			if(_depth_limit >= 0){
+				assert(prev_state_in_structure->_depth_v <= _depth_limit);
+			}
 			prev_state_in_structure->increment_transition_count_to_eos();
 			return;
 		}
@@ -497,6 +503,10 @@ namespace ithmm {
 		assert(state_in_structure->get_transition_tssb() != NULL);
 		assert(is_node_in_structure_tssb(prev_state_in_structure));
 		assert(is_node_in_structure_tssb(state_in_structure));
+		if(_depth_limit >= 0){
+			assert(prev_state_in_structure->_depth_v <= _depth_limit);
+			assert(state_in_structure->_depth_v <= _depth_limit);
+		}
 
 		TSSB* prev_state_tssb = prev_state_in_structure->get_transition_tssb();
 		assert(prev_state_tssb != NULL);
@@ -515,6 +525,10 @@ namespace ithmm {
 		assert(state_in_structure->get_transition_tssb() != NULL);
 		assert(is_node_in_structure_tssb(prev_state_in_structure));
 		assert(is_node_in_structure_tssb(state_in_structure));
+		if(_depth_limit >= 0){
+			assert(prev_state_in_structure->_depth_v <= _depth_limit);
+			assert(state_in_structure->_depth_v <= _depth_limit);
+		}
 
 		TSSB* prev_state_tssb = prev_state_in_structure->get_transition_tssb();
 		assert(prev_state_tssb != NULL);
@@ -530,6 +544,9 @@ namespace ithmm {
 		if(prev_state_in_structure == NULL && next_state_in_structure == NULL){
 			assert(state_in_structure != NULL);
 			assert(is_node_in_structure_tssb(state_in_structure));
+			if(_depth_limit >= 0){
+				assert(state_in_structure->_depth_v <= _depth_limit);
+			}
 			Node* state_in_bos = _bos_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
 			assert(state_in_bos);
 			add_customer_to_tssb_node(state_in_bos);
@@ -544,6 +561,10 @@ namespace ithmm {
 			assert(next_state_in_structure != NULL);
 			assert(is_node_in_structure_tssb(state_in_structure));
 			assert(is_node_in_structure_tssb(next_state_in_structure));
+			if(_depth_limit >= 0){
+				assert(state_in_structure->_depth_v <= _depth_limit);
+				assert(next_state_in_structure->_depth_v <= _depth_limit);
+			}
 			Node* state_in_bos = _bos_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
 			assert(state_in_bos);
 			add_customer_to_tssb_node(state_in_bos);
@@ -567,6 +588,10 @@ namespace ithmm {
 			assert(state_in_structure != NULL);
 			assert(is_node_in_structure_tssb(prev_state_in_structure));
 			assert(is_node_in_structure_tssb(state_in_structure));
+			if(_depth_limit >= 0){
+				assert(prev_state_in_structure->_depth_v <= _depth_limit);
+				assert(state_in_structure->_depth_v <= _depth_limit);
+			}
 
 			TSSB* prev_state_tssb = prev_state_in_structure->get_transition_tssb();
 			assert(prev_state_tssb != NULL);
@@ -588,7 +613,11 @@ namespace ithmm {
 		assert(is_node_in_structure_tssb(prev_state_in_structure));
 		assert(is_node_in_structure_tssb(state_in_structure));
 		assert(is_node_in_structure_tssb(next_state_in_structure));
-
+		if(_depth_limit >= 0){
+			assert(prev_state_in_structure->_depth_v <= _depth_limit);
+			assert(state_in_structure->_depth_v <= _depth_limit);
+			assert(next_state_in_structure->_depth_v <= _depth_limit);
+		}
 
 		TSSB* prev_state_tssb = prev_state_in_structure->get_transition_tssb();
 		assert(prev_state_tssb != NULL);
@@ -617,6 +646,9 @@ namespace ithmm {
 			assert(state_in_structure != NULL);
 			assert(state_in_structure->get_transition_tssb() != NULL);
 			assert(is_node_in_structure_tssb(state_in_structure));
+			if(_depth_limit >= 0){
+				assert(state_in_structure->_depth_v <= _depth_limit);
+			}
 			Node* state_in_bos = _bos_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
 			assert(state_in_bos);
 			remove_customer_from_tssb_node(state_in_bos);
@@ -629,6 +661,9 @@ namespace ithmm {
 			assert(prev_state_in_structure != NULL);
 			assert(prev_state_in_structure->get_transition_tssb() != NULL);
 			assert(is_node_in_structure_tssb(prev_state_in_structure));
+			if(_depth_limit >= 0){
+				assert(prev_state_in_structure->_depth_v <= _depth_limit);
+			}
 			prev_state_in_structure->decrement_transition_count_to_eos();
 			return;
 		}
@@ -638,7 +673,10 @@ namespace ithmm {
 		assert(state_in_structure->get_transition_tssb() != NULL);
 		assert(is_node_in_structure_tssb(prev_state_in_structure));
 		assert(is_node_in_structure_tssb(state_in_structure));
-
+		if(_depth_limit >= 0){
+			assert(prev_state_in_structure->_depth_v <= _depth_limit);
+			assert(state_in_structure->_depth_v <= _depth_limit);
+		}
 
 		TSSB* prev_state_tssb = prev_state_in_structure->get_transition_tssb();
 		assert(prev_state_tssb != NULL);
@@ -657,6 +695,10 @@ namespace ithmm {
 		assert(state_in_structure->get_transition_tssb() != NULL);
 		assert(is_node_in_structure_tssb(prev_state_in_structure));
 		assert(is_node_in_structure_tssb(state_in_structure));
+		if(_depth_limit >= 0){
+			assert(prev_state_in_structure->_depth_v <= _depth_limit);
+			assert(state_in_structure->_depth_v <= _depth_limit);
+		}
 
 		TSSB* prev_state_tssb = prev_state_in_structure->get_transition_tssb();
 		assert(prev_state_tssb != NULL);
@@ -672,6 +714,10 @@ namespace ithmm {
 		if(prev_state_in_structure == NULL && next_state_in_structure == NULL){
 			assert(state_in_structure != NULL);
 			assert(is_node_in_structure_tssb(state_in_structure));
+			if(_depth_limit >= 0){
+				assert(state_in_structure->_depth_v <= _depth_limit);
+			}
+
 			Node* state_in_bos = _bos_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
 			assert(state_in_bos);
 			remove_customer_from_tssb_node(state_in_bos);
@@ -687,6 +733,11 @@ namespace ithmm {
 			assert(next_state_in_structure != NULL);
 			assert(is_node_in_structure_tssb(state_in_structure));
 			assert(is_node_in_structure_tssb(next_state_in_structure));
+			if(_depth_limit >= 0){
+				assert(state_in_structure->_depth_v <= _depth_limit);
+				assert(next_state_in_structure->_depth_v <= _depth_limit);
+			}
+
 			Node* state_in_bos = _bos_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
 			assert(state_in_bos);
 			remove_customer_from_tssb_node(state_in_bos);
@@ -708,6 +759,10 @@ namespace ithmm {
 			assert(state_in_structure != NULL);
 			assert(is_node_in_structure_tssb(prev_state_in_structure));
 			assert(is_node_in_structure_tssb(state_in_structure));
+			if(_depth_limit >= 0){
+				assert(prev_state_in_structure->_depth_v <= _depth_limit);
+				assert(state_in_structure->_depth_v <= _depth_limit);
+			}
 
 			TSSB* prev_state_tssb = prev_state_in_structure->get_transition_tssb();
 			assert(prev_state_tssb != NULL);
@@ -728,7 +783,11 @@ namespace ithmm {
 		assert(is_node_in_structure_tssb(prev_state_in_structure));
 		assert(is_node_in_structure_tssb(state_in_structure));
 		assert(is_node_in_structure_tssb(next_state_in_structure));
-
+		if(_depth_limit >= 0){
+			assert(prev_state_in_structure->_depth_v <= _depth_limit);
+			assert(state_in_structure->_depth_v <= _depth_limit);
+			assert(next_state_in_structure->_depth_v <= _depth_limit);
+		}
 
 		TSSB* prev_state_tssb = prev_state_in_structure->get_transition_tssb();
 		assert(prev_state_tssb != NULL);
@@ -766,6 +825,11 @@ namespace ithmm {
 		assert(is_node_in_structure_tssb(state_in_structure));
 		assert(is_node_in_structure_tssb(prev_state_in_structure));
 		assert(is_node_in_structure_tssb(next_state_in_structure));
+		if(_depth_limit >= 0){
+			assert(prev_state_in_structure->_depth_v <= _depth_limit);
+			assert(state_in_structure->_depth_v <= _depth_limit);
+			assert(next_state_in_structure->_depth_v <= _depth_limit);
+		}
 		// 出力確率
 		double p_w_given_s = compute_p_w_given_s(word_id, state_in_structure);
 		assert(0 < p_w_given_s && p_w_given_s <= 1);
@@ -904,6 +968,10 @@ namespace ithmm {
 		assert(next_state_in_structure != NULL);
 		assert(is_node_in_structure_tssb(state_in_structure));
 		assert(is_node_in_structure_tssb(next_state_in_structure));
+		if(_depth_limit >= 0){
+			assert(state_in_structure->_depth_v <= _depth_limit);
+			assert(next_state_in_structure->_depth_v <= _depth_limit);
+		}
 		// 出力確率
 		double p_w_given_s = compute_p_w_given_s(word_id, state_in_structure);
 		assert(0 < p_w_given_s && p_w_given_s <= 1);
@@ -970,6 +1038,10 @@ namespace ithmm {
 		assert(state_in_structure != NULL);
 		assert(is_node_in_structure_tssb(prev_state_in_structure));
 		assert(is_node_in_structure_tssb(state_in_structure));
+		if(_depth_limit >= 0){
+			assert(prev_state_in_structure->_depth_v <= _depth_limit);
+			assert(state_in_structure->_depth_v <= _depth_limit);
+		}
 		// 出力確率
 		double p_w_given_s = compute_p_w_given_s(word_id, state_in_structure);
 		assert(0 < p_w_given_s && p_w_given_s <= 1);
@@ -1211,30 +1283,42 @@ namespace ithmm {
 	// update_stick_length_of_tssbは全ノードを更新するのに対しこっちは対象ノードのみ正確に計算する
 	double iTHMM::compute_node_probability_in_tssb(TSSB* tssb, Node* node, double total_stick_length){
 		assert(tssb->get_owner_node_id() == node->get_htssb_owner_node_id());
+		if(_depth_limit >= 0){
+			assert(node->_depth_v <= _depth_limit);
+		}
+		// std::cout << "compute_node_probability_in_tssb" << std::endl;
+		// node->dump();
 		Node* iterator = tssb->_root;
 		iterator->_stick_length = total_stick_length;
 		double ratio_v = compute_expectation_of_vertical_sbr_ratio(iterator);
 		iterator->_probability = iterator->_stick_length * ratio_v;
 		iterator->_children_stick_length = iterator->_stick_length * (1.0 - ratio_v);
+		// std::cout << iterator->_probability << " : " << iterator->_children_stick_length << std::endl;
 		double min_probability = 1;		// 0が返るのを防ぐ
 		for(int n = 0;n < node->_depth_v;n++){
+			// std::cout << "n = " << n << std::endl;
 			int depth_h = node->_horizontal_indices_from_root[n];
 			double rest_stick_length = iterator->_children_stick_length;
 			for(int m = 0;m <= depth_h;m++){
+				// std::cout << "m = " << m << ", rest_stick_length = " << rest_stick_length << std::endl;
 				Node* child = iterator->_children[m];
 				double ratio_h = compute_expectation_of_horizontal_sbr_ratio(child);
 				double ratio_v = compute_expectation_of_vertical_sbr_ratio(child);
+				// std::cout << "ratio_h = " << ratio_h << ", ratio_v = " << ratio_v << std::endl;
 				child->_stick_length = rest_stick_length * ratio_h;
 				double probability = child->_stick_length * ratio_v;
-				if(probability == 0){		// ものすごく深いノードがサンプリングされた時にdouble型の限界を超える
-					child->_probability = min_probability;
-					c_printf("[r]%s\n", "stick length == 0");
-					std::cout << "fixed to " << min_probability << std::endl;
-				}else{
-					child->_probability = probability;
-					if(probability < min_probability){
-						min_probability = probability;
-					}
+
+				// if(probability == 0){
+				// 	// child->dump();
+				// 	child->_probability = min_probability;
+				// 	c_printf("[r]%s\n", "stick length == 0");
+				// 	// std::cout << "fixed to " << min_probability << std::endl;
+				// }
+
+				assert(probability > 0);
+				child->_probability = probability;
+				if(probability < min_probability){
+					min_probability = probability;
 				}
 				child->_children_stick_length = child->_stick_length * (1.0 - ratio_v);
 				rest_stick_length *= (1.0 - ratio_h);
@@ -1366,11 +1450,12 @@ namespace ithmm {
 				}
 			}
 		}
-		if(sbr_ratio <= 0){		// 仕方ない
-			c_printf("[r]%s\n", "sbr_ratio <= 0");
-			assert(parent_ratio_v > 0);
-			return parent_ratio_v;
-		}
+		assert(sbr_ratio > 0);
+		// if(sbr_ratio <= 0){		// 仕方ない
+		// 	c_printf("[r]%s\n", "sbr_ratio <= 0");
+		// 	assert(parent_ratio_v > 0);
+		// 	return parent_ratio_v;
+		// }
 		return sbr_ratio;
 	}
 	// 横の棒折り過程における、棒を折る比率を計算。親のTSSBから階層的に生成
@@ -1451,11 +1536,12 @@ namespace ithmm {
 				}
 			}
 		}
-		if(sbr_ratio <= 0){		// 仕方ない
-			c_printf("[r]%s\n", "sbr_ratio_h <= 0");
-			assert(parent_ratio_h > 0);
-			return parent_ratio_h;
-		}
+		assert(sbr_ratio > 0);
+		// if(sbr_ratio <= 0){		// 仕方ない
+		// 	c_printf("[r]%s\n", "sbr_ratio_h <= 0");
+		// 	assert(parent_ratio_h > 0);
+		// 	return parent_ratio_h;
+		// }
 		return sbr_ratio;
 	}
 	double iTHMM::compute_p_w_given_s(id token_id, Node* node_in_structure){

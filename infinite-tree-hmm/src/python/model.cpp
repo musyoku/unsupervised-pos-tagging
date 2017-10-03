@@ -3,9 +3,13 @@
 #include "model.h"
 
 namespace ithmm {
-	Model::Model(Dataset* dataset){
+	Model::Model(Dataset* dataset): Model(dataset, -1){
+		
+	}
+	Model::Model(Dataset* dataset, int depth_limit){
 		_set_locale();
 		_ithmm = new iTHMM();
+		set_depth_limit(depth_limit);
 		_ithmm->set_word_g0(1.0 / dataset->_word_count.size());
 		_ithmm->initialize_with_training_dataset(dataset->_word_sequences_train);
 	}

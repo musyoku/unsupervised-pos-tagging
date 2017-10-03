@@ -11,6 +11,7 @@ namespace ithmm {
 	public:
 		iTHMM* _ithmm;
 		Model(Dataset* dataset);
+		Model(Dataset* dataset, int depth_limit);
 		Model(std::string filename);
 		~Model();
 		double get_alpha();
