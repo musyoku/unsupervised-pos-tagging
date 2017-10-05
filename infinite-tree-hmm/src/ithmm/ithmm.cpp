@@ -1543,7 +1543,7 @@ namespace ithmm {
 		assert(_word_g0 > 0);
 		return node_in_structure->_hpylm->compute_p_w(token_id, _word_g0, _hpylm_d_m, _hpylm_theta_m);
 	}
-	// update_stick_length_of_tssbは全ノードを更新するのに対しこっちは対象ノードのみ正確に計算する
+	// update_stick_length_of_tssbは全ノードを更新するのに対しこれは対象ノードのみ正確に計算する
 	double iTHMM::compute_node_probability_in_tssb(TSSB* tssb, Node* node, double total_stick_length){
 		assert(is_node_in_htssb(node));
 		assert(is_tssb_htssb(tssb));
@@ -1564,7 +1564,6 @@ namespace ithmm {
 		assert(iterator->_children_stick_length <= total_stick_length);
 		assert(iterator->_sum_probability <= total_stick_length);
 		// std::cout << iterator->_probability << " : " << iterator->_children_stick_length << std::endl;
-		double min_probability = 1;		// 0が返るのを防ぐ
 		for(int n = 0;n < node->_depth_v;n++){
 			// std::cout << "n = " << n << std::endl;
 			int depth_h = node->_horizontal_indices_from_root[n];
@@ -1577,19 +1576,8 @@ namespace ithmm {
 				// std::cout << "ratio_h = " << ratio_h << ", ratio_v = " << ratio_v << std::endl;
 				child->_stick_length = rest_stick_length * ratio_h;
 				double probability = child->_stick_length * ratio_v;
-
-				// if(probability == 0){
-				// 	// child->dump();
-				// 	child->_probability = min_probability;
-				// 	c_printf("[r]%s\n", "stick length == 0");
-				// 	// std::cout << "fixed to " << min_probability << std::endl;
-				// }
-
 				assert(probability > 0);
 				child->_probability = probability;
-				if(probability < min_probability){
-					min_probability = probability;
-				}
 				child->_children_stick_length = child->_stick_length * (1.0 - ratio_v);
 				rest_stick_length *= (1.0 - ratio_h);
 			}

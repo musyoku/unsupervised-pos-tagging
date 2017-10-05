@@ -1369,7 +1369,6 @@ void test_compute_node_probability_in_tssb(){
 		assert(stick_length == grandson_in_htssb->_stick_length);
 		assert(probability == grandson_in_htssb->_probability);
 		assert(children_stick_length == grandson_in_htssb->_children_stick_length);
-		assert(sum_probability == grandson_in_htssb->_sum_probability);
 	}
 }
 
@@ -1394,6 +1393,32 @@ void test_add_and_remove_temporal_parameters(){
 		ithmm->add_parameters(root_in_structure, grandson_in_structure, NULL, 1);
 		ithmm->add_parameters(child_in_structure, grandson_in_structure, root_in_structure, 1);
 	}
+	int num_customers_grandson_to_root_v = grandson_in_structure->get_transition_tssb()->find_node_by_tracing_horizontal_indices(root_in_structure)->_table_v->get_num_customers();
+	int num_customers_grandson_to_root_h = grandson_in_structure->get_transition_tssb()->find_node_by_tracing_horizontal_indices(root_in_structure)->_table_h->get_num_customers();
+	double p_root_given_grandson = ithmm->compute_node_probability_in_tssb(grandson_in_structure->get_transition_tssb(), grandson_in_structure->get_transition_tssb()->find_node_by_tracing_horizontal_indices(root_in_structure), 1.0);
+	double p_eos_given_grandson = grandson_in_structure->compute_transition_probability_to_eos(ithmm->_tau0, ithmm->_tau1);
+	
+	int num_customers_root_to_grandson_v = root_in_structure->get_transition_tssb()->find_node_by_tracing_horizontal_indices(grandson_in_structure)->_table_v->get_num_customers();
+	int num_customers_root_to_grandson_h = root_in_structure->get_transition_tssb()->find_node_by_tracing_horizontal_indices(grandson_in_structure)->_table_h->get_num_customers();
+	double p_grandson_given_root = ithmm->compute_node_probability_in_tssb(root_in_structure->get_transition_tssb(), root_in_structure->get_transition_tssb()->find_node_by_tracing_horizontal_indices(grandson_in_structure), 1.0);
+
+	int num_customers_child_to_grandson_v = child_in_structure->get_transition_tssb()->find_node_by_tracing_horizontal_indices(grandson_in_structure)->_table_v->get_num_customers();
+	int num_customers_child_to_grandson_h = child_in_structure->get_transition_tssb()->find_node_by_tracing_horizontal_indices(grandson_in_structure)->_table_h->get_num_customers();
+	double p_grandson_given_child = ithmm->compute_node_probability_in_tssb(child_in_structure->get_transition_tssb(), child_in_structure->get_transition_tssb()->find_node_by_tracing_horizontal_indices(grandson_in_structure), 1.0);
+
+	ithmm->add_temporal_parameters(grandson_in_structure, root_in_structure);
+	ithmm->remove_temporal_parameters(grandson_in_structure, root_in_structure);
+
+	int _num_customers_grandson_to_root_v = grandson_in_structure->get_transition_tssb()->find_node_by_tracing_horizontal_indices(root_in_structure)->_table_v->get_num_customers();
+	int _num_customers_grandson_to_root_h = grandson_in_structure->get_transition_tssb()->find_node_by_tracing_horizontal_indices(root_in_structure)->_table_h->get_num_customers();
+	double _p_root_given_grandson = ithmm->compute_node_probability_in_tssb(grandson_in_structure->get_transition_tssb(), grandson_in_structure->get_transition_tssb()->find_node_by_tracing_horizontal_indices(root_in_structure), 1.0);
+	double _p_eos_given_grandson = grandson_in_structure->compute_transition_probability_to_eos(ithmm->_tau0, ithmm->_tau1);
+
+	assert(num_customers_grandson_to_root_v == _num_customers_grandson_to_root_v);
+	assert(num_customers_grandson_to_root_h == _num_customers_grandson_to_root_h);
+	assert(p_root_given_grandson == _p_root_given_grandson);
+	assert(p_eos_given_grandson == _p_eos_given_grandson);
+	
 }
 
 int main(){
