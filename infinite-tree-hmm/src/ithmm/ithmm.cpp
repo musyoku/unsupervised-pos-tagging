@@ -393,12 +393,17 @@ namespace ithmm {
 		root->_probability = total_stick_length * ratio_v;
 		root->_children_stick_length = total_stick_length * (1.0 - ratio_v);
 		root->_sum_probability = sum_probability;
+		assert(root->_stick_length <= total_stick_length);
+		assert(root->_probability <= total_stick_length);
+		assert(root->_children_stick_length <= total_stick_length);
+		assert(root->_sum_probability <= total_stick_length);
 		// uniform = uniform * root->_children_stick_length + sum_probability; // ルートを除外する場合
 		Node* node =  _retrospective_sampling_by_iterating_node(uniform, sum_probability, root);
 		assert(node != NULL);
 		return node;
 	}
 	Node* iTHMM::_retrospective_sampling_by_iterating_node(double uniform, double &sum_probability, Node* iterator){
+		assert(sum_probability <= 1.0);
 		if(uniform < sum_probability){
 			return iterator;
 		}
@@ -420,6 +425,7 @@ namespace ithmm {
 			child->_probability = child->_stick_length * ratio_v;
 			child->_children_stick_length = child->_stick_length * (1.0 - ratio_v);
 			child->_sum_probability = sum_probability + sum_stick_length_over_children + child->_probability;
+			assert(child->_sum_probability <= 1.0);
 			if(uniform < sum_probability + sum_stick_length_over_children + child->_stick_length){
 				// child->_stick_lengthだけだとこのノードの棒の長さ（つまりこのノード+子ノードに割り当てる棒）なので
 				// ratio_vも掛けてこのノードで止まる確率にする必要がある
@@ -431,6 +437,8 @@ namespace ithmm {
 			}
 			sum_stick_length_over_children += child->_stick_length;
 			rest_stick_length *= 1.0 - ratio_h;
+			assert(sum_stick_length_over_children <= 1.0);
+			assert(rest_stick_length > 0.0);
 			// last_node = child;
 		}
 
@@ -443,6 +451,7 @@ namespace ithmm {
 			child->_probability = child->_stick_length * ratio_v;
 			child->_children_stick_length = child->_stick_length * (1.0 - ratio_v);
 			child->_sum_probability = sum_probability + sum_stick_length_over_children + child->_probability;
+			assert(child->_sum_probability <= 1.0);
 			if(uniform < sum_probability + sum_stick_length_over_children + child->_stick_length){
 				sum_probability += sum_stick_length_over_children + child->_probability;
 				if(uniform < sum_probability){
@@ -452,6 +461,8 @@ namespace ithmm {
 			}
 			sum_stick_length_over_children += child->_stick_length;
 			rest_stick_length *= 1.0 - ratio_h;
+			assert(sum_stick_length_over_children <= 1.0);
+			assert(rest_stick_length > 0.0);
 		}
 	}
 	void iTHMM::gibbs(std::vector<Word*> &sentence){
@@ -508,9 +519,9 @@ namespace ithmm {
 			assert(state_in_structure->_depth_v <= _depth_limit);
 		}
 
-		TSSB* prev_state_tssb = prev_state_in_structure->get_transition_tssb();
-		assert(prev_state_tssb != NULL);
-		Node* state_in_prev_state_htssb = prev_state_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
+		TSSB* prev_state_transition_tssb = prev_state_in_structure->get_transition_tssb();
+		assert(prev_state_transition_tssb != NULL);
+		Node* state_in_prev_state_htssb = prev_state_transition_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
 		assert(state_in_prev_state_htssb != NULL);
 		assert(state_in_structure->_identifier == state_in_prev_state_htssb->_identifier);
 		add_customer_to_htssb_node(state_in_prev_state_htssb);
@@ -530,9 +541,9 @@ namespace ithmm {
 			assert(state_in_structure->_depth_v <= _depth_limit);
 		}
 
-		TSSB* prev_state_tssb = prev_state_in_structure->get_transition_tssb();
-		assert(prev_state_tssb != NULL);
-		Node* state_in_prev_state_htssb = prev_state_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
+		TSSB* prev_state_transition_tssb = prev_state_in_structure->get_transition_tssb();
+		assert(prev_state_transition_tssb != NULL);
+		Node* state_in_prev_state_htssb = prev_state_transition_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
 		assert(state_in_prev_state_htssb != NULL);
 		assert(state_in_structure->_identifier == state_in_prev_state_htssb->_identifier);
 		add_customer_to_htssb_node(state_in_prev_state_htssb);
@@ -593,9 +604,9 @@ namespace ithmm {
 				assert(state_in_structure->_depth_v <= _depth_limit);
 			}
 
-			TSSB* prev_state_tssb = prev_state_in_structure->get_transition_tssb();
-			assert(prev_state_tssb != NULL);
-			Node* state_in_prev_state_htssb = prev_state_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
+			TSSB* prev_state_transition_tssb = prev_state_in_structure->get_transition_tssb();
+			assert(prev_state_transition_tssb != NULL);
+			Node* state_in_prev_state_htssb = prev_state_transition_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
 			assert(state_in_prev_state_htssb != NULL);
 			assert(state_in_structure->_identifier == state_in_prev_state_htssb->_identifier);
 			add_customer_to_htssb_node(state_in_prev_state_htssb);
@@ -619,9 +630,9 @@ namespace ithmm {
 			assert(next_state_in_structure->_depth_v <= _depth_limit);
 		}
 
-		TSSB* prev_state_tssb = prev_state_in_structure->get_transition_tssb();
-		assert(prev_state_tssb != NULL);
-		Node* state_in_prev_state_htssb = prev_state_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
+		TSSB* prev_state_transition_tssb = prev_state_in_structure->get_transition_tssb();
+		assert(prev_state_transition_tssb != NULL);
+		Node* state_in_prev_state_htssb = prev_state_transition_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
 		assert(state_in_prev_state_htssb != NULL);
 		assert(state_in_structure->_identifier == state_in_prev_state_htssb->_identifier);
 		add_customer_to_htssb_node(state_in_prev_state_htssb);
@@ -678,9 +689,9 @@ namespace ithmm {
 			assert(state_in_structure->_depth_v <= _depth_limit);
 		}
 
-		TSSB* prev_state_tssb = prev_state_in_structure->get_transition_tssb();
-		assert(prev_state_tssb != NULL);
-		Node* state_in_prev_state_htssb = prev_state_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
+		TSSB* prev_state_transition_tssb = prev_state_in_structure->get_transition_tssb();
+		assert(prev_state_transition_tssb != NULL);
+		Node* state_in_prev_state_htssb = prev_state_transition_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
 		assert(state_in_prev_state_htssb != NULL);
 		assert(state_in_structure->_identifier == state_in_prev_state_htssb->_identifier);
 		remove_customer_from_htssb_node(state_in_prev_state_htssb);
@@ -700,9 +711,9 @@ namespace ithmm {
 			assert(state_in_structure->_depth_v <= _depth_limit);
 		}
 
-		TSSB* prev_state_tssb = prev_state_in_structure->get_transition_tssb();
-		assert(prev_state_tssb != NULL);
-		Node* state_in_prev_state_htssb = prev_state_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
+		TSSB* prev_state_transition_tssb = prev_state_in_structure->get_transition_tssb();
+		assert(prev_state_transition_tssb != NULL);
+		Node* state_in_prev_state_htssb = prev_state_transition_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
 		assert(state_in_prev_state_htssb != NULL);
 		assert(state_in_structure->_identifier == state_in_prev_state_htssb->_identifier);
 		remove_customer_from_htssb_node(state_in_prev_state_htssb, true);
@@ -764,9 +775,9 @@ namespace ithmm {
 				assert(state_in_structure->_depth_v <= _depth_limit);
 			}
 
-			TSSB* prev_state_tssb = prev_state_in_structure->get_transition_tssb();
-			assert(prev_state_tssb != NULL);
-			Node* state_in_prev_state_htssb = prev_state_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
+			TSSB* prev_state_transition_tssb = prev_state_in_structure->get_transition_tssb();
+			assert(prev_state_transition_tssb != NULL);
+			Node* state_in_prev_state_htssb = prev_state_transition_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
 			assert(state_in_prev_state_htssb != NULL);
 			remove_customer_from_htssb_node(state_in_prev_state_htssb);
 			remove_customer_from_tssb_node(state_in_structure);		// 参照カウント用
@@ -789,9 +800,9 @@ namespace ithmm {
 			assert(next_state_in_structure->_depth_v <= _depth_limit);
 		}
 
-		TSSB* prev_state_tssb = prev_state_in_structure->get_transition_tssb();
-		assert(prev_state_tssb != NULL);
-		Node* state_in_prev_state_htssb = prev_state_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
+		TSSB* prev_state_transition_tssb = prev_state_in_structure->get_transition_tssb();
+		assert(prev_state_transition_tssb != NULL);
+		Node* state_in_prev_state_htssb = prev_state_transition_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
 		assert(state_in_prev_state_htssb != NULL);
 		remove_customer_from_htssb_node(state_in_prev_state_htssb);
 		remove_customer_from_tssb_node(state_in_structure);			// 参照カウント用
@@ -876,6 +887,13 @@ namespace ithmm {
 			assert(new_state_in_structure != NULL);
 			assert(is_node_in_structure_tssb(new_state_in_structure));
 
+
+			std::cout << "aaaa" << u << std::endl;
+			new_state_in_prev_htssb->dump();
+			std::cout << new_state_in_prev_htssb->_sum_probability << std::endl;
+			compute_node_probability_in_tssb(prev_state_transition_tssb, new_state_in_prev_htssb, 1.0);
+			std::cout << new_state_in_prev_htssb->_sum_probability << std::endl;
+
 			// 出力確率
 			double new_p_w_given_s = compute_p_w_given_s(word_id, new_state_in_structure);
 			assert(0 < new_p_w_given_s && new_p_w_given_s <= 1);
@@ -884,9 +902,9 @@ namespace ithmm {
 			}
 			// 遷移確率
 			//// s_{new}からs_{t+1}へ接続する確率
-			TSSB* new_state_tssb = new_state_in_structure->get_transition_tssb();
-			assert(new_state_tssb != NULL);
-			Node* next_state_in_new_state_htssb = new_state_tssb->find_node_by_tracing_horizontal_indices(next_state_in_structure);
+			TSSB* new_state_transition_tssb = new_state_in_structure->get_transition_tssb();
+			assert(new_state_transition_tssb != NULL);
+			Node* next_state_in_new_state_htssb = new_state_transition_tssb->find_node_by_tracing_horizontal_indices(next_state_in_structure);
 			//// </s>以外に接続する確率を棒全体の長さとし、TSSBで分配
 			double new_p_next_given_s;
 			double new_p_eos_given_s;
@@ -896,7 +914,7 @@ namespace ithmm {
 			}else{
 				add_temporal_parameters(prev_state_in_structure, new_state_in_structure);
 				new_p_eos_given_s = new_state_in_structure->compute_transition_probability_to_eos(_tau0, _tau1);
-				new_p_next_given_s = (1.0 - new_p_eos_given_s) * compute_node_probability_in_tssb(new_state_tssb, next_state_in_new_state_htssb, 1.0);
+				new_p_next_given_s = (1.0 - new_p_eos_given_s) * compute_node_probability_in_tssb(new_state_transition_tssb, next_state_in_new_state_htssb, 1.0);
 				remove_temporal_parameters(prev_state_in_structure, new_state_in_structure);
 			}
 			assert(0 < new_p_next_given_s && new_p_next_given_s <= 1);
@@ -914,38 +932,38 @@ namespace ithmm {
 				_num_mh_acceptance += 1;
 				return new_state_in_structure;
 
-				TSSB* prev_state_tssb = prev_state_in_structure->get_transition_tssb();
-				assert(prev_state_tssb != NULL);
-				Node* state_in_prev_htssb = prev_state_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
-				assert(state_in_prev_htssb != NULL);
-				assert(state_in_prev_htssb->_identifier == state_in_structure->_identifier);
-				double Peos_given_prev = prev_state_in_structure->compute_transition_probability_to_eos(_tau0, _tau1);
-				double p_s_given_prev = (1.0 - Peos_given_prev) * compute_node_probability_in_tssb(prev_state_tssb, state_in_prev_htssb, 1.0);
-				double Pnew_s_given_prev = (1.0 - Peos_given_prev) * compute_node_probability_in_tssb(prev_state_tssb, new_state_in_prev_htssb, 1.0);
-				TSSB* root_tssb = _structure_tssb->_root->get_transition_tssb();
-				assert(root_tssb != NULL);
-				Node* state_in_root_htssb = root_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
-				assert(state_in_root_htssb != NULL);
-				assert(state_in_root_htssb->_identifier == state_in_structure->_identifier);
-				Node* new_state_in_root_htssb = root_tssb->find_node_by_tracing_horizontal_indices(new_state_in_structure);
-				assert(new_state_in_root_htssb != NULL);
-				assert(new_state_in_root_htssb->_identifier == new_state_in_structure->_identifier);
-				compute_node_probability_in_tssb(root_tssb, state_in_root_htssb, 1.0);
-				compute_node_probability_in_tssb(root_tssb, new_state_in_root_htssb, 1.0);
-				double p_s = state_in_root_htssb->_probability;
-				double p_new_s = new_state_in_root_htssb->_probability;
-				double p_w_given_new_s = compute_p_w_given_s(word_id, new_state_in_structure);
-				assert(p_s_given_prev * p_w_given_new_s > 0);
-				// 採択率の計算式が不明
-				double adoption = Pnew_s_given_prev / p_s_given_prev;
-				adoption = std::min(1.0, adoption);
-				double u = sampler::uniform(0, 1);
-				if(u <= adoption){
-					_num_mh_acceptance += 1;
-					return new_state_in_structure;
-				}
-				_num_mh_rejection += 1;
-				return state_in_structure;
+				// TSSB* prev_state_transition_tssb = prev_state_in_structure->get_transition_tssb();
+				// assert(prev_state_transition_tssb != NULL);
+				// Node* state_in_prev_htssb = prev_state_transition_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
+				// assert(state_in_prev_htssb != NULL);
+				// assert(state_in_prev_htssb->_identifier == state_in_structure->_identifier);
+				// double Peos_given_prev = prev_state_in_structure->compute_transition_probability_to_eos(_tau0, _tau1);
+				// double p_s_given_prev = (1.0 - Peos_given_prev) * compute_node_probability_in_tssb(prev_state_transition_tssb, state_in_prev_htssb, 1.0);
+				// double Pnew_s_given_prev = (1.0 - Peos_given_prev) * compute_node_probability_in_tssb(prev_state_transition_tssb, new_state_in_prev_htssb, 1.0);
+				// TSSB* root_tssb = _structure_tssb->_root->get_transition_tssb();
+				// assert(root_tssb != NULL);
+				// Node* state_in_root_htssb = root_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
+				// assert(state_in_root_htssb != NULL);
+				// assert(state_in_root_htssb->_identifier == state_in_structure->_identifier);
+				// Node* new_state_in_root_htssb = root_tssb->find_node_by_tracing_horizontal_indices(new_state_in_structure);
+				// assert(new_state_in_root_htssb != NULL);
+				// assert(new_state_in_root_htssb->_identifier == new_state_in_structure->_identifier);
+				// compute_node_probability_in_tssb(root_tssb, state_in_root_htssb, 1.0);
+				// compute_node_probability_in_tssb(root_tssb, new_state_in_root_htssb, 1.0);
+				// double p_s = state_in_root_htssb->_probability;
+				// double p_new_s = new_state_in_root_htssb->_probability;
+				// double p_w_given_new_s = compute_p_w_given_s(word_id, new_state_in_structure);
+				// assert(p_s_given_prev * p_w_given_new_s > 0);
+				// // 採択率の計算式が不明
+				// double adoption = Pnew_s_given_prev / p_s_given_prev;
+				// adoption = std::min(1.0, adoption);
+				// double u = sampler::uniform(0, 1);
+				// if(u <= adoption){
+				// 	_num_mh_acceptance += 1;
+				// 	return new_state_in_structure;
+				// }
+				// _num_mh_rejection += 1;
+				// return state_in_structure;
 			}
 			assert(new_state_in_structure->_identifier != state_in_structure->_identifier);	// 同じになる場合バグっている
 			// 辞書順で前にあるかどうか
@@ -956,9 +974,12 @@ namespace ithmm {
 
 
 
-
+			double sum_probability = new_state_in_prev_htssb->_sum_probability;
 			compute_node_probability_in_tssb(prev_state_transition_tssb, new_state_in_prev_htssb, 1.0);
-
+			if(sum_probability != new_state_in_prev_htssb->_sum_probability){
+				std::cout << "(" << new_state_in_prev_htssb->_sum_probability << " != " << sum_probability << std::endl;
+			}
+			assert(new_state_in_prev_htssb->_sum_probability == sum_probability);
 
 
 
@@ -1027,11 +1048,11 @@ namespace ithmm {
 			assert(0 < new_p_w_given_s && new_p_w_given_s <= 1);
 			// 遷移確率
 			//// s_{new}からs_{t+1}へ接続する確率
-			TSSB* new_state_tssb = new_state_in_structure->get_transition_tssb();
-			assert(new_state_tssb != NULL);
-			Node* next_state_in_new_state_htssb = new_state_tssb->find_node_by_tracing_horizontal_indices(next_state_in_structure);
+			TSSB* new_state_transition_tssb = new_state_in_structure->get_transition_tssb();
+			assert(new_state_transition_tssb != NULL);
+			Node* next_state_in_new_state_htssb = new_state_transition_tssb->find_node_by_tracing_horizontal_indices(next_state_in_structure);
 			double p_eos_given_new_s = new_state_in_structure->compute_transition_probability_to_eos(_tau0, _tau1);
-			double new_p_next_given_s = compute_node_probability_in_tssb(new_state_tssb, next_state_in_new_state_htssb, 1.0);
+			double new_p_next_given_s = compute_node_probability_in_tssb(new_state_transition_tssb, next_state_in_new_state_htssb, 1.0);
 			//// </s>以外に接続する確率を棒全体の長さとし、TSSBで分配
 			double total_stick_length_of_new_tssb = 1.0 - p_eos_given_new_s;
 			new_p_next_given_s *= total_stick_length_of_new_tssb;
@@ -1079,10 +1100,10 @@ namespace ithmm {
 			double u = sampler::uniform(st, ed);
 			assert(st <= u && u < ed);
 
-			TSSB* prev_state_tssb = prev_state_in_structure->get_transition_tssb();
-			assert(prev_state_tssb != NULL);
-			Node* new_state_in_htssb = retrospective_sampling(u, prev_state_tssb, 1.0);
-			// prev_state_tssb->dump();
+			TSSB* prev_state_transition_tssb = prev_state_in_structure->get_transition_tssb();
+			assert(prev_state_transition_tssb != NULL);
+			Node* new_state_in_htssb = retrospective_sampling(u, prev_state_transition_tssb, 1.0);
+			// prev_state_transition_tssb->dump();
 			// cout << u << endl;
 			// new_state_in_htssb->dump();
 			assert(new_state_in_htssb != NULL);
@@ -1295,56 +1316,6 @@ namespace ithmm {
 		if(empty_table_deleted && iterator_in_parent_htssb != NULL){
 			_remove_customer_from_htssb_horizontal_crp(iterator_in_parent_htssb, remove_last_customer);
 		}
-	}
-	// update_stick_length_of_tssbは全ノードを更新するのに対しこっちは対象ノードのみ正確に計算する
-	double iTHMM::compute_node_probability_in_tssb(TSSB* tssb, Node* node, double total_stick_length){
-		if(is_node_in_htssb(node)){
-			assert(is_tssb_htssb(tssb));
-			assert(tssb->get_owner_node_id() == node->get_htssb_owner_node_id());
-		}
-		if(_depth_limit >= 0){
-			assert(node->_depth_v <= _depth_limit);
-		}
-		// std::cout << "compute_node_probability_in_tssb" << std::endl;
-		// node->dump();
-		Node* iterator = tssb->_root;
-		iterator->_stick_length = total_stick_length;
-		double ratio_v = compute_expectation_of_vertical_sbr_ratio(iterator);
-		iterator->_probability = iterator->_stick_length * ratio_v;
-		iterator->_children_stick_length = iterator->_stick_length * (1.0 - ratio_v);
-		// std::cout << iterator->_probability << " : " << iterator->_children_stick_length << std::endl;
-		double min_probability = 1;		// 0が返るのを防ぐ
-		for(int n = 0;n < node->_depth_v;n++){
-			// std::cout << "n = " << n << std::endl;
-			int depth_h = node->_horizontal_indices_from_root[n];
-			double rest_stick_length = iterator->_children_stick_length;
-			for(int m = 0;m <= depth_h;m++){
-				// std::cout << "m = " << m << ", rest_stick_length = " << rest_stick_length << std::endl;
-				Node* child = iterator->_children[m];
-				double ratio_h = compute_expectation_of_horizontal_sbr_ratio(child);
-				double ratio_v = compute_expectation_of_vertical_sbr_ratio(child);
-				// std::cout << "ratio_h = " << ratio_h << ", ratio_v = " << ratio_v << std::endl;
-				child->_stick_length = rest_stick_length * ratio_h;
-				double probability = child->_stick_length * ratio_v;
-
-				// if(probability == 0){
-				// 	// child->dump();
-				// 	child->_probability = min_probability;
-				// 	c_printf("[r]%s\n", "stick length == 0");
-				// 	// std::cout << "fixed to " << min_probability << std::endl;
-				// }
-
-				assert(probability > 0);
-				child->_probability = probability;
-				if(probability < min_probability){
-					min_probability = probability;
-				}
-				child->_children_stick_length = child->_stick_length * (1.0 - ratio_v);
-				rest_stick_length *= (1.0 - ratio_h);
-			}
-			iterator = iterator->_children[depth_h];
-		}
-		return iterator->_probability;
 	}
 	double iTHMM::compute_expectation_of_vertical_sbr_ratio(Node* iterator){
 		if(_depth_limit > 0){
@@ -1572,6 +1543,60 @@ namespace ithmm {
 		assert(_word_g0 > 0);
 		return node_in_structure->_hpylm->compute_p_w(token_id, _word_g0, _hpylm_d_m, _hpylm_theta_m);
 	}
+	// update_stick_length_of_tssbは全ノードを更新するのに対しこっちは対象ノードのみ正確に計算する
+	double iTHMM::compute_node_probability_in_tssb(TSSB* tssb, Node* node, double total_stick_length){
+		assert(is_node_in_htssb(node));
+		assert(is_tssb_htssb(tssb));
+		assert(tssb->get_owner_node_id() == node->get_htssb_owner_node_id());
+
+		if(_depth_limit >= 0){
+			assert(node->_depth_v <= _depth_limit);
+		}
+		// std::cout << "compute_node_probability_in_tssb" << std::endl;
+		// node->dump();
+		Node* iterator = tssb->_root;
+		iterator->_stick_length = total_stick_length;
+		double ratio_v = compute_expectation_of_vertical_sbr_ratio(iterator);
+		iterator->_probability = iterator->_stick_length * ratio_v;
+		iterator->_children_stick_length = iterator->_stick_length * (1.0 - ratio_v);
+		iterator->_sum_probability = iterator->_probability;
+		assert(iterator->_probability <= total_stick_length);
+		assert(iterator->_children_stick_length <= total_stick_length);
+		assert(iterator->_sum_probability <= total_stick_length);
+		// std::cout << iterator->_probability << " : " << iterator->_children_stick_length << std::endl;
+		double min_probability = 1;		// 0が返るのを防ぐ
+		for(int n = 0;n < node->_depth_v;n++){
+			// std::cout << "n = " << n << std::endl;
+			int depth_h = node->_horizontal_indices_from_root[n];
+			double rest_stick_length = iterator->_children_stick_length;
+			for(int m = 0;m <= depth_h;m++){
+				// std::cout << "m = " << m << ", rest_stick_length = " << rest_stick_length << std::endl;
+				Node* child = iterator->_children[m];
+				double ratio_h = compute_expectation_of_horizontal_sbr_ratio(child);
+				double ratio_v = compute_expectation_of_vertical_sbr_ratio(child);
+				// std::cout << "ratio_h = " << ratio_h << ", ratio_v = " << ratio_v << std::endl;
+				child->_stick_length = rest_stick_length * ratio_h;
+				double probability = child->_stick_length * ratio_v;
+
+				// if(probability == 0){
+				// 	// child->dump();
+				// 	child->_probability = min_probability;
+				// 	c_printf("[r]%s\n", "stick length == 0");
+				// 	// std::cout << "fixed to " << min_probability << std::endl;
+				// }
+
+				assert(probability > 0);
+				child->_probability = probability;
+				if(probability < min_probability){
+					min_probability = probability;
+				}
+				child->_children_stick_length = child->_stick_length * (1.0 - ratio_v);
+				rest_stick_length *= (1.0 - ratio_h);
+			}
+			iterator = iterator->_children[depth_h];
+		}
+		return iterator->_probability;
+	}
 	// TSSBの全ての棒の長さを計算
 	void iTHMM::update_stick_length_of_tssb(TSSB* tssb, double total_stick_length){
 		// assert(tssb->get_owner_node_id() != 0);	// 木構造の場合は計算しない
@@ -1582,12 +1607,16 @@ namespace ithmm {
 		root->_children_stick_length = total_stick_length * (1.0 - ratio_v);
 		root->_probability = ratio_v * total_stick_length;
 		root->_sum_probability = root->_probability;
-		_update_stick_length_of_parent_node(sum_probability, root);
+		assert(root->_stick_length <= total_stick_length);
+		assert(root->_children_stick_length <= total_stick_length);
+		assert(root->_probability <= total_stick_length);
+		assert(root->_sum_probability <= total_stick_length);
+		_update_stick_length_of_parent_node(root, total_stick_length);
 	}
-	void iTHMM::_update_stick_length_of_parent_node(double &sum_probability, Node* parent){
+	void iTHMM::_update_stick_length_of_parent_node(Node* parent, double total_stick_length){
 		assert(parent->_children_stick_length > 0);
 		double rest_stick_length = parent->_children_stick_length;	// 親ノードが持っている子ノードに割り当てる棒の長さ
-		double sum_stick_length_from_left_to_current_node = sum_probability;
+		double sum_stick_length_from_left_to_current_node = parent->_probability;
 		for(int i = 0;i < parent->_children.size();i++){
 			Node* child = parent->_children[i];
 			double ratio_h = compute_expectation_of_horizontal_sbr_ratio(child);
@@ -1595,12 +1624,13 @@ namespace ithmm {
 			child->_stick_length = rest_stick_length * ratio_h;		// このノードかこのノードの子ノードに止まる確率
 			child->_probability = child->_stick_length * ratio_v;	// このノードに止まる確率
 			child->_children_stick_length = child->_stick_length * (1.0 - ratio_v);	// 子ノードに割り当てる長さはこのノードに降りない確率
-			sum_probability += child->_probability;
-			sum_stick_length_from_left_to_current_node += child->_stick_length;
-			child->_sum_probability = sum_stick_length_from_left_to_current_node - child->_children_stick_length;				// このノードより左側の全ての棒の長さの総和
+			// sum_probability += child->_probability;
+			sum_stick_length_from_left_to_current_node += child->_stick_length;	// 子の長さも含む
+			child->_sum_probability = sum_stick_length_from_left_to_current_node - child->_children_stick_length;	// このノードより左側の全ての棒の長さの総和
+			assert(child->_sum_probability <= total_stick_length);
 			rest_stick_length *= 1.0 - ratio_h;
 			if(child->has_child()){
-				_update_stick_length_of_parent_node(child->_sum_probability, child);
+				_update_stick_length_of_parent_node(child, total_stick_length);
 			}
 		}
 	}

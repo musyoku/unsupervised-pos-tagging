@@ -23,6 +23,7 @@ int main(){
 
 	for(int i = 0;i < 1000000;i++){
 		trainer->gibbs();
+		// trainer->update_hyperparameters();
 		cout << "\r" << i << flush;
 		if(i % 100 == 0){
 			model->show_assigned_words_for_each_tag(dictionary, 10, false);

@@ -1038,6 +1038,7 @@ void test_update_stick_length_of_tssb(){
 		assert(std::abs(htssb->_root->_probability + htssb->_root->_children_stick_length - total_stick_length) < 1e-8);
 		double root_length = htssb->_root->_probability;
 		sum_child_length[i] = 0;
+		double sum_probability = 0;
 		for(Node* child: htssb->_root->_children){
 			assert(child->_stick_length > 0);
 			sum_child_length[i] += child->_stick_length;
@@ -1047,8 +1048,11 @@ void test_update_stick_length_of_tssb(){
 				sum_grandson_length += grandson->_stick_length;
 			}
 			assert(child->_children_stick_length > sum_grandson_length);
+			sum_probability += child->_probability + child->_children_stick_length;
 		}
 		assert(total_stick_length > root_length + sum_child_length[i]);
+		cout << sum_probability << endl;
+		assert(sum_probability < total_stick_length);
 	}
 	assert(sum_child_length[0] > sum_child_length[1] && sum_child_length[1] > sum_child_length[2] && sum_child_length[2] > sum_child_length[3]);
 	delete[] sum_child_length;
@@ -1356,10 +1360,39 @@ void test_compute_node_probability_in_tssb(){
 		double stick_length = grandson_in_htssb->_stick_length;
 		double probability = grandson_in_htssb->_probability;
 		double children_stick_length = grandson_in_htssb->_children_stick_length;
+		double sum_probability = grandson_in_htssb->_sum_probability;
+		grandson_in_htssb->_stick_length = 0;
+		grandson_in_htssb->_probability = 0;
+		grandson_in_htssb->_children_stick_length = 0;
+		grandson_in_htssb->_sum_probability = 0;
 		ithmm->compute_node_probability_in_tssb(htssb, grandson_in_htssb, total_stick_length);
 		assert(stick_length == grandson_in_htssb->_stick_length);
 		assert(probability == grandson_in_htssb->_probability);
 		assert(children_stick_length == grandson_in_htssb->_children_stick_length);
+		assert(sum_probability == grandson_in_htssb->_sum_probability);
+	}
+}
+
+void test_add_and_remove_temporal_parameters(){
+	iTHMM* ithmm = new iTHMM();
+	ithmm->set_word_g0(0.001);
+	Node* root_in_structure = ithmm->_root_in_structure;
+	Node* root_in_htssb = ithmm->_root_in_htssb;
+	Node* root_in_bos = ithmm->_root_in_bos;
+	ithmm->generate_and_add_new_child_to(root_in_structure);
+	ithmm->generate_and_add_new_child_to(root_in_structure);
+	Node* child_in_structure = ithmm->generate_and_add_new_child_to(root_in_structure);
+	ithmm->generate_and_add_new_child_to(child_in_structure);
+	ithmm->generate_and_add_new_child_to(child_in_structure);
+	Node* grandson_in_structure = ithmm->generate_and_add_new_child_to(child_in_structure);
+	Node* grandson_in_htssb = grandson_in_structure->get_myself_in_transition_tssb();
+	Node* grandson_in_bos = ithmm->_bos_tssb->find_node_by_tracing_horizontal_indices(grandson_in_structure);
+
+	for(int i = 0;i < 100;i++){
+		ithmm->add_parameters(NULL, grandson_in_structure, root_in_structure, 1);
+		ithmm->add_parameters(NULL, grandson_in_structure, NULL, 1);
+		ithmm->add_parameters(root_in_structure, grandson_in_structure, NULL, 1);
+		ithmm->add_parameters(child_in_structure, grandson_in_structure, root_in_structure, 1);
 	}
 }
 
@@ -1409,6 +1442,8 @@ int main(){
 	test_delete_unnecessary_children();
 	cout << "OK" << endl;
 	test_compute_node_probability_in_tssb();
+	cout << "OK" << endl;
+	test_add_and_remove_temporal_parameters();
 	cout << "OK" << endl;
 	return 0;
 }
