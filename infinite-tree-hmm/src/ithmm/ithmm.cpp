@@ -530,10 +530,6 @@ namespace ithmm {
 		prev_state_in_structure->increment_transition_count_to_other();
 	}
 	void iTHMM::add_temporal_parameters(Node* prev_state_in_structure, Node* state_in_structure){
-		assert(prev_state_in_structure != NULL);
-		assert(state_in_structure != NULL);
-		assert(prev_state_in_structure->get_transition_tssb() != NULL);
-		assert(state_in_structure->get_transition_tssb() != NULL);
 		assert(is_node_in_structure_tssb(prev_state_in_structure));
 		assert(is_node_in_structure_tssb(state_in_structure));
 		if(_depth_limit >= 0){
@@ -700,10 +696,6 @@ namespace ithmm {
 		prev_state_in_structure->decrement_transition_count_to_other();
 	}
 	void iTHMM::remove_temporal_parameters(Node* prev_state_in_structure, Node* state_in_structure){
-		assert(prev_state_in_structure != NULL);
-		assert(state_in_structure != NULL);
-		assert(prev_state_in_structure->get_transition_tssb() != NULL);
-		assert(state_in_structure->get_transition_tssb() != NULL);
 		assert(is_node_in_structure_tssb(prev_state_in_structure));
 		assert(is_node_in_structure_tssb(state_in_structure));
 		if(_depth_limit >= 0){
@@ -888,11 +880,11 @@ namespace ithmm {
 			assert(is_node_in_structure_tssb(new_state_in_structure));
 
 
-			std::cout << "aaaa" << u << std::endl;
-			new_state_in_prev_htssb->dump();
-			std::cout << new_state_in_prev_htssb->_sum_probability << std::endl;
-			compute_node_probability_in_tssb(prev_state_transition_tssb, new_state_in_prev_htssb, 1.0);
-			std::cout << new_state_in_prev_htssb->_sum_probability << std::endl;
+			// std::cout << "aaaa" << u << std::endl;
+			// new_state_in_prev_htssb->dump();
+			// std::cout << new_state_in_prev_htssb->_sum_probability << std::endl;
+			// update_stick_length_of_tssb(prev_state_transition_tssb, 1.0);
+			// std::cout << new_state_in_prev_htssb->_sum_probability << std::endl;
 
 			// 出力確率
 			double new_p_w_given_s = compute_p_w_given_s(word_id, new_state_in_structure);
@@ -974,12 +966,12 @@ namespace ithmm {
 
 
 
-			double sum_probability = new_state_in_prev_htssb->_sum_probability;
-			compute_node_probability_in_tssb(prev_state_transition_tssb, new_state_in_prev_htssb, 1.0);
-			if(sum_probability != new_state_in_prev_htssb->_sum_probability){
-				std::cout << "(" << new_state_in_prev_htssb->_sum_probability << " != " << sum_probability << std::endl;
-			}
-			assert(new_state_in_prev_htssb->_sum_probability == sum_probability);
+			// double sum_probability = new_state_in_prev_htssb->_sum_probability;
+			// update_stick_length_of_tssb(prev_state_transition_tssb, 1.0);
+			// if(sum_probability != new_state_in_prev_htssb->_sum_probability){
+			// 	std::cout << "(" << new_state_in_prev_htssb->_sum_probability << " != " << sum_probability << std::endl;
+			// }
+			// assert(new_state_in_prev_htssb->_sum_probability == sum_probability);
 
 
 
@@ -992,11 +984,13 @@ namespace ithmm {
 
 			if(is_node_to_the_left_of_node(new_state_in_structure, state_in_structure)){
 				assert(new_state_in_prev_htssb->_sum_probability >= u);
-				st = new_state_in_prev_htssb->_sum_probability;
+				// st = new_state_in_prev_htssb->_sum_probability;
+				st = u;
 			}else{
 				assert(new_state_in_prev_htssb->_sum_probability >= u);
 				assert(new_state_in_prev_htssb->_sum_probability - new_state_in_prev_htssb->_probability <= u);
-				ed = new_state_in_prev_htssb->_sum_probability - new_state_in_prev_htssb->_probability;
+				// ed = new_state_in_prev_htssb->_sum_probability - new_state_in_prev_htssb->_probability;
+				ed = u;
 			}
 		}
 	}
@@ -1273,14 +1267,14 @@ namespace ithmm {
 		}else{
 			iterator->remove_customer_from_vertical_crp(empty_table_deleted);
 		}
-		// 総客数のインクリメント
+		// 総客数のデクリメント
 		Node* owner_in_structure = iterator->get_htssb_owner_node_in_structure();
 		assert(owner_in_structure != NULL);
 		TSSB* htssb = owner_in_structure->get_transition_tssb();
 		assert(htssb != NULL);
 		assert(htssb->get_owner_node_id() == iterator->get_htssb_owner_node_id());
 		htssb->decrement_num_customers();
-		// 参照カウントのインクリメント
+		// 参照カウントのデクリメント
 		Node* iterator_in_structure = iterator->get_myself_in_structure_tssb();
 		assert(iterator_in_structure != NULL);
 		iterator_in_structure->decrement_ref_count();
@@ -1298,7 +1292,7 @@ namespace ithmm {
 		}else{
 			iterator->remove_customer_from_horizontal_crp(empty_table_deleted);
 		}
-		// 総客数のインクリメント
+		// 総客数のデクリメント
 		Node* owner_in_structure = iterator->get_htssb_owner_node_in_structure();
 		assert(owner_in_structure != NULL);
 		TSSB* htssb = owner_in_structure->get_transition_tssb();
@@ -1307,7 +1301,7 @@ namespace ithmm {
 		for(int d = 0;d <= iterator->_depth_v;d++){	// 水平方向には深さの数だけ別のSBRがあり、別の客が追加されることに注意
 			htssb->decrement_num_customers();
 		}
-		// 参照カウントのインクリメント
+		// 参照カウントのデクリメント
 		Node* iterator_in_structure = iterator->get_myself_in_structure_tssb();
 		assert(iterator_in_structure != NULL);
 		iterator_in_structure->decrement_ref_count();
@@ -1592,31 +1586,54 @@ namespace ithmm {
 		double ratio_v = compute_expectation_of_vertical_sbr_ratio(root);
 		double sum_probability = total_stick_length * ratio_v;
 		root->_stick_length = total_stick_length;
-		root->_children_stick_length = total_stick_length * (1.0 - ratio_v);
 		root->_probability = ratio_v * total_stick_length;
+		// root->_children_stick_length = total_stick_length * (1.0 - ratio_v);
+		root->_children_stick_length = total_stick_length - root->_probability;
 		root->_sum_probability = root->_probability;
 		assert(root->_stick_length <= total_stick_length);
 		assert(root->_children_stick_length <= total_stick_length);
 		assert(root->_probability <= total_stick_length);
 		assert(root->_sum_probability <= total_stick_length);
+
+		if(root->_probability + root->_children_stick_length > total_stick_length){
+			printf("%.32lf\n", root->_probability);
+			printf("%.32lf\n", root->_children_stick_length);
+			printf("%.32lf\n", root->_probability + root->_children_stick_length);
+			printf("%.32lf\n", total_stick_length);
+			printf("%.32lf\n", total_stick_length - root->_probability - root->_children_stick_length);
+			double diff = total_stick_length - root->_probability;
+			printf("%.32lf\n", total_stick_length - root->_probability - diff);
+		}
+
+		assert(root->_probability + root->_children_stick_length <= total_stick_length);
 		_update_stick_length_of_parent_node(root, total_stick_length);
 	}
 	void iTHMM::_update_stick_length_of_parent_node(Node* parent, double total_stick_length){
 		assert(parent->_children_stick_length > 0);
 		double rest_stick_length = parent->_children_stick_length;	// 親ノードが持っている子ノードに割り当てる棒の長さ
 		double sum_stick_length_from_left_to_current_node = parent->_probability;
+		assert(rest_stick_length + sum_stick_length_from_left_to_current_node <= total_stick_length);
 		for(int i = 0;i < parent->_children.size();i++){
 			Node* child = parent->_children[i];
 			double ratio_h = compute_expectation_of_horizontal_sbr_ratio(child);
 			double ratio_v = compute_expectation_of_vertical_sbr_ratio(child);
 			child->_stick_length = rest_stick_length * ratio_h;		// このノードかこのノードの子ノードに止まる確率
 			child->_probability = child->_stick_length * ratio_v;	// このノードに止まる確率
-			child->_children_stick_length = child->_stick_length * (1.0 - ratio_v);	// 子ノードに割り当てる長さはこのノードに降りない確率
+			// child->_children_stick_length = child->_stick_length * (1.0 - ratio_v);	// 子ノードに割り当てる長さはこのノードに降りない確率
+			child->_children_stick_length = child->_stick_length - child->_probability;	// 子ノードに割り当てる長さはこのノードに降りない確率
 			// sum_probability += child->_probability;
+			child->_sum_probability = sum_stick_length_from_left_to_current_node + child->_probability;	// このノードより左側の全ての棒の長さの総和
 			sum_stick_length_from_left_to_current_node += child->_stick_length;	// 子の長さも含む
-			child->_sum_probability = sum_stick_length_from_left_to_current_node - child->_children_stick_length;	// このノードより左側の全ての棒の長さの総和
+			if(child->_sum_probability > total_stick_length){
+				std::cout << child->_sum_probability << std::endl;
+				std::cout << total_stick_length << std::endl;
+				printf("%.32lf", child->_sum_probability);
+				printf("%.32lf", total_stick_length);
+				printf("%.32lf", child->_sum_probability - total_stick_length);
+			}
 			assert(child->_sum_probability <= total_stick_length);
 			rest_stick_length *= 1.0 - ratio_h;
+			assert(rest_stick_length > 0);
 			if(child->has_child()){
 				_update_stick_length_of_parent_node(child, total_stick_length);
 			}

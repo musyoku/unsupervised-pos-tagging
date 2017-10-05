@@ -2,6 +2,7 @@
 #include <cassert>
 #include <string>
 #include <memory>
+#include <unordered_map>
 #include "../../src/ithmm/ithmm.h"
 #include "../../src/ithmm/sampler.h"
 using namespace ithmm;
@@ -1051,7 +1052,6 @@ void test_update_stick_length_of_tssb(){
 			sum_probability += child->_probability + child->_children_stick_length;
 		}
 		assert(total_stick_length > root_length + sum_child_length[i]);
-		cout << sum_probability << endl;
 		assert(sum_probability < total_stick_length);
 	}
 	assert(sum_child_length[0] > sum_child_length[1] && sum_child_length[1] > sum_child_length[2] && sum_child_length[2] > sum_child_length[3]);
@@ -1125,6 +1125,44 @@ void test_retrospective_sampling(){
 		}
 		assert(total_stick_length > root_length + sum_child_length);
 	}
+	delete ithmm;
+}
+
+void test_retrospective_sampling_statistics(){
+	iTHMM* ithmm = new iTHMM();
+	Node* root_in_structure = ithmm->_root_in_structure;
+	Node* root_in_htssb = ithmm->_root_in_htssb;
+	Node* root_in_bos = ithmm->_root_in_bos;
+	ithmm->_lambda_alpha = 0.1;
+	ithmm->_lambda_gamma = 1;
+	ithmm->_depth_limit = 1;
+	ithmm->_conc_h = 1;
+	ithmm->_conc_v = 1;
+	bool new_table_generated;
+	TSSB* transition_tssb = root_in_structure->get_transition_tssb();
+
+	for(int n = 1;n < 10;n++){
+		Node* child = ithmm->generate_and_add_new_child_to(root_in_structure);
+		Node* child_in_htssb = transition_tssb->find_node_by_tracing_horizontal_indices(child);
+		assert(child_in_htssb != NULL);
+		for(int i = 0;i < 10 * (10 - n);i++){
+			ithmm->add_customer_to_htssb_node(child_in_htssb);
+		}
+	}
+
+	ithmm->update_stick_length_of_tssb(transition_tssb, 1.0);
+	// transition_tssb->dump();
+	std::unordered_map<int, int> statistics;
+	for(int n = 0;n < 1000;n++){
+		double u = sampler::uniform(0, 1);
+		Node* node = ithmm->retrospective_sampling(u, transition_tssb, 1.0);
+		statistics[node->_identifier] += 1;
+	}
+	// for(auto elem: statistics){
+	// 	cout << elem.first << " : " << elem.second << endl;
+	// }
+
+	delete ithmm;
 }
 
 void test_add_and_remove_parameters(){
@@ -1408,7 +1446,7 @@ void test_add_and_remove_temporal_parameters(){
 
 	ithmm->add_temporal_parameters(grandson_in_structure, root_in_structure);
 	ithmm->remove_temporal_parameters(grandson_in_structure, root_in_structure);
-
+	
 	int _num_customers_grandson_to_root_v = grandson_in_structure->get_transition_tssb()->find_node_by_tracing_horizontal_indices(root_in_structure)->_table_v->get_num_customers();
 	int _num_customers_grandson_to_root_h = grandson_in_structure->get_transition_tssb()->find_node_by_tracing_horizontal_indices(root_in_structure)->_table_h->get_num_customers();
 	double _p_root_given_grandson = ithmm->compute_node_probability_in_tssb(grandson_in_structure->get_transition_tssb(), grandson_in_structure->get_transition_tssb()->find_node_by_tracing_horizontal_indices(root_in_structure), 1.0);
@@ -1418,7 +1456,35 @@ void test_add_and_remove_temporal_parameters(){
 	assert(num_customers_grandson_to_root_h == _num_customers_grandson_to_root_h);
 	assert(p_root_given_grandson == _p_root_given_grandson);
 	assert(p_eos_given_grandson == _p_eos_given_grandson);
-	
+}
+
+void test_initialize_with_training_dataset(){
+	iTHMM* ithmm = new iTHMM();
+	ithmm->set_word_g0(0.001);
+	std::vector<std::vector<Word*>> dataset;
+	std::vector<Word*> words;
+	for(int i = 0;i < 10000;i++){
+		Word* word = new Word();
+		word->_id = i;
+		word->_state = NULL;
+		words.push_back(word);
+	}
+	dataset.push_back(words);
+	ithmm->initialize_with_training_dataset(dataset);
+	ithmm->remove_all_data(dataset);
+	Node* root_in_structure = ithmm->_root_in_structure;
+	Node* root_in_htssb = ithmm->_root_in_htssb;
+	Node* root_in_bos = ithmm->_root_in_bos;
+	// cout << root_in_structure->_num_transitions_to_eos << endl;
+	// cout << root_in_structure->_num_transitions_to_other << endl;
+	// cout << ithmm->_structure_tssb->get_num_nodes() << endl;
+	// cout << ithmm->_structure_tssb->get_num_customers() << endl;
+	// cout << ithmm->_bos_tssb->get_num_nodes() << endl;
+	// cout << ithmm->_bos_tssb->get_num_customers() << endl;
+	for(int i = 0;i < 10000;i++){
+		delete words[i];
+	}
+	delete ithmm;
 }
 
 int main(){
@@ -1460,6 +1526,8 @@ int main(){
 	cout << "OK" << endl;
 	test_retrospective_sampling();
 	cout << "OK" << endl;
+	test_retrospective_sampling_statistics();
+	cout << "OK" << endl;
 	test_add_and_remove_parameters();
 	cout << "OK" << endl;
 	test_compute_p_w_given_s();
@@ -1469,6 +1537,8 @@ int main(){
 	test_compute_node_probability_in_tssb();
 	cout << "OK" << endl;
 	test_add_and_remove_temporal_parameters();
+	cout << "OK" << endl;
+	test_initialize_with_training_dataset();
 	cout << "OK" << endl;
 	return 0;
 }

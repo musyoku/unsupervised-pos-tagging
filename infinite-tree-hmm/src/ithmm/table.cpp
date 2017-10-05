@@ -95,6 +95,7 @@ namespace ithmm {
 		assert(_arrangement.size() > 0);
 		assert(_last_added_index < _arrangement.size());
 		_arrangement[_last_added_index] -= 1;
+		_num_customers -= 1;
 		if(_arrangement[_last_added_index] == 0){
 			_arrangement.erase(_arrangement.begin() + _last_added_index);
 			empty_table_deleted = true;
