@@ -21,14 +21,26 @@ int main(){
 
 	model->show_assigned_words_for_each_tag(dictionary, 10);
 
-	for(int i = 0;i < 1000000;i++){
+	for(int i = 0;i < 1000;i++){
 		trainer->gibbs();
 		// trainer->update_hyperparameters();
 		model->show_assigned_words_for_each_tag(dictionary, 10, false);
-		cout << "\r" << i << flush;
-		if(i % 100 == 0){
-			cout << trainer->compute_log_p_dataset_train() << endl;
-		}
 	}
+	model->save("ithmm.model");
+	double p_dataset = trainer->compute_log_p_dataset_train();
+	cout << model->_ithmm->_structure_tssb->_num_customers << endl;
+	delete model;
+
+	model = new Model("ithmm.model");
+	trainer->_model = model;
+	double _p_dataset = trainer->compute_log_p_dataset_train();
+	cout << model->_ithmm->_structure_tssb->_num_customers << endl;
+	cout << p_dataset << endl;
+	cout << _p_dataset << endl;
+
+	delete model;
+	delete trainer;
+	delete corpus;
+	delete dataset;
 	return 0;
 }

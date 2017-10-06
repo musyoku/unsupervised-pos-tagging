@@ -24,6 +24,7 @@ module_tests: ## 各モジュールのテスト.
 	./test/module_tests/ithmm
 
 running_tests:	## 学習テスト
+	$(CC) test/running_tests/save.cpp src/ithmm/*.cpp src/python/*.cpp -o test/running_tests/save $(INCLUDE) $(LDFLAGS) -O0 -g
 	$(CC) test/running_tests/train.cpp src/ithmm/*.cpp src/python/*.cpp -o test/running_tests/train $(INCLUDE) $(LDFLAGS) -O3
 
 .PHONY: help

@@ -10,6 +10,9 @@ namespace ithmm {
 		_forward_table = NULL;
 		_decode_table = NULL;
 	}
+	void Trainer::set_model(Model* model){
+		_model = model;
+	}
 	void Trainer::remove_all_data(){
 		_model->_ithmm->remove_all_data(_dataset->_word_sequences_train);
 		_model->_ithmm->delete_unnecessary_children();

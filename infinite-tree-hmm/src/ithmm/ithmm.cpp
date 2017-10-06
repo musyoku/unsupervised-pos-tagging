@@ -398,15 +398,16 @@ namespace ithmm {
 		assert(root->_children_stick_length <= total_stick_length);
 		assert(root->_sum_probability <= total_stick_length);
 		// uniform = uniform * root->_children_stick_length + sum_probability; // ルートを除外する場合
-		Node* node =  _retrospective_sampling_by_iterating_node(uniform, sum_probability, root);
+		Node* node =  _retrospective_sampling_by_iterating_node(uniform, root);
 		assert(node != NULL);
 		return node;
 	}
-	Node* iTHMM::_retrospective_sampling_by_iterating_node(double uniform, double &sum_probability, Node* iterator){
-		assert(sum_probability <= 1.0);
-		if(uniform < sum_probability){
+	Node* iTHMM::_retrospective_sampling_by_iterating_node(double uniform, Node* iterator){
+		// assert(sum_probability <= 1.0);
+		if(uniform < iterator->_sum_probability){
 			return iterator;
 		}
+		double sum_probability = iterator->_sum_probability;
 		// 棒の長さとノードの確率の関係に気をつける
 		// [<------------------- 棒の長さ -------------------]
 		// [<--親ノードの確率--><---子ノードに割り当てる長さ --->]
@@ -423,20 +424,21 @@ namespace ithmm {
 			child->_stick_length = rest_stick_length * ratio_h;
 			assert(child->_stick_length > 0);
 			child->_probability = child->_stick_length * ratio_v;
-			child->_children_stick_length = child->_stick_length * (1.0 - ratio_v);
+			// child->_children_stick_length = child->_stick_length * (1.0 - ratio_v);
+			child->_children_stick_length = child->_stick_length - child->_probability;
 			child->_sum_probability = sum_probability + sum_stick_length_over_children + child->_probability;
 			assert(child->_sum_probability <= 1.0);
 			if(uniform < sum_probability + sum_stick_length_over_children + child->_stick_length){
 				// child->_stick_lengthだけだとこのノードの棒の長さ（つまりこのノード+子ノードに割り当てる棒）なので
 				// ratio_vも掛けてこのノードで止まる確率にする必要がある
-				sum_probability += sum_stick_length_over_children + child->_stick_length * ratio_v;
-				if(uniform < sum_probability){
+				// sum_probability += sum_stick_length_over_children + child->_stick_length * ratio_v;
+				if(uniform < child->_sum_probability){
 					return child;
 				}
-				return _retrospective_sampling_by_iterating_node(uniform, sum_probability, child);
+				return _retrospective_sampling_by_iterating_node(uniform, child);
 			}
 			sum_stick_length_over_children += child->_stick_length;
-			rest_stick_length *= 1.0 - ratio_h;
+			rest_stick_length -= child->_stick_length;
 			assert(sum_stick_length_over_children <= 1.0);
 			assert(rest_stick_length > 0.0);
 			// last_node = child;
@@ -449,18 +451,19 @@ namespace ithmm {
 			double ratio_v = compute_expectation_of_vertical_sbr_ratio(child);
 			child->_stick_length = rest_stick_length * ratio_h;
 			child->_probability = child->_stick_length * ratio_v;
-			child->_children_stick_length = child->_stick_length * (1.0 - ratio_v);
+			// child->_children_stick_length = child->_stick_length * (1.0 - ratio_v);
+			child->_children_stick_length = child->_stick_length - child->_probability;
 			child->_sum_probability = sum_probability + sum_stick_length_over_children + child->_probability;
 			assert(child->_sum_probability <= 1.0);
 			if(uniform < sum_probability + sum_stick_length_over_children + child->_stick_length){
-				sum_probability += sum_stick_length_over_children + child->_probability;
-				if(uniform < sum_probability){
+				// sum_probability += sum_stick_length_over_children + child->_probability;
+				if(uniform < child->_sum_probability){
 					return child;
 				}
-				return _retrospective_sampling_by_iterating_node(uniform, sum_probability, child);
+				return _retrospective_sampling_by_iterating_node(uniform, child);
 			}
 			sum_stick_length_over_children += child->_stick_length;
-			rest_stick_length *= 1.0 - ratio_h;
+			rest_stick_length -= child->_stick_length;
 			assert(sum_stick_length_over_children <= 1.0);
 			assert(rest_stick_length > 0.0);
 		}
@@ -1434,7 +1437,7 @@ namespace ithmm {
 				}
 			}
 		}
-		assert(sbr_ratio > 0);
+		assert(0 < sbr_ratio && sbr_ratio <= 1);
 		// if(sbr_ratio <= 0){		// 仕方ない
 		// 	c_printf("[r]%s\n", "sbr_ratio <= 0");
 		// 	assert(parent_ratio_v > 0);
@@ -1520,7 +1523,7 @@ namespace ithmm {
 				}
 			}
 		}
-		assert(sbr_ratio > 0);
+		assert(0 < sbr_ratio && sbr_ratio <= 1);
 		// if(sbr_ratio <= 0){		// 仕方ない
 		// 	c_printf("[r]%s\n", "sbr_ratio_h <= 0");
 		// 	assert(parent_ratio_h > 0);
@@ -1552,7 +1555,8 @@ namespace ithmm {
 		iterator->_stick_length = total_stick_length;
 		double ratio_v = compute_expectation_of_vertical_sbr_ratio(iterator);
 		iterator->_probability = iterator->_stick_length * ratio_v;
-		iterator->_children_stick_length = iterator->_stick_length * (1.0 - ratio_v);
+		// iterator->_children_stick_length = iterator->_stick_length * (1.0 - ratio_v);
+		iterator->_children_stick_length = iterator->_stick_length - iterator->_probability;
 		iterator->_sum_probability = iterator->_probability;
 		assert(iterator->_probability <= total_stick_length);
 		assert(iterator->_children_stick_length <= total_stick_length);
@@ -1572,8 +1576,10 @@ namespace ithmm {
 				double probability = child->_stick_length * ratio_v;
 				assert(probability > 0);
 				child->_probability = probability;
-				child->_children_stick_length = child->_stick_length * (1.0 - ratio_v);
-				rest_stick_length *= (1.0 - ratio_h);
+				// child->_children_stick_length = child->_stick_length * (1.0 - ratio_v);
+				child->_children_stick_length = child->_stick_length - child->_probability;
+				// rest_stick_length *= (1.0 - ratio_h);
+				rest_stick_length -= child->_stick_length;
 			}
 			iterator = iterator->_children[depth_h];
 		}
@@ -1600,19 +1606,22 @@ namespace ithmm {
 			printf("%.32lf\n", root->_children_stick_length);
 			printf("%.32lf\n", root->_probability + root->_children_stick_length);
 			printf("%.32lf\n", total_stick_length);
-			printf("%.32lf\n", total_stick_length - root->_probability - root->_children_stick_length);
-			double diff = total_stick_length - root->_probability;
-			printf("%.32lf\n", total_stick_length - root->_probability - diff);
+			printf("%.32e\n", total_stick_length - root->_probability - root->_children_stick_length);
+			double add = root->_probability + root->_children_stick_length;
+			printf("%.32e\n", total_stick_length - add);
+			double diff = total_stick_length - add;
+			printf("%.32e\n", diff);
 		}
 
-		assert(root->_probability + root->_children_stick_length <= total_stick_length);
+		assert(total_stick_length - root->_probability - root->_children_stick_length == 0);
 		_update_stick_length_of_parent_node(root, total_stick_length);
 	}
 	void iTHMM::_update_stick_length_of_parent_node(Node* parent, double total_stick_length){
 		assert(parent->_children_stick_length > 0);
 		double rest_stick_length = parent->_children_stick_length;	// 親ノードが持っている子ノードに割り当てる棒の長さ
 		double sum_stick_length_from_left_to_current_node = parent->_probability;
-		assert(rest_stick_length + sum_stick_length_from_left_to_current_node <= total_stick_length);
+		// assert(rest_stick_length + sum_stick_length_from_left_to_current_node <= total_stick_length);
+		double stop_probability_h = 1;
 		for(int i = 0;i < parent->_children.size();i++){
 			Node* child = parent->_children[i];
 			double ratio_h = compute_expectation_of_horizontal_sbr_ratio(child);
@@ -1624,15 +1633,33 @@ namespace ithmm {
 			// sum_probability += child->_probability;
 			child->_sum_probability = sum_stick_length_from_left_to_current_node + child->_probability;	// このノードより左側の全ての棒の長さの総和
 			sum_stick_length_from_left_to_current_node += child->_stick_length;	// 子の長さも含む
+
+			// 一番右端で底のノードには残りの確率全てを割り当てる
+			// if(child->_depth_v == _depth_limit && i == parent->_children.size() - 1){
+			// 	child->_sum_probability = total_stick_length;
+			// }
+
 			if(child->_sum_probability > total_stick_length){
 				std::cout << child->_sum_probability << std::endl;
 				std::cout << total_stick_length << std::endl;
-				printf("%.32lf", child->_sum_probability);
-				printf("%.32lf", total_stick_length);
-				printf("%.32lf", child->_sum_probability - total_stick_length);
+				printf("%d\n", i);
+				printf("%lu\n", parent->_children.size());
+				printf("%.32e\n", rest_stick_length);
+				printf("%.32e\n", stop_probability_h * ratio_h);
+				printf("%.32e\n", ratio_h);
+				printf("%.32e\n", ratio_v);
+				printf("%.32e\n", child->_stick_length);
+				printf("%.32e\n", child->_children_stick_length);
+				printf("%.32e\n", child->_probability);
+				printf("%.32e\n", child->_sum_probability);
+				printf("%.32e\n", total_stick_length);
+				printf("%.32e\n", sum_stick_length_from_left_to_current_node);
+				printf("%.32e\n", child->_sum_probability - total_stick_length);
 			}
-			assert(child->_sum_probability <= total_stick_length);
-			rest_stick_length *= 1.0 - ratio_h;
+
+			assert(total_stick_length - child->_sum_probability >= 0);
+			rest_stick_length -= child->_stick_length;
+			stop_probability_h *= 1.0 - ratio_h;
 			assert(rest_stick_length > 0);
 			if(child->has_child()){
 				_update_stick_length_of_parent_node(child, total_stick_length);
@@ -1845,10 +1872,10 @@ namespace ithmm {
 					node_in_htssb->init_horizontal_indices();
 					node_in_htssb->init_pointers_from_root_to_myself();
 				}
-				std::vector<Node*>().swap(nodes_in_htssb);	// 解放
+				// std::vector<Node*>().swap(nodes_in_htssb);	// 解放
 			}
 			nodes.clear();
-			std::vector<Node*>().swap(nodes);				// 解放
+			// std::vector<Node*>().swap(nodes);				// 解放
 			_bos_tssb->enumerate_nodes_from_left_to_right(nodes);
 			for(auto node: nodes){
 				// 配列を確保
@@ -1856,7 +1883,7 @@ namespace ithmm {
 				node->init_horizontal_indices();
 				node->init_pointers_from_root_to_myself();
 			}
-			std::vector<Node*>().swap(nodes);				// 解放
+			// std::vector<Node*>().swap(nodes);				// 解放
 			success = true;
 		}
 		ifs.close();

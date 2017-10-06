@@ -43,6 +43,9 @@ namespace ithmm {
 		ar & _root;
 		ar & _owner;
 		ar & _num_customers;
+		ar & _is_bos;
+		ar & _is_structure;
+		ar & _is_htssb;
 	}
 	template void TSSB::serialize(boost::archive::binary_iarchive &ar, unsigned int version);
 	template void TSSB::serialize(boost::archive::binary_oarchive &ar, unsigned int version);

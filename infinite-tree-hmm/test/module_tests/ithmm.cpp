@@ -1056,6 +1056,23 @@ void test_update_stick_length_of_tssb(){
 	}
 	assert(sum_child_length[0] > sum_child_length[1] && sum_child_length[1] > sum_child_length[2] && sum_child_length[2] > sum_child_length[3]);
 	delete[] sum_child_length;
+	delete ithmm;
+
+	// ithmm = new iTHMM();
+	// root_in_structure = ithmm->_root_in_structure;
+	// root_in_htssb = ithmm->_root_in_htssb;
+	// root_in_bos = ithmm->_root_in_bos;
+	// htssb = root_in_structure->get_transition_tssb();
+	// for(int i = 0;i < 100;i++){
+	// 	Node* child = ithmm->generate_and_add_new_child_to(root_in_structure);
+	// 	Node* child_in_htssb = htssb->find_node_by_tracing_horizontal_indices(child);
+	// 	for(int n = 1;n < 10 * i;n++){
+	// 		ithmm->add_customer_to_htssb_node(child_in_htssb);
+	// 	}
+	// }
+	// total_stick_length = sampler::uniform(0, 1);
+	// ithmm->update_stick_length_of_tssb(htssb, total_stick_length);
+	// delete ithmm;
 }
 
 void test_retrospective_sampling(){
@@ -1406,6 +1423,10 @@ void test_compute_node_probability_in_tssb(){
 		ithmm->compute_node_probability_in_tssb(htssb, grandson_in_htssb, total_stick_length);
 		assert(stick_length == grandson_in_htssb->_stick_length);
 		assert(probability == grandson_in_htssb->_probability);
+		if(children_stick_length != grandson_in_htssb->_children_stick_length){
+			printf("%.32e\n", children_stick_length);
+			printf("%.32e\n", grandson_in_htssb->_children_stick_length);
+		}
 		assert(children_stick_length == grandson_in_htssb->_children_stick_length);
 	}
 }

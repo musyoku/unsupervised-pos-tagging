@@ -58,6 +58,9 @@ namespace ithmm {
 		ar & _ref_count;
 		ar & _myself_in_structure_tssb;
 		ar & _myself_in_bos_tssb;
+		ar & _is_structure_node;
+		ar & _is_htssb_node;
+		ar & _is_bos_tssb_node;
 	}
 	template void Node::serialize(boost::archive::binary_iarchive &ar, unsigned int version);
 	template void Node::serialize(boost::archive::binary_oarchive &ar, unsigned int version);

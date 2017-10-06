@@ -17,8 +17,8 @@ namespace ithmm {
 		double _compute_perplexity(std::vector<std::vector<Word*>> &dataset);
 		std::vector<int> _rand_indices;
 		Dataset* _dataset;
-		Model* _model;
 		Dictionary* _dict;
+		Model* _model;
 		double** _forward_table;		// 前向き確率計算用
 		double** _decode_table;			// viterbiデコーディング用
 	public:
@@ -33,5 +33,6 @@ namespace ithmm {
 		double compute_perplexity_dev();
 		void update_hyperparameters();
 		void show_assigned_words_for_each_tag(Dictionary* dict, int number_to_show_for_each_tag, bool show_probability = true);
+		void set_model(Model* model);
 	};
 }

@@ -88,7 +88,7 @@ namespace ithmm {
 		Node* sample_node_in_htssb(TSSB* tssb, bool ignore_root = false);
 		Node* _sample_node_in_tssb_by_iterating_node(Node* iterator, bool ignore_root = false);
 		Node* retrospective_sampling(double uniform, TSSB* tssb, double total_stick_length);
-		Node* _retrospective_sampling_by_iterating_node(double uniform, double &sum_probability, Node* iterator);
+		Node* _retrospective_sampling_by_iterating_node(double uniform, Node* iterator);
 		void update_stick_length_of_tssb(TSSB* tssb, double total_stick_length);
 		void _update_stick_length_of_parent_node(Node* parent, double total_stick_length);
 		void gibbs(std::vector<Word*> &sentence);
