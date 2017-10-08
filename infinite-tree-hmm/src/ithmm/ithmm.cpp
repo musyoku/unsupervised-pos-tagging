@@ -1630,17 +1630,17 @@ namespace ithmm {
 		assert(root->_probability <= total_stick_length);
 		assert(root->_sum_probability <= total_stick_length);
 
-		if(root->_probability + root->_children_stick_length > total_stick_length){
-			printf("%.32lf\n", root->_probability);
-			printf("%.32lf\n", root->_children_stick_length);
-			printf("%.32lf\n", root->_probability + root->_children_stick_length);
-			printf("%.32lf\n", total_stick_length);
-			printf("%.32e\n", total_stick_length - root->_probability - root->_children_stick_length);
-			double add = root->_probability + root->_children_stick_length;
-			printf("%.32e\n", total_stick_length - add);
-			double diff = total_stick_length - add;
-			printf("%.32e\n", diff);
-		}
+		// if(root->_probability + root->_children_stick_length > total_stick_length){
+		// 	printf("%.32lf\n", root->_probability);
+		// 	printf("%.32lf\n", root->_children_stick_length);
+		// 	printf("%.32lf\n", root->_probability + root->_children_stick_length);
+		// 	printf("%.32lf\n", total_stick_length);
+		// 	printf("%.32e\n", total_stick_length - root->_probability - root->_children_stick_length);
+		// 	double add = root->_probability + root->_children_stick_length;
+		// 	printf("%.32e\n", total_stick_length - add);
+		// 	double diff = total_stick_length - add;
+		// 	printf("%.32e\n", diff);
+		// }
 
 		assert(total_stick_length - root->_probability - root->_children_stick_length == 0);
 		_update_stick_length_of_parent_node(root, total_stick_length);
@@ -1668,23 +1668,23 @@ namespace ithmm {
 			// 	child->_sum_probability = total_stick_length;
 			// }
 
-			if(child->_sum_probability > total_stick_length){
-				std::cout << child->_sum_probability << std::endl;
-				std::cout << total_stick_length << std::endl;
-				printf("%d\n", i);
-				printf("%lu\n", parent->_children.size());
-				printf("%.32e\n", rest_stick_length);
-				printf("%.32e\n", stop_probability_h * ratio_h);
-				printf("%.32e\n", ratio_h);
-				printf("%.32e\n", ratio_v);
-				printf("%.32e\n", child->_stick_length);
-				printf("%.32e\n", child->_children_stick_length);
-				printf("%.32e\n", child->_probability);
-				printf("%.32e\n", child->_sum_probability);
-				printf("%.32e\n", total_stick_length);
-				printf("%.32e\n", sum_stick_length_from_left_to_current_node);
-				printf("%.32e\n", child->_sum_probability - total_stick_length);
-			}
+			// if(child->_sum_probability > total_stick_length){
+			// 	std::cout << child->_sum_probability << std::endl;
+			// 	std::cout << total_stick_length << std::endl;
+			// 	printf("%d\n", i);
+			// 	printf("%lu\n", parent->_children.size());
+			// 	printf("%.32e\n", rest_stick_length);
+			// 	printf("%.32e\n", stop_probability_h * ratio_h);
+			// 	printf("%.32e\n", ratio_h);
+			// 	printf("%.32e\n", ratio_v);
+			// 	printf("%.32e\n", child->_stick_length);
+			// 	printf("%.32e\n", child->_children_stick_length);
+			// 	printf("%.32e\n", child->_probability);
+			// 	printf("%.32e\n", child->_sum_probability);
+			// 	printf("%.32e\n", total_stick_length);
+			// 	printf("%.32e\n", sum_stick_length_from_left_to_current_node);
+			// 	printf("%.32e\n", child->_sum_probability - total_stick_length);
+			// }
 
 			assert(total_stick_length - child->_sum_probability >= 0);
 			rest_stick_length -= child->_stick_length;
