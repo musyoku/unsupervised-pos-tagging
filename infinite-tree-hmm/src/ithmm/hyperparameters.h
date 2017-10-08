@@ -12,10 +12,10 @@
 
 // HTSSBで親の情報をどの程度受け継ぐかを制御するパラメータ
 // 論文では上のαと同じ記号が使われているが区別する必要がある
-#define ITHMM_SBP_CONCENTRATION_VERTICAL_STRENGTH_MIN 	1
-#define ITHMM_SBP_CONCENTRATION_VERTICAL_STRENGTH_MAX 	100
-#define ITHMM_SBP_CONCENTRATION_HORIZONTAL_STRENGTH_MIN 1
-#define ITHMM_SBP_CONCENTRATION_HORIZONTAL_STRENGTH_MAX 100
+#define ITHMM_SBP_CONCENTRATION_VERTICAL_STRENGTH_MIN 	0.1
+#define ITHMM_SBP_CONCENTRATION_VERTICAL_STRENGTH_MAX 	1
+#define ITHMM_SBP_CONCENTRATION_HORIZONTAL_STRENGTH_MIN 0.1
+#define ITHMM_SBP_CONCENTRATION_HORIZONTAL_STRENGTH_MAX 1
 
 // これらのハイパーパラメータは固定*2
 #define iTHMM_TAU_0 1.0
@@ -24,7 +24,7 @@
 // 以下はHPYLMのハイパーパラメータの初期値*3
 // 実行中にサンプリングして正しい値を推定する
 #define HPYLM_D 0.2					// 0以上1未満. ディスカウント係数
-#define HPYLM_THETA 0.01			// 集中度
+#define HPYLM_THETA 1			// 集中度
 // 以下は上のハイパーパラメータ2つを推定する時に使うハイパーパラメータ
 // 実行中常に固定値
 #define HPYLM_A 	1.0

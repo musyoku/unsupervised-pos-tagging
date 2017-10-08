@@ -143,7 +143,11 @@ namespace ithmm {
 		assert(_num_customers >= 0);
 	}
 	void TSSB::dump(){
-		cout << (boost::format("TSSB[ow:$%d,#c:%d,#ct:%d]") % get_owner_node_id() % _num_customers % get_num_customers()).str() << endl;
+		if(_owner == NULL){
+			cout << (boost::format("TSSB[#c:%d,#ct:%d]") % _num_customers % get_num_customers()).str() << endl;
+		}else{
+			cout << (boost::format("TSSB[ow:$%d,#c:%d,#ct:%d]") % get_owner_node_id() % _num_customers % get_num_customers()).str() << endl;
+		}
 		_dump(_root);
 	}
 	void TSSB::_dump(Node* node){

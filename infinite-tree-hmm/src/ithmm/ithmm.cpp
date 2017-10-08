@@ -656,9 +656,9 @@ namespace ithmm {
 		add_customer_to_htssb_node(state_in_prev_state_htssb);
 		add_customer_to_tssb_node(state_in_structure);			// 参照カウント用
 
-		TSSB* next_state_tssb = state_in_structure->get_transition_tssb();
-		assert(next_state_tssb != NULL);
-		Node* next_state_in_state_htssb = next_state_tssb->find_node_by_tracing_horizontal_indices(next_state_in_structure);
+		TSSB* state_transition_tssb = state_in_structure->get_transition_tssb();
+		assert(state_transition_tssb != NULL);
+		Node* next_state_in_state_htssb = state_transition_tssb->find_node_by_tracing_horizontal_indices(next_state_in_structure);
 		assert(next_state_in_state_htssb != NULL);
 		assert(next_state_in_structure->_identifier == next_state_in_state_htssb->_identifier);
 		add_customer_to_htssb_node(next_state_in_state_htssb);
@@ -844,6 +844,7 @@ namespace ithmm {
 		return _draw_state(prev_state_in_structure, state_in_structure, next_state_in_structure, word_id);
 	}
 	Node* iTHMM::_draw_state(Node* prev_state_in_structure, Node* state_in_structure, Node* next_state_in_structure, id word_id){
+		// std::cout << "_draw_state" << std::endl;
 		assert(prev_state_in_structure != NULL);
 		assert(state_in_structure != NULL);
 		assert(next_state_in_structure != NULL);
@@ -888,13 +889,29 @@ namespace ithmm {
 
 		while(true){
 			double u = sampler::uniform(st, ed);
+			// std::cout << "u = " << u << std::endl;
 			if( (st <= u && u < ed) == false ){		// 見つからなかったら元の状態を返す
+				// std::cout << "FUUUUUUUUUUUUUUUUCCCCCCCCCCCCCCCCCKKKKKKK!" << std::endl;
+				// state_in_structure->dump();
 				return state_in_structure;
 			}
 			// assert(st <= u && u < ed);
 
 			TSSB* prev_state_transition_tssb = prev_state_in_structure->get_transition_tssb();
 			assert(prev_state_transition_tssb != NULL);
+
+
+
+			// update_stick_length_of_tssb(_root_in_structure->get_transition_tssb(), 1.0);
+			// _root_in_structure->get_transition_tssb()->dump();
+			// update_stick_length_of_tssb(prev_state_transition_tssb, 1.0);
+			// prev_state_transition_tssb->dump();
+
+
+
+
+
+
 			Node* new_state_in_prev_htssb = retrospective_sampling(u, prev_state_transition_tssb, 1.0);
 			assert(new_state_in_prev_htssb != NULL);
 			Node* new_state_in_structure = new_state_in_prev_htssb->get_myself_in_structure_tssb();
@@ -939,6 +956,7 @@ namespace ithmm {
 			if(likelihoood > slice){
 				if(_mh_enabled == false){
 					_num_mh_acceptance += 1;
+					// new_state_in_structure->dump();
 					return new_state_in_structure;
 				}
 				// メトロポリス・ヘイスティングス法による補正
@@ -994,14 +1012,6 @@ namespace ithmm {
 			// 	std::cout << "(" << new_state_in_prev_htssb->_sum_probability << " != " << sum_probability << std::endl;
 			// }
 			// assert(new_state_in_prev_htssb->_sum_probability == sum_probability);
-
-
-
-
-
-
-
-
 
 
 			if(is_node_to_the_left_of_node(new_state_in_structure, state_in_structure)){
