@@ -1,11 +1,5 @@
 #pragma once
 #include <boost/serialization/serialization.hpp>
-#include <boost/serialization/base_object.hpp>
-#include <boost/archive/binary_iarchive.hpp>
-#include <boost/archive/binary_oarchive.hpp>
-#include <boost/serialization/unordered_map.hpp>
-#include <boost/serialization/map.hpp>
-#include <boost/serialization/vector.hpp>
 #include <unordered_map>
 #include <map>
 #include "common.h"
@@ -15,22 +9,6 @@ namespace ithmm {
 	class HPYLM;
 	class TSSB;
 	class Node {
-	private:
-		friend class boost::serialization::access;
-		template <class Archive>
-		void serialize(Archive &ar, unsigned int version);
-		// ポインタを張る
-		//// 木構造上のノードの場合は以下のみ有効
-		TSSB* _transition_tssb;					// 遷移確率を表すTSSBのルート
-		Node* _myself_in_transition_tssb;			// 遷移確率を表すTSSBの自分と同じ位置のノード
-		Node* _myself_in_bos_tssb;					// <bos>TSSBでの自分と同じ位置のノード
-		//// HTSSB上のノードの場合は以下のみ有効
-		Node* _myself_in_parent_transition_tssb;	// 木構造上の親ノードが持つ遷移確率TSSBの自分と同じ位置のノード
-		Node* _myself_in_structure_tssb;			// 木構造上の自分と同じ位置のノード
-		bool _is_structure_node;
-		bool _is_htssb_node;
-		bool _is_bos_tssb_node;
-		Node* _htssb_owner_node_in_structure;	// このHTSSBを木構造のどのノードが持っているか
 	public:
 		static int _auto_increment;
 		int _identifier;		// ノードID
@@ -60,6 +38,18 @@ namespace ithmm {
 		double* _stop_probability_h_over_parent;
 		double* _stop_ratio_h_over_parent;
 		int _ref_count;							// 参照カウント
+		// ポインタを張る
+		//// 木構造上のノードの場合は以下のみ有効
+		TSSB* _transition_tssb;					// 遷移確率を表すTSSBのルート
+		Node* _myself_in_transition_tssb;			// 遷移確率を表すTSSBの自分と同じ位置のノード
+		Node* _myself_in_bos_tssb;					// <bos>TSSBでの自分と同じ位置のノード
+		//// HTSSB上のノードの場合は以下のみ有効
+		Node* _myself_in_parent_transition_tssb;	// 木構造上の親ノードが持つ遷移確率TSSBの自分と同じ位置のノード
+		Node* _myself_in_structure_tssb;			// 木構造上の自分と同じ位置のノード
+		bool _is_structure_node;
+		bool _is_htssb_node;
+		bool _is_bos_tssb_node;
+		Node* _htssb_owner_node_in_structure;	// このHTSSBを木構造のどのノードが持っているか
 		Node();
 		Node(Node* parent);
 		Node(Node* parent, int identifier);
@@ -128,9 +118,20 @@ namespace ithmm {
 		bool delete_node_if_needed();
 		Node* delete_child_node(int node_id);
 		static void _delete_all_children(Node* parent);
+		template <class Archive>
+		void serialize(Archive &ar, unsigned int version);
 		void dump();
 		std::string _dump_indices();
 		std::wstring _wdump_indices();
 		std::string _dump();
 	};
+}
+
+namespace boost { 
+	namespace serialization {
+		template<class Archive>
+		void save(Archive &ar, const ithmm::Node &node, unsigned int version);
+		template<class Archive>
+		void load(Archive &ar, ithmm::Node &node, unsigned int version);
+	}
 }

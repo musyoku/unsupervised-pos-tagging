@@ -7,13 +7,7 @@ namespace ithmm {
 	using std::endl;
 
 	TSSB::TSSB(){
-		_root = new Node(NULL);
-		_root->_stick_length = 1;
-		_owner = NULL;
-		_num_customers = 0;
-		_is_bos = false;
-		_is_structure = false;
-		_is_htssb = false;
+
 	}
 	TSSB::TSSB(Node* root){
 		_root = root;

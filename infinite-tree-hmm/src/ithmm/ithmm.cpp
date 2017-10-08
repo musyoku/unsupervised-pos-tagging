@@ -1,3 +1,7 @@
+#include <boost/serialization/base_object.hpp>
+#include <boost/archive/binary_iarchive.hpp>
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/serialization/vector.hpp>
 #include "ithmm.h"
 #include "sampler.h"
 #include "cprintf.h"
@@ -19,7 +23,6 @@ namespace ithmm {
 	template <class Archive>
 	void iTHMM::serialize(Archive& ar, unsigned int version)
 	{
-		static_cast<void>(version);
 		ar & _structure_tssb;
 		ar & _bos_tssb;
 		ar & _alpha;
@@ -39,23 +42,36 @@ namespace ithmm {
 		ar & _hpylm_beta_m;
 	}
 	iTHMM::iTHMM(){
-		_alpha = sampler::uniform(iTHMM_ALPHA_MIN, iTHMM_ALPHA_MAX);
-		_gamma = sampler::uniform(iTHMM_GAMMA_MIN, iTHMM_GAMMA_MAX);
-		_lambda_alpha = sampler::uniform(iTHMM_LAMBDA_ALPHA_MIN, iTHMM_LAMBDA_ALPHA_MAX);
-		_lambda_gamma = sampler::uniform(iTHMM_LAMBDA_GAMMA_MAX, iTHMM_LAMBDA_GAMMA_MAX);
-		_conc_h = sampler::uniform(ITHMM_SBP_CONCENTRATION_HORIZONTAL_STRENGTH_MIN, ITHMM_SBP_CONCENTRATION_HORIZONTAL_STRENGTH_MAX);
-		_conc_v = sampler::uniform(ITHMM_SBP_CONCENTRATION_VERTICAL_STRENGTH_MIN, ITHMM_SBP_CONCENTRATION_VERTICAL_STRENGTH_MAX);
-		_tau0 = iTHMM_TAU_0;
-		_tau1 = iTHMM_TAU_1;
-		_current_max_depth = 0;
-		_word_g0 = -1;
-		_depth_limit = -1;
 
-		_structure_tssb = new TSSB();
-		_structure_tssb->_is_structure = true;
-		_root_in_structure = _structure_tssb->_root;
+	}
+	iTHMM::iTHMM(double alpha, 
+				 double gamma, 
+				 double lambda_alpha, 
+				 double lambda_gamma, 
+				 double conc_h, 
+				 double conc_v, 
+				 double tau0, 
+				 double tau1, 
+				 double word_g0, 
+				 int depth_limit){
+		_alpha = alpha;
+		_gamma = gamma;
+		_lambda_alpha = lambda_alpha;
+		_lambda_gamma = lambda_gamma;
+		_conc_h = conc_h;
+		_conc_v = conc_v;
+		_tau0 = tau0;
+		_tau1 = tau1;
+		_current_max_depth = 0;
+		word_g0 = -1;
+		_depth_limit = depth_limit;
+
+		_root_in_structure = new Node(NULL);
 		_root_in_structure->set_as_structure_node();
 		_root_in_structure->init_hpylm();
+
+		_structure_tssb = new TSSB(_root_in_structure);
+		_structure_tssb->_is_structure = true;
 
 		_root_in_htssb = new Node(NULL, _root_in_structure->_identifier);
 		_root_in_htssb->set_as_htssb_node();
@@ -80,7 +96,7 @@ namespace ithmm {
 		_hpylm_alpha_m.push_back(HPYLM_ALPHA);
 		_hpylm_beta_m.push_back(HPYLM_BETA);
 
-		_mh_enabled = true;
+		_mh_enabled = false;
 		_num_mh_rejection = 0;
 		_num_mh_acceptance = 0;
 	}
@@ -1853,36 +1869,36 @@ namespace ithmm {
 		if(ifs.good()){
 			boost::archive::binary_iarchive iarchive(ifs);
 			iarchive >> *this;
-			assert(_structure_tssb != NULL);
-			assert(_structure_tssb->_root != NULL);
-			std::vector<Node*> nodes;
-			_structure_tssb->enumerate_nodes_from_left_to_right(nodes);
-			for(auto node: nodes){
-				// 配列を確保
-				node->init_arrays();
-				node->init_horizontal_indices();
-				node->init_pointers_from_root_to_myself();
-				std::vector<Node*> nodes_in_htssb;
-				TSSB* transition_tssb = node->get_transition_tssb();
-				assert(transition_tssb != NULL);
-				transition_tssb->enumerate_nodes_from_left_to_right(nodes_in_htssb);
-				for(auto node_in_htssb: nodes_in_htssb){
-					// 配列を確保
-					node_in_htssb->init_arrays();
-					node_in_htssb->init_horizontal_indices();
-					node_in_htssb->init_pointers_from_root_to_myself();
-				}
-				// std::vector<Node*>().swap(nodes_in_htssb);	// 解放
-			}
-			nodes.clear();
-			// std::vector<Node*>().swap(nodes);				// 解放
-			_bos_tssb->enumerate_nodes_from_left_to_right(nodes);
-			for(auto node: nodes){
-				// 配列を確保
-				node->init_arrays();
-				node->init_horizontal_indices();
-				node->init_pointers_from_root_to_myself();
-			}
+			// assert(_structure_tssb != NULL);
+			// assert(_structure_tssb->_root != NULL);
+			// std::vector<Node*> nodes;
+			// _structure_tssb->enumerate_nodes_from_left_to_right(nodes);
+			// for(auto node: nodes){
+			// 	// 配列を確保
+			// 	node->init_arrays();
+			// 	node->init_horizontal_indices();
+			// 	node->init_pointers_from_root_to_myself();
+			// 	std::vector<Node*> nodes_in_htssb;
+			// 	TSSB* transition_tssb = node->get_transition_tssb();
+			// 	assert(transition_tssb != NULL);
+			// 	transition_tssb->enumerate_nodes_from_left_to_right(nodes_in_htssb);
+			// 	for(auto node_in_htssb: nodes_in_htssb){
+			// 		// 配列を確保
+			// 		node_in_htssb->init_arrays();
+			// 		node_in_htssb->init_horizontal_indices();
+			// 		node_in_htssb->init_pointers_from_root_to_myself();
+			// 	}
+			// 	// std::vector<Node*>().swap(nodes_in_htssb);	// 解放
+			// }
+			// nodes.clear();
+			// // std::vector<Node*>().swap(nodes);				// 解放
+			// _bos_tssb->enumerate_nodes_from_left_to_right(nodes);
+			// for(auto node: nodes){
+			// 	// 配列を確保
+			// 	node->init_arrays();
+			// 	node->init_horizontal_indices();
+			// 	node->init_pointers_from_root_to_myself();
+			// }
 			// std::vector<Node*>().swap(nodes);				// 解放
 			success = true;
 		}

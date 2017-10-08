@@ -1,9 +1,5 @@
 #pragma once
 #include <boost/serialization/serialization.hpp>
-#include <boost/serialization/base_object.hpp>
-#include <boost/archive/binary_iarchive.hpp>
-#include <boost/archive/binary_oarchive.hpp>
-#include <boost/serialization/vector.hpp>
 #include <boost/format.hpp>
 #include <cmath>
 #include <vector>
@@ -56,6 +52,7 @@ namespace ithmm {
 		Node* _root_in_htssb;
 		Node* _root_in_bos;
 		iTHMM();
+		iTHMM(double alpha, double gamma, double lambda_alpha, double lambda_gamma, double conc_h, double conc_v, double tau0, double tau1, double word_g0, int depth_limit);
 		~iTHMM();
 		void initialize_with_training_dataset(std::vector<std::vector<Word*>> &dataset);
 		void remove_all_data(std::vector<std::vector<Word*>> &dataset);

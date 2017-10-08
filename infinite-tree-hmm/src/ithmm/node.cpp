@@ -1,3 +1,9 @@
+#include <boost/serialization/base_object.hpp>
+#include <boost/archive/binary_iarchive.hpp>
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/serialization/unordered_map.hpp>
+#include <boost/serialization/map.hpp>
+#include <boost/serialization/vector.hpp>
 #include <boost/format.hpp>
 #include <cassert>
 #include "cprintf.h"
@@ -12,58 +18,32 @@ namespace ithmm {
 	using std::endl;
 
 	Node::Node(){
-		_auto_increment++;
-		_identifier = _auto_increment;
-		_parent = NULL;
-		init();
+		// _auto_increment++;
+		// _identifier = _auto_increment;
+		// _parent = NULL;
+		// init();
 	}
 	Node::Node(Node* parent){
 		_auto_increment++;
 		_identifier = _auto_increment;
 		_parent = parent;
 		init();
+		init_arrays();
+		init_horizontal_indices();
+		init_pointers_from_root_to_myself();
+		_table_v = new Table();
+		_table_h = new Table();
 	}
 	Node::Node(Node* parent, int identifier){
 		_identifier = identifier;
 		_parent = parent;
 		init();
+		init_arrays();
+		init_horizontal_indices();
+		init_pointers_from_root_to_myself();
+		_table_v = new Table();
+		_table_h = new Table();
 	}
-	template <class Archive>
-	void Node::serialize(Archive & ar, unsigned int version)
-	{
-		ar & _auto_increment;;
-		ar & _identifier;
-		ar & _htssb_owner_node_in_structure;
-		ar & _parent;
-		ar & _depth_v;
-		ar & _depth_h;
-		ar & _pass_count_v;
-		ar & _stop_count_v;
-		ar & _pass_count_h;
-		ar & _stop_count_h;
-		ar & _num_word_assignment;
-		ar & _num_transitions_to_eos;
-		ar & _num_transitions_to_other;
-		ar & _table_v;
-		ar & _table_h;
-		ar & _children;
-		ar & _stick_length;
-		ar & _children_stick_length;
-		ar & _probability;
-		ar & _sum_probability;
-		ar & _hpylm;
-		ar & _transition_tssb;
-		ar & _myself_in_transition_tssb;
-		ar & _myself_in_parent_transition_tssb;
-		ar & _ref_count;
-		ar & _myself_in_structure_tssb;
-		ar & _myself_in_bos_tssb;
-		ar & _is_structure_node;
-		ar & _is_htssb_node;
-		ar & _is_bos_tssb_node;
-	}
-	template void Node::serialize(boost::archive::binary_iarchive &ar, unsigned int version);
-	template void Node::serialize(boost::archive::binary_oarchive &ar, unsigned int version);
 	void Node::init(){
 		_depth_v = (_parent != NULL) ? _parent->_depth_v + 1 : 0;
 		_depth_h = (_parent != NULL) ? _parent->_children.size() : 0;
@@ -84,15 +64,12 @@ namespace ithmm {
 		_myself_in_structure_tssb = NULL;
 		_myself_in_bos_tssb = NULL;
 		_htssb_owner_node_in_structure = (_parent != NULL) ? _parent->_htssb_owner_node_in_structure : NULL;
-		_table_v = new Table();
-		_table_h = new Table();
+		_table_v = NULL;
+		_table_h = NULL;
 		_hpylm = NULL;
 		_is_structure_node = false;
 		_is_htssb_node = false;
 		_is_bos_tssb_node = false;
-		init_arrays();
-		init_horizontal_indices();
-		init_pointers_from_root_to_myself();
 	}
 	void Node::init_hpylm(){
 		_hpylm = new HPYLM(this);
@@ -503,5 +480,87 @@ namespace ithmm {
 			% (_stick_length - _children_stick_length) % _children_stick_length % _probability % _sum_probability % owner_node_id 
 			% _depth_v % _depth_h % indices_str.c_str() % hpylm_str.c_str() % _num_transitions_to_eos % _num_transitions_to_other).str();
 	}
+	template <class Archive>
+	void Node::serialize(Archive &ar, unsigned int version){
+		boost::serialization::split_free(ar, *this, version);
+	}
+	template void Node::serialize<boost::archive::binary_iarchive>(boost::archive::binary_iarchive & ar, unsigned int version);
+	template void Node::serialize<boost::archive::binary_oarchive>(boost::archive::binary_oarchive & ar, unsigned int version);
 	int Node::_auto_increment = 0;
+}
+
+namespace boost { 
+	namespace serialization {
+		template<class Archive>
+		void save(Archive &ar, const ithmm::Node &node, unsigned int version) {
+			ar & node._auto_increment;
+			ar & node._identifier;
+			ar & node._htssb_owner_node_in_structure;
+			ar & node._parent;
+			ar & node._depth_v;
+			ar & node._depth_h;
+			ar & node._pass_count_v;
+			ar & node._stop_count_v;
+			ar & node._pass_count_h;
+			ar & node._stop_count_h;
+			ar & node._num_word_assignment;
+			ar & node._num_transitions_to_eos;
+			ar & node._num_transitions_to_other;
+			ar & node._table_v;
+			ar & node._table_h;
+			ar & node._children;
+			ar & node._stick_length;
+			ar & node._children_stick_length;
+			ar & node._probability;
+			ar & node._sum_probability;
+			ar & node._hpylm;
+			ar & node._transition_tssb;
+			ar & node._myself_in_transition_tssb;
+			ar & node._myself_in_parent_transition_tssb;
+			ar & node._ref_count;
+			ar & node._myself_in_structure_tssb;
+			ar & node._myself_in_bos_tssb;
+			ar & node._is_structure_node;
+			ar & node._is_htssb_node;
+			ar & node._is_bos_tssb_node;
+			
+		}
+		template<class Archive>
+		void load(Archive &ar, ithmm::Node &node, unsigned int version) {
+			ar & node._auto_increment;
+			ar & node._identifier;
+			ar & node._htssb_owner_node_in_structure;
+			ar & node._parent;
+			ar & node._depth_v;
+			ar & node._depth_h;
+			ar & node._pass_count_v;
+			ar & node._stop_count_v;
+			ar & node._pass_count_h;
+			ar & node._stop_count_h;
+			ar & node._num_word_assignment;
+			ar & node._num_transitions_to_eos;
+			ar & node._num_transitions_to_other;
+			ar & node._table_v;
+			ar & node._table_h;
+			ar & node._children;
+			ar & node._stick_length;
+			ar & node._children_stick_length;
+			ar & node._probability;
+			ar & node._sum_probability;
+			ar & node._hpylm;
+			ar & node._transition_tssb;
+			ar & node._myself_in_transition_tssb;
+			ar & node._myself_in_parent_transition_tssb;
+			ar & node._ref_count;
+			ar & node._myself_in_structure_tssb;
+			ar & node._myself_in_bos_tssb;
+			ar & node._is_structure_node;
+			ar & node._is_htssb_node;
+			ar & node._is_bos_tssb_node;
+			
+			node.init_arrays();
+			node.init_horizontal_indices();
+			node.init_pointers_from_root_to_myself();
+		}
+	}
 }
