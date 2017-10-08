@@ -40,6 +40,9 @@ namespace ithmm {
 		ar & _hpylm_b_m;
 		ar & _hpylm_alpha_m;
 		ar & _hpylm_beta_m;
+		ar & _root_in_structure;
+		ar & _root_in_htssb;
+		ar & _root_in_bos;
 	}
 	iTHMM::iTHMM(){
 
@@ -63,7 +66,7 @@ namespace ithmm {
 		_tau0 = tau0;
 		_tau1 = tau1;
 		_current_max_depth = 0;
-		word_g0 = -1;
+		_word_g0 = word_g0;
 		_depth_limit = depth_limit;
 
 		_root_in_structure = new Node(NULL);
@@ -1353,7 +1356,7 @@ namespace ithmm {
 		int pass_count = target_in_tssb->_pass_count_v;
 		int stop_count = target_in_tssb->_stop_count_v;
 		double alpha = _alpha * pow(_lambda_alpha, target_in_tssb->_depth_v);
-		return (1.0 + stop_count) / (1.0 + alpha + stop_count + target_in_tssb->_pass_count_v);
+		return (1.0 + stop_count) / (1.0 + alpha + stop_count + pass_count);
 	}
 	double iTHMM::compute_expectation_of_horizontal_tssb_sbr_ratio(Node* target_in_tssb){
 		int pass_count = target_in_tssb->_pass_count_h;
@@ -1606,7 +1609,7 @@ namespace ithmm {
 		// assert(tssb->get_owner_node_id() != 0);	// 木構造の場合は計算しない
 		Node* root = tssb->_root;
 		double ratio_v = compute_expectation_of_vertical_sbr_ratio(root);
-		double sum_probability = total_stick_length * ratio_v;
+		// double sum_probability = total_stick_length * ratio_v;
 		root->_stick_length = total_stick_length;
 		root->_probability = ratio_v * total_stick_length;
 		// root->_children_stick_length = total_stick_length * (1.0 - ratio_v);

@@ -1,5 +1,6 @@
 #include <numeric>
 #include "../ithmm/cprintf.h"
+#include "../ithmm/sampler.h"
 #include "model.h"
 
 namespace ithmm {
@@ -8,9 +9,16 @@ namespace ithmm {
 	}
 	Model::Model(Dataset* dataset, int depth_limit){
 		_set_locale();
-		_ithmm = new iTHMM();
-		set_depth_limit(depth_limit);
-		_ithmm->set_word_g0(1.0 / dataset->_word_count.size());
+		_ithmm = new iTHMM(sampler::uniform(iTHMM_ALPHA_MIN, iTHMM_ALPHA_MAX),
+							sampler::uniform(iTHMM_GAMMA_MIN, iTHMM_GAMMA_MAX),
+							sampler::uniform(iTHMM_LAMBDA_ALPHA_MIN, iTHMM_LAMBDA_ALPHA_MAX),
+							sampler::uniform(iTHMM_LAMBDA_GAMMA_MAX, iTHMM_LAMBDA_GAMMA_MAX),
+							sampler::uniform(ITHMM_SBP_CONCENTRATION_HORIZONTAL_STRENGTH_MIN, ITHMM_SBP_CONCENTRATION_HORIZONTAL_STRENGTH_MAX),
+							sampler::uniform(ITHMM_SBP_CONCENTRATION_VERTICAL_STRENGTH_MIN, ITHMM_SBP_CONCENTRATION_VERTICAL_STRENGTH_MAX),
+							iTHMM_TAU_0,
+							iTHMM_TAU_1,
+							1.0 / dataset->_word_count.size(),
+							depth_limit);
 		_ithmm->initialize_with_training_dataset(dataset->_word_sequences_train);
 	}
 	Model::Model(std::string filename){
@@ -266,7 +274,6 @@ namespace ithmm {
 		using std::cout;
 		using std::wcout;
 		using std::endl;
-		auto pair = std::make_pair(0, 0);
 		std::vector<Node*> nodes;
 		enumerate_all_states(nodes);
 		for(const auto &node: nodes){
@@ -305,7 +312,6 @@ namespace ithmm {
 		}
 	}
 	void Model::show_assigned_words_and_probability_for_each_tag(Dictionary* dict, int number_to_show_for_each_tag){
-		auto pair = std::make_pair(0, 0);
 		std::vector<Node*> nodes;
 		enumerate_all_states(nodes);
 		std::wcout << "word      	count	probability" << std::endl;
@@ -334,13 +340,11 @@ namespace ithmm {
 		}
 	}
 	void Model::show_hpylm_for_each_tag(Dictionary* dict){
-		auto pair = std::make_pair(0, 0);
 		std::vector<Node*> nodes;
 		enumerate_all_states(nodes);
 		for(const auto &node: nodes){
 			std::multiset<std::pair<id, double>, multiset_value_comparator> ranking;
 			_ithmm->geneerate_word_ranking_of_node(node, ranking);
-			int n = 0;
 			std::string indices = node->_dump_indices();
 			// linuxでバグるのでstringとwstring両方作る
 			std::string tab = "";

@@ -42,18 +42,7 @@ namespace {
 			exit(1);
 		}
 	}
-
-	// Counts occurences of character in string.
-	static int howMany(const char *s, char c) {
-		int n = 0;
-		while(*s){
-			if(*s == c)
-				++n;
-			++s;
-		}
-		return n;
-	}
-
+	
 	// This is to append characters to string.
 	// There's a better way for this?
 	static void c_append(char *s, char c) {

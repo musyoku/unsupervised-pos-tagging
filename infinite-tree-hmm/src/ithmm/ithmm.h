@@ -47,7 +47,6 @@ namespace ithmm {
 		// 統計
 		int _num_mh_acceptance;
 		int _num_mh_rejection;
-		// デバッグ用
 		Node* _root_in_structure;
 		Node* _root_in_htssb;
 		Node* _root_in_bos;
