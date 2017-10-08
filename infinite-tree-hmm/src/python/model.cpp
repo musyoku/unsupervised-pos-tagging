@@ -63,9 +63,6 @@ namespace ithmm {
 	double Model::get_tau1(){
 		return _ithmm->_tau1;
 	}
-	double Model::get_metropolis_hastings_acceptance_rate(){
-		return _ithmm->_num_mh_acceptance / (double)(_ithmm->_num_mh_acceptance + _ithmm->_num_mh_rejection);
-	}
 	boost::python::list Model::python_get_all_states(){
 		boost::python::list tags;
 		std::vector<Node*> nodes;
@@ -99,12 +96,6 @@ namespace ithmm {
 	}
 	void Model::set_tau1(double tau1){
 		_ithmm->_tau1 = tau1;
-	}
-	void Model::set_depth_limit(int limit){
-		_ithmm->set_depth_limit(limit);
-	}
-	void Model::set_metropolis_hastings_enabled(bool enabled){
-		_ithmm->_mh_enabled = enabled;
 	}
 	bool Model::load(std::string filename){
 		return _ithmm->load(filename);

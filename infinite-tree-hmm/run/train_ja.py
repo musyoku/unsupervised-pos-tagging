@@ -1,6 +1,5 @@
-import argparse, sys, os, time, re, codecs, random
-import pandas as pd
-import treetaggerwrapper
+import argparse, sys, os, time, codecs, random
+import MeCab
 import ithmm
 
 class stdout:
@@ -16,90 +15,35 @@ def printr(string):
 	sys.stdout.write(string)
 	sys.stdout.flush()
 
-# https://spacy.io/docs/usage/pos-tagging
-# https://courses.washington.edu/hypertxt/csar-v02/penntable.html
-class POS:
-	PUNCT = {":", ",", "'", "\"", "HYPH", "LS", "NFP", "(", ")"}	# punctuation mark
-	SYM = {"SYM", "SENT", "#", "$"}	# symbol
-	NUM = {"CD"}	# number
-	X = {"ADD", "FW", "GW", "XX"}	
-	ADJ = {"AFX", "JJ", "JJR", "JJS", "PDT", "PRP$", "WDT", "WP$"}	# adjective
-	VERB = {"BES", "HVS", "MD", "VB", "VBD", "VBG", "VBN", "VBZ", "VBP", "VH", "VH", "VHG", "VHN", 
-		"VHZ", "VHP", "VHD", "VD", "VDD", "VDG", "VDN", "VDZ", "VDP", "VV", "VV", "VVG", "VVN", "VVZ", "VVP", "VVD"}
-	CONJ = {"CC"}	# conjunction
-	DET = {"DT"}	# determiner
-	ADV = {"EX", "RB", "RBR", "RBS", "WRB"}	# adverb
-	ADP = {"IN"}	# conjunction, subordinating or preposition
-	NOUN = {"NN", "NNS", "WP", "NP", "NPS"}	# noun
-	PROPN = {"NNP", "NNPS"}	# pronoun
-	PART = {"POS", "RP", "TO"}
-	INTJ = {"UH"}	# interjection
-
-# 品詞をまとめる
-def collapse_true_tag(tag, word):
-	if word == "##":
-		return "NUM"
-	if tag in POS.PUNCT:
-		return "PUNCT"
-	if tag in POS.SYM:
-		return "SYM"
-	if tag in POS.X:
-		return "X"
-	if tag in POS.ADJ:
-		return "ADJ"
-	if tag in POS.VERB:
-		return "VERB"
-	if tag in POS.CONJ:
-		return "CONJ"
-	if tag in POS.DET:
-		return "DET"
-	if tag in POS.ADV:
-		return "ADV"
-	if tag in POS.ADP:
-		return "ADP"
-	if tag in POS.NOUN:
-		return "NOUN"
-	if tag in POS.PROPN:
-		return "PROPN"
-	if tag in POS.PART:
-		return "PART"
-	if tag in POS.INTJ:
-		return "INTJ"
-	if tag in POS.NUM:
-		return "NUM"
-	return tag
-
+# 訓練データを形態素解析して各品詞ごとにその品詞になりうる単語の総数を求めておく
 def build_corpus(filename):
 	corpus = ithmm.corpus()
-	# 訓練データを形態素解析して各品詞ごとにその品詞になりうる単語の総数を求めておく
 	sentence_list = []
 	with codecs.open(filename, "r", "utf-8") as f:
 		for sentence_str in f:
 			sentence_list.append(sentence_str)
-	with codecs.open(filename, "r", "utf-8") as f:
-		tagger = treetaggerwrapper.TreeTagger(TAGLANG="en")
-		for i, sentence_str in enumerate(f):
-			sentence_str = sentence_str.strip()
-			if (i + 1) % 10 == 0:
-				printr("データを準備しています ... {}".format(i + 1))
-			result = tagger.tag_text(sentence_str)
-			if len(result) == 0:
-				continue
-			# 形態素解析を行いながら訓練データも作る
-			# 英語は通常スペース区切りなので不要と思うかもしれないが、TreeTaggerを使うと$600が$ 600に分割されたりする
-			# そのためplot_en.pyで評価の際に文の単語数が[スペース区切り]と[TreeTagger]で異なる場合があり正しく評価を行えなくなる
-			# よって単語分割は全てTreeTaggerによるものに統一しておく
-			words = []
-			for metadata in result:
-				metadata = metadata.split("\t")
-				if len(metadata) == 3:
-					word, true_tag, lowercase = metadata
-					true_tag = collapse_true_tag(true_tag, lowercase)
-				else:
-					lowercase = metadata[0]
-				words.append(lowercase)
-			# データを追加
-			corpus.add_words(words)
+	tagger = MeCab.Tagger()
+	for i, sentence_str in enumerate(sentence_list):
+		sentence_str = sentence_str.strip()
+		if (i + 1) % 10 == 0:
+			printr("データを準備しています ... {}".format(i + 1))
+		m = tagger.parseToNode(sentence_str)	# 形態素解析
+		words = []
+		while m:
+			word = m.surface
+			features = m.feature.split(",")
+			pos_major = features[0]
+			pos = (pos_major + "," + features[1])
+			if pos == "名詞,数":
+				word = "##"		# 数字は全て置き換える
+			words.append(word)
+			m = m.next
+
+		if len(words) == 0:
+			continue
+
+		# データを追加
+		corpus.add_words(words)
 
 	return corpus
 

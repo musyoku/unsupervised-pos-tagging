@@ -37,6 +37,7 @@ namespace ithmm {
 	void Corpus::python_add_words(boost::python::list py_word_str_list){
 		std::vector<std::wstring> word_str_vec;
 		_before_python_add_sentence_str(py_word_str_list, word_str_vec);
+		assert(word_str_vec.size() > 0);
 		_add_words_to_corpus(word_str_vec);
 	}
 	void Corpus::_add_words_to_corpus(std::vector<std::wstring> &word_str_vec){

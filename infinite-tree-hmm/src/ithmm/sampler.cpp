@@ -6,6 +6,9 @@ namespace ithmm {
 		int seed = std::chrono::system_clock::now().time_since_epoch().count();
 		// int seed = 1;
 		std::mt19937 mt(seed);
+		void set_seed(int seed){
+			mt = std::mt19937(seed);
+		}
 		double gamma(double a, double b){
 			std::gamma_distribution<double> distribution(a, 1.0 / b);
 			return distribution(mt);

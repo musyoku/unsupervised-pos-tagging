@@ -10,5 +10,6 @@ namespace ithmm {
 		double uniform(double min, double max);
 		double uniform_int(int min, int max);
 		double normal(double mean, double stddev);
+		void set_seed(int seed);
 	}
 }

@@ -22,7 +22,6 @@ namespace ithmm {
 		double get_concentration_h();
 		double get_tau0();
 		double get_tau1();
-		double get_metropolis_hastings_acceptance_rate();
 		boost::python::list python_get_all_states();
 		void set_alpha(double alpha);
 		void set_gamma(double gamma);
@@ -32,8 +31,6 @@ namespace ithmm {
 		void set_concentration_h(double concentration);
 		void set_tau0(double tau0);
 		void set_tau1(double tau1);
-		void set_depth_limit(int limit);
-		void set_metropolis_hastings_enabled(bool enabled);
 		bool load(std::string filename);
 		bool save(std::string filename);
 		void enumerate_all_states(std::vector<Node*> &nodes);

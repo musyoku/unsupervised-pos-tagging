@@ -103,9 +103,14 @@ int main(){
 	std::string filename = "../../../text/test.txt";
 	Corpus* corpus = new Corpus();
 	corpus->add_textfile(filename);
-	Dataset* dataset = new Dataset(corpus, 0.9, 1);
-	Model* model = new Model(dataset, 1);
+	int seed = 0;
+	Dataset* dataset = new Dataset(corpus, 0.9, 1, seed);
+	Model* model = new Model(dataset, 2);
 
+	model->set_alpha(1);
+	model->set_gamma(1);
+	model->set_lambda_alpha(0.01);
+	model->set_lambda_gamma(0.01);
 	model->set_concentration_v(1);
 	model->set_concentration_h(1);
 
@@ -125,7 +130,7 @@ int main(){
 
 	for(int i = 0;i < 500000;i++){
 		trainer->gibbs();
-		// trainer->update_hyperparameters();
+		trainer->update_hyperparameters();
 		cout << "\r" << i << flush;
 		if(i % 100 == 0){
 			model->show_assigned_words_for_each_tag(dictionary, 10, false);

@@ -19,7 +19,7 @@ namespace ithmm {
 		std::unordered_map<int, int> _word_count;
 		int _max_num_words_in_line;
 		int _min_num_words_in_line;
-		Dataset(Corpus* corpus, double train_split, int unknown_count);
+		Dataset(Corpus* corpus, double train_split, int unknown_count, int seed);
 		~Dataset();
 		int get_num_words();
 		Dictionary &get_dict_obj();
