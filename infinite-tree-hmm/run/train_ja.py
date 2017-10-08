@@ -87,7 +87,7 @@ def main():
 		# ログ
 		elapsed_time = time.time() - start
 		printr("Iteration {} / {} - {:.3f} sec".format(epoch, args.epochs, elapsed_time))
-		if epoch % 1000 == 0:
+		if epoch % 100 == 0:
 			printr("")
 			model.show_assigned_words_for_each_tag(dictionary, 10, False);
 		if epoch % 100 == 0:

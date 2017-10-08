@@ -41,7 +41,7 @@ namespace ithmm {
 		_add_words_to_corpus(word_str_vec);
 	}
 	void Corpus::_add_words_to_corpus(std::vector<std::wstring> &word_str_vec){
-		assert(word_str_vec.size() > 0);
+		assert(word_str_vec.size() > 1);
 		// 頻度をカウント
 		for(std::wstring word_str: word_str_vec){
 			auto itr = _word_count.find(word_str);

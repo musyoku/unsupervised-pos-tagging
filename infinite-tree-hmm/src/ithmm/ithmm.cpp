@@ -835,9 +835,10 @@ namespace ithmm {
 	// 新しい状態のギブスサンプリング
 	// なるべく論文の記号を使う
 	Node* iTHMM::draw_state(Node* prev_state_in_structure, Node* state_in_structure, Node* next_state_in_structure, id word_id){
-		if(prev_state_in_structure == NULL && next_state_in_structure == NULL){
-			return _draw_state_from_bos_to_eos(state_in_structure, word_id);
-		}
+		// if(prev_state_in_structure == NULL && next_state_in_structure == NULL){
+		// 	return _draw_state_from_bos_to_eos(state_in_structure, word_id);
+		// }
+		// assert((prev_state_in_structure == NULL && next_state_in_structure == NULL) == false);
 		if(prev_state_in_structure == NULL){
 			return _draw_state_from_bos(state_in_structure, next_state_in_structure, word_id);
 		}
