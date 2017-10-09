@@ -34,19 +34,21 @@ brew install boost-python --with-python3
 #### Boostのインストール
 
 ```
-./bootstrap.sh --with-libraries=python --with-python=python3 --with-python-root=YOUR_PYTHON_ROOT
-./b2 python=3.6 -d2 -j4
+./bootstrap.sh --with-python=python3
+./b2 python=3.5 -d2 -j4 --prefix BOOST_DIR install
 ```
+
+Pythonのバージョンを自身のものと置き換えてください。
 
 ### ビルド
 
-以下のコマンドで`bhmm.so`が生成され、Pythonから利用できるようになります。
+以下のコマンドで`ihmm.so`が生成され、Pythonから利用できるようになります。
 
 ```
 make install
 ```
 
-`makefile`のBoostのincludeパスを自分の環境に合わせて書き換えてください。
+`makefile`内のBoostのパスを自身の環境に合わせて書き換えてください。
 
 ### MeCabのインストール
 

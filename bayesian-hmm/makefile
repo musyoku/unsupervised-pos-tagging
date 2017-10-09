@@ -1,7 +1,8 @@
 CC = g++
-BOOST = /usr/local/Cellar/boost/1.65.0/include
-INCLUDE = `python3-config --includes` -std=c++11 -I$(BOOST)
-LDFLAGS = `python3-config --ldflags` -lboost_serialization -lboost_python3
+BOOST_INCLUDE = /usr/local/Cellar/boost/1.65.0/include
+BOOST_LIB = /usr/local/Cellar/boost/1.65.0/lib
+INCLUDE = `python3-config --includes` -std=c++11 -I$(BOOST_INCLUDE)
+LDFLAGS = `python3-config --ldflags` -lboost_serialization -lboost_python3 -L$(BOOST_LIB)
 SOFLAGS = -shared -fPIC
 
 install: ## Python用ライブラリをビルドします.

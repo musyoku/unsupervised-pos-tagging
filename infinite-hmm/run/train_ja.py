@@ -23,6 +23,7 @@ def build_corpus(filename):
 		for sentence_str in f:
 			sentence_list.append(sentence_str)
 	tagger = MeCab.Tagger()
+	tagger.parse("")
 	for i, sentence_str in enumerate(sentence_list):
 		sentence_str = sentence_str.strip()
 		if (i + 1) % 10 == 0:

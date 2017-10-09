@@ -1,11 +1,12 @@
 CC = g++
-BOOST = /usr/local/Cellar/boost/1.65.0/include
-INCLUDE = `python3-config --includes` -std=c++11 -I$(BOOST)
-LDFLAGS = `python3-config --ldflags` -lboost_serialization -lboost_python3
+BOOST_INCLUDE = /usr/local/Cellar/boost/1.65.0/include
+BOOST_LIB = /usr/local/Cellar/boost/1.65.0/lib
+INCLUDE = `python3-config --includes` -std=c++11 -I$(BOOST_INCLUDE)
+LDFLAGS = `python3-config --ldflags` -lboost_serialization -lboost_python3 -L$(BOOST_LIB)
 SOFLAGS = -shared -fPIC
 
 install: ## Python用ライブラリをコンパイル
-	$(CC) $(INCLUDE) $(LDFLAGS) $(SOFLAGS) src/python.cpp src/ithmm/*.cpp src/python/*.cpp -o run/ithmm.so -O3
+	$(CC) $(INCLUDE) $(SOFLAGS) -o run/ithmm.so src/python.cpp src/ithmm/*.cpp src/python/*.cpp $(LDFLAGS) -O3 -march=native
 
 check_includes:	## Python.hの場所を確認
 	python3-config --includes

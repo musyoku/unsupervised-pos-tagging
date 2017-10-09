@@ -31,6 +31,7 @@ def build_corpus(filename):
 	Wt_count = {}
 
 	tagger = MeCab.Tagger()
+	tagger.parse("")
 	for i, sentence_str in enumerate(sentence_list):
 		sentence_str = sentence_str.strip()
 		if i % 10 == 0:

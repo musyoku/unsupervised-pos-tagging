@@ -68,7 +68,7 @@ def main():
 
 	# ハイパーパラメータの設定
 	model.set_alpha(args.alpha);
-	model.set_gamma(args.alpha);
+	model.set_gamma(args.gamma);
 	model.set_lambda_alpha(args.lambda_alpha);
 	model.set_lambda_gamma(args.lambda_gamma);
 	model.set_concentration_v(args.concentration_v);
@@ -105,13 +105,13 @@ if __name__ == "__main__":
 	parser.add_argument("--unknown-threshold", "-unk",  type=int, default=1, help="出現回数がこの値以下の単語は<unk>に置き換える")
 	parser.add_argument("--train-split", "-split", type=float, default=0.9, help="テキストデータの何割を訓練データにするか")
 	parser.add_argument("--depth-limit", "-depth", type=int, default=-1, help="TSSBの最大深さ. -1で無限")
-	parser.add_argument("--alpha", "-alpha", type=int, default=1)
-	parser.add_argument("--gamma", "-gamma", type=int, default=1)
-	parser.add_argument("--lambda-alpha", "-lama", type=int, default=0.1)
-	parser.add_argument("--lambda-gamma", "-lamg", type=int, default=1, help="1で論文と同等")
-	parser.add_argument("--concentration-v", "-concv", type=int, default=1, help="HTSSBの縦の集中度")
-	parser.add_argument("--concentration-h", "-conch", type=int, default=1, help="HTSSBの横の集中度")
-	parser.add_argument("--tau0", "-tau0", type=int, default=1)
-	parser.add_argument("--tau1", "-tau1", type=int, default=100)
+	parser.add_argument("--alpha", "-alpha", type=float, default=1)
+	parser.add_argument("--gamma", "-gamma", type=float, default=1)
+	parser.add_argument("--lambda-alpha", "-lama", type=float, default=0.1)
+	parser.add_argument("--lambda-gamma", "-lamg", type=float, default=1, help="1で論文と同等")
+	parser.add_argument("--concentration-v", "-concv", type=float, default=1, help="HTSSBの縦の集中度")
+	parser.add_argument("--concentration-h", "-conch", type=float, default=1, help="HTSSBの横の集中度")
+	parser.add_argument("--tau0", "-tau0", type=float, default=1)
+	parser.add_argument("--tau1", "-tau1", type=float, default=100)
 	args = parser.parse_args()
 	main()
