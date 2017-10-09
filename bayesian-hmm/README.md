@@ -34,7 +34,7 @@ brew install boost-python --with-python3
 
 ### ビルド
 
-以下のコマンドで`bthmm.so`が生成され、Pythonから利用できるようになります。
+以下のコマンドで`bhmm.so`が生成され、Pythonから利用できるようになります。
 
 ```
 make install
@@ -59,13 +59,13 @@ pip install mecab-python3
 英語のテキストファイルの場合は以下のコマンドで学習できます。
 
 ```
-python3 train_en.py  -f ../../text/ptb.txt -split 1 --start-temperature 1.5 --min-temperature 0.08 -tags 16 -alpha 1 -beta 1 -e 20000
+python3 train_en.py  -f ../../text/ptb.txt -split 1 --start-temperature 1.5 --min-temperature 0.08 -tags 16 -alpha 1 -beta 1 -e 500000
 ```
 
 日本語のテキストファイルの場合は以下のコマンドで学習できます。
 
 ```
-python3 train_ja.py  -f ../../text/kokoro.txt -split 1 --start-temperature 1.5 --min-temperature 0.08 -tags 16 -alpha 1 -beta 1 -e 40000
+python3 train_ja.py  -f ../../text/kokoro.txt -split 1 --start-temperature 1.5 --min-temperature 0.08 -tags 16 -alpha 1 -beta 1 -e 500000
 ```
 
 ## 結果の可視化
@@ -73,13 +73,16 @@ python3 train_ja.py  -f ../../text/kokoro.txt -split 1 --start-temperature 1.5 -
 各予測タグとそれに割り当てられた単語を表示するには以下のコマンドを実行します。
 
 ```
-python3 tags.py -n 200
+python3 dump.py -n 200
 ```
 
 ハイパーパラメータの値も表示されます。
 
 混同行列をプロットするには以下のコマンドを実行します。
 
+```
+python3 plot_en.py -f ../../text/ptb.txt
+```
 ```
 python3 plot_ja.py -f ../../text/kokoro.txt
 ```
@@ -93,7 +96,7 @@ python3 plot_ja.py -f ../../text/kokoro.txt
 `ptb.txt`の学習結果です。
 
 ```
-python train_en.py  -f ../../text/ptb.txt -split 1 --start-temperature 1.5 --min-temperature 0.08 -tags 16 -alpha 1 -beta 1 -e 20000
+python train_en.py  -f ../../text/ptb.txt -split 1 --start-temperature 1.5 --min-temperature 0.08 -tags 16 -alpha 1 -beta 1 -e 500000
 ```
 
 ![result](https://raw.githubusercontent.com/musyoku/images/master/pos_tagging/bhmm/ptb.png)
@@ -158,7 +161,7 @@ beta[16] 0.318908
 `kokoro.txt`の学習結果です。
 
 ```
-python3 train_ja.py  -f ../../text/kokoro.txt -split 1 --start-temperature 1.5 --min-temperature 0.08 -tags 16 -alpha 1 -beta 1 -e 40000
+python3 train_ja.py  -f ../../text/kokoro.txt -split 1 --start-temperature 1.5 --min-temperature 0.08 -tags 16 -alpha 1 -beta 1 -e 500000
 ```
 
 ![result](https://raw.githubusercontent.com/musyoku/images/master/pos_tagging/bhmm/kokoro.png)

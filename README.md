@@ -1,6 +1,4 @@
-## [WIP]Python tools for unsupervised POS tagging
-
-**コード修正中です**
+## Python Tools for Unsupervised POS Tagging
 
 教師なし品詞推定の論文4本の実装・解説を目標にしています。
 
@@ -14,16 +12,9 @@
 
 - [ ] [Embedded HMM](https://papers.nips.cc/paper/2391-inferring-state-sequences-for-non-linear-systems-with-embedded-hidden-markov-models.pdf)に基づくiTHMMのforward-backwardによる学習
 
-## 動作環境
 ## データセット
 
 ### 英語
-
-#### Alice's Adventures in Wonderland
-
-[http://www.gutenberg.org/files/11/11-0.txt](http://www.gutenberg.org/files/11/11-0.txt)からダウンロードできます。
-
-`text/alice.txt`は上記データに前処理を施したものになります。
 
 #### Penn TreeBank
 
@@ -33,24 +24,14 @@
 
 ### 日本語
 
-[http://ch.nicovideo.jp/saikai/blomaga/ar904435](http://ch.nicovideo.jp/saikai/blomaga/ar904435)から青空文庫の全書籍のテキストデータをダウンロードできます。
+#### こころ
 
-`aozora.txt`は上記データから10万行を取り出し前処理を施したものになります。
+[http://www.aozora.gr.jp/cards/000148/card773.html](http://www.aozora.gr.jp/cards/000148/card773.html)からダウンロードできます。
 
-## 形態素解析
+`text/kokoro.txt`は上記データに前処理を施したものになります。
 
-学習結果の可視化をするために形態素解析器が必要になります。
+#### 吾輩は猫である
 
-### 英語
+[http://www.aozora.gr.jp/cards/000148/card789.html](http://www.aozora.gr.jp/cards/000148/card789.html)からダウンロードできます。
 
-[TreeTagger](http://www.cis.uni-muenchen.de/~schmid/tools/TreeTagger/)を使用します。
-
-```
-pip install treetaggerwrapper
-```
-
-### 日本語
-
-MeCabを使用します。
-
-Pythonから利用できるようにインストールしておいてください。
+`text/neko.txt`は上記データに前処理を施したものになります。

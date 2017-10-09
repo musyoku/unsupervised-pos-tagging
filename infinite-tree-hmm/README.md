@@ -66,13 +66,13 @@ pip install mecab-python3
 英語のテキストファイルの場合は以下のコマンドで学習できます。
 
 ```
-python3 train_en.py  -f ../../text/ptb.txt -split 1 -tags 1 -e 40000
+python3 train_en.py  -f ../../text/ptb.txt -split 1 -depth 2 -e 500000
 ```
 
 日本語のテキストファイルの場合は以下のコマンドで学習できます。
 
 ```
-python3 train_ja.py  -f ../../text/neko.txt -split 1 -tags 1 -e 40000
+python3 train_ja.py  -f ../../text/neko.txt -split 1 -depth 2 -e 500000
 ```
 
 ## 結果の可視化
@@ -80,11 +80,14 @@ python3 train_ja.py  -f ../../text/neko.txt -split 1 -tags 1 -e 40000
 各予測タグとそれに割り当てられた単語を表示するには以下のコマンドを実行します。
 
 ```
-python3 tags.py -n 200
+python3 dump.py -n 200
 ```
 
 混同行列をプロットするには以下のコマンドを実行します。
 
+```
+python3 plot_en.py -f ../../text/ptb.txt
+```
 ```
 python3 plot_ja.py -f ../../text/kokoro.txt
 ```
