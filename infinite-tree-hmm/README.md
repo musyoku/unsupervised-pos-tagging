@@ -5,46 +5,89 @@
 
 #### Todo:
 
-- [ ] メトロポリス・ヘイスティングス法
-- [ ] 日本語の学習用コード
+- [ ] メトロポリス・ヘイスティングス法による補正
+- [ ] ハイパーパラメータのサンプリング
 
-## ビルド
+## 準備
+
+### macOS
+
+macOSの場合、PythonとBoostはともにbrewでインストールする必要があります。
+
+#### Python 3のインストール
+
+```
+brew install python3
+```
+
+`PYTHONPATH`を変更する必要があるかもしれません。
+
+#### Boostのインストール
+
+```
+brew install boost-python --with-python3
+```
+
+### Ubuntu
+
+#### Boostのインストール
+
+```
+./bootstrap.sh --with-python=python3 --with-python-version=3.5
+./b2 python=3.5 -d2 -j4 --prefix BOOST_DIR install
+```
+
+Pythonのバージョンを自身のものと置き換えてください。
+
+### ビルド
+
+以下のコマンドで`ithmm.so`が生成され、Pythonから利用できるようになります。
 
 ```
 make install
 ```
 
-## 英語
+`makefile`内のBoostのパスを自身の環境に合わせて書き換えてください。
 
-### 学習
-
-`-split`で訓練データのうち学習に用いる割合を指定します。
-
-残りのデータは評価用になり、対数尤度やパープレキシティはすべて評価用データを用いて計算します。
-
-`-depth`で木の深さを固定できます。
+Ubuntuでエラーが出る場合は代わりに以下を実行します。
 
 ```
-python train_en.py  -f ../../text/ptb.txt -split 0.8  -depth 1
+make install_ubuntu
 ```
 
-### 結果の可視化
-
-正解品詞と予測タグの対応関係をプロット
+### MeCabのインストール
 
 ```
-python plot_en.py -f ../../text/ptb.txt
+pip install mecab-python3
 ```
 
-それぞれの状態の出力分布から確率の高い単語のランキングを表示
+## 学習
+
+英語のテキストファイルの場合は以下のコマンドで学習できます。
 
 ```
-python show.py --words
+python3 train_en.py  -f ../../text/ptb.txt -split 1 -tags 1 -e 40000
 ```
 
-木の形と割り当てられた単語を確認
+日本語のテキストファイルの場合は以下のコマンドで学習できます。
 
 ```
-python show.py --tssb
+python3 train_ja.py  -f ../../text/neko.txt -split 1 -tags 1 -e 40000
 ```
+
+## 結果の可視化
+
+各予測タグとそれに割り当てられた単語を表示するには以下のコマンドを実行します。
+
+```
+python3 tags.py -n 200
+```
+
+混同行列をプロットするには以下のコマンドを実行します。
+
+```
+python3 plot_ja.py -f ../../text/kokoro.txt
+```
+
+学習時に使用したテキストファイルを指定します。
 

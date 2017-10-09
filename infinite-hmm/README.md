@@ -29,7 +29,7 @@ brew install python3
 brew install boost-python --with-python3
 ```
 
-### Linux
+### Ubuntu
 
 #### Boostのインストール
 
@@ -49,6 +49,12 @@ make install
 ```
 
 `makefile`内のBoostのパスを自身の環境に合わせて書き換えてください。
+
+Ubuntuでエラーが出る場合は代わりに以下を実行します。
+
+```
+make install_ubuntu
+```
 
 ### MeCabのインストール
 

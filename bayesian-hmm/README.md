@@ -34,13 +34,19 @@ brew install boost-python --with-python3
 
 ### ビルド
 
-以下のコマンドで`bhmm.so`が生成され、Pythonから利用できるようになります。
+以下のコマンドで`bthmm.so`が生成され、Pythonから利用できるようになります。
 
 ```
 make install
 ```
 
-`makefile`のBoostのincludeパスを自分の環境に合わせて書き換えてください。
+`makefile`内のBoostのパスを自身の環境に合わせて書き換えてください。
+
+Ubuntuでエラーが出る場合は代わりに以下を実行します。
+
+```
+make install_ubuntu
+```
 
 ### MeCabのインストール
 
