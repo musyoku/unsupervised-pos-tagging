@@ -8,6 +8,8 @@
 #include <fstream>
 #include <set>
 #include "ihmm.h"
+#include "sampler.h"
+#include "utils.h"
 
 // num_tagsは全て特殊タグを除いた個数を表す
 // 内部的には<s></s>を考慮するためnum_tags+1個のタグがある
