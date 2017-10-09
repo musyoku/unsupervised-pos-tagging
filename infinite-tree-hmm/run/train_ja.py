@@ -105,7 +105,7 @@ if __name__ == "__main__":
 	parser.add_argument("--unknown-threshold", "-unk",  type=int, default=1, help="出現回数がこの値以下の単語は<unk>に置き換える")
 	parser.add_argument("--train-split", "-split", type=float, default=0.9, help="テキストデータの何割を訓練データにするか")
 	parser.add_argument("--depth-limit", "-depth", type=int, default=-1, help="TSSBの最大深さ. -1で無限")
-	parser.add_argument("--alpha", "-alpha", type=float, default=1)
+	parser.add_argument("--alpha", "-alpha", type=float, default=0.1)
 	parser.add_argument("--gamma", "-gamma", type=float, default=1)
 	parser.add_argument("--lambda-alpha", "-lama", type=float, default=0.1)
 	parser.add_argument("--lambda-gamma", "-lamg", type=float, default=1, help="1で論文と同等")
