@@ -29,7 +29,7 @@ brew install boost-python --with-python3
 
 ```
 ./bootstrap.sh --with-python=python3 --with-python-version=3.5
-./b2 python=3.5 -d2 -j4 --prefix BOOST_DIR install
+./b2 python=3.5 -d2 -j4 --prefix YOUR_BOOST_DIR install
 ```
 
 Pythonのバージョンを自身のものと置き換えてください。
