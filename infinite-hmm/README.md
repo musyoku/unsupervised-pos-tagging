@@ -102,7 +102,7 @@ python3 plot_ja.py -f ../../text/kokoro.txt
 `kokoro.txt`の学習結果です。
 
 ```
-python3 train_ja.py  -f ../../text/neko.txt -split 1 -tags 1 -e 40000 -cwd neko
+python3 train_ja.py  -f ../../text/kokoro.txt -split 1 -tags 1 -e 500000 -cwd kokoro
 ```
 
 ![result](https://raw.githubusercontent.com/musyoku/images/master/pos_tagging/ihmm/kokoro.png)
@@ -182,6 +182,12 @@ python3 train_ja.py  -f ../../text/neko.txt -split 1 -tags 1 -e 40000 -cwd neko
 `neko.txt`の学習結果です。
 
 ```
+python3 train_ja.py  -f ../../text/neko.txt -split 1 -tags 1 -e 500000 -cwd neko
+```
+
+![result](https://raw.githubusercontent.com/musyoku/images/master/pos_tagging/ihmm/neko.png)
+
+```
 [2]
 し(564) なっ(306) 来(292) 見(264) だろ(250) い(237) 云っ(227) 思っ(212) あっ(203) …(181) でしょ(153) 聞い(139) 行っ(137) 見え(95) 持っ(94) 出(90) しまっ(87) やっ(80) もっ(78) 出し(76) 考え(74) あろ(70) 這入っ(61) 食っ(58) 帰っ(54) 知っ(51) 出来(46) 立っ(46) 寝(45) だっ(40) すれ(40) 買っ(39) かい(36) 武(36) 答え(35) 云え(35) 笑っ(35) くれ(33) よかろ(33) おい(30) 心得(30) とっ(30) 待っ(29) 取っ(28) 書い(28) 向っ(28) すまし(27) いっ(26) 作っ(26) 受け(26) 開い(26) 
 [3]
@@ -248,4 +254,89 @@ python3 train_ja.py  -f ../../text/neko.txt -split 1 -tags 1 -e 40000 -cwd neko
 し(1363) れ(307) まし(243) なく(129) られ(108) なけれ(106) なかっ(84) せ(78) さ(75) なっ(72) ましょ(63) っ(61) 出し(54) なくっ(51) ろ(44) ら(38) たく(36) い(34) ね(30) 過ぎ(30) たろ(29) 上っ(29) え(28) すれ(25) け(22) しよ(19) せら(18) め(18) 始め(17) 致し(16) 上げ(16) 付け(15) かけ(15) つけ(14) 尽し(14) やし(13) 切っ(13) 付い(13) かかっ(12) がっ(12) り(11) 懸け(11) 損(10) 切れ(10) だし(10) 籠っ(10) 廻(10) 返っ(10) つい(9) こ(9) かね(9) 
 [34]
 じゃ(282) かも(117) に(73) か(53) べから(26) でも(17) のみ(16) かしら(5) じゃあ(4) 量(4) 蒙り(4) て(3) 苦しい(3) がら(3) 容易く(3) 仕り(3) を(2) 不(2) 寒う(2) ありがとう(2) 臭(2) 能わ(2) 釣り合わ(2) 這入ん(2) 不具(1)
+```
+
+### Penn Treebank
+
+`ptb.txt`の学習結果です。
+
+```
+python3 train_en.py  -f ../../text/ptb.txt -split 1 -tags 1 -e 500000 -cwd ptb
+```
+
+![result](https://raw.githubusercontent.com/musyoku/images/master/pos_tagging/ihmm/ptb.png)
+
+```
+[1]
+##(23514) share(2095) year(1178) one(128) point(125) three(112) day(112) six(105) five(98) two(86) franc(77) week(76) ounce(76) percentage(74) par(71) a.m.(69) p.m.(63) four(57) hour(54) pound(54) Canadian(52) least(50) warrant(46) month(40) debenture(39) basis(38) metric(38) half(37) note(36) page(35) seven(32) barrel(32) eight(31) witter(29) /(28) record(27) unit(26) adjust(26) *(26) ton(25) adjustable(24) c(21) square(20) trillion(20) revenue(19) alto(19) 300-a-share(19) Australian(18) cubic(18) libor(18) near(16) 
+[2]
+
+[3]
+'(12020) &(316) Merrill(95) goldman(65) lehman(62) merrill(33) Lehman(24) j.c.(11) u(10) marlin(10) r.h.(6) Harris(6) prentice(6) Nichola(5) nigel(4) vs.(4) v.(2) 
+[4]
+as(3315) by(3129) to(3108) for(2306) with(2185) at(1963) on(1869) than(1694) from(1480) about(1313) into(708) up(643) off(333) out(284) that(267) through(258) down(217) only(196) under(187) over(176) below(169) like(149) against(126) without(111) around(107) of(105) be(103) between(99) nearly(84) such(83) all(79) until(65) back(64) toward(63) beyond(62) above(50) almost(43) roughly(31) onto(31) half(28) comparable(28) amid(25) dilute(24) whether(23) past(18) canada(17) aside(14) exceed(13) outnumber(13) friday(10) wsj(8) 
+[5]
+s(6071) S(4590) re(389) ve(200) p(142) m(139) ll(130) lynch(127) d(104) hutton(71) sachs(65) l(33) gamble(24) jenrette(22) rubicam(20) bradstreet(19) mather(18) estimate(17) expectation(15) quist(12) Hutton(11) Penney(10) fitzwater(10) 80s(8) association(7) union(7) ls(7) hall(6) trecker(6) wade(6) macy(6) Upham(6) parent(5) Mclennan(5) brady(5) screen(4) mclennan(4) lawson(3) compensation(3) however(1) acceptance(1) 
+[6]
+company(2647) year(2555) month(1044) week(963) quarter(912) market(635) u.s.(567) time(544) government(537) day(475) board(396) bank(388) house(360) firm(341) court(333) country(332) nation(303) state(299) department(297) dollar(286) world(256) street(256) union(233) administration(227) economy(209) issue(204) group(200) period(200) industry(198) agency(188) city(173) case(167) president(162) thing(155) committee(152) fed(150) area(149) germany(139) bill(136) way(134) treasury(132) judge(130) analyst(119) other(114) exchange(112) people(110) party(108) S(107) move(103) man(103) journal(103) 
+[7]
+be(17539) have(7321) will(3399) n't(3371) would(2494) which(1718) do(1713) that(1618) also(1556) who(1539) could(1222) can(1038) may(908) not(745) should(469) still(438) now(420) might(393) already(314) must(273) wo(269) but(217) help(213) ca(212) never(203) just(186) recently(180) then(168) probably(160) often(158) even(155) currently(155) begin(139) only(129) yet(106) really(106) always(105) actually(97) however(95) simply(92) seem(90) generally(88) all(87) official(85) apparently(85) previously(85) usually(83) ever(75) after(71) once(69) get(68) 
+[8]
+a(18476) the(16378) its(3827) an(3412) their(1972) his(1687) some(811) any(751) that(573) no(533) her(401) such(373) our(357) ##(353) another(302) my(279) many(278) your(242) these(239) more(236) two(207) those(204) other(204) one(182) certain(170) by(169) all(165) third-quarter(150) several(139) net(92) further(86) three(85) much(74) every(74) only(64) how(46) little(46) additional(46) what(44) four(42) various(41) numerous(38) similar(33) very(33) whether(32) use(32) relatively(32) enough(31) continue(30) report(30) actual(30) 
+[9]
+##(580) first(557) two(455) past(380) next(366) third(366) u.s.(355) federal(300) big(292) last(292) late(260) same(228) few(216) three(210) nine(210) other(200) second(190) soviet(169) white(161) street(146) fiscal(143) previous(135) german(124) fourth(122) wall(120) state(113) holding(113) British(106) bay(105) new(100) year-earlier(99) major(98) five(96) supreme(95) west(94) house(93) california(92) six(90) bush(85) Japanese(83) world(81) brokerage(81) European(77) year-ago(74) early(65) unite(64) commerce(64) four(61) justice(61) senate(61) current(60) 
+[10]
+company(976) rate(954) business(675) group(552) operation(549) problem(519) plan(518) issue(515) price(505) system(501) market(470) firm(470) program(469) profit(465) investor(459) product(445) bill(431) offer(426) sale(423) contract(421) agreement(408) bid(392) official(388) loss(384) change(376) office(366) stock(362) concern(361) cost(359) manager(346) earning(336) fund(333) plant(321) share(314) income(312) order(305) maker(299) line(291) growth(284) right(283) time(280) level(280) report(278) asset(277) meeting(275) case(270) position(261) deal(258) increase(256) note(255) unit(255) 
+[11]
+it(5464) he(3915) they(2742) we(1520) i(1333) there(1031) that(968) you(774) she(589) this(485) analyst(406) people(314) trader(256) investor(253) what(185) revenue(151) net(141) who(128) official(127) congress(126) one(123) sale(120) japan(104) do(101) ibm(98) dealer(96) those(84) here(83) warner(82) other(71) term(68) ford(67) yesterday(66) gm(63) after(61) some(57) today(54) economist(53) Drexel(52) company(51) spokesman(50) Nissan(50) volume(48) everyone(48) britain(46) china(43) rate(43) these(42) Friday(42) nobody(41) ual(41) 
+[12]
+new(1595) American(371) san(352) general(269) first(247) south(247) real(239) federal(169) British(145) standard(117) north(100) international(96) national(94) ford(92) Salomon(90) qintex(85) unite(82) texas(81) ual(78) columbia(78) eastern(77) banker(73) cbs(71) bear(71) kidder(71) digital(70) united(66) manufacturer(66) continental(65) chemical(64) Painewebber(64) morgan(63) navigation(61) la(61) closely(60) sun(59) limited(57) sci(57) union(56) Santa(55) source(55) warner(55) investor(54) Campeau(54) cray(52) control(50) mca(50) central(49) western(49) southern(48) rjr(46) 
+[13]
+be(1644) rise(985) fall(680) go(599) come(597) close(575) end(464) such(418) look(386) base(383) work(363) pay(294) sell(284) drop(276) grow(257) compare(245) own(216) increase(210) remain(206) hold(203) know(198) trade(195) call(194) decline(192) move(180) total(159) yield(158) jump(157) file(157) lead(155) turn(154) set(152) open(145) earn(143) price(141) run(140) gain(130) charge(130) talk(128) estimate(128) begin(127) result(125) stand(120) comment(118) offer(117) quote(116) invest(114) spend(113) cost(111) value(111) involve(110) 
+[14]
+more(1581) it(1073) up(921) them(555) much(550) well(537) out(532) back(446) less(349) high(331) him(318) down(294) too(273) yesterday(272) low(269) so(257) in(245) or(230) far(223) how(216) not(214) even(206) good(200) only(199) away(199) off(180) money(172) on(152) today(148) just(146) over(141) again(139) long(138) slightly(138) something(137) us(135) concern(130) itself(128) themselves(121) little(120) there(118) price(117) anything(113) here(110) you(107) longer(103) now(103) sharply(103) many(102) soon(102) this(98) 
+[15]
+say(9773) and(509) be(484) think(415) add(392) note(295) believe(279) ago(245) know(179) estimate(178) report(167) suggest(143) argue(141) expect(138) announce(116) mean(111) do(108) indicate(107) show(101) claim(96) tell(93) contend(91) predict(86) succeed(86) chairman(83) ask(74) later(73) feel(71) find(69) insist(68) hope(67) warn(66) attribute(65) acknowledge(62) before(61) declare(61) explain(58) concede(58) happen(55) conclude(54) call(52) admit(51) like(49) recall(49) want(48) confirm(48) write(48) or(47) agree(47) figure(43) wonder(43) 
+[16]
+interest(779) market(675) security(618) trade(530) investment(469) debt(443) business(426) bank(423) computer(351) sale(345) car(341) trading(329) credit(329) service(328) loan(311) management(303) industry(288) government(287) news(280) production(273) fund(271) paper(267) insurance(266) earning(263) shareholder(262) research(261) ad(256) money(248) oil(244) product(241) good(234) price(217) work(217) power(215) property(210) budget(208) life(200) home(200) development(190) stock(189) law(187) technology(180) employee(175) drug(171) cash(169) aid(167) advertising(166) marketing(164) court(163) export(157) health(152) 
+[17]
+$(8350) ##(7597) a(2418) about(785) or(573) at(468) to(361) oct.(357) from(285) nov.(215) yield(185) sept.(184) in(175) up(166) #(165) common(163) fiscal(114) dec.(108) due(107) down(99) march(94) an(87) and(78) only(75) nearly(71) between(71) off(69) last(69) chapter(67) per(65) no.(65) gain(64) c(64) fall(62) rise(58) aug.(58) Nov.(57) june(55) the(53) july(53) around(52) with(50) jan.(47) two(41) series(40) Swiss(40) April(40) roughly(38) almost(38) just(37) age(36) 
+[18]
+
+[19]
+new(1093) big(570) large(561) most(456) ##(437) own(437) good(426) major(402) net(386) first(337) more(310) recent(264) current(254) small(227) great(212) high(212) average(185) little(176) strong(175) total(169) very(168) former(167) lead(165) few(165) third-quarter(165) long(161) annual(150) huge(148) additional(144) propose(143) possible(136) full(136) important(131) top(123) special(118) real(116) significant(113) only(112) early(112) potential(111) initial(111) old(106) sharp(105) final(105) second(103) quarterly(103) record(100) national(99) single(99) pretax(98) similar(97) 
+[20]
+expect(573) accord(480) plan(452) have(423) try(410) want(388) go(354) agree(343) continue(342) likely(249) able(207) decline(201) need(190) fail(181) seem(177) be(168) use(155) attempt(136) effort(136) appear(127) hope(123) intend(121) relate(117) not(113) seek(108) contribute(106) lead(99) begin(97) decide(92) ability(91) willing(87) refuse(84) schedule(84) subject(84) due(81) come(78) design(78) like(77) enough(76) return(72) hard(69) force(67) way(65) right(64) prepare(63) offer(62) tend(62) start(59) require(59) refer(58) vote(56) 
+[21]
+other(857) u.s.(844) financial(498) federal(463) economic(429) foreign(415) ##(408) high(328) Japanese(312) public(293) corporate(283) political(280) American(277) new(263) national(247) international(236) operate(235) tax(226) commercial(225) low(211) local(202) private(202) small(192) future(180) domestic(175) personal(174) legal(172) long-term(170) business(169) exchange(166) major(160) state(147) heavy(144) general(136) industrial(136) consumer(136) retail(134) European(134) investment(134) capital(132) individual(131) military(131) treasury(126) computer(126) congressional(123) takeover(121) short-term(121) soviet(117) increase(114) short(112) independent(109) 
+[22]
+of(25525) for(667) to(494) from(408) on(386) be(255) that(229) at(201) include(177) angeles(150) via(146) represent(59) reflect(48) increase(44) series(42) bond(29) b(28) exceed(24) above(23) Angeles-based(19) indicate(15) /(14) contain(13) authorize(13) editorial(12) effective(11) force(10) whip(7) banc(5) diamond(4) underlie(4) cap(4) Angeles(4) royal(3) garrison(3) rake(3) bumiputra(2) peddling(2) deloitte(2) Rico(1) 
+[23]
+##(1767) which(403) September(300) japan(299) all(271) what(259) august(258) Friday(241) least(218) addition(215) example(210) them(196) Monday(173) congress(170) california(156) europe(150) time(149) Tuesday(129) October(129) china(126) those(123) it(112) order(109) cash(104) washington(104) people(101) late(101) yesterday(100) year(99) july(97) fact(96) April(96) instance(95) December(92) london(92) comment(92) course(89) June(89) us(88) delivery(88) today(87) tokyo(86) Thursday(85) france(85) asset(84) jaguar(83) britain(81) may(80) moody(80) now(78) Drexel(75) 
+[24]
+mr.(2954) Mr.(1676) .(1103) john(288) &(286) president(215) a(200) robert(194) james(185) david(173) ms.(144) mrs.(139) j(132) William(130) judge(123) rep.(118) richard(111) r(107) de(98) Ms.(97) george(88) peter(88) Michael(88) at(85) e(83) d(82) charles(79) sen.(76) b(76) thomas(75) c(70) m(68) l(67) philip(65) dr.(65) and(64) chairman(62) h(62) w(61) stephen(59) jack(57) st.(56) frank(56) Morgan(56) sir(55) f(55) Dr.(50) alan(49) t(47) michael(46) joseph(45) 
+[25]
+to(18512) by(212) and(115) that(89) or(76) for(71) in(67) nyse(34) difficulty(17) toward(14) practically(8) constant(2) armco(2) manufacturing(1) soon(1) unlawful(1) 
+[26]
+corp.(1070) york(1056) &(853) Inc.(810) co.(808) Corp.(316) group(307) inc.(289) francisco(260) inc(253) estate(241) bank(234) security(217) Co.(217) Co(205) motor(192) unit(180) international(164) ltd.(162) system(150) industry(145) Corp(139) trust(131) capital(130) service(128) city(128) plc(124) mortgage(120) share(111) airline(109) brother(108) which(104) official(104) association(103) holding(103) air(102) express(102) boston(102) pacific(101) national(100) computer(99) communication(99) electric(94) insurance(88) technology(88) investment(86) business(84) spokesman(81) calif.(81) oil(80) management(77) 
+[27]
+sale(734) one(707) part(522) because(455) number(388) out(351) loss(340) end(322) some(316) most(284) amount(275) result(251) value(248) lot(238) unit(230) price(221) share(212) all(203) cost(194) charge(186) los(183) revenue(171) many(157) member(152) use(149) term(148) income(142) kind(142) gain(135) sign(132) much(131) acquisition(131) maker(127) average(126) series(123) offering(122) effect(117) purchase(116) size(109) version(109) volume(108) range(108) instead(107) university(105) form(102) half(102) level(101) control(99) net(98) rate(96) profit(91) 
+[28]
+the(38384) this(1944) a(1523) last(795) one(590) some(363) other(359) these(335) two(331) its(319) each(317) many(295) his(285) that(274) both(273) several(241) three(240) next(237) recent(218) wall(203) most(179) five(166) those(153) all(150) every(147) ##(143) west(136) four(127) six(121) east(117) early(114) another(107) our(90) Japanese(84) seven(71) any(67) big(56) least(53) eight(52) u.s.(51) an(49) among(45) which(37) costa(36) western(35) nearly(33) state(32) come(30) major(30) either(28) small(22) 
+[29]
+that(5254) but(3431) if(1370) and(1338) when(1166) as(1152) because(698) so(444) while(424) even(420) what(347) though(329) now(328) however(315) although(305) after(292) all(267) some(254) then(245) where(241) whether(188) yesterday(180) before(173) meanwhile(146) still(142) since(138) until(130) not(129) why(128) how(125) once(124) also(121) yet(118) only(113) be(110) many(110) than(107) perhaps(101) unless(100) moreover(98) just(97) indeed(95) despite(94) which(88) far(88) no(86) one(83) earlier(80) instead(77) like(75) both(72) 
+[30]
+and(15483) or(1378) for(1111) to(629) be(626) with(551) as(444) from(370) by(309) '(305) include(258) but(209) that(206) which(204) a(174) whose(164) where(150) into(118) without(115) report(112) have(111) call(107) inc.(104) while(97) involve(82) show(65) maker(61) plus(54) cite(52) mae(51) post(46) annual(44) center(41) feature(37) per(36) tool(26) mainly(26) amid(26) require(25) particularly(25) calif.(25) agency(23) de(22) vs.(22) allow(21) except(21) nor(20) ltd.(16) express(16) island(16) primarily(14) 
+[31]
+stock(1875) market(1010) trading(854) exchange(668) bond(631) price(545) index(420) future(364) program(306) dow(281) composite(271) share(269) jones(225) average(219) and(208) junk(193) yesterday(180) industrial(177) option(155) common(153) hong(143) fund(140) stock-index(126) trader(114) arbitrage(112) ##(104) plunge(96) over-the-counter(92) preferred(89) volume(87) treasury(87) Friday(79) commodity(79) Kong(74) issue(72) capital(71) chicago(66) london(64) kong(64) benchmark(62) nasdaq(62) report(59) 30-year(56) money(55) tokyo(53) American(52) closing(52) board(50) municipal(50) buy(49) Monday(47) 
+[32]
+in(18897) for(5451) on(3588) at(2571) with(2107) from(1656) by(1407) after(802) over(695) of(579) during(505) under(492) since(485) among(435) against(424) between(355) through(344) before(337) while(226) include(219) when(214) into(206) within(193) last(184) earlier(178) until(162) follow(151) despite(147) like(145) about(142) reflect(111) late(110) above(94) across(91) because(88) give(81) behind(74) near(72) outside(70) toward(65) throughout(62) around(52) call(47) along(41) regard(40) next(38) exclude(35) early(31) leave(28) fee(27) upon(25) 
+[33]
+million(4948) to(2276) billion(1999) cent(923) from(881) or(562) and(387) yen(362) earlier(344) point(289) ago(265) up(228) month(227) day(211) down(173) stake(147) on(141) outstanding(133) old(130) mark(127) price(117) compare(116) bond(106) ton(102) increase(92) due(88) rate(83) pence(80) each(73) high(69) rise(65) be(61) foot(58) mile(57) at(51) dollar(51) end(49) us(48) for(47) drop(46) more(46) franc(43) issue(40) face(39) bid(39) security(39) annually(38) barrel(38) trillion(38) a(37) people(37) 
+[34]
+be(4033) make(1765) have(1546) take(1142) get(898) sell(873) buy(825) see(602) do(599) give(576) use(534) pay(452) provide(433) become(417) raise(415) find(373) report(363) include(359) acquire(348) expect(340) put(330) keep(324) build(318) not(313) show(311) reduce(306) n't(300) receive(300) offer(286) hold(285) consider(284) help(270) no(269) increase(265) seek(264) tell(257) create(256) allow(236) face(229) leave(229) win(226) develop(226) cut(221) produce(215) meet(214) run(211) call(204) cause(203) change(194) bring(190) play(187) 
+[35]
+president(915) and(683) chief(608) executive(532) chairman(499) vice(444) officer(367) director(317) a(248) be(244) an(178) analyst(158) name(132) ##(131) who(122) senior(119) as(118) former(99) d(95) attorney(92) head(82) general(81) economist(78) the(77) operate(71) at(65) financial(63) manager(60) jr.(57) assistant(57) deputy(55) partner(54) manage(52) resign(50) secretary(47) editor(47) will(39) professor(35) associate(34) elect(33) Jr.(29) group(29) founder(28) formerly(26) iii(26) publisher(25) succeed(25) counsel(25) remain(23) managing(23) also(22) 
+[36]
+bush(299) Noriega(108) peter(102) dinkins(82) smith(78) Gorbachev(75) brown(65) t(64) thatcher(64) .(57) g(56) Stanley(51) morris(50) baker(50) Phelan(49) trump(45) price(44) johnson(44) lee(42) guber(41) Krenz(40) lawson(39) Breeden(39) hunt(39) Mitchell(39) jones(38) honecker(38) reagan(36) ross(35) roman(35) lang(34) Paul(34) louis(33) Lawson(33) miller(33) davis(33) wright(33) wolf(32) greenspan(32) simmons(31) green(30) Thomson(30) corry(30) yeargin(29) white(28) Johnson(28) Guber(28) Phillip(28) icahn(28) Brady(28) Seidman(28)
 ```
