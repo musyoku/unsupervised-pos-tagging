@@ -8,7 +8,7 @@ install: ## Python用ライブラリをコンパイル
 	$(CC) $(INCLUDE) $(SOFLAGS) -o run/ithmm.so src/python.cpp src/ithmm/*.cpp src/python/*.cpp $(LDFLAGS) -O3 -march=native
 
 install_ubuntu: ## Python用ライブラリをコンパイル
-	$(CC) -Wl,--no-as-needed $(INCLUDE) $(SOFLAGS) -o run/ithmm.so src/python.cpp src/ithmm/*.cpp src/python/*.cpp $(LDFLAGS) -O3 -march=native
+	$(CC) -Wl,--no-as-needed -Wno-deprecated $(INCLUDE) $(SOFLAGS) -o run/ithmm.so src/python.cpp src/ithmm/*.cpp src/python/*.cpp $(LDFLAGS) -O3 -march=native
 
 check_includes:	## Python.hの場所を確認
 	python3-config --includes

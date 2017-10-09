@@ -8,7 +8,7 @@ install: ## Python用ライブラリをビルドします.
 	$(CC) $(INCLUDE) $(LDFLAGS) $(SOFLAGS) src/python.cpp src/bhmm/*.cpp src/python/*.cpp -o run/bhmm.so -O3
 
 install_ubuntu: ## Python用ライブラリをビルドします.
-	$(CC) -Wl,--no-as-needed $(INCLUDE) $(LDFLAGS) $(SOFLAGS) src/python.cpp src/bhmm/*.cpp src/python/*.cpp -o run/bhmm.so -O3
+	$(CC) -Wl,--no-as-needed -Wno-deprecated $(INCLUDE) $(LDFLAGS) $(SOFLAGS) src/python.cpp src/bhmm/*.cpp src/python/*.cpp -o run/bhmm.so -O3
 
 check_includes:	## Python.hの場所を確認
 	python3-config --includes

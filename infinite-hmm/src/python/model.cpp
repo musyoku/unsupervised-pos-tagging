@@ -1,4 +1,5 @@
 #include <iostream>
+#include <set>
 #include "../ihmm/utils.h"
 #include "model.h"
 
@@ -234,6 +235,7 @@ namespace ihmm {
 	void Model::print_typical_words_assigned_to_each_tag(int number_to_show, Dictionary* dict){
 		using std::wcout;
 		using std::endl;
+		std::pair<int, int> pair;
 		for(int tag = 1;tag <= _hmm->get_num_tags();tag++){
 			if(_hmm->is_tag_new(tag)){
 				continue;
@@ -250,7 +252,9 @@ namespace ihmm {
 				}
 				int count = _hmm->_m_iq_tables[tag][word_id]->get_num_customers();
 				if(count > 0){
-					ranking.insert(std::make_pair(word_id, count));
+					pair.first = word_id;
+					pair.second = count;
+					ranking.insert(pair);
 				}
 			}
 			for(auto elem: ranking){
