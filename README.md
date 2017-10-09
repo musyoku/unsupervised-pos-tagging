@@ -1,6 +1,6 @@
-## Python Tools for Unsupervised POS Tagging
+## Unsupervised POS Tagging
 
-教師なし品詞推定の論文4本の実装・解説を目標にしています。
+教師なし品詞推定の論文4本の実装を目標にしています。
 
 実装状況
 
