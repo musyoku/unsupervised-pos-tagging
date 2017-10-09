@@ -29,6 +29,8 @@ namespace ithmm {
 		ar & _gamma;
 		ar & _lambda_alpha;
 		ar & _lambda_gamma;
+		ar & _conc_h;
+		ar & _conc_v;
 		ar & _tau0;
 		ar & _tau1;
 		ar & _word_g0;
@@ -838,7 +840,7 @@ namespace ithmm {
 		// if(prev_state_in_structure == NULL && next_state_in_structure == NULL){
 		// 	return _draw_state_from_bos_to_eos(state_in_structure, word_id);
 		// }
-		// assert((prev_state_in_structure == NULL && next_state_in_structure == NULL) == false);
+		assert((prev_state_in_structure == NULL && next_state_in_structure == NULL) == false);
 		if(prev_state_in_structure == NULL){
 			return _draw_state_from_bos(state_in_structure, next_state_in_structure, word_id);
 		}
@@ -1654,7 +1656,6 @@ namespace ithmm {
 		double rest_stick_length = parent->_children_stick_length;	// 親ノードが持っている子ノードに割り当てる棒の長さ
 		double sum_stick_length_from_left_to_current_node = parent->_probability;
 		// assert(rest_stick_length + sum_stick_length_from_left_to_current_node <= total_stick_length);
-		double stop_probability_h = 1;
 		for(int i = 0;i < parent->_children.size();i++){
 			Node* child = parent->_children[i];
 			double ratio_h = compute_expectation_of_horizontal_sbr_ratio(child);
@@ -1678,7 +1679,6 @@ namespace ithmm {
 			// 	printf("%d\n", i);
 			// 	printf("%lu\n", parent->_children.size());
 			// 	printf("%.32e\n", rest_stick_length);
-			// 	printf("%.32e\n", stop_probability_h * ratio_h);
 			// 	printf("%.32e\n", ratio_h);
 			// 	printf("%.32e\n", ratio_v);
 			// 	printf("%.32e\n", child->_stick_length);
@@ -1692,7 +1692,6 @@ namespace ithmm {
 
 			assert(total_stick_length - child->_sum_probability >= 0);
 			rest_stick_length -= child->_stick_length;
-			stop_probability_h *= 1.0 - ratio_h;
 			assert(rest_stick_length > 0);
 			if(child->has_child()){
 				_update_stick_length_of_parent_node(child, total_stick_length);

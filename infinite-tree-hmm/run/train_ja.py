@@ -1,4 +1,4 @@
-import argparse, sys, os, time, codecs, random
+import argparse, sys, os, time, codecs
 import MeCab
 import ithmm
 
@@ -23,6 +23,7 @@ def build_corpus(filename):
 		for sentence_str in f:
 			sentence_list.append(sentence_str)
 	tagger = MeCab.Tagger()
+	tagger.parse("")
 	for i, sentence_str in enumerate(sentence_list):
 		sentence_str = sentence_str.strip()
 		if (i + 1) % 10 == 0:
@@ -81,8 +82,8 @@ def main():
 	# 学習ループ
 	for epoch in range(1, args.epochs + 1):
 		start = time.time()
-		trainer.gibbs()	# 新しい状態系列をギブスサンプリング
-		trainer.update_hyperparameters()
+		trainer.gibbs()						# 新しい状態系列をギブスサンプリング
+		trainer.update_hyperparameters()	# ハイパーパラメータの更新
 
 		# ログ
 		elapsed_time = time.time() - start

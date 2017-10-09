@@ -22,7 +22,6 @@ namespace ithmm {
 		double get_concentration_h();
 		double get_tau0();
 		double get_tau1();
-		boost::python::list python_get_all_states();
 		void set_alpha(double alpha);
 		void set_gamma(double gamma);
 		void set_lambda_alpha(double lambda_alpha);
@@ -36,6 +35,7 @@ namespace ithmm {
 		void enumerate_all_states(std::vector<Node*> &nodes);
 		void precompute_all_stick_lengths(std::vector<Node*> &all_states);
 		boost::python::list python_viterbi_decode(boost::python::list py_word_ids);
+		boost::python::list python_get_tags();
 		void viterbi_decode(std::vector<Word*> &data, std::vector<Node*> &all_states, std::vector<Node*> &sampled_state_sequence, double** forward_table, double** decode_table);
 		double compute_p_sentence(std::vector<Word*> &data, std::vector<Node*> &states, double** forward_table);
 		void show_assigned_words_for_each_tag(Dictionary* dict, int number_to_show_for_each_tag, bool show_probability = true);

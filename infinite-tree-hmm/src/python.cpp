@@ -27,6 +27,8 @@ BOOST_PYTHON_MODULE(ithmm){
 	.def("gibbs", &Trainer::gibbs);
 
 	boost::python::class_<Model>("model", boost::python::init<Dataset*, int>())
+	.def(boost::python::init<std::string>())
+	.def("get_tags", &Model::python_get_tags)
 	.def("viterbi_decode", &Model::python_viterbi_decode)
 	.def("update_hyperparameters", &Model::update_hyperparameters)
 	.def("save", &Model::save)
@@ -39,7 +41,6 @@ BOOST_PYTHON_MODULE(ithmm){
 	.def("get_concentration_h", &Model::get_concentration_h)
 	.def("get_tau0", &Model::get_tau0)
 	.def("get_tau1", &Model::get_tau1)
-	.def("get_all_states", &Model::python_get_all_states)
 	.def("set_alpha", &Model::set_alpha)
 	.def("set_gamma", &Model::set_gamma)
 	.def("set_lambda_alpha", &Model::set_lambda_alpha)

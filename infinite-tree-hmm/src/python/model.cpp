@@ -63,16 +63,6 @@ namespace ithmm {
 	double Model::get_tau1(){
 		return _ithmm->_tau1;
 	}
-	boost::python::list Model::python_get_all_states(){
-		boost::python::list tags;
-		std::vector<Node*> nodes;
-		enumerate_all_states(nodes);
-		for(const auto &node: nodes){
-			std::string indices = "[" + node->_dump_indices() + "]";
-			tags.append(indices);
-		}
-		return tags;
-	}
 	void Model::set_alpha(double alpha){
 		_ithmm->_alpha = alpha;
 	}
@@ -117,6 +107,16 @@ namespace ithmm {
 			_ithmm->update_stick_length_of_tssb(node->get_transition_tssb(), total_stick_length);
 		}
 		_ithmm->update_stick_length_of_tssb(_ithmm->_bos_tssb, 1.0);
+	}
+	boost::python::list Model::python_get_tags(){
+		boost::python::list tags;
+		std::vector<Node*> nodes;
+		enumerate_all_states(nodes);
+		for(const auto &node: nodes){
+			std::string indices = "[" + node->_dump_indices() + "]";
+			tags.append(indices);
+		}
+		return tags;
 	}
 	boost::python::list Model::python_viterbi_decode(boost::python::list py_word_ids){
 		// あらかじめ全HTSSBの棒の長さを計算しておく

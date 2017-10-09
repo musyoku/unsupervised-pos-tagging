@@ -453,7 +453,9 @@ namespace ithmm {
 		std::string indices_str = "";
 		for(int i = 0;i < _depth_v;i++){
 			indices_str += std::to_string(_horizontal_indices_from_root[i]);
-			indices_str += ",";
+			if(i < _depth_v - 1){
+				indices_str += ",";
+			}
 		}
 		return indices_str;
 	}
@@ -461,7 +463,9 @@ namespace ithmm {
 		std::wstring indices_str = L"";
 		for(int i = 0;i < _depth_v;i++){
 			indices_str += std::to_wstring(_horizontal_indices_from_root[i]);
-			indices_str += L",";
+			if(i < _depth_v - 1){
+				indices_str += L",";
+			}
 		}
 		return indices_str;
 	}

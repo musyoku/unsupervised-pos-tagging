@@ -46,11 +46,9 @@ void compare_node(Node* a, Node* b){
 		assert(a->_horizontal_indices_from_root[v] == b->_horizontal_indices_from_root[v]);
 	}
 	assert(a->has_child() == b->has_child());
-	if(a->has_child()){
-		assert(a->_children.size() == b->_children.size());
-		for(int i = 0;i < a->_children.size();i++){
-			compare_node(a->_children[i], b->_children[i]);
-		}
+	assert(a->_children.size() == b->_children.size());
+	for(int i = 0;i < a->_children.size();i++){
+		compare_node(a->_children[i], b->_children[i]);
 	}
 }
 
@@ -62,7 +60,7 @@ int main(){
 	std::string filename = "../../../text/test.txt";
 	Corpus* corpus = new Corpus();
 	corpus->add_textfile(filename);
-	Dataset* dataset = new Dataset(corpus, 0.9, 1);
+	Dataset* dataset = new Dataset(corpus, 0.9, 1, 0);
 	Model* model = new Model(dataset, 1);
 	Dictionary* dictionary = dataset->_dict;
 	dictionary->save("ithmm.dict");
@@ -70,28 +68,50 @@ int main(){
 
 	model->show_assigned_words_for_each_tag(dictionary, 10);
 
-	for(int i = 0;i < 1000;i++){
+	for(int i = 0;i < 100;i++){
 		trainer->gibbs();
-		// trainer->update_hyperparameters();
-		model->show_assigned_words_for_each_tag(dictionary, 10, false);
+		trainer->update_hyperparameters();
 	}
 	model->save("ithmm.model");
-	double p_dataset_1 = trainer->compute_log_p_dataset_train();
-	double p_dataset_2 = trainer->compute_log_p_dataset_train();
+	double p_dataset = trainer->compute_log_p_dataset_train();
 
 	cout << "loading ..." << endl;
 	Model* _model = new Model("ithmm.model");
+
+	compare(model->_ithmm, _model->_ithmm);
 
 	cout << model->_ithmm->_structure_tssb->_num_customers << endl;
 	cout << _model->_ithmm->_structure_tssb->_num_customers << endl;
 	model->_ithmm->_root_in_structure->dump();
 	_model->_ithmm->_root_in_structure->dump();
-	compare(model->_ithmm, _model->_ithmm);
 
-	cout << p_dataset_1 << endl;
-	cout << p_dataset_2 << endl;
+	Node* root = model->_ithmm->_root_in_structure;
+	Node* _root = _model->_ithmm->_root_in_structure;
+	for(int i = 0;i < _root->_children.size();i++){
+		cout << i << endl;
+		Node* child = root->_children[i];
+		Node* _child = _root->_children[i];
+		child->dump();
+		_child->dump();
+		cout << "children" << endl;
+		TSSB* htssb = child->get_transition_tssb();
+		TSSB* _htssb = _child->get_transition_tssb();
+		// model->_ithmm->update_stick_length_of_tssb(htssb, 1);
+		// _model->_ithmm->update_stick_length_of_tssb(_htssb, 1);
+		for(int k = 0;k < htssb->_root->_children.size();k++){
+			Node* child = htssb->_root->_children[k];
+			Node* _child = _htssb->_root->_children[k];
+			child->dump();
+			_child->dump();
+		}
+	}
 
-	trainer->set_model(model);
+	model->show_sticks();
+	_model->show_sticks();
+
+	cout << p_dataset << endl;
+
+	trainer->set_model(_model);
 	double _p_dataset = trainer->compute_log_p_dataset_train();
 
 	cout << _p_dataset << endl;

@@ -1,5 +1,3 @@
-# coding: utf-8
-from __future__ import print_function
 import argparse, sys, pylab, codecs, os
 import treetaggerwrapper
 import pandas as pd
