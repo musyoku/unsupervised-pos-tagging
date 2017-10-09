@@ -14,6 +14,7 @@ def main():
 	model.show_sticks()
 	model.show_assigned_words_for_each_tag(dictionary, 30, False)
 	model.show_assigned_words_and_probability_for_each_tag(dictionary, 30)
+	# model.show_hpylm_for_each_tag(dictionary)
 
 if __name__ == "__main__":
 	main()

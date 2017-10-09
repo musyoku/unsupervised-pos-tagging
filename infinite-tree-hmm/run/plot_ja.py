@@ -116,6 +116,7 @@ def main():
 		spine.set_visible(True)	# 枠線を表示
 	ax.tick_params(labelsize=20)
 	plt.yticks(rotation=0)
+	plt.xticks(rotation=90)
 	plt.xlabel("Found Tags", fontname="Arial", fontsize=28, labelpad=20)
 	plt.ylabel("True Tags", fontname="Arial", fontsize=28, labelpad=20)
 	heatmap = ax.get_figure()

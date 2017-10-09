@@ -4,7 +4,6 @@
 #include <boost/serialization/vector.hpp>
 #include "ithmm.h"
 #include "sampler.h"
-#include "cprintf.h"
 #include "utils.h"
 
 namespace ithmm {

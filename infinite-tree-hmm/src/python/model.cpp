@@ -1,5 +1,4 @@
 #include <numeric>
-#include "../ithmm/cprintf.h"
 #include "../ithmm/sampler.h"
 #include "model.h"
 
@@ -363,7 +362,7 @@ namespace ithmm {
 		enumerate_all_states(nodes);
 		for(const auto &node: nodes){
 			std::string indices = node->_dump_indices();
-			c_printf("[*]%s\n", ((boost::format("[%s]") % indices.c_str())).str().c_str());
+			std::cout << "\x1b[1m[" << indices << "]\x1b[0m";
 			_show_stick(node);
 		}
 	}

@@ -1,4 +1,4 @@
-#include <boost/serialization/base_object.hpp>
+#include <boost/serialization/split_member.hpp>
 #include <boost/archive/binary_iarchive.hpp>
 #include <boost/archive/binary_oarchive.hpp>
 #include <boost/serialization/unordered_map.hpp>
@@ -6,7 +6,6 @@
 #include <boost/serialization/vector.hpp>
 #include <boost/format.hpp>
 #include <cassert>
-#include "cprintf.h"
 #include "sampler.h"
 #include "utils.h"
 #include "hpylm.h"
@@ -483,88 +482,86 @@ namespace ithmm {
 			% _identifier % _pass_count_v % _stop_count_v % _pass_count_h % _stop_count_h % _ref_count % _stick_length 
 			% (_stick_length - _children_stick_length) % _children_stick_length % _probability % _sum_probability % owner_node_id 
 			% _depth_v % _depth_h % indices_str.c_str() % hpylm_str.c_str() % _num_transitions_to_eos % _num_transitions_to_other).str();
+	// template <class Archive>
 	}
-	template <class Archive>
-	void Node::serialize(Archive &ar, unsigned int version){
-		boost::serialization::split_free(ar, *this, version);
+	// void Node::serialize(Archive &ar, unsigned int version){
+	// 	boost::serialization::split_member(ar, *this, version);
+	// }
+	// // template void Node::serialize<boost::archive::binary_iarchive>(boost::archive::binary_iarchive & ar, unsigned int version);
+	// // template void Node::serialize<boost::archive::binary_oarchive>(boost::archive::binary_oarchive & ar, unsigned int version);
+	// template void Node::serialize(boost::archive::binary_iarchive &ar, unsigned int version);
+	// template void Node::serialize(boost::archive::binary_oarchive &ar, unsigned int version);
+	template<class Archive>
+	void Node::save(Archive &ar, const unsigned int version) const {
+		ar << _auto_increment;
+		ar << _identifier;
+		ar << _htssb_owner_node_in_structure;
+		ar << _parent;
+		ar << _depth_v;
+		ar << _depth_h;
+		ar << _pass_count_v;
+		ar << _stop_count_v;
+		ar << _pass_count_h;
+		ar << _stop_count_h;
+		ar << _num_word_assignment;
+		ar << _num_transitions_to_eos;
+		ar << _num_transitions_to_other;
+		ar << _table_v;
+		ar << _table_h;
+		ar << _children;
+		ar << _stick_length;
+		ar << _children_stick_length;
+		ar << _probability;
+		ar << _sum_probability;
+		ar << _hpylm;
+		ar << _transition_tssb;
+		ar << _myself_in_transition_tssb;
+		ar << _myself_in_parent_transition_tssb;
+		ar << _ref_count;
+		ar << _myself_in_structure_tssb;
+		ar << _myself_in_bos_tssb;
+		ar << _is_structure_node;
+		ar << _is_htssb_node;
+		ar << _is_bos_tssb_node;
 	}
-	template void Node::serialize<boost::archive::binary_iarchive>(boost::archive::binary_iarchive & ar, unsigned int version);
-	template void Node::serialize<boost::archive::binary_oarchive>(boost::archive::binary_oarchive & ar, unsigned int version);
+	template void Node::save(boost::archive::binary_oarchive &ar, const unsigned int version) const;
+	template<class Archive>
+	void Node::load(Archive &ar, unsigned int version) {
+		ar >> _auto_increment;
+		ar >> _identifier;
+		ar >> _htssb_owner_node_in_structure;
+		ar >> _parent;
+		ar >> _depth_v;
+		ar >> _depth_h;
+		ar >> _pass_count_v;
+		ar >> _stop_count_v;
+		ar >> _pass_count_h;
+		ar >> _stop_count_h;
+		ar >> _num_word_assignment;
+		ar >> _num_transitions_to_eos;
+		ar >> _num_transitions_to_other;
+		ar >> _table_v;
+		ar >> _table_h;
+		ar >> _children;
+		ar >> _stick_length;
+		ar >> _children_stick_length;
+		ar >> _probability;
+		ar >> _sum_probability;
+		ar >> _hpylm;
+		ar >> _transition_tssb;
+		ar >> _myself_in_transition_tssb;
+		ar >> _myself_in_parent_transition_tssb;
+		ar >> _ref_count;
+		ar >> _myself_in_structure_tssb;
+		ar >> _myself_in_bos_tssb;
+		ar >> _is_structure_node;
+		ar >> _is_htssb_node;
+		ar >> _is_bos_tssb_node;
+		
+		init_arrays();
+		init_horizontal_indices();
+		init_pointers_from_root_to_myself();
+	}
+	template void Node::load(boost::archive::binary_iarchive &ar, unsigned int version);
 	int Node::_auto_increment = 0;
-}
-
-namespace boost { 
-	namespace serialization {
-		template<class Archive>
-		void save(Archive &ar, const ithmm::Node &node, unsigned int version) {
-			ar & node._auto_increment;
-			ar & node._identifier;
-			ar & node._htssb_owner_node_in_structure;
-			ar & node._parent;
-			ar & node._depth_v;
-			ar & node._depth_h;
-			ar & node._pass_count_v;
-			ar & node._stop_count_v;
-			ar & node._pass_count_h;
-			ar & node._stop_count_h;
-			ar & node._num_word_assignment;
-			ar & node._num_transitions_to_eos;
-			ar & node._num_transitions_to_other;
-			ar & node._table_v;
-			ar & node._table_h;
-			ar & node._children;
-			ar & node._stick_length;
-			ar & node._children_stick_length;
-			ar & node._probability;
-			ar & node._sum_probability;
-			ar & node._hpylm;
-			ar & node._transition_tssb;
-			ar & node._myself_in_transition_tssb;
-			ar & node._myself_in_parent_transition_tssb;
-			ar & node._ref_count;
-			ar & node._myself_in_structure_tssb;
-			ar & node._myself_in_bos_tssb;
-			ar & node._is_structure_node;
-			ar & node._is_htssb_node;
-			ar & node._is_bos_tssb_node;
-			
-		}
-		template<class Archive>
-		void load(Archive &ar, ithmm::Node &node, unsigned int version) {
-			ar & node._auto_increment;
-			ar & node._identifier;
-			ar & node._htssb_owner_node_in_structure;
-			ar & node._parent;
-			ar & node._depth_v;
-			ar & node._depth_h;
-			ar & node._pass_count_v;
-			ar & node._stop_count_v;
-			ar & node._pass_count_h;
-			ar & node._stop_count_h;
-			ar & node._num_word_assignment;
-			ar & node._num_transitions_to_eos;
-			ar & node._num_transitions_to_other;
-			ar & node._table_v;
-			ar & node._table_h;
-			ar & node._children;
-			ar & node._stick_length;
-			ar & node._children_stick_length;
-			ar & node._probability;
-			ar & node._sum_probability;
-			ar & node._hpylm;
-			ar & node._transition_tssb;
-			ar & node._myself_in_transition_tssb;
-			ar & node._myself_in_parent_transition_tssb;
-			ar & node._ref_count;
-			ar & node._myself_in_structure_tssb;
-			ar & node._myself_in_bos_tssb;
-			ar & node._is_structure_node;
-			ar & node._is_htssb_node;
-			ar & node._is_bos_tssb_node;
-			
-			node.init_arrays();
-			node.init_horizontal_indices();
-			node.init_pointers_from_root_to_myself();
-		}
-	}
 }

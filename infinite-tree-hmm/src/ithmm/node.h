@@ -9,6 +9,13 @@ namespace ithmm {
 	class HPYLM;
 	class TSSB;
 	class Node {
+	private:
+		friend class boost::serialization::access;
+		template<class Archive>
+		void save(Archive &ar, const unsigned int version) const;
+		template<class Archive>
+		void load(Archive &ar, unsigned int version);
+		BOOST_SERIALIZATION_SPLIT_MEMBER();
 	public:
 		static int _auto_increment;
 		int _identifier;		// ノードID
@@ -118,20 +125,9 @@ namespace ithmm {
 		bool delete_node_if_needed();
 		Node* delete_child_node(int node_id);
 		static void _delete_all_children(Node* parent);
-		template <class Archive>
-		void serialize(Archive &ar, unsigned int version);
 		void dump();
 		std::string _dump_indices();
 		std::wstring _wdump_indices();
 		std::string _dump();
 	};
-}
-
-namespace boost { 
-	namespace serialization {
-		template<class Archive>
-		void save(Archive &ar, const ithmm::Node &node, unsigned int version);
-		template<class Archive>
-		void load(Archive &ar, ithmm::Node &node, unsigned int version);
-	}
 }

@@ -7,7 +7,6 @@
 #include <iostream>
 #include <cassert>
 #include <iostream>
-#include "cprintf.h"
 #include "sampler.h"
 #include "node.h"
 #include "hpylm.h"
