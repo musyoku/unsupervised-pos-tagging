@@ -84,6 +84,7 @@ namespace ithmm {
 	void Node::init_horizontal_indices(){
 		Node* iterator = this;
 		for(int i = 0;i < _depth_v;i++){
+			assert(iterator != NULL);
 			_horizontal_indices_from_root[_depth_v - i - 1] = iterator->_depth_h;
 			iterator = iterator->_parent;
 		}
@@ -482,86 +483,41 @@ namespace ithmm {
 			% _identifier % _pass_count_v % _stop_count_v % _pass_count_h % _stop_count_h % _ref_count % _stick_length 
 			% (_stick_length - _children_stick_length) % _children_stick_length % _probability % _sum_probability % owner_node_id 
 			% _depth_v % _depth_h % indices_str.c_str() % hpylm_str.c_str() % _num_transitions_to_eos % _num_transitions_to_other).str();
-	// template <class Archive>
 	}
-	// void Node::serialize(Archive &ar, unsigned int version){
-	// 	boost::serialization::split_member(ar, *this, version);
-	// }
-	// // template void Node::serialize<boost::archive::binary_iarchive>(boost::archive::binary_iarchive & ar, unsigned int version);
-	// // template void Node::serialize<boost::archive::binary_oarchive>(boost::archive::binary_oarchive & ar, unsigned int version);
-	// template void Node::serialize(boost::archive::binary_iarchive &ar, unsigned int version);
-	// template void Node::serialize(boost::archive::binary_oarchive &ar, unsigned int version);
-	template<class Archive>
-	void Node::save(Archive &ar, const unsigned int version) const {
-		ar << _auto_increment;
-		ar << _identifier;
-		ar << _htssb_owner_node_in_structure;
-		ar << _parent;
-		ar << _depth_v;
-		ar << _depth_h;
-		ar << _pass_count_v;
-		ar << _stop_count_v;
-		ar << _pass_count_h;
-		ar << _stop_count_h;
-		ar << _num_word_assignment;
-		ar << _num_transitions_to_eos;
-		ar << _num_transitions_to_other;
-		ar << _table_v;
-		ar << _table_h;
-		ar << _children;
-		ar << _stick_length;
-		ar << _children_stick_length;
-		ar << _probability;
-		ar << _sum_probability;
-		ar << _hpylm;
-		ar << _transition_tssb;
-		ar << _myself_in_transition_tssb;
-		ar << _myself_in_parent_transition_tssb;
-		ar << _ref_count;
-		ar << _myself_in_structure_tssb;
-		ar << _myself_in_bos_tssb;
-		ar << _is_structure_node;
-		ar << _is_htssb_node;
-		ar << _is_bos_tssb_node;
+	template <class Archive>
+	void Node::serialize(Archive &ar, unsigned int version){
+		ar & _auto_increment;
+		ar & _identifier;
+		ar & _htssb_owner_node_in_structure;
+		ar & _parent;
+		ar & _depth_v;
+		ar & _depth_h;
+		ar & _pass_count_v;
+		ar & _stop_count_v;
+		ar & _pass_count_h;
+		ar & _stop_count_h;
+		ar & _num_word_assignment;
+		ar & _num_transitions_to_eos;
+		ar & _num_transitions_to_other;
+		ar & _table_v;
+		ar & _table_h;
+		ar & _stick_length;
+		ar & _children_stick_length;
+		ar & _probability;
+		ar & _sum_probability;
+		ar & _hpylm;
+		ar & _transition_tssb;
+		ar & _myself_in_transition_tssb;
+		ar & _myself_in_parent_transition_tssb;
+		ar & _ref_count;
+		ar & _myself_in_structure_tssb;
+		ar & _myself_in_bos_tssb;
+		ar & _is_structure_node;
+		ar & _is_htssb_node;
+		ar & _is_bos_tssb_node;
+		ar & _children;
 	}
-	template void Node::save(boost::archive::binary_oarchive &ar, const unsigned int version) const;
-	template<class Archive>
-	void Node::load(Archive &ar, unsigned int version) {
-		ar >> _auto_increment;
-		ar >> _identifier;
-		ar >> _htssb_owner_node_in_structure;
-		ar >> _parent;
-		ar >> _depth_v;
-		ar >> _depth_h;
-		ar >> _pass_count_v;
-		ar >> _stop_count_v;
-		ar >> _pass_count_h;
-		ar >> _stop_count_h;
-		ar >> _num_word_assignment;
-		ar >> _num_transitions_to_eos;
-		ar >> _num_transitions_to_other;
-		ar >> _table_v;
-		ar >> _table_h;
-		ar >> _children;
-		ar >> _stick_length;
-		ar >> _children_stick_length;
-		ar >> _probability;
-		ar >> _sum_probability;
-		ar >> _hpylm;
-		ar >> _transition_tssb;
-		ar >> _myself_in_transition_tssb;
-		ar >> _myself_in_parent_transition_tssb;
-		ar >> _ref_count;
-		ar >> _myself_in_structure_tssb;
-		ar >> _myself_in_bos_tssb;
-		ar >> _is_structure_node;
-		ar >> _is_htssb_node;
-		ar >> _is_bos_tssb_node;
-		
-		init_arrays();
-		init_horizontal_indices();
-		init_pointers_from_root_to_myself();
-	}
-	template void Node::load(boost::archive::binary_iarchive &ar, unsigned int version);
+	template void Node::serialize(boost::archive::binary_iarchive &ar, unsigned int version);
+	template void Node::serialize(boost::archive::binary_oarchive &ar, unsigned int version);
 	int Node::_auto_increment = 0;
 }

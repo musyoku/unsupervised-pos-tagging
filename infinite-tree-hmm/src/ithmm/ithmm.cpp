@@ -1871,37 +1871,35 @@ namespace ithmm {
 		if(ifs.good()){
 			boost::archive::binary_iarchive iarchive(ifs);
 			iarchive >> *this;
-			// assert(_structure_tssb != NULL);
-			// assert(_structure_tssb->_root != NULL);
-			// std::vector<Node*> nodes;
-			// _structure_tssb->enumerate_nodes_from_left_to_right(nodes);
-			// for(auto node: nodes){
-			// 	// 配列を確保
-			// 	node->init_arrays();
-			// 	node->init_horizontal_indices();
-			// 	node->init_pointers_from_root_to_myself();
-			// 	std::vector<Node*> nodes_in_htssb;
-			// 	TSSB* transition_tssb = node->get_transition_tssb();
-			// 	assert(transition_tssb != NULL);
-			// 	transition_tssb->enumerate_nodes_from_left_to_right(nodes_in_htssb);
-			// 	for(auto node_in_htssb: nodes_in_htssb){
-			// 		// 配列を確保
-			// 		node_in_htssb->init_arrays();
-			// 		node_in_htssb->init_horizontal_indices();
-			// 		node_in_htssb->init_pointers_from_root_to_myself();
-			// 	}
-			// 	// std::vector<Node*>().swap(nodes_in_htssb);	// 解放
-			// }
-			// nodes.clear();
-			// // std::vector<Node*>().swap(nodes);				// 解放
-			// _bos_tssb->enumerate_nodes_from_left_to_right(nodes);
-			// for(auto node: nodes){
-			// 	// 配列を確保
-			// 	node->init_arrays();
-			// 	node->init_horizontal_indices();
-			// 	node->init_pointers_from_root_to_myself();
-			// }
-			// std::vector<Node*>().swap(nodes);				// 解放
+			assert(_structure_tssb != NULL);
+			assert(_structure_tssb->_root != NULL);
+			// 木構造の構築が完了してから各ノードの計算用配列を初期化する必要がある
+			std::vector<Node*> nodes;
+			_structure_tssb->enumerate_nodes_from_left_to_right(nodes);
+			for(auto node: nodes){
+				// 配列を確保
+				node->init_arrays();
+				node->init_horizontal_indices();
+				node->init_pointers_from_root_to_myself();
+				std::vector<Node*> nodes_in_htssb;
+				TSSB* transition_tssb = node->get_transition_tssb();
+				assert(transition_tssb != NULL);
+				transition_tssb->enumerate_nodes_from_left_to_right(nodes_in_htssb);
+				for(auto node_in_htssb: nodes_in_htssb){
+					// 配列を確保
+					node_in_htssb->init_arrays();
+					node_in_htssb->init_horizontal_indices();
+					node_in_htssb->init_pointers_from_root_to_myself();
+				}
+			}
+			nodes.clear();
+			_bos_tssb->enumerate_nodes_from_left_to_right(nodes);
+			for(auto node: nodes){
+				// 配列を確保
+				node->init_arrays();
+				node->init_horizontal_indices();
+				node->init_pointers_from_root_to_myself();
+			}
 			success = true;
 		}
 		ifs.close();

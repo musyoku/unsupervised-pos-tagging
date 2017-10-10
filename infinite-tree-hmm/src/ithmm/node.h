@@ -11,11 +11,8 @@ namespace ithmm {
 	class Node {
 	private:
 		friend class boost::serialization::access;
-		template<class Archive>
-		void save(Archive &ar, const unsigned int version) const;
-		template<class Archive>
-		void load(Archive &ar, unsigned int version);
-		BOOST_SERIALIZATION_SPLIT_MEMBER();
+		template <class Archive>
+		void serialize(Archive &ar, unsigned int version);
 	public:
 		static int _auto_increment;
 		int _identifier;		// ノードID

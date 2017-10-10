@@ -8,14 +8,21 @@ namespace ithmm {
 	}
 	Model::Model(Dataset* dataset, int depth_limit){
 		_set_locale();
-		_ithmm = new iTHMM(sampler::uniform(iTHMM_ALPHA_MIN, iTHMM_ALPHA_MAX),
-							sampler::uniform(iTHMM_GAMMA_MIN, iTHMM_GAMMA_MAX),
-							sampler::uniform(iTHMM_LAMBDA_ALPHA_MIN, iTHMM_LAMBDA_ALPHA_MAX),
-							sampler::uniform(iTHMM_LAMBDA_GAMMA_MAX, iTHMM_LAMBDA_GAMMA_MAX),
-							sampler::uniform(ITHMM_SBP_CONCENTRATION_HORIZONTAL_STRENGTH_MIN, ITHMM_SBP_CONCENTRATION_HORIZONTAL_STRENGTH_MAX),
-							sampler::uniform(ITHMM_SBP_CONCENTRATION_VERTICAL_STRENGTH_MIN, ITHMM_SBP_CONCENTRATION_VERTICAL_STRENGTH_MAX),
-							iTHMM_TAU_0,
-							iTHMM_TAU_1,
+		double alpha = sampler::uniform(iTHMM_ALPHA_MIN, iTHMM_ALPHA_MAX);
+		double gamma = sampler::uniform(iTHMM_GAMMA_MIN, iTHMM_GAMMA_MAX);
+		double lambda_alpha = sampler::uniform(iTHMM_LAMBDA_ALPHA_MIN, iTHMM_LAMBDA_ALPHA_MAX);
+		double lambda_gamma = sampler::uniform(iTHMM_LAMBDA_GAMMA_MAX, iTHMM_LAMBDA_GAMMA_MAX);
+		double conc_h = sampler::uniform(ITHMM_SBP_CONCENTRATION_HORIZONTAL_STRENGTH_MIN, ITHMM_SBP_CONCENTRATION_HORIZONTAL_STRENGTH_MAX);
+		double conc_v = sampler::uniform(ITHMM_SBP_CONCENTRATION_VERTICAL_STRENGTH_MIN, ITHMM_SBP_CONCENTRATION_VERTICAL_STRENGTH_MAX);
+		double tau0 = iTHMM_TAU_0;
+		double tau1 = iTHMM_TAU_1;
+		_ithmm = new iTHMM(alpha, gamma, lambda_alpha, lambda_gamma, conc_h, conc_v, tau0, tau1,
+							1.0 / dataset->_word_count.size(),
+							depth_limit);
+		_ithmm->initialize_with_training_dataset(dataset->_word_sequences_train);
+	}
+	Model::Model(Dataset* dataset, double alpha, double gamma, double lambda_alpha, double lambda_gamma, double conc_h, double conc_v, double tau0, double tau1, int depth_limit){
+		_ithmm = new iTHMM(alpha, gamma, lambda_alpha, lambda_gamma, conc_h, conc_v, tau0, tau1,
 							1.0 / dataset->_word_count.size(),
 							depth_limit);
 		_ithmm->initialize_with_training_dataset(dataset->_word_sequences_train);

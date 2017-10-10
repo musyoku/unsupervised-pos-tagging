@@ -12,6 +12,7 @@ namespace ithmm {
 		iTHMM* _ithmm;
 		Model(Dataset* dataset);
 		Model(Dataset* dataset, int depth_limit);
+		Model(Dataset* dataset, double alpha, double gamma, double lambda_alpha, double lambda_gamma, double conc_h, double conc_v, double tau0, double tau1, int depth_limit);
 		Model(std::string filename);
 		~Model();
 		double get_alpha();

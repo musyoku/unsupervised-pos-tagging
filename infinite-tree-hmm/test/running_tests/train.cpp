@@ -10,6 +10,57 @@ using std::cout;
 using std::flush;
 using std::endl;
 
+void compare_table(Table* a, Table* b){
+	assert(a->_num_customers == b->_num_customers);
+	assert(a->_token_id == b->_token_id);
+	assert(a->_last_added_index == b->_last_added_index);
+	assert(a->_arrangement.size() == b->_arrangement.size());
+	for(int i = 0;i < a->_arrangement.size();i++){
+		assert(a->_arrangement[i] == b->_arrangement[i]);
+	}
+}
+
+void compare_hpylm(HPYLM* a, HPYLM* b){
+	assert(a->_num_tables == b->_num_tables);
+	assert(a->_num_customers == b->_num_customers);
+	assert(a->_depth == b->_depth);
+	assert(a->_arrangement.size() == b->_arrangement.size());
+	for(int i = 0;i < a->_arrangement.size();i++){
+		assert(a->_arrangement[i] == b->_arrangement[i]);
+	}
+}
+
+void compare_node(Node* a, Node* b){
+	assert(a->_depth_v == b->_depth_v);
+	assert(a->_depth_h == b->_depth_h);
+	assert(a->_pass_count_v == b->_pass_count_v);
+	assert(a->_stop_count_v == b->_stop_count_v);
+	assert(a->_pass_count_h == b->_pass_count_h);
+	assert(a->_stop_count_h == b->_stop_count_h);
+	assert(a->_num_transitions_to_eos == b->_num_transitions_to_eos);
+	assert(a->_num_transitions_to_other == b->_num_transitions_to_other);
+	assert(a->_ref_count == b->_ref_count);
+	compare_table(a->_table_v, b->_table_v);
+	compare_table(a->_table_h, b->_table_h);
+	compare_hpylm(a->_hpylm, b->_hpylm);
+	for(int v = 0;v < a->_depth_v;v++){
+		if(a->_horizontal_indices_from_root[v] != b->_horizontal_indices_from_root[v]){
+			a->dump();
+			b->dump();
+		}
+		assert(a->_horizontal_indices_from_root[v] == b->_horizontal_indices_from_root[v]);
+	}
+	assert(a->has_child() == b->has_child());
+	assert(a->_children.size() == b->_children.size());
+	for(int i = 0;i < a->_children.size();i++){
+		compare_node(a->_children[i], b->_children[i]);
+	}
+}
+
+void compare(iTHMM* a, iTHMM* b){
+	compare_node(a->_root_in_structure, b->_root_in_structure);
+}
+
 void check_distripution(){
 	iTHMM* ithmm = new iTHMM(sampler::uniform(iTHMM_ALPHA_MIN, iTHMM_ALPHA_MAX),
 							sampler::uniform(iTHMM_GAMMA_MIN, iTHMM_GAMMA_MAX),
@@ -92,14 +143,7 @@ void run_train_loop(){
 	corpus->add_textfile(filename);
 	int seed = 0;
 	Dataset* dataset = new Dataset(corpus, 0.9, 1, seed);
-	Model* model = new Model(dataset, 2);
-
-	model->set_alpha(1);
-	model->set_gamma(1);
-	model->set_lambda_alpha(0.01);
-	model->set_lambda_gamma(0.01);
-	model->set_concentration_v(1);
-	model->set_concentration_h(1);
+	Model* model = new Model(dataset, 1, 1, 1, 1, 1, 1, 1, 100, 3);
 
 	// _alpha = sampler::uniform(iTHMM_ALPHA_MIN, iTHMM_ALPHA_MAX);
 	// _gamma = sampler::uniform(iTHMM_GAMMA_MIN, iTHMM_GAMMA_MAX);
@@ -113,15 +157,19 @@ void run_train_loop(){
 	dictionary->save("ithmm.dict");
 	Trainer* trainer = new Trainer(dataset, model);
 
-	model->show_assigned_words_for_each_tag(dictionary, 10);
+	model->show_assigned_words_for_each_tag(dictionary, 10, false);
 
-	for(int i = 0;i < 10;i++){
+	for(int i = 0;i < 1000;i++){
 		trainer->gibbs();
 		trainer->update_hyperparameters();
 		cout << "\r" << i << flush;
-		if(i % 100 == 0){
+		if(i % 10 == 0){
 			model->show_assigned_words_for_each_tag(dictionary, 10, false);
 			cout << trainer->compute_log_p_dataset_train() << endl;
+			model->save("ithmm.model");
+			Model* _model = new Model("ithmm.model");
+			compare(model->_ithmm, _model->_ithmm);
+			delete _model;
 		}
 	}
 	model->save("ithmm.model");
