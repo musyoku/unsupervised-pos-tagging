@@ -44,8 +44,8 @@ namespace ithmm {
 		new_table_generated = false;
 		double sum_arrangement = std::accumulate(_arrangement.begin(), _arrangement.end(), 0);
 		// g0を掛けるかどうかがよく分からない
-		// double total_counts = num_total_customers + concentration_parameter * g0;
-		double total_counts = num_total_customers + concentration_parameter;
+		double total_counts = num_total_customers + concentration_parameter * g0;
+		// double total_counts = num_total_customers + concentration_parameter;
 		double bernoulli = sampler::uniform(0, 1);
 		// まず親から生成されたかどうかを判定
 		if(bernoulli >= (num_total_customers / total_counts)){

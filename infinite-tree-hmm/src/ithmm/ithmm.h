@@ -13,7 +13,7 @@
 
 namespace ithmm {
 	struct multiset_value_comparator {
-		bool operator()(const std::pair<id, double> &a, const std::pair<id, double> &b) {
+		bool operator()(const std::pair<int, double> &a, const std::pair<int, double> &b) {
 			return a.second > b.second;
 		}   
 	};
@@ -70,12 +70,12 @@ namespace ithmm {
 		void _generate_and_add_new_child_to_all_htssb(Node* iterator_in_structure, Node* parent, Node* generated_child_in_structure, Node* &return_child);
 		Node* _generate_and_add_new_child_to_bos_tssb(Node* generated_child_in_structure);
 		TSSB* generate_transition_tssb_belonging_to(Node* owner_in_structure);
-		void add_customer_to_hpylm(Node* target_in_structure, id token_id);
+		void add_customer_to_hpylm(Node* target_in_structure, int token_id);
 		void add_customer_to_tssb_node(Node* target_in_tssb);
 		void add_customer_to_htssb_node(Node* target_in_htssb);
 		void _add_customer_to_htssb_vertical_crp(Node* iterator);
 		void _add_customer_to_htssb_horizontal_crp(Node* iterator);
-		void remove_customer_from_hpylm(Node* target_in_structure, id token_id);
+		void remove_customer_from_hpylm(Node* target_in_structure, int token_id);
 		void remove_customer_from_tssb_node(Node* target_in_tssb);
 		void remove_customer_from_htssb_node(Node* target_in_htssb, bool remove_last_customer = false);
 		void _remove_customer_from_htssb_vertical_crp(Node* iterator, bool remove_last_customer = false);
@@ -88,16 +88,16 @@ namespace ithmm {
 		void update_stick_length_of_tssb(TSSB* tssb, double total_stick_length);
 		void _update_stick_length_of_parent_node(Node* parent, double total_stick_length);
 		void gibbs(std::vector<Word*> &sentence);
-		void add_initial_parameters(Node* prev_state_in_structure, Node* state_in_structure, id word_id);
+		void add_initial_parameters(Node* prev_state_in_structure, Node* state_in_structure, int word_id);
 		void add_temporal_parameters(Node* prev_state_in_structure, Node* state_in_structure);
-		void add_parameters(Node* prev_state_in_structure, Node* state_in_structure, Node* next_state_in_structure, id word_id);
-		void remove_initial_parameters(Node* prev_state_in_structure, Node* state_in_structure, id word_id);
+		void add_parameters(Node* prev_state_in_structure, Node* state_in_structure, Node* next_state_in_structure, int word_id);
+		void remove_initial_parameters(Node* prev_state_in_structure, Node* state_in_structure, int word_id);
 		void remove_temporal_parameters(Node* prev_state_in_structure, Node* state_in_structure);
-		void remove_parameters(Node* prev_state_in_structure, Node* state_in_structure, Node* next_state_in_structure, id word_id);
-		Node* draw_state(Node* prev_state_in_structure, Node* state_in_structure, Node* next_state_in_structure, id word_id);
-		Node* _draw_state(Node* prev_state_in_structure, Node* state_in_structure, Node* next_state_in_structure, id word_id);
-		Node* _draw_state_from_bos(Node* state_in_structure, Node* next_state_in_structure, id word_id);
-		Node* _draw_state_to_eos(Node* prev_state_in_structure, Node* state_in_structure, id word_id);
+		void remove_parameters(Node* prev_state_in_structure, Node* state_in_structure, Node* next_state_in_structure, int word_id);
+		Node* draw_state(Node* prev_state_in_structure, Node* state_in_structure, Node* next_state_in_structure, int word_id);
+		Node* _draw_state(Node* prev_state_in_structure, Node* state_in_structure, Node* next_state_in_structure, int word_id);
+		Node* _draw_state_from_bos(Node* state_in_structure, Node* next_state_in_structure, int word_id);
+		Node* _draw_state_to_eos(Node* prev_state_in_structure, Node* state_in_structure, int word_id);
 		double compute_node_probability_in_tssb(TSSB* tssb, Node* node, double total_stick_length);
 		double compute_expectation_of_vertical_sbr_ratio(Node* iterator);
 		double compute_expectation_of_horizontal_sbr_ratio(Node* iterator);
@@ -105,7 +105,7 @@ namespace ithmm {
 		double compute_expectation_of_horizontal_tssb_sbr_ratio(Node* target_in_tssb);
 		double compute_expectation_of_vertical_htssb_sbr_ratio(Node* target_in_htssb);
 		double compute_expectation_of_horizontal_htssb_sbr_ratio(Node* target_in_htssb);
-		double compute_p_w_given_s(id token_id, Node* node_in_structure);
+		double compute_p_w_given_s(int token_id, Node* node_in_structure);
 		void delete_unnecessary_children();
 		void _delete_unnecessary_children_in_structure_tssb(TSSB* tssb);
 		void _delete_unnecessary_children_of_node_in_structure(Node* parent);
@@ -113,7 +113,7 @@ namespace ithmm {
 		void _delete_node_in_all_htssb(int delete_id, Node* iterator_in_structure, Node* target_parent_in_structure);
 		void sum_auxiliary_variables_recursively_for_hpylm(Node* parent, std::vector<double> &sum_log_x_u_m, std::vector<double> &sum_y_ui_m, std::vector<double> &sum_1_y_ui_m, std::vector<double> &sum_1_z_uwkj_m);
 		void sample_hpylm_hyperparameters();
-		void geneerate_word_ranking_of_node(Node* node_in_structure, std::multiset<std::pair<id, double>, multiset_value_comparator> &ranking);
+		void geneerate_word_ranking_of_node(Node* node_in_structure, std::multiset<std::pair<int, double>, multiset_value_comparator> &ranking);
 		bool save(std::string filename);
 		bool load(std::string filename);
 	};

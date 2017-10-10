@@ -1,11 +1,9 @@
 #pragma once
 
-using id = int;
-
 namespace ithmm {
 	class Node;
 	typedef struct Word {
-		id _id;
+		int _id;
 		Node* _state;
 	} Word;
 }

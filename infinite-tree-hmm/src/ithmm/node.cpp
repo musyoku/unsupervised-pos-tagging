@@ -325,10 +325,10 @@ namespace ithmm {
 		_ref_count -= 1;
 		assert(_ref_count >= 0);
 	}
-	void Node::increment_word_assignment(id word_id){
+	void Node::increment_word_assignment(int word_id){
 		_num_word_assignment[word_id] += 1;
 	}
-	void Node::decrement_word_assignment(id word_id){
+	void Node::decrement_word_assignment(int word_id){
 		auto itr = _num_word_assignment.find(word_id);
 		assert(itr != _num_word_assignment.end());
 		itr->second -= 1;

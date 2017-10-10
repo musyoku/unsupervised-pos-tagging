@@ -134,7 +134,7 @@ namespace ithmm {
 		std::vector<Word*> words;
 		for(int i = 0;i < num_words;i++){
 			Word* word = new Word();
-			word->_id = boost::python::extract<id>(py_word_ids[i]);
+			word->_id = boost::python::extract<int>(py_word_ids[i]);
 			word->_state = NULL;
 			words.push_back(word);
 		}
@@ -267,7 +267,7 @@ namespace ithmm {
 		std::vector<Node*> nodes;
 		enumerate_all_states(nodes);
 		for(const auto &node: nodes){
-			std::multiset<std::pair<id, double>, multiset_value_comparator> ranking;
+			std::multiset<std::pair<int, double>, multiset_value_comparator> ranking;
 			_ithmm->geneerate_word_ranking_of_node(node, ranking);
 			int n = 0;
 			std::string indices = node->_dump_indices();
@@ -283,7 +283,10 @@ namespace ithmm {
 			}
 			wcout << wtab;
 			for(const auto &elem: ranking){
-				id word_id = elem.first;
+				int word_id = elem.first;
+				if(dict->is_id_unk(word_id)){
+					continue;
+				}
 				std::wstring &word = dict->_id_to_str[word_id];
 				double p = elem.second;
 				int count = node->_num_word_assignment[word_id];
@@ -306,13 +309,13 @@ namespace ithmm {
 		enumerate_all_states(nodes);
 		std::wcout << "word      	count	probability" << std::endl;
 		for(const auto &node: nodes){
-			std::multiset<std::pair<id, double>, multiset_value_comparator> ranking;
+			std::multiset<std::pair<int, double>, multiset_value_comparator> ranking;
 			_ithmm->geneerate_word_ranking_of_node(node, ranking);
 			int n = 0;
 			std::string indices = node->_dump_indices();
 			std::cout << "\x1b[32;1m" << "[" << indices << "]" << "\x1b[0m" << std::endl;
 			for(const auto &elem: ranking){
-				id word_id = elem.first;
+				int word_id = elem.first;
 				std::wstring &word = dict->_id_to_str[word_id];
 				for(int i = 0;i < std::max(0, 15 - (int)word.size());i++){
 					word += L" ";
@@ -333,7 +336,7 @@ namespace ithmm {
 		std::vector<Node*> nodes;
 		enumerate_all_states(nodes);
 		for(const auto &node: nodes){
-			std::multiset<std::pair<id, double>, multiset_value_comparator> ranking;
+			std::multiset<std::pair<int, double>, multiset_value_comparator> ranking;
 			_ithmm->geneerate_word_ranking_of_node(node, ranking);
 			std::string indices = node->_dump_indices();
 			// linuxでバグるのでstringとwstring両方作る
@@ -348,7 +351,7 @@ namespace ithmm {
 			}
 			std::wcout << wtab;
 			for(const auto &table: node->_hpylm->_arrangement){
-				id word_id = table.first;
+				int word_id = table.first;
 				std::wstring &word = dict->_id_to_str[word_id];
 				int num_tables = table.second.size();
 				int num_customers = std::accumulate(table.second.begin(), table.second.end(), 0);

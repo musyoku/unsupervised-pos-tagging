@@ -36,7 +36,7 @@ namespace ithmm {
 		double _probability;				// このノードの確率
 		double _sum_probability;			// 自分より左側にある全ての棒の長さの合計
 		HPYLM* _hpylm;						// 出力分布
-		std::unordered_map<id, int> _num_word_assignment;	// 単語がこのノードに割り当てられた回数。結果表示用でiTHMMとは無関係。
+		std::unordered_map<int, int> _num_word_assignment;	// 単語がこのノードに割り当てられた回数。結果表示用でiTHMMとは無関係。
 		// 計算時に使う配列
 		Node** _nodes_from_root_to_myself;
 		double* _stop_probability_v_over_parent;
@@ -113,8 +113,8 @@ namespace ithmm {
 		void decrement_transition_count_to_other();
 		void increment_ref_count();
 		void decrement_ref_count();
-		void increment_word_assignment(id word_id);
-		void decrement_word_assignment(id word_id);
+		void increment_word_assignment(int word_id);
+		void decrement_word_assignment(int word_id);
 		// 客を除去
 		void remove_customer_from_vertical_crp(bool &empty_table_deleted);
 		void remove_last_customer_from_vertical_crp(bool &empty_table_deleted);

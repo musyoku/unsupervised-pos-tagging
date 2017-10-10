@@ -504,7 +504,7 @@ namespace ithmm {
 		}
 	}
 	// データ読み込み時の状態初期化時にのみ使う
-	void iTHMM::add_initial_parameters(Node* prev_state_in_structure, Node* state_in_structure, id word_id){
+	void iTHMM::add_initial_parameters(Node* prev_state_in_structure, Node* state_in_structure, int word_id){
 		// <s>からの遷移を含む場合
 		if(prev_state_in_structure == NULL){
 			assert(state_in_structure != NULL);
@@ -569,7 +569,7 @@ namespace ithmm {
 		add_customer_to_tssb_node(state_in_structure);			// 参照カウント用
 		prev_state_in_structure->increment_transition_count_to_other();
 	}
-	void iTHMM::add_parameters(Node* prev_state_in_structure, Node* state_in_structure, Node* next_state_in_structure, id word_id){
+	void iTHMM::add_parameters(Node* prev_state_in_structure, Node* state_in_structure, Node* next_state_in_structure, int word_id){
 		// <s>と</s>両方を含む場合
 		if(prev_state_in_structure == NULL && next_state_in_structure == NULL){
 			assert(state_in_structure != NULL);
@@ -670,7 +670,7 @@ namespace ithmm {
 		state_in_structure->increment_transition_count_to_other();
 	}
 	// データをモデルから全部消す時はこれを使う
-	void iTHMM::remove_initial_parameters(Node* prev_state_in_structure, Node* state_in_structure, id word_id){
+	void iTHMM::remove_initial_parameters(Node* prev_state_in_structure, Node* state_in_structure, int word_id){
 		// <s>からの遷移を含む場合
 		if(prev_state_in_structure == NULL){
 			assert(state_in_structure != NULL);
@@ -735,7 +735,7 @@ namespace ithmm {
 		remove_customer_from_tssb_node(state_in_structure);			// 参照カウント用
 		prev_state_in_structure->decrement_transition_count_to_other();
 	}
-	void iTHMM::remove_parameters(Node* prev_state_in_structure, Node* state_in_structure, Node* next_state_in_structure, id word_id){
+	void iTHMM::remove_parameters(Node* prev_state_in_structure, Node* state_in_structure, Node* next_state_in_structure, int word_id){
 		// <s>と</s>両方を含む場合
 		if(prev_state_in_structure == NULL && next_state_in_structure == NULL){
 			assert(state_in_structure != NULL);
@@ -835,7 +835,7 @@ namespace ithmm {
 	}
 	// 新しい状態のギブスサンプリング
 	// なるべく論文の記号を使う
-	Node* iTHMM::draw_state(Node* prev_state_in_structure, Node* state_in_structure, Node* next_state_in_structure, id word_id){
+	Node* iTHMM::draw_state(Node* prev_state_in_structure, Node* state_in_structure, Node* next_state_in_structure, int word_id){
 		// if(prev_state_in_structure == NULL && next_state_in_structure == NULL){
 		// 	return _draw_state_from_bos_to_eos(state_in_structure, word_id);
 		// }
@@ -848,7 +848,7 @@ namespace ithmm {
 		}
 		return _draw_state(prev_state_in_structure, state_in_structure, next_state_in_structure, word_id);
 	}
-	Node* iTHMM::_draw_state(Node* prev_state_in_structure, Node* state_in_structure, Node* next_state_in_structure, id word_id){
+	Node* iTHMM::_draw_state(Node* prev_state_in_structure, Node* state_in_structure, Node* next_state_in_structure, int word_id){
 		// std::cout << "_draw_state" << std::endl;
 		assert(prev_state_in_structure != NULL);
 		assert(state_in_structure != NULL);
@@ -905,24 +905,11 @@ namespace ithmm {
 			TSSB* prev_state_transition_tssb = prev_state_in_structure->get_transition_tssb();
 			assert(prev_state_transition_tssb != NULL);
 
-
-
-			// update_stick_length_of_tssb(_root_in_structure->get_transition_tssb(), 1.0);
-			// _root_in_structure->get_transition_tssb()->dump();
-			// update_stick_length_of_tssb(prev_state_transition_tssb, 1.0);
-			// prev_state_transition_tssb->dump();
-
-
-
-
-
-
 			Node* new_state_in_prev_htssb = retrospective_sampling(u, prev_state_transition_tssb, 1.0);
 			assert(new_state_in_prev_htssb != NULL);
 			Node* new_state_in_structure = new_state_in_prev_htssb->get_myself_in_structure_tssb();
 			assert(new_state_in_structure != NULL);
 			assert(is_node_in_structure_tssb(new_state_in_structure));
-
 
 			// std::cout << "aaaa" << u << std::endl;
 			// new_state_in_prev_htssb->dump();
@@ -1031,7 +1018,7 @@ namespace ithmm {
 			}
 		}
 	}
-	Node* iTHMM::_draw_state_from_bos(Node* state_in_structure, Node* next_state_in_structure, id word_id){
+	Node* iTHMM::_draw_state_from_bos(Node* state_in_structure, Node* next_state_in_structure, int word_id){
 		assert(state_in_structure != NULL);
 		assert(next_state_in_structure != NULL);
 		assert(is_node_in_structure_tssb(state_in_structure));
@@ -1101,7 +1088,7 @@ namespace ithmm {
 			}
 		}
 	}
-	Node* iTHMM::_draw_state_to_eos(Node* prev_state_in_structure, Node* state_in_structure, id word_id){
+	Node* iTHMM::_draw_state_to_eos(Node* prev_state_in_structure, Node* state_in_structure, int word_id){
 		assert(prev_state_in_structure != NULL);
 		assert(state_in_structure != NULL);
 		assert(is_node_in_structure_tssb(prev_state_in_structure));
@@ -1162,7 +1149,7 @@ namespace ithmm {
 			}
 		}
 	}
-	void iTHMM::add_customer_to_hpylm(Node* target_in_structure, id token_id){
+	void iTHMM::add_customer_to_hpylm(Node* target_in_structure, int token_id){
 		assert(target_in_structure != NULL);
 		assert(is_node_in_structure_tssb(target_in_structure));	// 木構造上のノードのみ
 		assert(target_in_structure->_depth_v == target_in_structure->_hpylm->_depth);
@@ -1259,7 +1246,7 @@ namespace ithmm {
 			_add_customer_to_htssb_horizontal_crp(iterator_in_parent_htssb);
 		}
 	}
-	void iTHMM::remove_customer_from_hpylm(Node* target_in_structure, id token_id){
+	void iTHMM::remove_customer_from_hpylm(Node* target_in_structure, int token_id){
 		assert(target_in_structure != NULL);
 		assert(is_node_in_structure_tssb(target_in_structure));	// 木構造上のノードのみ
 		assert(target_in_structure->_depth_v == target_in_structure->_hpylm->_depth);
@@ -1565,7 +1552,7 @@ namespace ithmm {
 		// }
 		return sbr_ratio;
 	}
-	double iTHMM::compute_p_w_given_s(id token_id, Node* node_in_structure){
+	double iTHMM::compute_p_w_given_s(int token_id, Node* node_in_structure){
 		assert(node_in_structure != NULL);
 		assert(node_in_structure->_hpylm != NULL);
 		assert(is_node_in_structure_tssb(node_in_structure));
@@ -1852,15 +1839,15 @@ namespace ithmm {
 			_hpylm_beta_m.pop_back();
 		}
 	}
-	void iTHMM::geneerate_word_ranking_of_node(Node* node_in_structure, std::multiset<std::pair<id, double>, multiset_value_comparator> &ranking){
+	void iTHMM::geneerate_word_ranking_of_node(Node* node_in_structure, std::multiset<std::pair<int, double>, multiset_value_comparator> &ranking){
 		assert(node_in_structure != NULL);
 		assert(is_node_in_structure_tssb(node_in_structure));
 		HPYLM* hpylm = node_in_structure->_hpylm;
 		assert(hpylm != NULL);
 		assert(_word_g0 > 0);
-		std::pair<id, double> pair = std::make_pair(0, 0);
+		std::pair<int, double> pair = std::make_pair(0, 0);
 		for(const auto &elem: node_in_structure->_num_word_assignment){
-			id word_id = elem.first;
+			int word_id = elem.first;
 			double Pw = hpylm->compute_p_w(word_id, _word_g0, _hpylm_d_m, _hpylm_theta_m);
 			pair.first = word_id;
 			pair.second = Pw;

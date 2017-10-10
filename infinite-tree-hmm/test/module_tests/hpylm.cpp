@@ -17,7 +17,7 @@ void test_add_customer(){
 	vector<double> theta_m;
 	theta_m.push_back(1);
 	double g0 = 0.001;
-	for(id token_id = 0;token_id < 100;token_id++){
+	for(int token_id = 0;token_id < 100;token_id++){
 		hpylm->add_customer(token_id, g0, d_m, theta_m);
 	}
 	double p_w_1 = hpylm->compute_p_w(0, g0, d_m, theta_m);
@@ -37,18 +37,18 @@ void test_remove_customer(){
 	double g0 = 0.001;
 	for(int repeat = 0;repeat < 10;repeat++){
 		for(int n = 0;n < 100;n++){
-			for(id token_id = 0;token_id < 100;token_id++){
+			for(int token_id = 0;token_id < 100;token_id++){
 				hpylm->add_customer(token_id, g0, d_m, theta_m);
 			}
 		}
 		assert(hpylm->_num_customers == 10000);
 		for(int n = 0;n < 100;n++){
-			for(id token_id = 0;token_id < 100;token_id++){
+			for(int token_id = 0;token_id < 100;token_id++){
 				hpylm->remove_customer(token_id);
 			}
 		}
 		assert(hpylm->_num_customers == 0);
-		for(id token_id = 0;token_id < 100;token_id++){
+		for(int token_id = 0;token_id < 100;token_id++){
 			double p_w = hpylm->compute_p_w(token_id, g0, d_m, theta_m);
 			assert(p_w == g0);
 		}
@@ -70,7 +70,7 @@ void test_parent_child(){
 	double g0 = 0.001;
 	for(int repeat = 0;repeat < 10;repeat++){
 		for(int n = 0;n < 100;n++){
-			for(id token_id = 0;token_id < 100;token_id++){
+			for(int token_id = 0;token_id < 100;token_id++){
 				child_hpylm->add_customer(token_id, g0, d_m, theta_m);
 			}
 		}
@@ -84,7 +84,7 @@ void test_parent_child(){
 		p_w_2 = parent_hpylm->compute_p_w(100, g0, d_m, theta_m);
 		assert(p_w_1 > p_w_2);
 		for(int n = 0;n < 100;n++){
-			for(id token_id = 0;token_id < 100;token_id++){
+			for(int token_id = 0;token_id < 100;token_id++){
 				child_hpylm->remove_customer(token_id);
 			}
 		}

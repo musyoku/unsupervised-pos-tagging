@@ -46,7 +46,7 @@ namespace ithmm {
 	template void HPYLM::serialize(boost::archive::binary_iarchive &ar, unsigned int version);
 	template void HPYLM::serialize(boost::archive::binary_oarchive &ar, unsigned int version);
 	// 客をテーブルに追加
-	bool HPYLM::_add_customer_to_table(id token_id, int table_k, double g0, vector<double> &d_m, vector<double> &theta_m){
+	bool HPYLM::_add_customer_to_table(int token_id, int table_k, double g0, vector<double> &d_m, vector<double> &theta_m){
 		auto itr = _arrangement.find(token_id);
 		assert(itr != _arrangement.end());
 		vector<int> &num_customers_at_table = itr->second;
@@ -55,7 +55,7 @@ namespace ithmm {
 		_num_customers++;
 		return true;
 	}
-	bool HPYLM::_add_customer_to_new_table(id token_id, double g0, vector<double> &d_m, vector<double> &theta_m){
+	bool HPYLM::_add_customer_to_new_table(int token_id, double g0, vector<double> &d_m, vector<double> &theta_m){
 		auto itr = _arrangement.find(token_id);
 		if(itr == _arrangement.end()){
 			vector<int> tables = {1};
@@ -72,7 +72,7 @@ namespace ithmm {
 		}
 		return true;
 	}
-	bool HPYLM::_remove_customer_from_table(id token_id, int table_k, vector<int> &num_customers_at_table){
+	bool HPYLM::_remove_customer_from_table(int token_id, int table_k, vector<int> &num_customers_at_table){
 		assert(table_k < num_customers_at_table.size());
 		num_customers_at_table[table_k]--;
 		_num_customers--;
@@ -92,13 +92,13 @@ namespace ithmm {
 		}
 		return true;
 	}
-	int HPYLM::get_num_tables_serving_word(id token_id){
+	int HPYLM::get_num_tables_serving_word(int token_id){
 		if(_arrangement.find(token_id) == _arrangement.end()){
 			return 0;
 		}
 		return _arrangement[token_id].size();
 	}
-	int HPYLM::get_num_customers_eating_word(id token_id){
+	int HPYLM::get_num_customers_eating_word(int token_id){
 		auto itr = _arrangement.find(token_id);
 		if(itr == _arrangement.end()){
 			return 0;
@@ -110,7 +110,7 @@ namespace ithmm {
 		}
 		return sum;
 	}
-	bool HPYLM::add_customer(id token_id, double g0, vector<double> &d_m, vector<double> &theta_m){
+	bool HPYLM::add_customer(int token_id, double g0, vector<double> &d_m, vector<double> &theta_m){
 		assert(_depth < d_m.size());
 		double d_u = d_m[_depth];
 		double theta_u = theta_m[_depth];
@@ -143,7 +143,7 @@ namespace ithmm {
 		_add_customer_to_new_table(token_id, g0, d_m, theta_m);
 		return true;
 	}
-	bool HPYLM::remove_customer(id token_id){
+	bool HPYLM::remove_customer(int token_id){
 		auto itr = _arrangement.find(token_id);
 		assert(itr != _arrangement.end());
 		vector<int> &num_customers_at_table = itr->second;
@@ -161,7 +161,7 @@ namespace ithmm {
 		_remove_customer_from_table(token_id, num_customers_at_table.size() - 1, num_customers_at_table);
 		return true;
 	}
-	double HPYLM::compute_p_w(id token_id, double g0, vector<double> &d_m, vector<double> &theta_m){
+	double HPYLM::compute_p_w(int token_id, double g0, vector<double> &d_m, vector<double> &theta_m){
 		assert(_depth < d_m.size());
 		assert(_depth < theta_m.size());
 		double d_u = d_m[_depth];
