@@ -24,7 +24,7 @@ BOOST_PYTHON_MODULE(ihmm){
 	boost::python::class_<Trainer>("trainer", boost::python::init<Dataset*, Model*>())
 	.def("compute_log_p_dataset_train", &Trainer::compute_log_p_dataset_train)
 	.def("compute_log_p_dataset_dev", &Trainer::compute_log_p_dataset_dev)
-	.def("perform_gibbs_sampling", &Trainer::perform_gibbs_sampling);
+	.def("gibbs", &Trainer::gibbs);
 
 	boost::python::class_<Model>("model", boost::python::init<int, Dataset*>())
 	.def(boost::python::init<std::string>())

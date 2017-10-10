@@ -10,7 +10,7 @@ namespace bhmm {
 		_dict = dataset->_dict;
 		_dataset = dataset;
 	}
-	void Trainer::perform_gibbs_sampling(){
+	void Trainer::gibbs(){
 		std::vector<std::vector<Word*>> &dataset = _dataset->_word_sequences_train;
 		if(_rand_indices.size() != dataset.size()){
 			_rand_indices.clear();
@@ -25,7 +25,7 @@ namespace bhmm {
 			}
 			int data_index = _rand_indices[n];
 			std::vector<Word*> &word_vec = dataset[data_index];
-			_model->_hmm->perform_gibbs_sampling_with_sequence(word_vec);
+			_model->_hmm->gibbs(word_vec);
 		}
 	}
 	void Trainer::update_hyperparameters(){

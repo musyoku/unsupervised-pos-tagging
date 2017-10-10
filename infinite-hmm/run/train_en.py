@@ -133,7 +133,7 @@ def main():
 	# 学習ループ
 	for epoch in range(1, args.epochs + 1):
 		start = time.time()
-		trainer.perform_gibbs_sampling()	# 新しい状態系列をギブスサンプリング
+		trainer.gibbs()	# 新しい状態系列をギブスサンプリング
 
 		# ログ
 		elapsed_time = time.time() - start

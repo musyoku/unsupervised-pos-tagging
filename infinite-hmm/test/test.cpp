@@ -54,7 +54,7 @@ void test_save_load(){
 	Trainer* trainer = new Trainer(dataset, model);
 
 	for(int i = 1;i <= 100;i++){
-		trainer->perform_gibbs_sampling();
+		trainer->gibbs();
 		cout << "\r" << i << flush;
 	}
 	cout << trainer->compute_log_p_dataset_train() << ", " << trainer->compute_log_p_dataset_dev() << endl;
@@ -152,7 +152,7 @@ void test3(int num_iterations){
 	Trainer* trainer = new Trainer(dataset, model);
 
 	for(int i = 1;i <= num_iterations;i++){
-		trainer->perform_gibbs_sampling();
+		trainer->gibbs();
 		cout << "\r" << i << flush;
 		if(i % 100 == 0){
 			cout << "\r" << flush;
@@ -262,7 +262,7 @@ void test6(){
 
 	for(int i = 0;i < 2;i++){
 		std::vector<Word*> &word_vec = word_sequences[i];
-		hmm->perform_gibbs_sampling_with_sequence(word_vec);
+		hmm->gibbs(word_vec);
 		for(int i = 1;i < word_vec.size() - 1;i++){
 			cout << word_vec[i]->_tag << endl;
 		}

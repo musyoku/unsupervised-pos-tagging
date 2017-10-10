@@ -237,7 +237,7 @@ namespace bhmm {
 		// 品詞-単語ペア
 		_decrement_tag_word_count(ti, wi);
 	}
-	void HMM::perform_gibbs_sampling_with_sequence(std::vector<Word*> &word_vec){
+	void HMM::gibbs(std::vector<Word*> &word_vec){
 		if(_sampling_table == NULL){
 			_sampling_table = new double[_num_tags + 1];
 		}

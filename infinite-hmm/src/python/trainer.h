@@ -24,7 +24,7 @@ namespace ihmm {
 		double** _decode_table;			// viterbiデコーディング用
 	public:
 		Trainer(Dataset* dataset, Model* model);
-		void perform_gibbs_sampling();
+		void gibbs();
 		void update_hyperparameters();
 		// boost::python::list python_get_all_words_of_each_tag(int threshold = 0);
 		double compute_log_p_dataset_train();

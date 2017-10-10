@@ -25,7 +25,7 @@ BOOST_PYTHON_MODULE(bhmm){
 	.def("compute_log_p_dataset_dev", &Trainer::compute_log_p_dataset_dev)
 	.def("update_hyperparameters", &Trainer::update_hyperparameters)
 	.def("anneal_temperature", &Trainer::anneal_temperature)
-	.def("perform_gibbs_sampling", &Trainer::perform_gibbs_sampling);
+	.def("gibbs", &Trainer::gibbs);
 
 	boost::python::class_<Model>("model", boost::python::init<int, Dataset*, boost::python::list>())
 	.def(boost::python::init<std::string>())

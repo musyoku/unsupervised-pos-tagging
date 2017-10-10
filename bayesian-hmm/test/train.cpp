@@ -29,7 +29,7 @@ void train(int num_iterations){
 	Trainer* trainer = new Trainer(dataset, model);
 
 	for(int i = 1;i <= num_iterations;i++){
-		trainer->perform_gibbs_sampling();
+		trainer->gibbs();
 		trainer->anneal_temperature(0.99989);
 		cout << "\r" << i << flush;
 		if(i % 100 == 0){

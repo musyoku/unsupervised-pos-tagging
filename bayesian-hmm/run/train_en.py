@@ -153,7 +153,7 @@ def main():
 	decay = (args.start_temperature - args.min_temperature) / args.epochs 
 	for epoch in range(1, args.epochs + 1):
 		start = time.time()
-		trainer.perform_gibbs_sampling()	# 新しい状態系列をギブスサンプリング
+		trainer.gibbs()	# 新しい状態系列をギブスサンプリング
 		trainer.anneal_temperature(decay)	# 温度を下げる
 
 		# ログ

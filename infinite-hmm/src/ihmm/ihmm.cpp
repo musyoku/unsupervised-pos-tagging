@@ -449,7 +449,7 @@ namespace ihmm {
 		assert(false);
 		return stack_size;
 	}
-	void InfiniteHMM::perform_gibbs_sampling_with_sequence(std::vector<Word*> &word_vec){
+	void InfiniteHMM::gibbs(std::vector<Word*> &word_vec){
 		for(int i = 1;i < word_vec.size() - 1;i++){	// <s>と</s>の内側だけ考える
 			int ti_1 = word_vec[i - 1]->_tag;
 			int ti = word_vec[i]->_tag;
