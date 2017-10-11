@@ -12,7 +12,10 @@ namespace ihmm {
 	Model::Model(std::string filename){
 		_set_locale();
 		_hmm = new InfiniteHMM();
-		assert(load(filename) == true);
+		if(load(filename) == false){
+			std::cout << filename << " not found." << std::endl;
+			exit(0);
+		}
 	}
 	Model::~Model(){
 		delete _hmm;

@@ -30,7 +30,10 @@ namespace ithmm {
 	Model::Model(std::string filename){
 		_set_locale();
 		_ithmm = new iTHMM();
-		assert(load(filename) == true);
+		if(load(filename) == false){
+			std::cout << filename << " not found." << std::endl;
+			exit(0);
+		}
 	}
 	Model::~Model(){
 		delete _ithmm;
