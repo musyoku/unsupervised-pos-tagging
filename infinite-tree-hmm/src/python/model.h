@@ -33,8 +33,6 @@ namespace ithmm {
 		void set_tau1(double tau1);
 		bool load(std::string filename);
 		bool save(std::string filename);
-		void enumerate_all_states(std::vector<Node*> &nodes);
-		void precompute_all_stick_lengths(std::vector<Node*> &all_states);
 		boost::python::list python_viterbi_decode(boost::python::list py_word_ids);
 		boost::python::list python_get_tags();
 		void viterbi_decode(std::vector<Word*> &data, std::vector<Node*> &all_states, std::vector<Node*> &sampled_state_sequence, double** forward_table, double** decode_table);

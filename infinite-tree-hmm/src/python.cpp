@@ -24,6 +24,7 @@ BOOST_PYTHON_MODULE(ithmm){
 	.def("compute_log_p_dataset_train", &Trainer::compute_log_p_dataset_train)
 	.def("compute_log_p_dataset_dev", &Trainer::compute_log_p_dataset_dev)
 	.def("update_hyperparameters", &Trainer::update_hyperparameters)
+	.def("blocked_gibbs", &Trainer::blocked_gibbs)
 	.def("gibbs", &Trainer::gibbs);
 
 	boost::python::class_<Model>("model", boost::python::init<Dataset*, int>())

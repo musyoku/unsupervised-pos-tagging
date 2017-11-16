@@ -102,25 +102,10 @@ namespace ithmm {
 	bool Model::save(std::string filename){
 		return _ithmm->save(filename);
 	}
-	// 存在する全ての状態を集める
-	void Model::enumerate_all_states(std::vector<Node*> &nodes){
-		assert(nodes.size() == 0);
-		_ithmm->_structure_tssb->enumerate_nodes_from_left_to_right(nodes);
-	}
-	// 全ての棒の長さを計算しておく
-	void Model::precompute_all_stick_lengths(std::vector<Node*> &all_states){
-		assert(all_states.size() > 0);
-		for(auto node: all_states){
-			double p_eos_given_s = node->compute_transition_probability_to_eos(_ithmm->_tau0, _ithmm->_tau1);
-			double total_stick_length = 1.0 - p_eos_given_s;	// <eos>以外に遷移する確率をTSSBで分配する
-			_ithmm->update_stick_length_of_tssb(node->get_transition_tssb(), total_stick_length);
-		}
-		_ithmm->update_stick_length_of_tssb(_ithmm->_bos_tssb, 1.0);
-	}
 	boost::python::list Model::python_get_tags(){
 		boost::python::list tags;
 		std::vector<Node*> nodes;
-		enumerate_all_states(nodes);
+		_ithmm->enumerate_all_states(nodes);
 		for(const auto &node: nodes){
 			std::string indices = "[" + node->_dump_indices() + "]";
 			tags.append(indices);
@@ -130,8 +115,8 @@ namespace ithmm {
 	boost::python::list Model::python_viterbi_decode(boost::python::list py_word_ids){
 		// あらかじめ全HTSSBの棒の長さを計算しておく
 		std::vector<Node*> nodes;
-		enumerate_all_states(nodes);
-		precompute_all_stick_lengths(nodes);
+		_ithmm->enumerate_all_states(nodes);
+		_ithmm->precompute_all_stick_lengths(nodes);
 		// デコード用のテーブルを確保
 		int num_words = boost::python::len(py_word_ids);
 		double** forward_table = new double*[num_words];
@@ -275,7 +260,7 @@ namespace ithmm {
 		using std::wcout;
 		using std::endl;
 		std::vector<Node*> nodes;
-		enumerate_all_states(nodes);
+		_ithmm->enumerate_all_states(nodes);
 		for(const auto &node: nodes){
 			std::multiset<std::pair<int, double>, multiset_value_comparator> ranking;
 			_ithmm->geneerate_word_ranking_of_node(node, ranking);
@@ -316,7 +301,7 @@ namespace ithmm {
 	}
 	void Model::show_assigned_words_and_probability_for_each_tag(Dictionary* dict, int number_to_show_for_each_tag){
 		std::vector<Node*> nodes;
-		enumerate_all_states(nodes);
+		_ithmm->enumerate_all_states(nodes);
 		std::wcout << "word      	count	probability" << std::endl;
 		for(const auto &node: nodes){
 			std::multiset<std::pair<int, double>, multiset_value_comparator> ranking;
@@ -344,7 +329,7 @@ namespace ithmm {
 	}
 	void Model::show_hpylm_for_each_tag(Dictionary* dict){
 		std::vector<Node*> nodes;
-		enumerate_all_states(nodes);
+		_ithmm->enumerate_all_states(nodes);
 		for(const auto &node: nodes){
 			std::multiset<std::pair<int, double>, multiset_value_comparator> ranking;
 			_ithmm->geneerate_word_ranking_of_node(node, ranking);
@@ -372,7 +357,7 @@ namespace ithmm {
 	}
 	void Model::show_sticks(){
 		std::vector<Node*> nodes;
-		enumerate_all_states(nodes);
+		_ithmm->enumerate_all_states(nodes);
 		for(const auto &node: nodes){
 			std::string indices = node->_dump_indices();
 			std::cout << "\x1b[1m[" << indices << "]\x1b[0m";

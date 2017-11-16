@@ -1175,22 +1175,93 @@ namespace ithmm {
 	}
 	// Embedded HMMによる前向き確率の計算
 	void iTHMM::draw_state_sequence(std::vector<Word*> &sentence, int pool_size, std::vector<Node*> &sampled_sequence){
+		// あらかじめ全HTSSBの棒の長さを計算しておく
+		std::vector<Node*> nodes;
+		enumerate_all_states(nodes);
+		precompute_all_stick_lengths(nodes);
 		update_stick_length_of_tssb(_structure_tssb, 1.0);
+
 		std::vector<Node*> rand_states(pool_size - 1);
 		for(int n = 0;n < rand_states.size();n++){
 			double uniform = sampler::uniform(0, 1);
-			rand_states[n] = retrospective_sampling(uniform, _structure_tssb, 1.0);
+			rand_states[n] = retrospective_sampling(uniform, _structure_tssb, 1.0);	// 状態をランダムにサンプリングしてプールを作る
 		}
-		std::vector<std::vector<Node*>> pool(sentence.size());
+
+		Node*** pool = new Node**[sentence.size()];
 		for(int i = 0;i < sentence.size();i++){
-			Word* word = sentence[i];
-			Node* state = word->_state;
-			pool[i].push_back(state);				// 現在の状態は必ずプールに入る
+			pool[i] = new Node*[pool_size];
+			Node* state = sentence[i]->_state;
+			pool[i][0] = state;		// 現在の状態は必ずプールに入る
 			for(int n = 0;n < rand_states.size();n++){
-				pool[i].push_back(rand_states[n]);	// それ以外の状態はサンプリングされたもの
+				pool[i][n + 1] = rand_states[n];	// それ以外の状態はサンプリングされたもの
 			}
 		}
-		
+		// 前向き計算
+		double** forward_table = new double*[sentence.size()];
+		for(int i = 0;i < sentence.size();i++){
+			forward_table[i] = new double[pool_size];
+		}
+		std::vector<int> sampled_indices;
+
+		// <bos>からの遷移
+		update_stick_length_of_tssb(_bos_tssb, 1.0);
+		Word* word = sentence[0];
+		for(int k = 0;k < pool_size;k++){
+			Node* state = pool[0][k];
+			Node* state_in_bos = _bos_tssb->find_node_by_tracing_horizontal_indices(state);
+			assert(state_in_bos != NULL);
+			double p_s = state_in_bos->_probability;
+			double p_w_given_s = compute_p_w_given_s(word->_id, state);
+			assert(p_s > 0);
+			assert(p_w_given_s > 0);
+			forward_table[0][k] = p_w_given_s * p_s;
+		}
+		// <bos>以降
+		for(int i = 1;i < sentence.size();i++){
+			Word* word = sentence[i];
+			for(int k = 0;k < pool_size;k++){
+				Node* state = pool[i][k];
+				forward_table[i][k] = 0;
+				double p_w_given_s = compute_p_w_given_s(word->_id, state);
+				for(int m = 0;m < pool_size;m++){
+					Node* prev_state = pool[i - 1][m];
+					TSSB* transition_tssb = prev_state->get_transition_tssb();
+					assert(transition_tssb != NULL);
+					Node* state_in_prev_htssb = transition_tssb->find_node_by_tracing_horizontal_indices(state);
+					assert(state_in_prev_htssb != NULL);
+					double p_s_given_prev = state_in_prev_htssb->_probability;
+					forward_table[i][k] += p_w_given_s * p_s_given_prev * forward_table[i - 1][m];
+				}
+			}
+		}
+		// 後向きに系列をサンプリング
+		double* prob_table = new double[pool_size];
+		double sum_prob = 0;
+		int i = sentence.size() - 1;
+		for(int k = 0;k < pool_size;k++){
+			Node* state = pool[i][k];
+			double p_eos_given_s = state->compute_transition_probability_to_eos(_tau0, _tau1);
+			prob_table[k] = p_eos_given_s;
+			sum_prob = p_eos_given_s;
+		}
+		double normalizer = 1.0 / sum_prob;
+		double uniform = sampler::uniform(0, 1);
+		double stack = 0;
+		int sampled_k = 0;
+		for(int k = 0;k < pool_size;k++){
+			stack += prob_table[k] * normalizer;
+			if(stack >= uniform){
+				sampled_k = k;
+				break;
+			}
+		}
+		for(int i = 0;i < sentence.size();i++){
+			delete[] forward_table[i];
+			delete[] pool[i];
+		}
+		delete[] forward_table;
+		delete[] pool;
+		delete[] prob_table;
 	}
 	void iTHMM::add_customer_to_hpylm(Node* target_in_structure, int token_id){
 		assert(target_in_structure != NULL);
@@ -1896,6 +1967,21 @@ namespace ithmm {
 			pair.second = Pw;
 			ranking.insert(pair);
 		}
+	}
+	// 存在する全ての状態を集める
+	void iTHMM::enumerate_all_states(std::vector<Node*> &nodes){
+		assert(nodes.size() == 0);
+		_structure_tssb->enumerate_nodes_from_left_to_right(nodes);
+	}
+	// 全ての棒の長さを計算しておく
+	void iTHMM::precompute_all_stick_lengths(std::vector<Node*> &all_states){
+		assert(all_states.size() > 0);
+		for(auto node: all_states){
+			double p_eos_given_s = node->compute_transition_probability_to_eos(_tau0, _tau1);
+			double total_stick_length = 1.0 - p_eos_given_s;	// <eos>以外に遷移する確率をTSSBで分配する
+			update_stick_length_of_tssb(node->get_transition_tssb(), total_stick_length);
+		}
+		update_stick_length_of_tssb(_bos_tssb, 1.0);
 	}
 	bool iTHMM::save(std::string filename){
 		bool success = false;

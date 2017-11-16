@@ -116,6 +116,8 @@ namespace ithmm {
 		void sum_auxiliary_variables_recursively_for_hpylm(Node* parent, std::vector<double> &sum_log_x_u_m, std::vector<double> &sum_y_ui_m, std::vector<double> &sum_1_y_ui_m, std::vector<double> &sum_1_z_uwkj_m);
 		void sample_hpylm_hyperparameters();
 		void geneerate_word_ranking_of_node(Node* node_in_structure, std::multiset<std::pair<int, double>, multiset_value_comparator> &ranking);
+		void enumerate_all_states(std::vector<Node*> &nodes);
+		void precompute_all_stick_lengths(std::vector<Node*> &all_states);
 		bool save(std::string filename);
 		bool load(std::string filename);
 	};

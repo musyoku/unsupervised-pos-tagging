@@ -37,6 +37,26 @@ namespace ithmm {
 		}
 		_model->_ithmm->delete_unnecessary_children();
 	}
+	void Trainer::blocked_gibbs(){
+		if(_rand_indices.size() != _dataset->_word_sequences_train.size()){
+			_rand_indices.clear();
+			for(int data_index = 0;data_index < _dataset->_word_sequences_train.size();data_index++){
+				_rand_indices.push_back(data_index);
+			}
+		}
+		_model->_ithmm->_num_mh_acceptance = 0;
+		_model->_ithmm->_num_mh_rejection = 0;
+		shuffle(_rand_indices.begin(), _rand_indices.end(), sampler::mt);	// データをシャッフル
+		for(int n = 0;n < _dataset->_word_sequences_train.size();n++){
+			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
+				return;
+			}
+			int data_index = _rand_indices[n];
+			std::vector<Word*> &sentence = _dataset->_word_sequences_train[data_index];
+			_model->_ithmm->blocked_gibbs(sentence, 10);
+		}
+		_model->_ithmm->delete_unnecessary_children();
+	}
 	void Trainer::_before_viterbi_decode(std::vector<Node*> &nodes){
 		_before_compute_log_p_dataset(nodes);
 		assert(_dataset->_max_num_words_in_line > 0);
@@ -55,8 +75,8 @@ namespace ithmm {
 	}
 	void Trainer::_before_compute_log_p_dataset(std::vector<Node*> &nodes){
 		// あらかじめ全HTSSBの棒の長さを計算しておく
-		_model->enumerate_all_states(nodes);
-		_model->precompute_all_stick_lengths(nodes);
+		_model->_ithmm->enumerate_all_states(nodes);
+		_model->_ithmm->precompute_all_stick_lengths(nodes);
 		// 計算用のテーブルを確保
 		assert(_dataset->_max_num_words_in_line > 0);
 		_forward_table = new double*[_dataset->_max_num_words_in_line];
