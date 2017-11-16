@@ -9,7 +9,7 @@ using std::endl;
 using std::vector;
 
 void test_depth_v(){
-	Node* node_1 = new Node();
+	Node* node_1 = new Node(NULL);
 	Node* node_2 = new Node(node_1);
 	Node* node_3 = new Node(node_2);
 	assert(node_1->_depth_v == 0);
@@ -20,7 +20,7 @@ void test_depth_v(){
 	delete node_3;
 }
 void test_depth_h(){
-	Node* node = new Node();
+	Node* node = new Node(NULL);
 	for(int i = 0 ;i < 100;i++){
 		node->add_child(node->generate_child());
 	}
@@ -34,7 +34,7 @@ void test_depth_h(){
 }
 
 void test_add_customer_to_vertical_crp(){
-	Node* node = new Node();
+	Node* node = new Node(NULL);
 	double concentration = 0.2;
 	double g0 = 0.001;
 	bool new_table_generated;
@@ -50,7 +50,7 @@ void test_add_customer_to_vertical_crp(){
 }
 
 void test_add_customer_to_vertical_crp_recursively(){
-	Node* parent = new Node();
+	Node* parent = new Node(NULL);
 	parent->add_child(parent->generate_child());
 	parent->add_child(parent->generate_child());
 	Node* child = new Node(parent);
@@ -131,7 +131,7 @@ void test_add_customer_to_vertical_crp_recursively(){
 }
 
 void test_add_customer_to_horizontal_crp(){
-	Node* node = new Node();
+	Node* node = new Node(NULL);
 	double concentration = 0.2;
 	double g0 = 0.001;
 	bool new_table_generated;
@@ -147,7 +147,7 @@ void test_add_customer_to_horizontal_crp(){
 }
 
 void test_add_customer_to_horizontal_crp_recursively(){
-	Node* parent = new Node();
+	Node* parent = new Node(NULL);
 	parent->add_child(parent->generate_child());
 	parent->add_child(parent->generate_child());
 	Node* child = new Node(parent);
@@ -228,7 +228,7 @@ void test_add_customer_to_horizontal_crp_recursively(){
 }
 
 void test_remove_customer_from_vertical_crp(){
-	Node* node = new Node();
+	Node* node = new Node(NULL);
 	double concentration = 0.2;
 	double g0 = 0.001;
 	bool new_table_generated;
@@ -251,7 +251,7 @@ void test_remove_customer_from_vertical_crp(){
 }
 
 void test_remove_customer_from_vertical_crp_recursively(){
-	Node* parent = new Node();
+	Node* parent = new Node(NULL);
 	parent->add_child(parent->generate_child());
 	parent->add_child(parent->generate_child());
 	Node* child = new Node(parent);
@@ -300,7 +300,7 @@ void test_remove_customer_from_vertical_crp_recursively(){
 }
 
 void test_remove_customer_from_horizontal_crp(){
-	Node* node = new Node();
+	Node* node = new Node(NULL);
 	double concentration = 0.2;
 	double g0 = 0.001;
 	bool new_table_generated;
@@ -323,7 +323,7 @@ void test_remove_customer_from_horizontal_crp(){
 }
 
 void test_remove_customer_from_horizontal_crp_recursively(){
-	Node* parent = new Node();
+	Node* parent = new Node(NULL);
 	parent->add_child(parent->generate_child());
 	parent->add_child(parent->generate_child());
 	Node* child = new Node(parent);
@@ -372,7 +372,7 @@ void test_remove_customer_from_horizontal_crp_recursively(){
 }
 
 void test_increment_decrement(){
-	Node* node = new Node();
+	Node* node = new Node(NULL);
 	for(int i = 0;i < 100;i++){
 		node->increment_vertical_stop_count();
 	}

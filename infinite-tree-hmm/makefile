@@ -2,13 +2,14 @@ CC = g++
 BOOST = /usr/local/Cellar/boost/1.65.0
 INCLUDE = `python3-config --includes` -std=c++11 -I$(BOOST)/include
 LDFLAGS = `python3-config --ldflags` -lboost_serialization -lboost_python3 -L$(BOOST)/lib
-SOFLAGS = -shared -fPIC
+SOFLAGS = -shared -fPIC -march=native
+SOURCES = src/ithmm/*.cpp src/python/*.cpp
 
 install: ## Python用ライブラリをコンパイル
-	$(CC) $(INCLUDE) $(SOFLAGS) -o run/ithmm.so src/python.cpp src/ithmm/*.cpp src/python/*.cpp $(LDFLAGS) -O3 -march=native
+	$(CC) $(INCLUDE) $(SOFLAGS) -o run/ithmm.so src/python.cpp $(SOURCES) $(LDFLAGS) -O3
 
 install_ubuntu: ## Python用ライブラリをコンパイル
-	$(CC) -Wl,--no-as-needed -Wno-deprecated $(INCLUDE) $(SOFLAGS) -o run/ithmm.so src/python.cpp src/ithmm/*.cpp src/python/*.cpp $(LDFLAGS) -O3 -march=native
+	$(CC) -Wl,--no-as-needed -Wno-deprecated $(INCLUDE) $(SOFLAGS) -o run/ithmm.so src/python.cpp $(SOURCES) $(LDFLAGS) -O3
 
 check_includes:	## Python.hの場所を確認
 	python3-config --includes
@@ -26,9 +27,9 @@ module_tests: ## 各モジュールのテスト.
 	./test/module_tests/node
 	./test/module_tests/ithmm
 
-running_tests:	## 学習テスト
-	$(CC) test/running_tests/train.cpp src/ithmm/*.cpp src/python/*.cpp -o test/running_tests/train $(INCLUDE) $(LDFLAGS) -O3 -Wall
-	$(CC) test/running_tests/save.cpp src/ithmm/*.cpp src/python/*.cpp -o test/running_tests/save $(INCLUDE) $(LDFLAGS) -O0 -g -Wall
+running_tests:	## テスト
+	$(CC) test/running_tests/train.cpp $(SOURCES) -o test/running_tests/train $(INCLUDE) $(LDFLAGS) -O3 -Wall
+	$(CC) test/running_tests/save.cpp $(SOURCES) -o test/running_tests/save $(INCLUDE) $(LDFLAGS) -O0 -g -Wall
 
 .PHONY: help
 help:

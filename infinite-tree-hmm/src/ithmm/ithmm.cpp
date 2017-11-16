@@ -503,6 +503,30 @@ namespace ithmm {
 			word->_state = state;
 		}
 	}
+	void iTHMM::blocked_gibbs(std::vector<Word*> &sentence, int pool_size){
+		assert(sentence.size() > 0);
+		Node* prev_state = NULL;
+		Node* next_state = sentence.size() == 1 ? NULL : sentence[1]->_state;
+		// 文に関する全パラメータを削除
+		for(int i = 0;i < sentence.size();i++){
+			Word* word = sentence[i];
+			Node* state = word->_state;
+			remove_parameters(prev_state, state, next_state, word->_id);
+			prev_state = state;
+			next_state = i < sentence.size() - 2 ? sentence[i + 2]->_state : NULL;
+		}
+		std::vector<Node*> sampled_sequence;
+		draw_state_sequence(sentence, pool_size, sampled_sequence);
+		assert(sampled_sequence.size() == sentence.size());
+		for(int i = 0;i < sentence.size();i++){
+			Word* word = sentence[i];
+			Node* state = sampled_sequence[i];
+			add_parameters(prev_state, state, next_state, word->_id);
+			prev_state = state;
+			next_state = i < sentence.size() - 2 ? sentence[i + 2]->_state : NULL;
+			word->_state = state;
+		}
+	}
 	// データ読み込み時の状態初期化時にのみ使う
 	void iTHMM::add_initial_parameters(Node* prev_state_in_structure, Node* state_in_structure, int word_id){
 		// <s>からの遷移を含む場合
@@ -1148,6 +1172,25 @@ namespace ithmm {
 				ed = u;
 			}
 		}
+	}
+	// Embedded HMMによる前向き確率の計算
+	void iTHMM::draw_state_sequence(std::vector<Word*> &sentence, int pool_size, std::vector<Node*> &sampled_sequence){
+		update_stick_length_of_tssb(_structure_tssb, 1.0);
+		std::vector<Node*> rand_states(pool_size - 1);
+		for(int n = 0;n < rand_states.size();n++){
+			double uniform = sampler::uniform(0, 1);
+			rand_states[n] = retrospective_sampling(uniform, _structure_tssb, 1.0);
+		}
+		std::vector<std::vector<Node*>> pool(sentence.size());
+		for(int i = 0;i < sentence.size();i++){
+			Word* word = sentence[i];
+			Node* state = word->_state;
+			pool[i].push_back(state);				// 現在の状態は必ずプールに入る
+			for(int n = 0;n < rand_states.size();n++){
+				pool[i].push_back(rand_states[n]);	// それ以外の状態はサンプリングされたもの
+			}
+		}
+		
 	}
 	void iTHMM::add_customer_to_hpylm(Node* target_in_structure, int token_id){
 		assert(target_in_structure != NULL);

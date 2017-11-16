@@ -28,12 +28,10 @@ void test_add_customer(){
 }
 
 void test_remove_customer(){
-	Node* node = new Node();
+	Node* node = new Node(NULL);
 	HPYLM* hpylm = new HPYLM(node);
-	vector<double> d_m;
-	d_m.push_back(0.2);
-	vector<double> theta_m;
-	theta_m.push_back(1);
+	vector<double> d_m {0.2};
+	vector<double> theta_m {1};
 	double g0 = 0.001;
 	for(int repeat = 0;repeat < 10;repeat++){
 		for(int n = 0;n < 100;n++){
@@ -58,9 +56,9 @@ void test_remove_customer(){
 }
 
 void test_parent_child(){
-	Node* parent_node = new Node();
+	Node* parent_node = new Node(NULL);
 	HPYLM* parent_hpylm = new HPYLM(parent_node);
-	Node* child_node = new Node();
+	Node* child_node = new Node(NULL);
 	HPYLM* child_hpylm = new HPYLM(child_node);
 	child_hpylm->_parent = parent_hpylm;
 	vector<double> d_m;

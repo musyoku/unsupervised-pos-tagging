@@ -88,6 +88,7 @@ namespace ithmm {
 		void update_stick_length_of_tssb(TSSB* tssb, double total_stick_length);
 		void _update_stick_length_of_parent_node(Node* parent, double total_stick_length);
 		void gibbs(std::vector<Word*> &sentence);
+		void blocked_gibbs(std::vector<Word*> &sentence, int pool_size);
 		void add_initial_parameters(Node* prev_state_in_structure, Node* state_in_structure, int word_id);
 		void add_temporal_parameters(Node* prev_state_in_structure, Node* state_in_structure);
 		void add_parameters(Node* prev_state_in_structure, Node* state_in_structure, Node* next_state_in_structure, int word_id);
@@ -98,6 +99,7 @@ namespace ithmm {
 		Node* _draw_state(Node* prev_state_in_structure, Node* state_in_structure, Node* next_state_in_structure, int word_id);
 		Node* _draw_state_from_bos(Node* state_in_structure, Node* next_state_in_structure, int word_id);
 		Node* _draw_state_to_eos(Node* prev_state_in_structure, Node* state_in_structure, int word_id);
+		void draw_state_sequence(std::vector<Word*> &sentence, int pool_size, std::vector<Node*> &sampled_sequence);
 		double compute_node_probability_in_tssb(TSSB* tssb, Node* node, double total_stick_length);
 		double compute_expectation_of_vertical_sbr_ratio(Node* iterator);
 		double compute_expectation_of_horizontal_sbr_ratio(Node* iterator);
