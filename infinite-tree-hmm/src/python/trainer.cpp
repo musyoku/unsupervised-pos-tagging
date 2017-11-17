@@ -53,7 +53,7 @@ namespace ithmm {
 			}
 			int data_index = _rand_indices[n];
 			std::vector<Word*> &sentence = _dataset->_word_sequences_train[data_index];
-			_model->_ithmm->blocked_gibbs(sentence, 10);
+			_model->_ithmm->blocked_gibbs(sentence, 20);
 		}
 		_model->_ithmm->delete_unnecessary_children();
 	}

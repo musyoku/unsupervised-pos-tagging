@@ -28,6 +28,7 @@ module_tests: ## 各モジュールのテスト.
 	./test/module_tests/ithmm
 
 running_tests:	## テスト
+	$(CC) test/running_tests/forward_backward.cpp $(SOURCES) -o test/running_tests/forward_backward $(INCLUDE) $(LDFLAGS) -O0 -g -Wall
 	$(CC) test/running_tests/train.cpp $(SOURCES) -o test/running_tests/train $(INCLUDE) $(LDFLAGS) -O3 -Wall
 	$(CC) test/running_tests/save.cpp $(SOURCES) -o test/running_tests/save $(INCLUDE) $(LDFLAGS) -O0 -g -Wall
 

@@ -1201,7 +1201,6 @@ namespace ithmm {
 		for(int i = 0;i < sentence.size();i++){
 			forward_table[i] = new double[pool_size];
 		}
-		std::vector<int> sampled_indices;
 
 		// <bos>からの遷移
 		update_stick_length_of_tssb(_bos_tssb, 1.0);
@@ -1215,6 +1214,7 @@ namespace ithmm {
 			assert(p_s > 0);
 			assert(p_w_given_s > 0);
 			forward_table[0][k] = p_w_given_s * p_s;
+			std::cout << "forward_table[0][" << k << "] = " << forward_table[0][k] << std::endl;
 		}
 		// <bos>以降
 		for(int i = 1;i < sentence.size();i++){
@@ -1232,22 +1232,25 @@ namespace ithmm {
 					double p_s_given_prev = state_in_prev_htssb->_probability;
 					forward_table[i][k] += p_w_given_s * p_s_given_prev * forward_table[i - 1][m];
 				}
+				std::cout << "forward_table[" << i << "][" << k << "] = " << forward_table[i][k] << std::endl;
 			}
 		}
 		// 後向きに系列をサンプリング
 		double* prob_table = new double[pool_size];
+		std::vector<int> sampled_indices;
+		// まず<eos>に接続する確率を考える
 		double sum_prob = 0;
 		int i = sentence.size() - 1;
 		for(int k = 0;k < pool_size;k++){
 			Node* state = pool[i][k];
 			double p_eos_given_s = state->compute_transition_probability_to_eos(_tau0, _tau1);
 			prob_table[k] = p_eos_given_s;
-			sum_prob = p_eos_given_s;
+			sum_prob += p_eos_given_s;
 		}
 		double normalizer = 1.0 / sum_prob;
 		double uniform = sampler::uniform(0, 1);
 		double stack = 0;
-		int sampled_k = 0;
+		int sampled_k = pool_size - 1;
 		for(int k = 0;k < pool_size;k++){
 			stack += prob_table[k] * normalizer;
 			if(stack >= uniform){
@@ -1255,6 +1258,36 @@ namespace ithmm {
 				break;
 			}
 		}
+		sampled_indices.push_back(sampled_k);
+		// それ以外の部分
+		for(int i = sentence.size() - 1;i >= 1;i--){
+			double sum_prob = 0;
+			Node* state = pool[i][sampled_k];
+			for(int k = 0;k < pool_size;k++){
+				Node* prev_state = pool[i - 1][k];
+				TSSB* transition_tssb = prev_state->get_transition_tssb();
+				assert(transition_tssb != NULL);
+				Node* state_in_prev_htssb = transition_tssb->find_node_by_tracing_horizontal_indices(state);
+				assert(state_in_prev_htssb != NULL);
+				double p_s_given_prev = state_in_prev_htssb->_probability;
+				prob_table[k] = p_s_given_prev * forward_table[i - 1][k];
+				sum_prob += p_s_given_prev * forward_table[i - 1][k];
+			}
+			double normalizer = 1.0 / sum_prob;
+			double uniform = sampler::uniform(0, 1);
+			double stack = 0;
+			int sampled_k = pool_size - 1;
+			for(int k = 0;k < pool_size;k++){
+				stack += prob_table[k] * normalizer;
+				if(stack >= uniform){
+					sampled_k = k;
+					break;
+				}
+			}
+			sampled_indices.push_back(sampled_k);
+		}
+		std::reverse(sampled_indices.begin(), sampled_indices.end());
+		assert(sampled_indices.size() == sentence.size());
 		for(int i = 0;i < sentence.size();i++){
 			delete[] forward_table[i];
 			delete[] pool[i];
