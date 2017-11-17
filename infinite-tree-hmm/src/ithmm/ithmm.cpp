@@ -1251,7 +1251,7 @@ namespace ithmm {
 		for(int k = 0;k < pool_size;k++){
 			Node* state = pool[i][k];
 			double p_eos_given_s = state->compute_transition_probability_to_eos(_tau0, _tau1);
-			prob_table[k] = p_eos_given_s;
+			prob_table[k] = p_eos_given_s * forward_table[i][k];
 			sum_prob += p_eos_given_s;
 		}
 		double normalizer = 1.0 / sum_prob;
@@ -1283,7 +1283,7 @@ namespace ithmm {
 			double normalizer = 1.0 / sum_prob;
 			double uniform = sampler::uniform(0, 1);
 			double stack = 0;
-			int sampled_k = pool_size - 1;
+			sampled_k = pool_size - 1;
 			for(int k = 0;k < pool_size;k++){
 				stack += prob_table[k] * normalizer;
 				if(stack >= uniform){
@@ -1295,6 +1295,7 @@ namespace ithmm {
 		}
 		assert(sampled_indices.size() == sentence.size());
 		// インデックス系列から状態系列へ
+		// sampled_indicesは逆向きに並んでいるので注意
 		sampled_sequence.clear();
 		sampled_sequence.resize(sentence.size());
 		for(int i = sentence.size() - 1;i >= 0;i--){

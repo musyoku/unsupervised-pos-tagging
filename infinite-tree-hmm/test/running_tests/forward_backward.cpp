@@ -34,7 +34,7 @@ void run_train_loop(){
 	model->show_assigned_words_for_each_tag(dictionary, 10, false);
 
 	for(int i = 0;i < 1000;i++){
-		trainer->blocked_gibbs();
+		trainer->gibbs();
 		trainer->update_hyperparameters();
 		cout << "\r" << i << flush;
 
