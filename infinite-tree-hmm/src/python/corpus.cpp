@@ -15,9 +15,12 @@ namespace ithmm {
 		std::wstring sentence_str;
 		assert(ifs.fail() == false);
 		std::vector<std::wstring> sentence_vec;
-		while (getline(ifs, sentence_str) && !sentence_str.empty()){
+		while (getline(ifs, sentence_str)){
 			if (PyErr_CheckSignals() != 0) {		// ctrl+cが押されたかチェック
 				return;
+			}
+			if(sentence_str.empty()){
+				continue;
 			}
 			sentence_vec.push_back(sentence_str);
 		}

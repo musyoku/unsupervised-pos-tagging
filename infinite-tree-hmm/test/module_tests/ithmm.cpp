@@ -56,7 +56,7 @@ void test_copy_children_in_structure_to_transition_tssb(){
 	delete root_in_structure;
 }
 void test_generate_and_add_child_to_parent_in_structure(){
-	iTHMM* ithmm = new iTHMM();
+	iTHMM* ithmm = new iTHMM(1, 1, 1, 1, 1, 1, 1, 1, 100, 3);
 	Node* root_in_structure = ithmm->_root_in_structure;
 	Node* root_in_htssb = ithmm->_root_in_htssb;
 	Node* root_in_bos = ithmm->_root_in_bos;
@@ -76,7 +76,7 @@ void test_generate_and_add_child_to_parent_in_structure(){
 }
 
 void test_generate_transition_tssb_belonging_to(){
-	iTHMM* ithmm = new iTHMM();
+	iTHMM* ithmm = new iTHMM(1, 1, 1, 1, 1, 1, 1, 1, 100, 3);
 	Node* root_in_structure = ithmm->_root_in_structure;
 	Node* root_in_htssb = ithmm->_root_in_htssb;
 	Node* root_in_bos = ithmm->_root_in_bos;
@@ -173,7 +173,7 @@ void test_generate_transition_tssb_belonging_to(){
 }
 
 void test_pointers(){
-	iTHMM* ithmm = new iTHMM();
+	iTHMM* ithmm = new iTHMM(1, 1, 1, 1, 1, 1, 1, 1, 100, 3);
 	Node* root_in_structure = ithmm->_root_in_structure;
 	Node* root_in_htssb = ithmm->_root_in_htssb;
 	Node* root_in_bos = ithmm->_root_in_bos;
@@ -211,7 +211,7 @@ void test_pointers(){
 }
 
 void test_add_customer_to_hpylm(){
-	iTHMM* ithmm = new iTHMM();
+	iTHMM* ithmm = new iTHMM(1, 1, 1, 1, 1, 1, 1, 1, 100, 3);
 	ithmm->set_word_g0(0.001);
 	Node* root_in_structure = ithmm->_root_in_structure;
 	Node* root_in_htssb = ithmm->_root_in_htssb;
@@ -226,7 +226,7 @@ void test_add_customer_to_hpylm(){
 }
 
 void test_remove_customer_from_hpylm(){
-	iTHMM* ithmm = new iTHMM();
+	iTHMM* ithmm = new iTHMM(1, 1, 1, 1, 1, 1, 1, 1, 100, 3);
 	ithmm->set_word_g0(0.001);
 	Node* root_in_structure = ithmm->_root_in_structure;
 	Node* root_in_htssb = ithmm->_root_in_htssb;
@@ -245,7 +245,7 @@ void test_remove_customer_from_hpylm(){
 }
 
 void test_hpylm_concentration(){
-	iTHMM* ithmm = new iTHMM();
+	iTHMM* ithmm = new iTHMM(1, 1, 1, 1, 1, 1, 1, 1, 100, 3);
 	ithmm->set_word_g0(0.001);
 	Node* root_in_structure = ithmm->_root_in_structure;
 	Node* root_in_htssb = ithmm->_root_in_htssb;
@@ -303,7 +303,7 @@ void test_hpylm_concentration(){
 }
 
 void test_add_customer_to_tssb_node(){
-	iTHMM* ithmm = new iTHMM();
+	iTHMM* ithmm = new iTHMM(1, 1, 1, 1, 1, 1, 1, 1, 100, 3);
 	ithmm->set_word_g0(0.001);
 	Node* root_in_structure = ithmm->_root_in_structure;
 	Node* root_in_htssb = ithmm->_root_in_htssb;
@@ -327,7 +327,7 @@ void test_add_customer_to_tssb_node(){
 }
 
 void test_remove_customer_from_tssb_node(){
-	iTHMM* ithmm = new iTHMM();
+	iTHMM* ithmm = new iTHMM(1, 1, 1, 1, 1, 1, 1, 1, 100, 3);
 	Node* root_in_structure = ithmm->_root_in_structure;
 	Node* root_in_htssb = ithmm->_root_in_htssb;
 	Node* root_in_bos = ithmm->_root_in_bos;
@@ -355,7 +355,7 @@ void test_remove_customer_from_tssb_node(){
 }
 
 void test_htssb_concentration_vertical(){
-	iTHMM* ithmm = new iTHMM();
+	iTHMM* ithmm = new iTHMM(1, 1, 1, 1, 1, 1, 1, 1, 100, 3);
 	Node* root_in_structure = ithmm->_root_in_structure;
 	Node* root_in_htssb = ithmm->_root_in_htssb;
 	Node* root_in_bos = ithmm->_root_in_bos;
@@ -418,7 +418,7 @@ void test_htssb_concentration_vertical(){
 }
 
 void test_htssb_concentration_horizontal(){
-	iTHMM* ithmm = new iTHMM();
+	iTHMM* ithmm = new iTHMM(1, 1, 1, 1, 1, 1, 1, 1, 100, 3);
 	Node* root_in_structure = ithmm->_root_in_structure;
 	Node* root_in_htssb = ithmm->_root_in_htssb;
 	Node* root_in_bos = ithmm->_root_in_bos;
@@ -481,7 +481,7 @@ void test_htssb_concentration_horizontal(){
 }
 
 void test_nodes_from_root_to_myself(){
-	iTHMM* ithmm = new iTHMM();
+	iTHMM* ithmm = new iTHMM(1, 1, 1, 1, 1, 1, 1, 1, 100, 3);
 	Node* root_in_structure = ithmm->_root_in_structure;
 	Node* root_in_htssb = ithmm->_root_in_htssb;
 	Node* root_in_bos = ithmm->_root_in_bos;
@@ -492,7 +492,7 @@ void test_nodes_from_root_to_myself(){
 }
 
 void test_compute_expectation_of_vertical_htssb_sbr_ratio(){
-	iTHMM* ithmm = new iTHMM();
+	iTHMM* ithmm = new iTHMM(1, 1, 1, 1, 1, 1, 1, 1, 100, 3);
 	Node* root_in_structure = ithmm->_root_in_structure;
 	Node* root_in_htssb = ithmm->_root_in_htssb;
 	Node* root_in_bos = ithmm->_root_in_bos;
@@ -645,7 +645,7 @@ void test_compute_expectation_of_vertical_htssb_sbr_ratio(){
 }
 
 void test_compute_expectation_of_horizontal_htssb_sbr_ratio(){
-	iTHMM* ithmm = new iTHMM();
+	iTHMM* ithmm = new iTHMM(1, 1, 1, 1, 1, 1, 1, 1, 100, 3);
 	Node* root_in_structure = ithmm->_root_in_structure;
 	Node* root_in_htssb = ithmm->_root_in_htssb;
 	Node* root_in_bos = ithmm->_root_in_bos;
@@ -799,7 +799,7 @@ void test_compute_expectation_of_horizontal_htssb_sbr_ratio(){
 }
 
 void test_compute_concentration_vertical_htssb_sbr_ratio(){
-	iTHMM* ithmm = new iTHMM();
+	iTHMM* ithmm = new iTHMM(1, 1, 1, 1, 1, 1, 1, 1, 100, 3);
 	Node* root_in_structure = ithmm->_root_in_structure;
 	Node* root_in_htssb = ithmm->_root_in_htssb;
 	Node* root_in_bos = ithmm->_root_in_bos;
@@ -853,7 +853,7 @@ void test_compute_concentration_vertical_htssb_sbr_ratio(){
 }
 
 void test_compute_concentration_horizontal_htssb_sbr_ratio(){
-	iTHMM* ithmm = new iTHMM();
+	iTHMM* ithmm = new iTHMM(1, 1, 1, 1, 1, 1, 1, 1, 100, 3);
 	Node* root_in_structure = ithmm->_root_in_structure;
 	Node* root_in_htssb = ithmm->_root_in_htssb;
 	Node* root_in_bos = ithmm->_root_in_bos;
@@ -899,7 +899,7 @@ void test_compute_concentration_horizontal_htssb_sbr_ratio(){
 }
 
 void test_sample_node_in_tssb_by_iterating_node(){
-	iTHMM* ithmm = new iTHMM();
+	iTHMM* ithmm = new iTHMM(1, 1, 1, 1, 1, 1, 1, 1, 100, 3);
 	Node* root_in_structure = ithmm->_root_in_structure;
 	Node* root_in_htssb = ithmm->_root_in_htssb;
 	Node* root_in_bos = ithmm->_root_in_bos;
@@ -980,7 +980,7 @@ void test_sample_node_in_tssb_by_iterating_node(){
 }
 
 void test_update_stick_length_of_tssb(){
-	iTHMM* ithmm = new iTHMM();
+	iTHMM* ithmm = new iTHMM(1, 1, 1, 1, 1, 1, 1, 1, 100, 3);
 	Node* root_in_structure = ithmm->_root_in_structure;
 	Node* root_in_htssb = ithmm->_root_in_htssb;
 	Node* root_in_bos = ithmm->_root_in_bos;
@@ -1058,7 +1058,7 @@ void test_update_stick_length_of_tssb(){
 	delete[] sum_child_length;
 	delete ithmm;
 
-	// ithmm = new iTHMM();
+	// ithmm = new iTHMM(1, 1, 1, 1, 1, 1, 1, 1, 100, 3);
 	// root_in_structure = ithmm->_root_in_structure;
 	// root_in_htssb = ithmm->_root_in_htssb;
 	// root_in_bos = ithmm->_root_in_bos;
@@ -1076,7 +1076,7 @@ void test_update_stick_length_of_tssb(){
 }
 
 void test_retrospective_sampling(){
-	iTHMM* ithmm = new iTHMM();
+	iTHMM* ithmm = new iTHMM(1, 1, 1, 1, 1, 1, 1, 1, 100, 3);
 	Node* root_in_structure = ithmm->_root_in_structure;
 	Node* root_in_htssb = ithmm->_root_in_htssb;
 	Node* root_in_bos = ithmm->_root_in_bos;
@@ -1146,7 +1146,7 @@ void test_retrospective_sampling(){
 }
 
 void test_retrospective_sampling_statistics(){
-	iTHMM* ithmm = new iTHMM();
+	iTHMM* ithmm = new iTHMM(1, 1, 1, 1, 1, 1, 1, 1, 100, 3);
 	Node* root_in_structure = ithmm->_root_in_structure;
 	Node* root_in_htssb = ithmm->_root_in_htssb;
 	Node* root_in_bos = ithmm->_root_in_bos;
@@ -1183,7 +1183,7 @@ void test_retrospective_sampling_statistics(){
 }
 
 void test_add_and_remove_parameters(){
-	iTHMM* ithmm = new iTHMM();
+	iTHMM* ithmm = new iTHMM(1, 1, 1, 1, 1, 1, 1, 1, 100, 3);
 	ithmm->set_word_g0(0.001);
 	Node* root_in_structure = ithmm->_root_in_structure;
 	Node* root_in_htssb = ithmm->_root_in_htssb;
@@ -1197,26 +1197,45 @@ void test_add_and_remove_parameters(){
 	Node* grandson_in_htssb = grandson_in_structure->get_myself_in_transition_tssb();
 	Node* grandson_in_bos = ithmm->_bos_tssb->find_node_by_tracing_horizontal_indices(grandson_in_structure);
 
+	TSSB* root_transition_tssb = root_in_structure->get_transition_tssb();
+	TSSB* grandson_transition_tssb = grandson_in_structure->get_transition_tssb();
+
+	assert(grandson_transition_tssb->_root->_pass_count_v == 0);
+	assert(grandson_transition_tssb->_root->_stop_count_v == 0);
+	assert(grandson_transition_tssb->_root->_pass_count_h == 0);
+	assert(grandson_transition_tssb->_root->_stop_count_h == 0);
+	assert(grandson_in_bos->_pass_count_v == 0);
+	assert(grandson_in_bos->_stop_count_v == 0);
+	assert(grandson_in_bos->_pass_count_h == 0);
+	assert(grandson_in_bos->_stop_count_h == 0);
+	assert(root_transition_tssb->_root->_pass_count_v == 0);
+	assert(root_transition_tssb->_root->_stop_count_v == 0);
+	assert(root_transition_tssb->_root->_pass_count_h == 0);
+	assert(root_transition_tssb->_root->_stop_count_h == 0);
+
 	ithmm->add_parameters(NULL, grandson_in_structure, root_in_structure, 1);
 	assert(grandson_in_structure->_num_transitions_to_other == 1);
 	assert(grandson_in_structure->_num_transitions_to_eos == 0);
-	TSSB* transition_tssb = grandson_in_structure->get_transition_tssb();
-	assert(transition_tssb->_root->_pass_count_v == 0);
-	assert(transition_tssb->_root->_stop_count_v == 1);
-	assert(transition_tssb->_root->_pass_count_h == 0);
-	assert(transition_tssb->_root->_stop_count_h == 1);
+	assert(grandson_transition_tssb->_root->_pass_count_v == 0);
+	assert(grandson_transition_tssb->_root->_stop_count_v == 1);
+	assert(grandson_transition_tssb->_root->_pass_count_h == 0);
+	assert(grandson_transition_tssb->_root->_stop_count_h == 1);
 	assert(grandson_in_bos->_pass_count_v == 0);
 	assert(grandson_in_bos->_stop_count_v == 1);
 	assert(grandson_in_bos->_pass_count_h == 0);
 	assert(grandson_in_bos->_stop_count_h == 1);
+	assert(root_transition_tssb->_root->_pass_count_v == 0);
+	assert(root_transition_tssb->_root->_stop_count_v == 1);
+	assert(root_transition_tssb->_root->_pass_count_h == 0);
+	assert(root_transition_tssb->_root->_stop_count_h == 1);
 
 	ithmm->add_parameters(NULL, grandson_in_structure, NULL, 1);
 	assert(grandson_in_structure->_num_transitions_to_other == 1);
 	assert(grandson_in_structure->_num_transitions_to_eos == 1);
-	assert(transition_tssb->_root->_pass_count_v == 0);
-	assert(transition_tssb->_root->_stop_count_v == 1);
-	assert(transition_tssb->_root->_pass_count_h == 0);
-	assert(transition_tssb->_root->_stop_count_h == 1);
+	assert(grandson_transition_tssb->_root->_pass_count_v == 0);
+	assert(grandson_transition_tssb->_root->_stop_count_v == 1);
+	assert(grandson_transition_tssb->_root->_pass_count_h == 0);
+	assert(grandson_transition_tssb->_root->_stop_count_h == 1);
 	assert(grandson_in_bos->_pass_count_v == 0);
 	assert(grandson_in_bos->_stop_count_v == 2);
 	assert(grandson_in_bos->_pass_count_h == 0);
@@ -1227,11 +1246,10 @@ void test_add_and_remove_parameters(){
 	assert(grandson_in_structure->_num_transitions_to_eos == 2);
 	assert(root_in_structure->_num_transitions_to_other == 1);
 	assert(root_in_structure->_num_transitions_to_eos == 0);
-	transition_tssb = root_in_structure->get_transition_tssb();
-	assert(transition_tssb->_root->_pass_count_v == 1);
-	assert(transition_tssb->_root->_stop_count_v == 1);
-	assert(transition_tssb->_root->_pass_count_h == 0);
-	assert(transition_tssb->_root->_stop_count_h == 2);
+	assert(root_transition_tssb->_root->_pass_count_v == 1);
+	assert(root_transition_tssb->_root->_stop_count_v == 1);
+	assert(root_transition_tssb->_root->_pass_count_h == 0);
+	assert(root_transition_tssb->_root->_stop_count_h == 2);
 	assert(grandson_in_bos->_pass_count_v == 0);
 	assert(grandson_in_bos->_stop_count_v == 2);
 	assert(grandson_in_bos->_pass_count_h == 0);
@@ -1244,6 +1262,10 @@ void test_add_and_remove_parameters(){
 	assert(grandson_in_structure->_num_transitions_to_eos == 2);
 	assert(root_in_structure->_num_transitions_to_other == 1);
 	assert(root_in_structure->_num_transitions_to_eos == 0);
+	assert(grandson_transition_tssb->_root->_pass_count_v == 0);
+	assert(grandson_transition_tssb->_root->_stop_count_v == 2);
+	assert(grandson_transition_tssb->_root->_pass_count_h == 0);
+	assert(grandson_transition_tssb->_root->_stop_count_h == 2);
 
 	ithmm->remove_parameters(child_in_structure, grandson_in_structure, root_in_structure, 1);
 	assert(child_in_structure->_num_transitions_to_other == 0);
@@ -1252,6 +1274,10 @@ void test_add_and_remove_parameters(){
 	assert(grandson_in_structure->_num_transitions_to_eos == 2);
 	assert(root_in_structure->_num_transitions_to_other == 1);
 	assert(root_in_structure->_num_transitions_to_eos == 0);
+	assert(grandson_transition_tssb->_root->_pass_count_v == 0);
+	assert(grandson_transition_tssb->_root->_stop_count_v == 1);
+	assert(grandson_transition_tssb->_root->_pass_count_h == 0);
+	assert(grandson_transition_tssb->_root->_stop_count_h == 1);
 
 	ithmm->remove_parameters(root_in_structure, grandson_in_structure, NULL, 1);
 	assert(child_in_structure->_num_transitions_to_other == 0);
@@ -1260,6 +1286,10 @@ void test_add_and_remove_parameters(){
 	assert(grandson_in_structure->_num_transitions_to_eos == 1);
 	assert(root_in_structure->_num_transitions_to_other == 0);
 	assert(root_in_structure->_num_transitions_to_eos == 0);
+	assert(grandson_transition_tssb->_root->_pass_count_v == 0);
+	assert(grandson_transition_tssb->_root->_stop_count_v == 1);
+	assert(grandson_transition_tssb->_root->_pass_count_h == 0);
+	assert(grandson_transition_tssb->_root->_stop_count_h == 1);
 
 	ithmm->remove_parameters(NULL, grandson_in_structure, NULL, 1);
 	assert(child_in_structure->_num_transitions_to_other == 0);
@@ -1268,6 +1298,10 @@ void test_add_and_remove_parameters(){
 	assert(grandson_in_structure->_num_transitions_to_eos == 0);
 	assert(root_in_structure->_num_transitions_to_other == 0);
 	assert(root_in_structure->_num_transitions_to_eos == 0);
+	assert(grandson_transition_tssb->_root->_pass_count_v == 0);
+	assert(grandson_transition_tssb->_root->_stop_count_v == 1);
+	assert(grandson_transition_tssb->_root->_pass_count_h == 0);
+	assert(grandson_transition_tssb->_root->_stop_count_h == 1);
 
 	ithmm->remove_parameters(NULL, grandson_in_structure, root_in_structure, 1);
 	assert(child_in_structure->_num_transitions_to_other == 0);
@@ -1276,6 +1310,136 @@ void test_add_and_remove_parameters(){
 	assert(grandson_in_structure->_num_transitions_to_eos == 0);
 	assert(root_in_structure->_num_transitions_to_other == 0);
 	assert(root_in_structure->_num_transitions_to_eos == 0);
+	assert(grandson_transition_tssb->_root->_pass_count_v == 0);
+	assert(grandson_transition_tssb->_root->_stop_count_v == 0);
+	assert(grandson_transition_tssb->_root->_pass_count_h == 0);
+	assert(grandson_transition_tssb->_root->_stop_count_h == 0);
+
+	assert(root_in_structure->get_transition_tssb()->get_num_customers() == 0);
+	assert(child_in_structure->get_transition_tssb()->get_num_customers() == 0);
+	assert(grandson_in_structure->get_transition_tssb()->get_num_customers() == 0);
+
+	ithmm->add_parameters(NULL, grandson_in_structure, 1);
+	assert(grandson_in_structure->_num_transitions_to_other == 0);
+	assert(grandson_in_structure->_num_transitions_to_eos == 0);
+	assert(grandson_transition_tssb->_root->_pass_count_v == 0);
+	assert(grandson_transition_tssb->_root->_stop_count_v == 0);
+	assert(grandson_transition_tssb->_root->_pass_count_h == 0);
+	assert(grandson_transition_tssb->_root->_stop_count_h == 0);
+	assert(grandson_in_bos->_pass_count_v == 0);
+	assert(grandson_in_bos->_stop_count_v == 1);
+	assert(grandson_in_bos->_pass_count_h == 0);
+	assert(grandson_in_bos->_stop_count_h == 1);
+
+	ithmm->add_parameters(grandson_in_structure, NULL, 1);
+	assert(grandson_in_structure->_num_transitions_to_other == 0);
+	assert(grandson_in_structure->_num_transitions_to_eos == 1);
+	assert(grandson_transition_tssb->_root->_pass_count_v == 0);
+	assert(grandson_transition_tssb->_root->_stop_count_v == 0);
+	assert(grandson_transition_tssb->_root->_pass_count_h == 0);
+	assert(grandson_transition_tssb->_root->_stop_count_h == 0);
+	assert(grandson_in_bos->_pass_count_v == 0);
+	assert(grandson_in_bos->_stop_count_v == 1);
+	assert(grandson_in_bos->_pass_count_h == 0);
+	assert(grandson_in_bos->_stop_count_h == 1);
+
+	ithmm->add_parameters(root_in_structure, grandson_in_structure, 1);
+	assert(grandson_in_structure->_num_transitions_to_other == 0);
+	assert(grandson_in_structure->_num_transitions_to_eos == 1);
+	assert(root_in_structure->_num_transitions_to_other == 1);
+	assert(root_in_structure->_num_transitions_to_eos == 0);
+	assert(grandson_transition_tssb->_root->_pass_count_v == 0);
+	assert(grandson_transition_tssb->_root->_stop_count_v == 0);
+	assert(grandson_transition_tssb->_root->_pass_count_h == 0);
+	assert(grandson_transition_tssb->_root->_stop_count_h == 0);
+	assert(root_transition_tssb->_root->_pass_count_v == 1);
+	assert(root_transition_tssb->_root->_stop_count_v == 0);
+	assert(root_transition_tssb->_root->_pass_count_h == 0);
+	assert(root_transition_tssb->_root->_stop_count_h == 1);
+	assert(grandson_in_bos->_pass_count_v == 0);
+	assert(grandson_in_bos->_stop_count_v == 1);
+	assert(grandson_in_bos->_pass_count_h == 0);
+	assert(grandson_in_bos->_stop_count_h == 1);
+
+	ithmm->add_parameters(child_in_structure, grandson_in_structure, 1);
+	assert(child_in_structure->_num_transitions_to_other == 1);
+	assert(child_in_structure->_num_transitions_to_eos == 0);
+	assert(grandson_in_structure->_num_transitions_to_other == 0);
+	assert(grandson_in_structure->_num_transitions_to_eos == 1);
+	assert(root_in_structure->_num_transitions_to_other == 1);
+	assert(root_in_structure->_num_transitions_to_eos == 0);
+	assert(grandson_transition_tssb->_root->_pass_count_v == 0);
+	assert(grandson_transition_tssb->_root->_stop_count_v == 0);
+	assert(grandson_transition_tssb->_root->_pass_count_h == 0);
+	assert(grandson_transition_tssb->_root->_stop_count_h == 0);
+	assert(root_transition_tssb->_root->_pass_count_v == 2);
+	assert(root_transition_tssb->_root->_stop_count_v == 0);
+	assert(root_transition_tssb->_root->_pass_count_h == 0);
+	assert(root_transition_tssb->_root->_stop_count_h == 2);
+
+	ithmm->remove_parameters(grandson_in_structure, NULL, 1);
+	assert(child_in_structure->_num_transitions_to_other == 1);
+	assert(child_in_structure->_num_transitions_to_eos == 0);
+	assert(grandson_in_structure->_num_transitions_to_other == 0);
+	assert(grandson_in_structure->_num_transitions_to_eos == 0);
+	assert(root_in_structure->_num_transitions_to_other == 1);
+	assert(root_in_structure->_num_transitions_to_eos == 0);
+	assert(grandson_transition_tssb->_root->_pass_count_v == 0);
+	assert(grandson_transition_tssb->_root->_stop_count_v == 0);
+	assert(grandson_transition_tssb->_root->_pass_count_h == 0);
+	assert(grandson_transition_tssb->_root->_stop_count_h == 0);
+	assert(root_transition_tssb->_root->_pass_count_v == 2);
+	assert(root_transition_tssb->_root->_stop_count_v == 0);
+	assert(root_transition_tssb->_root->_pass_count_h == 0);
+	assert(root_transition_tssb->_root->_stop_count_h == 2);
+
+	ithmm->remove_parameters(NULL, grandson_in_structure, 1);
+	assert(child_in_structure->_num_transitions_to_other == 1);
+	assert(child_in_structure->_num_transitions_to_eos == 0);
+	assert(grandson_in_structure->_num_transitions_to_other == 0);
+	assert(grandson_in_structure->_num_transitions_to_eos == 0);
+	assert(root_in_structure->_num_transitions_to_other == 1);
+	assert(root_in_structure->_num_transitions_to_eos == 0);
+	assert(grandson_transition_tssb->_root->_pass_count_v == 0);
+	assert(grandson_transition_tssb->_root->_stop_count_v == 0);
+	assert(grandson_transition_tssb->_root->_pass_count_h == 0);
+	assert(grandson_transition_tssb->_root->_stop_count_h == 0);
+	assert(root_transition_tssb->_root->_pass_count_v == 2);
+	assert(root_transition_tssb->_root->_stop_count_v == 0);
+	assert(root_transition_tssb->_root->_pass_count_h == 0);
+	assert(root_transition_tssb->_root->_stop_count_h == 2);
+
+	ithmm->remove_parameters(child_in_structure, grandson_in_structure, 1);
+	assert(child_in_structure->_num_transitions_to_other == 0);
+	assert(child_in_structure->_num_transitions_to_eos == 0);
+	assert(grandson_in_structure->_num_transitions_to_other == 0);
+	assert(grandson_in_structure->_num_transitions_to_eos == 0);
+	assert(root_in_structure->_num_transitions_to_other == 1);
+	assert(root_in_structure->_num_transitions_to_eos == 0);
+	assert(grandson_transition_tssb->_root->_pass_count_v == 0);
+	assert(grandson_transition_tssb->_root->_stop_count_v == 0);
+	assert(grandson_transition_tssb->_root->_pass_count_h == 0);
+	assert(grandson_transition_tssb->_root->_stop_count_h == 0);
+	assert(root_transition_tssb->_root->_pass_count_v == 1);
+	assert(root_transition_tssb->_root->_stop_count_v == 0);
+	assert(root_transition_tssb->_root->_pass_count_h == 0);
+	assert(root_transition_tssb->_root->_stop_count_h == 1);
+
+	ithmm->remove_parameters(root_in_structure, grandson_in_structure, 1);
+	assert(child_in_structure->_num_transitions_to_other == 0);
+	assert(child_in_structure->_num_transitions_to_eos == 0);
+	assert(grandson_in_structure->_num_transitions_to_other == 0);
+	assert(grandson_in_structure->_num_transitions_to_eos == 0);
+	assert(root_in_structure->_num_transitions_to_other == 0);
+	assert(root_in_structure->_num_transitions_to_eos == 0);
+	assert(grandson_transition_tssb->_root->_pass_count_v == 0);
+	assert(grandson_transition_tssb->_root->_stop_count_v == 0);
+	assert(grandson_transition_tssb->_root->_pass_count_h == 0);
+	assert(grandson_transition_tssb->_root->_stop_count_h == 0);
+	assert(root_transition_tssb->_root->_pass_count_v == 0);
+	assert(root_transition_tssb->_root->_stop_count_v == 0);
+	assert(root_transition_tssb->_root->_pass_count_h == 0);
+	assert(root_transition_tssb->_root->_stop_count_h == 0);
 
 	assert(root_in_structure->get_transition_tssb()->get_num_customers() == 0);
 	assert(child_in_structure->get_transition_tssb()->get_num_customers() == 0);
@@ -1283,7 +1447,7 @@ void test_add_and_remove_parameters(){
 }
 
 void test_compute_p_w_given_s(){
-	iTHMM* ithmm = new iTHMM();
+	iTHMM* ithmm = new iTHMM(1, 1, 1, 1, 1, 1, 1, 1, 100, 3);
 	ithmm->set_word_g0(0.0001);
 	Node* root_in_structure = ithmm->_root_in_structure;
 	Node* root_in_htssb = ithmm->_root_in_htssb;
@@ -1321,7 +1485,7 @@ void test_compute_p_w_given_s(){
 }
 
 void test_delete_unnecessary_children(){
-	iTHMM* ithmm = new iTHMM();
+	iTHMM* ithmm = new iTHMM(1, 1, 1, 1, 1, 1, 1, 1, 100, 3);
 	ithmm->set_word_g0(0.001);
 	Node* root_in_structure = ithmm->_root_in_structure;
 	Node* root_in_htssb = ithmm->_root_in_htssb;
@@ -1357,7 +1521,7 @@ void test_delete_unnecessary_children(){
 }
 
 void test_compute_node_probability_in_tssb(){
-	iTHMM* ithmm = new iTHMM();
+	iTHMM* ithmm = new iTHMM(1, 1, 1, 1, 1, 1, 1, 1, 100, 3);
 	Node* root_in_structure = ithmm->_root_in_structure;
 	Node* root_in_htssb = ithmm->_root_in_htssb;
 	Node* root_in_bos = ithmm->_root_in_bos;
@@ -1432,7 +1596,7 @@ void test_compute_node_probability_in_tssb(){
 }
 
 void test_add_and_remove_temporal_parameters(){
-	iTHMM* ithmm = new iTHMM();
+	iTHMM* ithmm = new iTHMM(1, 1, 1, 1, 1, 1, 1, 1, 100, 3);
 	ithmm->set_word_g0(0.001);
 	Node* root_in_structure = ithmm->_root_in_structure;
 	Node* root_in_htssb = ithmm->_root_in_htssb;
@@ -1480,7 +1644,7 @@ void test_add_and_remove_temporal_parameters(){
 }
 
 void test_initialize_with_training_dataset(){
-	iTHMM* ithmm = new iTHMM();
+	iTHMM* ithmm = new iTHMM(1, 1, 1, 1, 1, 1, 1, 1, 100, 3);
 	ithmm->set_word_g0(0.001);
 	std::vector<std::vector<Word*>> dataset;
 	std::vector<Word*> words;

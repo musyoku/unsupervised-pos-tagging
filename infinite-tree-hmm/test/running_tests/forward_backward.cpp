@@ -15,7 +15,7 @@ void run_train_loop(){
 	Corpus* corpus = new Corpus();
 	corpus->add_textfile(filename);
 	int seed = 0;
-	Dataset* dataset = new Dataset(corpus, 0.9, 1, seed);
+	Dataset* dataset = new Dataset(corpus, 0.9, 0, seed);
 	Model* model = new Model(dataset, 1, 1, 1, 1, 1, 1, 1, 100, 2);
 
 	// _alpha = sampler::uniform(iTHMM_ALPHA_MIN, iTHMM_ALPHA_MAX);

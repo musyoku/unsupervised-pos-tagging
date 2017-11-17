@@ -117,8 +117,7 @@ namespace ithmm {
 			// 状態路ランダムに設定
 			for(int i = 0;i < data.size();i++){
 				Word* word = data[i];
-				Node* state = NULL;
-				state = sample_node_in_tssb(_structure_tssb, true);
+				Node* state = sample_node_in_tssb(_structure_tssb, true);
 				assert(state != NULL);
 				word->_state = state;
 			}
@@ -126,10 +125,10 @@ namespace ithmm {
 			for(int i = 0;i < data.size();i++){
 				Word* word = data[i];
 				Node* state = word->_state;
-				add_initial_parameters(prev_state, state, word->_id);
+				add_parameters(prev_state, state, word->_id);
 				prev_state = state;
 			}
-			add_initial_parameters(prev_state, NULL, 0);	// </s>
+			add_parameters(prev_state, NULL, 0);	// </s>
 		}
 	}
 	// デバッグ用
@@ -508,27 +507,32 @@ namespace ithmm {
 		Node* prev_state = NULL;
 		Node* next_state = sentence.size() == 1 ? NULL : sentence[1]->_state;
 		// 文に関する全パラメータを削除
+		std::cout << "remove: " << sentence.size() << std::endl;
 		for(int i = 0;i < sentence.size();i++){
 			Word* word = sentence[i];
 			Node* state = word->_state;
+			std::cout << state->_dump_indices() << ", " << word->_id << std::endl;
 			remove_parameters(prev_state, state, next_state, word->_id);
 			prev_state = state;
 			next_state = i < sentence.size() - 2 ? sentence[i + 2]->_state : NULL;
 		}
+		std::cout << "add: " << sentence.size() << std::endl;
 		std::vector<Node*> sampled_sequence;
 		draw_state_sequence(sentence, pool_size, sampled_sequence);
 		assert(sampled_sequence.size() == sentence.size());
+		prev_state = NULL;
+		next_state = sampled_sequence.size() == 1 ? NULL : sampled_sequence[1];
 		for(int i = 0;i < sentence.size();i++){
 			Word* word = sentence[i];
 			Node* state = sampled_sequence[i];
 			add_parameters(prev_state, state, next_state, word->_id);
+			std::cout << state->_dump_indices() << ", " << word->_id << std::endl;
 			prev_state = state;
-			next_state = i < sentence.size() - 2 ? sentence[i + 2]->_state : NULL;
+			next_state = i < sampled_sequence.size() - 2 ? sampled_sequence[i + 2] : NULL;
 			word->_state = state;
 		}
 	}
-	// データ読み込み時の状態初期化時にのみ使う
-	void iTHMM::add_initial_parameters(Node* prev_state_in_structure, Node* state_in_structure, int word_id){
+	void iTHMM::add_parameters(Node* prev_state_in_structure, Node* state_in_structure, int word_id){
 		// <s>からの遷移を含む場合
 		if(prev_state_in_structure == NULL){
 			assert(state_in_structure != NULL);
@@ -624,9 +628,9 @@ namespace ithmm {
 			add_customer_to_tssb_node(state_in_bos);
 			add_customer_to_tssb_node(state_in_structure);			// 参照カウント用
 
-			TSSB* next_state_tssb = state_in_structure->get_transition_tssb();
-			assert(next_state_tssb != NULL);
-			Node* next_state_in_state_htssb = next_state_tssb->find_node_by_tracing_horizontal_indices(next_state_in_structure);
+			TSSB* state_transition_tssb = state_in_structure->get_transition_tssb();
+			assert(state_transition_tssb != NULL);
+			Node* next_state_in_state_htssb = state_transition_tssb->find_node_by_tracing_horizontal_indices(next_state_in_structure);
 			assert(next_state_in_state_htssb != NULL);
 			assert(next_state_in_structure->_identifier == next_state_in_state_htssb->_identifier);
 			add_customer_to_htssb_node(next_state_in_state_htssb);
@@ -757,6 +761,54 @@ namespace ithmm {
 		assert(state_in_structure->_identifier == state_in_prev_state_htssb->_identifier);
 		remove_customer_from_htssb_node(state_in_prev_state_htssb, true);
 		remove_customer_from_tssb_node(state_in_structure);			// 参照カウント用
+		prev_state_in_structure->decrement_transition_count_to_other();
+	}
+	void iTHMM::remove_parameters(Node* prev_state_in_structure, Node* state_in_structure, int word_id){
+		// <s>からの遷移を含む場合
+		if(prev_state_in_structure == NULL){
+			assert(state_in_structure != NULL);
+			assert(state_in_structure->get_transition_tssb() != NULL);
+			assert(is_node_in_structure_tssb(state_in_structure));
+			if(_depth_limit >= 0){
+				assert(state_in_structure->_depth_v <= _depth_limit);
+			}
+			Node* state_in_bos = _bos_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
+			assert(state_in_bos);
+			remove_customer_from_tssb_node(state_in_bos);
+			remove_customer_from_tssb_node(state_in_structure);			// 参照カウント用
+			remove_customer_from_hpylm(state_in_structure, word_id);
+			return;
+		}
+		// </s>への遷移を含む場合
+		if(state_in_structure == NULL){
+			assert(prev_state_in_structure != NULL);
+			assert(prev_state_in_structure->get_transition_tssb() != NULL);
+			assert(is_node_in_structure_tssb(prev_state_in_structure));
+			if(_depth_limit >= 0){
+				assert(prev_state_in_structure->_depth_v <= _depth_limit);
+			}
+			prev_state_in_structure->decrement_transition_count_to_eos();
+			return;
+		}
+		assert(prev_state_in_structure != NULL);
+		assert(prev_state_in_structure->get_transition_tssb() != NULL);
+		assert(state_in_structure != NULL);
+		assert(state_in_structure->get_transition_tssb() != NULL);
+		assert(is_node_in_structure_tssb(prev_state_in_structure));
+		assert(is_node_in_structure_tssb(state_in_structure));
+		if(_depth_limit >= 0){
+			assert(prev_state_in_structure->_depth_v <= _depth_limit);
+			assert(state_in_structure->_depth_v <= _depth_limit);
+		}
+
+		TSSB* prev_state_transition_tssb = prev_state_in_structure->get_transition_tssb();
+		assert(prev_state_transition_tssb != NULL);
+		Node* state_in_prev_state_htssb = prev_state_transition_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
+		assert(state_in_prev_state_htssb != NULL);
+		remove_customer_from_htssb_node(state_in_prev_state_htssb);
+		remove_customer_from_tssb_node(state_in_structure);			// 参照カウント用
+
+		remove_customer_from_hpylm(state_in_structure, word_id);
 		prev_state_in_structure->decrement_transition_count_to_other();
 	}
 	void iTHMM::remove_parameters(Node* prev_state_in_structure, Node* state_in_structure, Node* next_state_in_structure, int word_id){
@@ -1174,26 +1226,22 @@ namespace ithmm {
 		}
 	}
 	// Embedded HMMによる前向き確率の計算
+	// https://papers.nips.cc/paper/2391-inferring-state-sequences-for-non-linear-systems-with-embedded-hidden-markov-models.pdf
 	void iTHMM::draw_state_sequence(std::vector<Word*> &sentence, int pool_size, std::vector<Node*> &sampled_sequence){
 		// あらかじめ全HTSSBの棒の長さを計算しておく
 		std::vector<Node*> nodes;
 		enumerate_all_states(nodes);
 		precompute_all_stick_lengths(nodes);
 		update_stick_length_of_tssb(_structure_tssb, 1.0);
-
-		std::vector<Node*> rand_states(pool_size - 1);
-		for(int n = 0;n < rand_states.size();n++){
-			double uniform = sampler::uniform(0, 1);
-			rand_states[n] = retrospective_sampling(uniform, _structure_tssb, 1.0);	// 状態をランダムにサンプリングしてプールを作る
-		}
-
+		// プールを作る
 		Node*** pool = new Node**[sentence.size()];
 		for(int i = 0;i < sentence.size();i++){
 			pool[i] = new Node*[pool_size];
 			Node* state = sentence[i]->_state;
 			pool[i][0] = state;		// 現在の状態は必ずプールに入る
-			for(int n = 0;n < rand_states.size();n++){
-				pool[i][n + 1] = rand_states[n];	// それ以外の状態はサンプリングされたもの
+			for(int n = 0;n < pool_size - 1;n++){
+				double uniform = sampler::uniform(0, 1);
+				pool[i][n + 1] = retrospective_sampling(uniform, _structure_tssb, 1.0);	// 状態をランダムにサンプリングしてプールを作る
 			}
 		}
 		// 前向き計算
@@ -1205,24 +1253,35 @@ namespace ithmm {
 		// <bos>からの遷移
 		update_stick_length_of_tssb(_bos_tssb, 1.0);
 		Word* word = sentence[0];
+		double z = 0;
 		for(int k = 0;k < pool_size;k++){
 			Node* state = pool[0][k];
 			Node* state_in_bos = _bos_tssb->find_node_by_tracing_horizontal_indices(state);
 			assert(state_in_bos != NULL);
 			double p_s = state_in_bos->_probability;
-			double p_w_given_s = compute_p_w_given_s(word->_id, state);
+			assert(state->_probability > 0);
+			double p_w_given_s = compute_p_w_given_s(word->_id, state) / state->_probability; // Embedded HMMでは出力確率をρで割る
+			// std::cout << compute_p_w_given_s(word->_id, state) << " / " << state->_probability << std::endl;
 			assert(p_s > 0);
 			assert(p_w_given_s > 0);
 			forward_table[0][k] = p_w_given_s * p_s;
-			std::cout << "forward_table[0][" << k << "] = " << forward_table[0][k] << std::endl;
+			// std::cout << "forward_table[0][" << k << "] = " << forward_table[0][k] << std::endl;
+			z += forward_table[0][k];
+		}
+		for(int k = 0;k < pool_size;k++){
+			forward_table[0][k] /= z;
 		}
 		// <bos>以降
 		for(int i = 1;i < sentence.size();i++){
 			Word* word = sentence[i];
+			z = 0;
 			for(int k = 0;k < pool_size;k++){
 				Node* state = pool[i][k];
 				forward_table[i][k] = 0;
-				double p_w_given_s = compute_p_w_given_s(word->_id, state);
+				assert(state->_probability > 0);
+				double p_w_given_s = compute_p_w_given_s(word->_id, state) / state->_probability;
+				// std::cout << compute_p_w_given_s(word->_id, state) << " / " << state->_probability << std::endl;
+				// std::cout << "p_w_given_s = " << p_w_given_s << std::endl;
 				for(int m = 0;m < pool_size;m++){
 					Node* prev_state = pool[i - 1][m];
 					TSSB* transition_tssb = prev_state->get_transition_tssb();
@@ -1232,7 +1291,11 @@ namespace ithmm {
 					double p_s_given_prev = state_in_prev_htssb->_probability;
 					forward_table[i][k] += p_w_given_s * p_s_given_prev * forward_table[i - 1][m];
 				}
-				std::cout << "forward_table[" << i << "][" << k << "] = " << forward_table[i][k] << std::endl;
+				// std::cout << "forward_table[" << i << "][" << k << "] = " << forward_table[i][k] << std::endl;
+				z += forward_table[i][k];
+			}
+			for(int k = 0;k < pool_size;k++){
+				forward_table[i][k] /= z;
 			}
 		}
 		// 後向きに系列をサンプリング
@@ -1286,8 +1349,14 @@ namespace ithmm {
 			}
 			sampled_indices.push_back(sampled_k);
 		}
-		std::reverse(sampled_indices.begin(), sampled_indices.end());
 		assert(sampled_indices.size() == sentence.size());
+		// インデックス系列から状態系列へ
+		sampled_sequence.clear();
+		sampled_sequence.resize(sentence.size());
+		for(int i = sentence.size() - 1;i >= 0;i--){
+			int t = sentence.size() - i - 1;
+			sampled_sequence[t] = pool[t][sampled_indices[i]];
+		}
 		for(int i = 0;i < sentence.size();i++){
 			delete[] forward_table[i];
 			delete[] pool[i];
@@ -1297,6 +1366,7 @@ namespace ithmm {
 		delete[] prob_table;
 	}
 	void iTHMM::add_customer_to_hpylm(Node* target_in_structure, int token_id){
+		// std::cout << "iTHMM::add_customer_to_hpylm: " << target_in_structure->_dump_indices() << " <- " << token_id << std::endl;
 		assert(target_in_structure != NULL);
 		assert(is_node_in_structure_tssb(target_in_structure));	// 木構造上のノードのみ
 		assert(target_in_structure->_depth_v == target_in_structure->_hpylm->_depth);
@@ -1394,6 +1464,7 @@ namespace ithmm {
 		}
 	}
 	void iTHMM::remove_customer_from_hpylm(Node* target_in_structure, int token_id){
+		// std::cout << "iTHMM::remove_customer_from_hpylm: " << target_in_structure->_dump_indices() << " -> " << token_id << std::endl;
 		assert(target_in_structure != NULL);
 		assert(is_node_in_structure_tssb(target_in_structure));	// 木構造上のノードのみ
 		assert(target_in_structure->_depth_v == target_in_structure->_hpylm->_depth);

@@ -89,11 +89,12 @@ namespace ithmm {
 		void _update_stick_length_of_parent_node(Node* parent, double total_stick_length);
 		void gibbs(std::vector<Word*> &sentence);
 		void blocked_gibbs(std::vector<Word*> &sentence, int pool_size);
-		void add_initial_parameters(Node* prev_state_in_structure, Node* state_in_structure, int word_id);
 		void add_temporal_parameters(Node* prev_state_in_structure, Node* state_in_structure);
+		void add_parameters(Node* prev_state_in_structure, Node* state_in_structure, int word_id);
 		void add_parameters(Node* prev_state_in_structure, Node* state_in_structure, Node* next_state_in_structure, int word_id);
 		void remove_initial_parameters(Node* prev_state_in_structure, Node* state_in_structure, int word_id);
 		void remove_temporal_parameters(Node* prev_state_in_structure, Node* state_in_structure);
+		void remove_parameters(Node* prev_state_in_structure, Node* state_in_structure, int word_id);
 		void remove_parameters(Node* prev_state_in_structure, Node* state_in_structure, Node* next_state_in_structure, int word_id);
 		Node* draw_state(Node* prev_state_in_structure, Node* state_in_structure, Node* next_state_in_structure, int word_id);
 		Node* _draw_state(Node* prev_state_in_structure, Node* state_in_structure, Node* next_state_in_structure, int word_id);
