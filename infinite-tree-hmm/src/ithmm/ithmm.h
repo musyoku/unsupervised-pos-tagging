@@ -90,10 +90,11 @@ namespace ithmm {
 		void gibbs(std::vector<Word*> &sentence);
 		void blocked_gibbs(std::vector<Word*> &sentence, int pool_size);
 		void add_temporal_parameters(Node* prev_state_in_structure, Node* state_in_structure);
+		void add_transition_to_eos(Node* prev_state_in_structure);
 		void add_parameters(Node* prev_state_in_structure, Node* state_in_structure, int word_id);
 		void add_parameters(Node* prev_state_in_structure, Node* state_in_structure, Node* next_state_in_structure, int word_id);
-		void remove_initial_parameters(Node* prev_state_in_structure, Node* state_in_structure, int word_id);
 		void remove_temporal_parameters(Node* prev_state_in_structure, Node* state_in_structure);
+		void remove_transition_to_eos(Node* prev_state_in_structure);
 		void remove_parameters(Node* prev_state_in_structure, Node* state_in_structure, int word_id);
 		void remove_parameters(Node* prev_state_in_structure, Node* state_in_structure, Node* next_state_in_structure, int word_id);
 		Node* draw_state(Node* prev_state_in_structure, Node* state_in_structure, Node* next_state_in_structure, int word_id);

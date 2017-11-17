@@ -142,7 +142,7 @@ void run_train_loop(){
 	Corpus* corpus = new Corpus();
 	corpus->add_textfile(filename);
 	int seed = 0;
-	Dataset* dataset = new Dataset(corpus, 0.9, 1, seed);
+	Dataset* dataset = new Dataset(corpus, 0.9, 0, seed);
 	Model* model = new Model(dataset, 1, 1, 1, 1, 1, 1, 1, 100, 3);
 
 	// _alpha = sampler::uniform(iTHMM_ALPHA_MIN, iTHMM_ALPHA_MAX);
@@ -158,8 +158,8 @@ void run_train_loop(){
 	Trainer* trainer = new Trainer(dataset, model);
 
 	model->show_assigned_words_for_each_tag(dictionary, 10, false);
-
-	for(int i = 0;i < 1000;i++){
+	
+	for(int i = 0;i < 10;i++){
 		trainer->gibbs();
 		trainer->update_hyperparameters();
 		cout << "\r" << i << flush;
@@ -173,6 +173,8 @@ void run_train_loop(){
 		}
 	}
 	model->save("ithmm.model");
+	model->_ithmm->remove_all_data(dataset->_word_sequences_train);
+
 	delete corpus;
 	delete dataset;
 	delete trainer;

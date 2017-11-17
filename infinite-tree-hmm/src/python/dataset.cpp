@@ -59,8 +59,8 @@ namespace ithmm {
 				word->_id = ID_UNK;
 			}else{
 				word->_id = _dict->add_word_string(word_str);
-				_word_count[word->_id] += 1;
 			}
+			_word_count[word->_id] += 1;
 			word->_state = NULL;
 			words.push_back(word);
 		}

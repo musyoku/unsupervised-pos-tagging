@@ -128,7 +128,7 @@ namespace ithmm {
 				add_parameters(prev_state, state, word->_id);
 				prev_state = state;
 			}
-			add_parameters(prev_state, NULL, 0);	// </s>
+			add_transition_to_eos(prev_state);	// </s>
 		}
 	}
 	// デバッグ用
@@ -143,10 +143,10 @@ namespace ithmm {
 			for(int i = 0;i < data.size();i++){
 				Word* word = data[i];
 				Node* state = word->_state;
-				remove_initial_parameters(prev_state, state, word->_id);
+				remove_parameters(prev_state, state, word->_id);
 				prev_state = state;
 			}
-			remove_initial_parameters(prev_state, NULL, 0);
+			remove_transition_to_eos(prev_state);
 		}
 	}
 	void iTHMM::set_depth_limit(int limit){
@@ -505,32 +505,37 @@ namespace ithmm {
 	void iTHMM::blocked_gibbs(std::vector<Word*> &sentence, int pool_size){
 		assert(sentence.size() > 0);
 		Node* prev_state = NULL;
-		Node* next_state = sentence.size() == 1 ? NULL : sentence[1]->_state;
 		// 文に関する全パラメータを削除
-		std::cout << "remove: " << sentence.size() << std::endl;
 		for(int i = 0;i < sentence.size();i++){
 			Word* word = sentence[i];
 			Node* state = word->_state;
-			std::cout << state->_dump_indices() << ", " << word->_id << std::endl;
-			remove_parameters(prev_state, state, next_state, word->_id);
+			remove_parameters(prev_state, state, word->_id);
 			prev_state = state;
-			next_state = i < sentence.size() - 2 ? sentence[i + 2]->_state : NULL;
 		}
-		std::cout << "add: " << sentence.size() << std::endl;
+		remove_transition_to_eos(prev_state);
+
 		std::vector<Node*> sampled_sequence;
 		draw_state_sequence(sentence, pool_size, sampled_sequence);
 		assert(sampled_sequence.size() == sentence.size());
 		prev_state = NULL;
-		next_state = sampled_sequence.size() == 1 ? NULL : sampled_sequence[1];
 		for(int i = 0;i < sentence.size();i++){
 			Word* word = sentence[i];
 			Node* state = sampled_sequence[i];
-			add_parameters(prev_state, state, next_state, word->_id);
-			std::cout << state->_dump_indices() << ", " << word->_id << std::endl;
+			add_parameters(prev_state, state, word->_id);
 			prev_state = state;
-			next_state = i < sampled_sequence.size() - 2 ? sampled_sequence[i + 2] : NULL;
 			word->_state = state;
 		}
+		add_transition_to_eos(prev_state);
+	}
+	void iTHMM::add_transition_to_eos(Node* prev_state_in_structure){
+		assert(prev_state_in_structure != NULL);
+		assert(prev_state_in_structure->get_transition_tssb() != NULL);
+		assert(is_node_in_structure_tssb(prev_state_in_structure));
+		if(_depth_limit >= 0){
+			assert(prev_state_in_structure->_depth_v <= _depth_limit);
+		}
+		prev_state_in_structure->increment_transition_count_to_eos();
+		return;
 	}
 	void iTHMM::add_parameters(Node* prev_state_in_structure, Node* state_in_structure, int word_id){
 		// <s>からの遷移を含む場合
@@ -546,17 +551,6 @@ namespace ithmm {
 			add_customer_to_tssb_node(state_in_bos);
 			add_customer_to_tssb_node(state_in_structure);			// 参照カウント用
 			add_customer_to_hpylm(state_in_structure, word_id);
-			return;
-		}
-		// </s>への遷移を含む場合
-		if(state_in_structure == NULL){
-			assert(prev_state_in_structure != NULL);
-			assert(prev_state_in_structure->get_transition_tssb() != NULL);
-			assert(is_node_in_structure_tssb(prev_state_in_structure));
-			if(_depth_limit >= 0){
-				assert(prev_state_in_structure->_depth_v <= _depth_limit);
-			}
-			prev_state_in_structure->increment_transition_count_to_eos();
 			return;
 		}
 		assert(prev_state_in_structure != NULL);
@@ -697,55 +691,6 @@ namespace ithmm {
 		prev_state_in_structure->increment_transition_count_to_other();
 		state_in_structure->increment_transition_count_to_other();
 	}
-	// データをモデルから全部消す時はこれを使う
-	void iTHMM::remove_initial_parameters(Node* prev_state_in_structure, Node* state_in_structure, int word_id){
-		// <s>からの遷移を含む場合
-		if(prev_state_in_structure == NULL){
-			assert(state_in_structure != NULL);
-			assert(state_in_structure->get_transition_tssb() != NULL);
-			assert(is_node_in_structure_tssb(state_in_structure));
-			if(_depth_limit >= 0){
-				assert(state_in_structure->_depth_v <= _depth_limit);
-			}
-			Node* state_in_bos = _bos_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
-			assert(state_in_bos);
-			remove_customer_from_tssb_node(state_in_bos);
-			remove_customer_from_tssb_node(state_in_structure);			// 参照カウント用
-			remove_customer_from_hpylm(state_in_structure, word_id);
-			return;
-		}
-		// </s>への遷移を含む場合
-		if(state_in_structure == NULL){
-			assert(prev_state_in_structure != NULL);
-			assert(prev_state_in_structure->get_transition_tssb() != NULL);
-			assert(is_node_in_structure_tssb(prev_state_in_structure));
-			if(_depth_limit >= 0){
-				assert(prev_state_in_structure->_depth_v <= _depth_limit);
-			}
-			prev_state_in_structure->decrement_transition_count_to_eos();
-			return;
-		}
-		assert(prev_state_in_structure != NULL);
-		assert(prev_state_in_structure->get_transition_tssb() != NULL);
-		assert(state_in_structure != NULL);
-		assert(state_in_structure->get_transition_tssb() != NULL);
-		assert(is_node_in_structure_tssb(prev_state_in_structure));
-		assert(is_node_in_structure_tssb(state_in_structure));
-		if(_depth_limit >= 0){
-			assert(prev_state_in_structure->_depth_v <= _depth_limit);
-			assert(state_in_structure->_depth_v <= _depth_limit);
-		}
-
-		TSSB* prev_state_transition_tssb = prev_state_in_structure->get_transition_tssb();
-		assert(prev_state_transition_tssb != NULL);
-		Node* state_in_prev_state_htssb = prev_state_transition_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
-		assert(state_in_prev_state_htssb != NULL);
-		assert(state_in_structure->_identifier == state_in_prev_state_htssb->_identifier);
-		remove_customer_from_htssb_node(state_in_prev_state_htssb);
-		remove_customer_from_tssb_node(state_in_structure);			// 参照カウント用
-		remove_customer_from_hpylm(state_in_structure, word_id);
-		prev_state_in_structure->decrement_transition_count_to_other();
-	}
 	void iTHMM::remove_temporal_parameters(Node* prev_state_in_structure, Node* state_in_structure){
 		assert(is_node_in_structure_tssb(prev_state_in_structure));
 		assert(is_node_in_structure_tssb(state_in_structure));
@@ -763,6 +708,15 @@ namespace ithmm {
 		remove_customer_from_tssb_node(state_in_structure);			// 参照カウント用
 		prev_state_in_structure->decrement_transition_count_to_other();
 	}
+	void iTHMM::remove_transition_to_eos(Node* prev_state_in_structure){
+		assert(prev_state_in_structure != NULL);
+		assert(prev_state_in_structure->get_transition_tssb() != NULL);
+		assert(is_node_in_structure_tssb(prev_state_in_structure));
+		if(_depth_limit >= 0){
+			assert(prev_state_in_structure->_depth_v <= _depth_limit);
+		}
+		prev_state_in_structure->decrement_transition_count_to_eos();
+	}
 	void iTHMM::remove_parameters(Node* prev_state_in_structure, Node* state_in_structure, int word_id){
 		// <s>からの遷移を含む場合
 		if(prev_state_in_structure == NULL){
@@ -777,17 +731,6 @@ namespace ithmm {
 			remove_customer_from_tssb_node(state_in_bos);
 			remove_customer_from_tssb_node(state_in_structure);			// 参照カウント用
 			remove_customer_from_hpylm(state_in_structure, word_id);
-			return;
-		}
-		// </s>への遷移を含む場合
-		if(state_in_structure == NULL){
-			assert(prev_state_in_structure != NULL);
-			assert(prev_state_in_structure->get_transition_tssb() != NULL);
-			assert(is_node_in_structure_tssb(prev_state_in_structure));
-			if(_depth_limit >= 0){
-				assert(prev_state_in_structure->_depth_v <= _depth_limit);
-			}
-			prev_state_in_structure->decrement_transition_count_to_eos();
 			return;
 		}
 		assert(prev_state_in_structure != NULL);
@@ -805,6 +748,7 @@ namespace ithmm {
 		assert(prev_state_transition_tssb != NULL);
 		Node* state_in_prev_state_htssb = prev_state_transition_tssb->find_node_by_tracing_horizontal_indices(state_in_structure);
 		assert(state_in_prev_state_htssb != NULL);
+		assert(state_in_structure->_identifier == state_in_prev_state_htssb->_identifier);
 		remove_customer_from_htssb_node(state_in_prev_state_htssb);
 		remove_customer_from_tssb_node(state_in_structure);			// 参照カウント用
 
