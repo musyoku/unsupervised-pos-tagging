@@ -16,7 +16,7 @@ void run_train_loop(){
 	corpus->add_textfile(filename);
 	int seed = 0;
 	Dataset* dataset = new Dataset(corpus, 0.9, 0, seed);
-	Model* model = new Model(dataset, 1, 1, 1, 1, 1, 1, 1, 100, 2);
+	Model* model = new Model(dataset, 1, 1, 1, 1, 1, 1, 1, 100, 1);
 
 	// _alpha = sampler::uniform(iTHMM_ALPHA_MIN, iTHMM_ALPHA_MAX);
 	// _gamma = sampler::uniform(iTHMM_GAMMA_MIN, iTHMM_GAMMA_MAX);
@@ -37,6 +37,11 @@ void run_train_loop(){
 		trainer->blocked_gibbs();
 		trainer->update_hyperparameters();
 		cout << "\r" << i << flush;
+
+		if(i % 10 == 0){
+			model->show_assigned_words_for_each_tag(dictionary, 10, false);
+			cout << trainer->compute_log_p_dataset_train() << endl;
+		}
 	}
 	model->save("ithmm.model");
 	delete corpus;
