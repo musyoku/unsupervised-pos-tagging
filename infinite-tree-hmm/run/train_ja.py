@@ -82,7 +82,8 @@ def main():
 	# 学習ループ
 	for epoch in range(1, args.epochs + 1):
 		start = time.time()
-		trainer.blocked_gibbs()						# 新しい状態系列をギブスサンプリング
+		trainer.gibbs()						# 新しい状態系列をギブスサンプリング
+		# trainer.blocked_gibbs(pool_size=10)				# 新しい状態系列をforward-backwardでサンプリング
 		trainer.update_hyperparameters()	# ハイパーパラメータの更新
 
 		# ログ
@@ -91,7 +92,7 @@ def main():
 		if epoch % 100 == 0:
 			printr("")
 			model.show_assigned_words_for_each_tag(dictionary, 10, False);
-		if epoch % 100 == 0:
+		if epoch % 10 == 0:
 			printr("")
 			print("log_likelihood: train {} - dev {}".format(trainer.compute_log_p_dataset_train(), trainer.compute_log_p_dataset_dev()))
 			model.save(os.path.join(args.working_directory, "ithmm.model"))

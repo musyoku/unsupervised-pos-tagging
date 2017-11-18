@@ -25,7 +25,7 @@ namespace ithmm {
 		Trainer(Dataset* dataset, Model* model);
 		void remove_all_data();
 		void gibbs();
-		void blocked_gibbs();
+		void blocked_gibbs(int pool_size);
 		double compute_log_p_dataset_train();
 		double compute_log_p_dataset_dev();
 		double compute_log2_p_dataset_train();

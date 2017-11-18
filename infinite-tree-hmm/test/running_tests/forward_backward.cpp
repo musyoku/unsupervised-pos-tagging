@@ -16,7 +16,7 @@ void run_train_loop(){
 	Corpus* corpus = new Corpus();
 	corpus->add_textfile(filename);
 	int seed = 0;
-	Dataset* dataset = new Dataset(corpus, 0.9, 0, seed);
+	Dataset* dataset = new Dataset(corpus, 1, 0, seed);
 	Model* model = new Model(dataset, 1, 1, 1, 1, 1, 1, 1, 100, 1);
 
 	// _alpha = sampler::uniform(iTHMM_ALPHA_MIN, iTHMM_ALPHA_MAX);
@@ -36,7 +36,7 @@ void run_train_loop(){
 
 	for(int i = 0;i < 1000;i++){
 		auto start = std::chrono::system_clock::now();
-		trainer->blocked_gibbs();
+		trainer->gibbs();
 	    auto end = std::chrono::system_clock::now();
 	    auto diff = end - start;
 	    cout << std::chrono::duration_cast<std::chrono::milliseconds>(diff).count() << " msec" << endl;
