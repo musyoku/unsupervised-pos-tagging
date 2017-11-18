@@ -1,5 +1,5 @@
-#include  <iostream>
-#include  <string>
+#include <iostream>
+#include <string>
 #include <chrono>
 #include "../../src/ithmm/sampler.h"
 #include "../../src/python/model.h"
@@ -17,7 +17,7 @@ void run_train_loop(){
 	corpus->add_textfile(filename);
 	int seed = 0;
 	Dataset* dataset = new Dataset(corpus, 1, 0, seed);
-	Model* model = new Model(dataset, 1, 1, 1, 1, 1, 1, 1, 100, 1);
+	Model* model = new Model(dataset, 1, 1, 1, 1, 1, 1, 1, 100, 2);
 
 	// _alpha = sampler::uniform(iTHMM_ALPHA_MIN, iTHMM_ALPHA_MAX);
 	// _gamma = sampler::uniform(iTHMM_GAMMA_MIN, iTHMM_GAMMA_MAX);
@@ -37,6 +37,7 @@ void run_train_loop(){
 	for(int i = 0;i < 1000;i++){
 		auto start = std::chrono::system_clock::now();
 		trainer->gibbs();
+		// trainer->blocked_gibbs(50);
 	    auto end = std::chrono::system_clock::now();
 	    auto diff = end - start;
 	    cout << std::chrono::duration_cast<std::chrono::milliseconds>(diff).count() << " msec" << endl;

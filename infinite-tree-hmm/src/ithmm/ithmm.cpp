@@ -1282,6 +1282,13 @@ namespace ithmm {
 					Node* state_in_prev_htssb = transition_tssb->find_node_by_tracing_horizontal_indices(state);
 					assert(state_in_prev_htssb != NULL);
 					double p_s_given_prev = state_in_prev_htssb->_probability;
+
+					// double p_eos_given_s = prev_state->compute_transition_probability_to_eos(_tau0, _tau1);
+					// double _p_s_given_prev = (1.0 - p_eos_given_s) * compute_node_probability_in_tssb(transition_tssb, state_in_prev_htssb, 1.0);
+
+					// std::cout << _p_s_given_prev << "==" << p_s_given_prev << std::endl;
+					// assert(_p_s_given_prev == p_s_given_prev);
+
 					__forward_table[i][k] += p_w_given_s * p_s_given_prev * __forward_table[i - 1][m];
 					__p_s_given_prev_i_k_m[i][k][m] = p_s_given_prev;
 				}
