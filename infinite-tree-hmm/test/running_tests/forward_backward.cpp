@@ -1,5 +1,6 @@
 #include  <iostream>
 #include  <string>
+#include <chrono>
 #include "../../src/ithmm/sampler.h"
 #include "../../src/python/model.h"
 #include "../../src/python/dataset.h"
@@ -34,9 +35,13 @@ void run_train_loop(){
 	model->show_assigned_words_for_each_tag(dictionary, 10, false);
 
 	for(int i = 0;i < 1000;i++){
+		auto start = std::chrono::system_clock::now();
 		trainer->gibbs();
+	    auto end = std::chrono::system_clock::now();
+	    auto diff = end - start;
+	    cout << std::chrono::duration_cast<std::chrono::milliseconds>(diff).count() << " msec" << endl;
 		trainer->update_hyperparameters();
-		cout << "\r" << i << flush;
+		// cout << "\r" << i << flush;
 
 		if(i % 10 == 0){
 			model->show_assigned_words_for_each_tag(dictionary, 10, false);

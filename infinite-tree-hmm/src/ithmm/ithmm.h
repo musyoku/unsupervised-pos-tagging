@@ -23,6 +23,15 @@ namespace ithmm {
 		friend class boost::serialization::access;
 		template <class Archive>
 		void serialize(Archive& archive, unsigned int version);
+		// Emmbedded HMM用
+		Node*** __pool;
+		double** __forward_table;;
+		double** __p_s_given_prev_i_m;
+		double* __prob_table;
+		double __pool_size;
+		double __seq_length;
+		void _init_pool(int pool_size, int seq_length);
+		void _delete_pool();
 	public:
 		TSSB* _structure_tssb;	// 木構造を表すためだけのTSSB。HTSSBは全てこのノードを基準に成形する
 		TSSB* _bos_tssb;		// <bos>からの遷移を表すTSSB
