@@ -82,7 +82,7 @@ def main():
 	# 学習ループ
 	for epoch in range(1, args.epochs + 1):
 		start = time.time()
-		trainer.gibbs()						# 新しい状態系列をギブスサンプリング
+		trainer.blocked_gibbs()						# 新しい状態系列をギブスサンプリング
 		trainer.update_hyperparameters()	# ハイパーパラメータの更新
 
 		# ログ

@@ -36,7 +36,7 @@ void run_train_loop(){
 
 	for(int i = 0;i < 1000;i++){
 		auto start = std::chrono::system_clock::now();
-		trainer->gibbs();
+		trainer->blocked_gibbs();
 	    auto end = std::chrono::system_clock::now();
 	    auto diff = end - start;
 	    cout << std::chrono::duration_cast<std::chrono::milliseconds>(diff).count() << " msec" << endl;

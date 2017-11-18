@@ -26,7 +26,7 @@ namespace ithmm {
 		// Emmbedded HMM用
 		Node*** __pool;
 		double** __forward_table;;
-		double** __p_s_given_prev_i_m;
+		double*** __p_s_given_prev_i_k_m;
 		double* __prob_table;
 		double __pool_size;
 		double __seq_length;
@@ -111,6 +111,7 @@ namespace ithmm {
 		Node* _draw_state_from_bos(Node* state_in_structure, Node* next_state_in_structure, int word_id);
 		Node* _draw_state_to_eos(Node* prev_state_in_structure, Node* state_in_structure, int word_id);
 		void draw_state_sequence(std::vector<Word*> &sentence, int pool_size, std::vector<Node*> &sampled_sequence);
+		void _draw_state_sequence(std::vector<Word*> &sentence, int pool_size, std::vector<Node*> &sampled_sequence);
 		double compute_node_probability_in_tssb(TSSB* tssb, Node* node, double total_stick_length);
 		double compute_expectation_of_vertical_sbr_ratio(Node* iterator);
 		double compute_expectation_of_horizontal_sbr_ratio(Node* iterator);

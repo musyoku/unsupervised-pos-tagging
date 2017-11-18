@@ -48,7 +48,7 @@ namespace ithmm {
 	iTHMM::iTHMM(){
 		__pool = NULL;
 		__forward_table = NULL;
-		__p_s_given_prev_i_m = NULL;
+		__p_s_given_prev_i_k_m = NULL;
 		__prob_table = NULL;
 		__pool_size = 0;
 		__seq_length = 0;
@@ -111,7 +111,7 @@ namespace ithmm {
 
 		__pool = NULL;
 		__forward_table = NULL;
-		__p_s_given_prev_i_m = NULL;
+		__p_s_given_prev_i_k_m = NULL;
 		__prob_table = NULL;
 		__pool_size = 0;
 		__seq_length = 0;
@@ -530,6 +530,7 @@ namespace ithmm {
 		std::vector<Node*> sampled_sequence;
 		draw_state_sequence(sentence, pool_size, sampled_sequence);
 		assert(sampled_sequence.size() == sentence.size());
+
 		prev_state = NULL;
 		for(int i = 0;i < sentence.size();i++){
 			Word* word = sentence[i];
@@ -1186,11 +1187,14 @@ namespace ithmm {
 		if(__pool != NULL){
 			for(int i = 0;i < __seq_length;i++){
 				delete[] __forward_table[i];
-				delete[] __p_s_given_prev_i_m[i];
 				delete[] __pool[i];
+				for(int k = 0;k < __pool_size;k++){
+					delete[] __p_s_given_prev_i_k_m[i][k];
+				}
+				delete[] __p_s_given_prev_i_k_m[i];
 			}
 			delete[] __forward_table;
-			delete[] __p_s_given_prev_i_m;
+			delete[] __p_s_given_prev_i_k_m;
 			delete[] __pool;
 			delete[] __prob_table;
 		}
@@ -1211,9 +1215,12 @@ namespace ithmm {
 		for(int i = 0;i < seq_length;i++){
 			__forward_table[i] = new double[pool_size];
 		}
-		__p_s_given_prev_i_m = new double*[seq_length];
+		__p_s_given_prev_i_k_m = new double**[seq_length];
 		for(int i = 0;i < seq_length;i++){
-			__p_s_given_prev_i_m[i] = new double[pool_size];
+			__p_s_given_prev_i_k_m[i] = new double*[pool_size];
+			for(int k = 0;k < __pool_size;k++){
+				__p_s_given_prev_i_k_m[i][k] = new double[pool_size];
+			}
 		}
 	}
 	// Embedded HMMによる前向き確率の計算
@@ -1276,7 +1283,7 @@ namespace ithmm {
 					assert(state_in_prev_htssb != NULL);
 					double p_s_given_prev = state_in_prev_htssb->_probability;
 					__forward_table[i][k] += p_w_given_s * p_s_given_prev * __forward_table[i - 1][m];
-					__p_s_given_prev_i_m[i][m] = p_s_given_prev;
+					__p_s_given_prev_i_k_m[i][k][m] = p_s_given_prev;
 				}
 				// std::cout << "__forward_table[" << i << "][" << k << "] = " << __forward_table[i][k] << std::endl;
 				z += __forward_table[i][k];
@@ -1311,23 +1318,30 @@ namespace ithmm {
 		// それ以外の部分
 		for(int i = sentence.size();i >= 1;i--){
 			double sum_prob = 0;
-			Node* state = __pool[i][sampled_k];
-			for(int k = 0;k < pool_size;k++){
-				// Node* prev_state = __pool[i - 1][k];
+			for(int m = 0;m < pool_size;m++){
+				// Node* prev_state = __pool[i - 1][m];
 				// TSSB* transition_tssb = prev_state->get_transition_tssb();
 				// assert(transition_tssb != NULL);
 				// Node* state_in_prev_htssb = transition_tssb->find_node_by_tracing_horizontal_indices(state);
 				// assert(state_in_prev_htssb != NULL);
 				// double p_s_given_prev = state_in_prev_htssb->_probability;
 				if(i == sentence.size()){
+					Node* state = __pool[i - 1][m];
 					double p_eos_given_s = state->compute_transition_probability_to_eos(_tau0, _tau1);
-					__prob_table[k] = p_eos_given_s * __forward_table[i][k];
+					__prob_table[m] = p_eos_given_s * __forward_table[i - 1][m];
 					sum_prob += p_eos_given_s;
 				}else{
-					double p_s_given_prev = __p_s_given_prev_i_m[i][k];
-					// assert(__p_s_given_prev_i_m[i][k] == p_s_given_prev);
-					__prob_table[k] = p_s_given_prev * __forward_table[i - 1][k];
-					sum_prob += p_s_given_prev * __forward_table[i - 1][k];
+					// Node* state = __pool[i][sampled_k];
+					// Node* prev_state = __pool[i - 1][m];
+					// TSSB* transition_tssb = prev_state->get_transition_tssb();
+					// assert(transition_tssb != NULL);
+					// Node* state_in_prev_htssb = transition_tssb->find_node_by_tracing_horizontal_indices(state);
+					// assert(state_in_prev_htssb != NULL);
+					// double _p_s_given_prev = state_in_prev_htssb->_probability;
+					double p_s_given_prev = __p_s_given_prev_i_k_m[i][sampled_k][m];
+					// assert(_p_s_given_prev == p_s_given_prev);
+					__prob_table[m] = p_s_given_prev * __forward_table[i - 1][m];
+					sum_prob += p_s_given_prev * __forward_table[i - 1][m];
 				}
 			}
 			double normalizer = 1.0 / sum_prob;
@@ -1354,13 +1368,162 @@ namespace ithmm {
 		}
 		// for(int i = 0;i < sentence.size();i++){
 		// 	delete[] __forward_table[i];
-		// 	delete[] __p_s_given_prev_i_m[i];
+		// 	delete[] __p_s_given_prev_i_k_m[i];
 		// 	delete[] __pool[i];
 		// }
 		// delete[] __forward_table;
-		// delete[] __p_s_given_prev_i_m;
+		// delete[] __p_s_given_prev_i_k_m;
 		// delete[] __pool;
 		// delete[] __prob_table;
+	}
+
+	// Embedded HMMによる前向き確率の計算
+	// https://papers.nips.cc/paper/2391-inferring-state-sequences-for-non-linear-systems-with-embedded-hidden-markov-models.pdf
+	void iTHMM::_draw_state_sequence(std::vector<Word*> &sentence, int pool_size, std::vector<Node*> &sampled_sequence){
+		// あらかじめ全HTSSBの棒の長さを計算しておく
+		std::vector<Node*> nodes;
+		enumerate_all_states(nodes);
+		precompute_all_stick_lengths(nodes);
+		update_stick_length_of_tssb(_structure_tssb, 1.0);
+		// プールを作る
+		Node*** pool = new Node**[sentence.size()];
+		for(int i = 0;i < sentence.size();i++){
+			pool[i] = new Node*[pool_size];
+			Node* state = sentence[i]->_state;
+			pool[i][0] = state;		// 現在の状態は必ずプールに入る
+			for(int n = 0;n < pool_size - 1;n++){
+				double uniform = sampler::uniform(0, 1);
+				pool[i][n + 1] = retrospective_sampling(uniform, _structure_tssb, 1.0);	// 状態をランダムにサンプリングしてプールを作る
+			}
+		}
+		// 前向き計算
+		double** forward_table = new double*[sentence.size()];
+		for(int i = 0;i < sentence.size();i++){
+			forward_table[i] = new double[pool_size];
+		}
+
+		// <bos>からの遷移
+		update_stick_length_of_tssb(_bos_tssb, 1.0);
+		Word* word = sentence[0];
+		double z = 0;
+		for(int k = 0;k < pool_size;k++){
+			Node* state = pool[0][k];
+			Node* state_in_bos = _bos_tssb->find_node_by_tracing_horizontal_indices(state);
+			assert(state_in_bos != NULL);
+			double p_s = state_in_bos->_probability;
+			assert(state->_probability > 0);
+			double p_w_given_s = compute_p_w_given_s(word->_id, state) / state->_probability; // Embedded HMMでは出力確率をρで割る
+			// std::cout << compute_p_w_given_s(word->_id, state) << " / " << state->_probability << std::endl;
+			assert(p_s > 0);
+			assert(p_w_given_s > 0);
+			forward_table[0][k] = p_w_given_s * p_s;
+			// std::cout << "forward_table[0][" << k << "] = " << forward_table[0][k] << std::endl;
+			z += forward_table[0][k];
+		}
+		for(int k = 0;k < pool_size;k++){
+			forward_table[0][k] /= z;
+		}
+		// <bos>以降
+		for(int i = 1;i < sentence.size();i++){
+			Word* word = sentence[i];
+			z = 0;
+			for(int k = 0;k < pool_size;k++){
+				Node* state = pool[i][k];
+				forward_table[i][k] = 0;
+				assert(state->_probability > 0);
+				double p_w_given_s = compute_p_w_given_s(word->_id, state) / state->_probability;
+				// std::cout << compute_p_w_given_s(word->_id, state) << " / " << state->_probability << std::endl;
+				// std::cout << "p_w_given_s = " << p_w_given_s << std::endl;
+				for(int m = 0;m < pool_size;m++){
+					Node* prev_state = pool[i - 1][m];
+					TSSB* transition_tssb = prev_state->get_transition_tssb();
+					assert(transition_tssb != NULL);
+					Node* state_in_prev_htssb = transition_tssb->find_node_by_tracing_horizontal_indices(state);
+					assert(state_in_prev_htssb != NULL);
+					double p_s_given_prev = state_in_prev_htssb->_probability;
+					forward_table[i][k] += p_w_given_s * p_s_given_prev * forward_table[i - 1][m];
+				}
+				// std::cout << "forward_table[" << i << "][" << k << "] = " << forward_table[i][k] << std::endl;
+				z += forward_table[i][k];
+			}
+			for(int k = 0;k < pool_size;k++){
+				forward_table[i][k] /= z;
+			}
+		}
+		// 後向きに系列をサンプリング
+		double* prob_table = new double[pool_size];
+		std::vector<int> sampled_indices;
+		// まず<eos>に接続する確率を考える
+		// double sum_prob = 0;
+		// int i = sentence.size() - 1;
+		// for(int k = 0;k < pool_size;k++){
+		// 	Node* state = pool[i][k];
+		// 	double p_eos_given_s = state->compute_transition_probability_to_eos(_tau0, _tau1);
+		// 	prob_table[k] = p_eos_given_s * forward_table[i][k];
+		// 	sum_prob += p_eos_given_s;
+		// }
+		// double normalizer = 1.0 / sum_prob;
+		// double uniform = sampler::uniform(0, 1);
+		// double stack = 0;
+		int sampled_k = pool_size - 1;
+		// for(int k = 0;k < pool_size;k++){
+		// 	stack += prob_table[k] * normalizer;
+		// 	if(stack >= uniform){
+		// 		sampled_k = k;
+		// 		break;
+		// 	}
+		// }
+		// sampled_indices.push_back(sampled_k);
+		// それ以外の部分
+		for(int i = sentence.size();i >= 1;i--){
+			double sum_prob = 0;
+			for(int k = 0;k < pool_size;k++){
+				if(i == sentence.size()){
+					Node* prev_state = pool[i - 1][k];
+					double p_eos_given_s = prev_state->compute_transition_probability_to_eos(_tau0, _tau1);
+					prob_table[k] = p_eos_given_s * forward_table[i - 1][k];
+					sum_prob += p_eos_given_s;
+				}else{
+					Node* state = pool[i][sampled_k];
+					Node* prev_state = pool[i - 1][k];
+					TSSB* transition_tssb = prev_state->get_transition_tssb();
+					assert(transition_tssb != NULL);
+					Node* state_in_prev_htssb = transition_tssb->find_node_by_tracing_horizontal_indices(state);
+					assert(state_in_prev_htssb != NULL);
+					double p_s_given_prev = state_in_prev_htssb->_probability;
+					prob_table[k] = p_s_given_prev * forward_table[i - 1][k];
+					sum_prob += p_s_given_prev * forward_table[i - 1][k];
+				}
+			}
+			double normalizer = 1.0 / sum_prob;
+			double uniform = sampler::uniform(0, 1);
+			double stack = 0;
+			sampled_k = pool_size - 1;
+			for(int k = 0;k < pool_size;k++){
+				stack += prob_table[k] * normalizer;
+				if(stack >= uniform){
+					sampled_k = k;
+					break;
+				}
+			}
+			sampled_indices.push_back(sampled_k);
+		}
+		assert(sampled_indices.size() == sentence.size());
+		// インデックス系列から状態系列へ
+		// sampled_indicesは逆向きに並んでいるので注意
+		sampled_sequence.clear();
+		sampled_sequence.resize(sentence.size());
+		for(int i = sentence.size() - 1;i >= 0;i--){
+			int t = sentence.size() - i - 1;
+			sampled_sequence[t] = pool[t][sampled_indices[i]];
+		}
+		for(int i = 0;i < sentence.size();i++){
+			delete[] forward_table[i];
+			delete[] pool[i];
+		}
+		delete[] forward_table;
+		delete[] pool;
+		delete[] prob_table;
 	}
 	void iTHMM::add_customer_to_hpylm(Node* target_in_structure, int token_id){
 		// std::cout << "iTHMM::add_customer_to_hpylm: " << target_in_structure->_dump_indices() << " <- " << token_id << std::endl;
