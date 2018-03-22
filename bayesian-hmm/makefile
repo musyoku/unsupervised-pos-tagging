@@ -5,10 +5,10 @@ LDFLAGS = `python3-config --ldflags` -lboost_serialization -lboost_python3 -L$(B
 SOFLAGS = -shared -fPIC
 
 install: ## Python用ライブラリをビルドします.
-	$(CC) $(INCLUDE) $(LDFLAGS) $(SOFLAGS) src/python.cpp src/bhmm/*.cpp src/python/*.cpp -o run/bhmm.so -O3
+	$(CC) $(INCLUDE) $(SOFLAGS) src/python.cpp src/bhmm/*.cpp src/python/*.cpp -o run/bhmm.so -O3 $(LDFLAGS)
 
 install_ubuntu: ## Python用ライブラリをビルドします.
-	$(CC) -Wl,--no-as-needed -Wno-deprecated $(INCLUDE) $(LDFLAGS) $(SOFLAGS) src/python.cpp src/bhmm/*.cpp src/python/*.cpp -o run/bhmm.so -O3
+	$(CC) -Wl,--no-as-needed -Wno-deprecated -Wl,--no-undefined $(INCLUDE) $(SOFLAGS) src/python.cpp src/bhmm/*.cpp src/python/*.cpp -o run/bhmm.so -O3  $(LDFLAGS)
 
 check_includes:	## Python.hの場所を確認
 	python3-config --includes
